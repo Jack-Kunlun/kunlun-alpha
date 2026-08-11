@@ -3,6 +3,10 @@ name = "ashare-common"
 version = "0.0.0"
 description = "A-Share shared utilities and domain types"
 requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+]
 
 [build-system]
 requires = ["hatchling"]

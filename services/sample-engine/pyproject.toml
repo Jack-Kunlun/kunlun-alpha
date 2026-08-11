@@ -1,0 +1,18 @@
+[project]
+name = "sample-engine"
+version = "0.0.0"
+description = "Sample service demonstrating engine lifecycle"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "ashare-common",
+]
+
+[tool.uv.sources]
+ashare-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+sample-engine = "sample_engine.main:main_cli"
