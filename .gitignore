@@ -1,0 +1,6 @@
+# Local scratch files and generated intermediate artifacts
+work/
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
