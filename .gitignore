@@ -1,6 +1,62 @@
-# Local scratch files and generated intermediate artifacts
-work/
+# Dependencies
+node_modules/
+.pnpm-store/
 
-# Python runtime artifacts
+# Build outputs
+dist/
+build/
+.next/
+.turbo/
+
+# Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Local data and scratch
+work/
+tmp/
+temp/
+data/
+
+# Infrastructure volumes
+infra/volumes/
+
+# Research artifacts (keep notebooks, ignore cache)
+research/cache/
+.ipynb_checkpoints/
+
+# Generated contracts
+**/generated/
+
+# Code coverage
+coverage/
+.nyc_output/
