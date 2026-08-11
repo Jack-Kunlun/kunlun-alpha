@@ -1,28 +1,14 @@
 import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
 
 export function NotFound() {
   return (
-    <div style={{ textAlign: "center", paddingTop: 80 }}>
-      <h2 style={{ fontSize: 48, fontWeight: 700, color: "var(--color-muted)" }}>
-        404
-      </h2>
-      <p style={{ marginTop: 12, color: "var(--color-muted)" }}>
-        页面不存在
-      </p>
-      <Link
-        to="/"
-        style={{
-          display: "inline-block",
-          marginTop: 24,
-          padding: "8px 20px",
-          color: "#fff",
-          background: "var(--color-primary)",
-          borderRadius: 6,
-          textDecoration: "none",
-        }}
-      >
-        返回首页
-      </Link>
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <h2 className="text-6xl font-bold text-muted-foreground/30">404</h2>
+      <p className="mt-4 text-muted-foreground">页面不存在</p>
+      <Button asChild className="mt-6" variant="default">
+        <Link to="/">返回首页</Link>
+      </Button>
     </div>
   );
 }
