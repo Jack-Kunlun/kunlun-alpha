@@ -1,0 +1,11 @@
+{
+  "name": "@kunlun/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared TypeScript and lint configuration for the Kunlun Alpha monorepo",
+  "files": [
+    "tsconfig.base.json",
+    "tsconfig.react.json",
+    "tsconfig.nest.json"
+  ]
+}
