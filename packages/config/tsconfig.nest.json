@@ -3,10 +3,8 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "module": "CommonJS",
-    "moduleResolution": "node",
+    "moduleResolution": "node10",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
+    "emitDecoratorMetadata": true
   }
 }

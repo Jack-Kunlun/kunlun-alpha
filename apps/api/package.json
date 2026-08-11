@@ -1,0 +1,31 @@
+{
+  "name": "@kunlun/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "nest start",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kunlun/shared-types": "workspace:*",
+    "@nestjs/common": "^11.0",
+    "@nestjs/core": "^11.0",
+    "@nestjs/platform-express": "^11.0",
+    "@nestjs/swagger": "^11.2",
+    "class-transformer": "^0.5",
+    "class-validator": "^0.14",
+    "reflect-metadata": "^0.2",
+    "rxjs": "^7.8"
+  },
+  "devDependencies": {
+    "@kunlun/config": "workspace:*",
+    "@nestjs/cli": "^11.0",
+    "@nestjs/schematics": "^11.0",
+    "@types/express": "^5.0",
+    "@types/node": "^26.2.0",
+    "typescript": "~5.7"
+  }
+}
