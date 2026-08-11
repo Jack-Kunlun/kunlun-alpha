@@ -15,7 +15,12 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "clean": "turbo clean",
-    "check": "turbo lint typecheck test"
+    "check": "turbo lint typecheck test",
+    "python:sync": "uv sync",
+    "python:lint": "uv run ruff check python/ services/",
+    "python:format": "uv run ruff format python/ services/",
+    "python:typecheck": "uv run basedpyright python/ services/",
+    "python:test": "uv run pytest"
   },
   "volta": {
     "node": "24.19.0",

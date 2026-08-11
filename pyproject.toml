@@ -12,3 +12,31 @@ members = [
     "python/packages/*",
     "services/*",
 ]
+
+# --- Dev tooling (shared across all workspace members) ---
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14",
+    "basedpyright>=1.31",
+    "pytest>=8.3",
+    "pytest-cov>=6",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["python/packages", "services"]
+python_files = ["test_*.py"]
+
+[tool.basedpyright]
+typeCheckingMode = "basic"
+pythonVersion = "3.12"

@@ -1,0 +1,9 @@
+[project]
+name = "ashare-common"
+version = "0.0.0"
+description = "A-Share shared utilities and domain types"
+requires-python = ">=3.12,<3.13"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

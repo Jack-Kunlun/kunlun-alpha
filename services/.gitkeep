@@ -1,0 +1,2 @@
+# services/ — Python engine and worker deployables
+# Each sub-directory is a uv workspace member added in P0-N09 and later.
