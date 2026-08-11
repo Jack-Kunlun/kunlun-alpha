@@ -1,0 +1,14 @@
+[project]
+name = "kunlun-alpha"
+version = "0.0.0"
+description = "昆仑智策 - A-Share Intelligence & Quant Platform"
+requires-python = ">=3.12,<3.13"
+
+[tool.uv]
+required-version = ">=0.12"
+
+[tool.uv.workspace]
+members = [
+    "python/packages/*",
+    "services/*",
+]
