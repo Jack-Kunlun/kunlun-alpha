@@ -7,6 +7,7 @@ dist/
 build/
 .next/
 .turbo/
+*.tsbuildinfo
 
 # Python
 __pycache__/

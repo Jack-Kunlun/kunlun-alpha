@@ -1,0 +1,17 @@
+{
+  "name": "@kunlun/shared-types",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@kunlun/config": "workspace:*",
+    "typescript": "~5.7"
+  }
+}
