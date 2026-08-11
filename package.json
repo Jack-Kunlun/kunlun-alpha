@@ -20,7 +20,11 @@
     "python:lint": "uv run ruff check python/ services/",
     "python:format": "uv run ruff format python/ services/",
     "python:typecheck": "uv run basedpyright python/ services/",
-    "python:test": "uv run pytest"
+    "python:test": "uv run pytest",
+    "infra:up": "docker compose -f infra/docker/docker-compose.yml --env-file infra/docker/.env up -d",
+    "infra:down": "docker compose -f infra/docker/docker-compose.yml --env-file infra/docker/.env down",
+    "infra:ps": "docker compose -f infra/docker/docker-compose.yml ps",
+    "infra:logs": "docker compose -f infra/docker/docker-compose.yml logs -f"
   },
   "volta": {
     "node": "24.19.0",

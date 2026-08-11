@@ -1,0 +1,148 @@
+# Kunlun Alpha — P0-N11 本地数据基础设施
+#
+# Usage:
+#   cp .env.example .env          # first time only
+#   docker compose up -d          # start
+#   docker compose ps             # status
+#   docker compose down           # stop (keeps volumes)
+#   docker compose down -v        # stop and delete data
+#
+# Ports:
+#   PostgreSQL:  5432
+#   Redis:       6379
+#   ClickHouse:  8123 (HTTP), 9000 (native)
+#   MinIO:       9000 (API), 9001 (console)
+
+services:
+  # ==========================================================================
+  # PostgreSQL — 业务数据 (TypeORM)
+  # ==========================================================================
+  postgres:
+    image: postgres:17-alpine
+    container_name: kunlun-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kunlun}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kunlun-local-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-kunlun}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kunlun} -d ${POSTGRES_DB:-kunlun}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    labels:
+      - "kunlun.service=postgres"
+      - "kunlun.description=Business data (TypeORM)"
+
+  # ==========================================================================
+  # Redis — 实时状态、缓存、锁、排行榜
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: kunlun-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-kunlun-local-dev}
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-kunlun-local-dev}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "kunlun.service=redis"
+      - "kunlun.description=Cache, locks, real-time state"
+
+  # ==========================================================================
+  # ClickHouse — 时序行情、情绪轮动、Feature 分析数据
+  # ==========================================================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:25-alpine
+    container_name: kunlun-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-kunlun}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-kunlun-local-dev}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-kunlun}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"   # HTTP interface
+      - "9000:9000"   # Native protocol
+    volumes:
+      - ./data/clickhouse:/var/lib/clickhouse
+      - ./init/clickhouse:/docker-entrypoint-initdb.d:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --user ${CLICKHOUSE_USER:-kunlun} --password ${CLICKHOUSE_PASSWORD:-kunlun-local-dev} --query 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "kunlun.service=clickhouse"
+      - "kunlun.description=Time-series market data & features"
+
+  # ==========================================================================
+  # MinIO — S3 兼容对象存储 (替代 COS 本地开发)
+  # ==========================================================================
+  minio:
+    image: minio/minio:RELEASE.2025-07-18T21-56-31Z
+    container_name: kunlun-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kunlun}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-kunlun-local-dev}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    volumes:
+      - ./data/minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    labels:
+      - "kunlun.service=minio"
+      - "kunlun.description=S3-compatible object storage (local COS substitute)"
+
+  # ==========================================================================
+  # MinIO Bucket Initializer — 首次启动创建默认桶
+  # ==========================================================================
+  minio-init:
+    image: minio/mc:RELEASE.2025-07-18T21-56-31Z
+    container_name: kunlun-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-kunlun} ${MINIO_ROOT_PASSWORD:-kunlun-local-dev};
+      /usr/bin/mc mb --ignore-existing local/${MINIO_DEFAULT_BUCKETS:-kunlun-data};
+      echo 'MinIO bucket ${MINIO_DEFAULT_BUCKETS:-kunlun-data} ready';
+      exit 0;
+      "
+    labels:
+      - "kunlun.service=minio-init"
+      - "kunlun.description=One-shot bucket creation"

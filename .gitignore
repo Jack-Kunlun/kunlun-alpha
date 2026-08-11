@@ -50,6 +50,7 @@ data/
 
 # Infrastructure volumes
 infra/volumes/
+infra/docker/data/
 
 # Research artifacts (keep notebooks, ignore cache)
 research/cache/
