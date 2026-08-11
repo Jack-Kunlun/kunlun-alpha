@@ -9,14 +9,14 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict
 
 
 class Status(StrEnum):
-    ok = 'ok'
-    degraded = 'degraded'
-    error = 'error'
+    ok = "ok"
+    degraded = "degraded"
+    error = "error"
 
 
 class HealthStatus(BaseModel):
     model_config = ConfigDict(
-        extra='forbid',
+        extra="forbid",
     )
     status: Status
     """

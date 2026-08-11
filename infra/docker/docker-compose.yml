@@ -12,6 +12,10 @@
 #   Redis:       6379
 #   ClickHouse:  8123 (HTTP), 9000 (native)
 #   MinIO:       9000 (API), 9001 (console)
+#   Prometheus:  9090 (metrics)
+#   Grafana:     3001 (dashboards)
+#   Loki:        3100 (logs)
+#   Tempo:       4317 (OTLP gRPC), 4318 (OTLP HTTP)
 
 services:
   # ==========================================================================
@@ -146,3 +150,111 @@ services:
     labels:
       - "kunlun.service=minio-init"
       - "kunlun.description=One-shot bucket creation"
+
+  # ==========================================================================
+  # Prometheus — 指标采集与时序存储
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v3.12.0
+    container_name: kunlun-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./data/prometheus:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "kunlun.service=prometheus"
+      - "kunlun.description=Metrics collection & TSDB"
+
+  # ==========================================================================
+  # Grafana — 可视化仪表盘
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:11.8.0
+    container_name: kunlun-grafana
+    restart: unless-stopped
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-kunlun-local-dev}
+    ports:
+      - "3001:3000"
+    volumes:
+      - ../grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ../grafana/dashboards/provisioning:/etc/grafana/provisioning/dashboards:ro
+      - ../grafana/dashboards:/etc/grafana/provisioning/dashboards/kunlun:ro
+      - ./data/grafana:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    labels:
+      - "kunlun.service=grafana"
+      - "kunlun.description=Visualization dashboards"
+
+  # ==========================================================================
+  # Loki — 日志聚合与存储
+  # ==========================================================================
+  loki:
+    image: grafana/loki:3.6.2
+    container_name: kunlun-loki
+    restart: unless-stopped
+    command: "-config.file=/etc/loki/loki-config.yml"
+    ports:
+      - "3100:3100"
+    volumes:
+      - ../loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - ./data/loki:/loki
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "kunlun.service=loki"
+      - "kunlun.description=Log aggregation"
+
+  # ==========================================================================
+  # Grafana Tempo — 分布式追踪后端
+  # ==========================================================================
+  tempo:
+    image: grafana/tempo:2.9.0
+    container_name: kunlun-tempo
+    restart: unless-stopped
+    command: "-config.file=/etc/tempo/tempo-config.yml"
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "3200:3200"   # Query frontend (for Grafana)
+    volumes:
+      - ../tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
+      - ./data/tempo:/var/tempo
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "kunlun.service=tempo"
+      - "kunlun.description=Distributed tracing backend"

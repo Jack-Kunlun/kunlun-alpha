@@ -3,6 +3,7 @@ from .config import ServiceConfig
 from .health import HealthHandler, HealthStatus
 from .lifecycle import ServiceRunner
 from .logging import setup_logging
+from .observability import init_telemetry
 
 __all__ = [
     "__version__",
@@ -10,5 +11,6 @@ __all__ = [
     "HealthStatus",
     "ServiceConfig",
     "ServiceRunner",
+    "init_telemetry",
     "setup_logging",
 ]

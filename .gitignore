@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+.pnpm-local-store/
 
 # Build outputs
 dist/
@@ -49,8 +50,8 @@ temp/
 data/
 
 # Infrastructure volumes
-infra/volumes/
 infra/docker/data/
+infra/volumes/
 
 # Research artifacts (keep notebooks, ignore cache)
 research/cache/

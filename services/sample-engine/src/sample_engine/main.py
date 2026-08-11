@@ -2,7 +2,13 @@ import asyncio
 import logging
 import sys
 
-from ashare_common import HealthHandler, ServiceConfig, ServiceRunner, setup_logging
+from ashare_common import (
+    HealthHandler,
+    ServiceConfig,
+    ServiceRunner,
+    init_telemetry,
+    setup_logging,
+)
 
 
 async def run_engine(config: ServiceConfig, health: HealthHandler) -> None:
@@ -18,6 +24,7 @@ async def run_engine(config: ServiceConfig, health: HealthHandler) -> None:
 def main() -> None:
     config = ServiceConfig()
     setup_logging(config.service_name, config.log_level)
+    init_telemetry(config.service_name)
 
     logger = logging.getLogger(__name__)
     logger.info("Starting service %s", config.service_name)
