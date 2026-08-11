@@ -3,4 +3,5 @@ packages:
   - "packages/*"
 allowBuilds:
   '@scarf/scarf': true
+  es5-ext: true
   esbuild: true
