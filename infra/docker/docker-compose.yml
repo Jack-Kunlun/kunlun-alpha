@@ -86,8 +86,8 @@ services:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-kunlun}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     ports:
-      - "8123:8123"   # HTTP interface
-      - "9000:9000"   # Native protocol
+      - "8123:8123" # HTTP interface
+      - "9000:9000" # Native protocol
     volumes:
       - ./data/clickhouse:/var/lib/clickhouse
       - ./init/clickhouse:/docker-entrypoint-initdb.d:ro
@@ -96,7 +96,11 @@ services:
         soft: 262144
         hard: 262144
     healthcheck:
-      test: ["CMD-SHELL", "clickhouse-client --user ${CLICKHOUSE_USER:-kunlun} --password ${CLICKHOUSE_PASSWORD:-kunlun-local-dev} --query 'SELECT 1'"]
+      test:
+        [
+          "CMD-SHELL",
+          "clickhouse-client --user ${CLICKHOUSE_USER:-kunlun} --password ${CLICKHOUSE_PASSWORD:-kunlun-local-dev} --query 'SELECT 1'",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -117,8 +121,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kunlun}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-kunlun-local-dev}
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Web console
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web console
     volumes:
       - ./data/minio:/data
     healthcheck:
@@ -170,7 +174,8 @@ services:
       - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./data/prometheus:/prometheus
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test:
+        ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -202,7 +207,8 @@ services:
       - prometheus
       - loki
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test:
+        ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -243,9 +249,9 @@ services:
     restart: unless-stopped
     command: "-config.file=/etc/tempo/tempo-config.yml"
     ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-      - "3200:3200"   # Query frontend (for Grafana)
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "3200:3200" # Query frontend (for Grafana)
     volumes:
       - ../tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
       - ./data/tempo:/var/tempo

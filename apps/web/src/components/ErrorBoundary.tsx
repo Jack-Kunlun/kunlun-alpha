@@ -29,9 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
             color: "var(--color-muted)",
           }}
         >
-          <h2 style={{ marginBottom: 12, color: "var(--color-text)" }}>
-            页面加载异常
-          </h2>
+          <h2 style={{ marginBottom: 12, color: "var(--color-text)" }}>页面加载异常</h2>
           <p>{this.state.error.message}</p>
         </div>
       );

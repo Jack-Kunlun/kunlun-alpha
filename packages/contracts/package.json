@@ -8,7 +8,7 @@
     "gen:python": "uv run python scripts/gen-python.py",
     "gen:all": "pnpm gen:typescript && pnpm gen:python",
     "gen:check": "pnpm gen:typescript --check && pnpm gen:python --check",
-    "lint": "echo 'ok'",
+    "lint": "eslint .",
     "typecheck": "echo 'ok'"
   },
   "devDependencies": {

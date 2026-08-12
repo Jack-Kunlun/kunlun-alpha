@@ -21,12 +21,14 @@
 ### Task 1: Create and verify root agent instructions
 
 **Files:**
+
 - Create: `AGENTS.md`
 - Read: `docs/superpowers/specs/2026-08-11-kunlun-alpha-agents-design.md`
 - Read: `docs/superpowers/plans/2026-08-11-kunlun-alpha-master-implementation-plan.md`
 - Reference: `outputs/昆仑智策项目总体规划与分阶段实施手册.docx`
 
 **Interfaces:**
+
 - Consumes: approved project design, master implementation plan, and handbook.
 - Produces: repository-wide persistent instructions loaded by compatible coding agents.
 

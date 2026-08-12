@@ -22,11 +22,13 @@
 ### Task 1: Synchronize Markdown planning and agent instructions
 
 **Files:**
+
 - Modify: `docs/superpowers/specs/2026-08-11-kunlun-alpha-master-plan-design.md`
 - Modify: `docs/superpowers/plans/2026-08-11-kunlun-alpha-master-implementation-plan.md`
 - Modify: `AGENTS.md`
 
 **Interfaces:**
+
 - Consumes: `docs/superpowers/specs/2026-08-11-precious-metals-funds-design.md`.
 - Produces: consistent product scope, domain semantics, safety boundary, and agent instructions.
 
@@ -38,11 +40,13 @@
 ### Task 2: Extend Word handbook source and node cards
 
 **Files:**
+
 - Modify: `work/build_kunlun_handbook.py`
 - Modify: `work/audit_kunlun_handbook.py`
 - Regenerate: `outputs/昆仑智策项目总体规划与分阶段实施手册.docx`
 
 **Interfaces:**
+
 - Consumes: the approved precious-metals design and existing 94-node handbook model.
 - Produces: a 98-node handbook with updated phase counts and precious-metals sections.
 

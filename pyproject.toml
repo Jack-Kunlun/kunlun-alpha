@@ -37,6 +37,10 @@ quote-style = "double"
 [tool.pytest.ini_options]
 testpaths = ["python/packages", "services"]
 python_files = ["test_*.py"]
+# - importlib: multiple `tests` packages exist (ashare-common + sample-engine)
+# - no:cacheprovider: repo is write-protected on Windows, avoid cache IO
+# - cov: unified coverage gate for the whole Python side (see P0-N13)
+addopts = "--import-mode=importlib -p no:cacheprovider --cov=python --cov=services --cov-report=term-missing:skip-covered --cov-fail-under=75"
 
 [tool.basedpyright]
 typeCheckingMode = "basic"

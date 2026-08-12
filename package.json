@@ -11,11 +11,13 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "test": "turbo test",
+    "test": "turbo test && pnpm python:test",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "clean": "turbo clean",
-    "check": "turbo lint typecheck test",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
     "python:sync": "uv sync",
     "python:lint": "uv run ruff check python/ services/",
     "python:format": "uv run ruff format python/ services/",
@@ -25,6 +27,15 @@
     "infra:down": "docker compose -f infra/docker/docker-compose.yml --env-file infra/docker/.env down",
     "infra:ps": "docker compose -f infra/docker/docker-compose.yml ps",
     "infra:logs": "docker compose -f infra/docker/docker-compose.yml logs -f"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.6",
+    "turbo": "^2.5.0",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.10"
   },
   "volta": {
     "node": "24.19.0",

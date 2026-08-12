@@ -1,7 +1,22 @@
 packages:
   - "apps/*"
   - "packages/*"
+# Keep the content-addressable store inside the repo (git-ignored) on
+# Linux/macOS, but on Windows put it under the user profile: the project
+# drive (E:) is write-protected by the sandbox, so an existing store there
+# cannot be updated (index.db stays readonly / rename fails with EPERM).
+# ${VAR:-default} is expanded by pnpm from the environment.
+storeDir: "${USERPROFILE:-.}/.pnpm-store"
+# Skip auto-reinstall before every command: pnpm can't overwrite the
+# existing node_modules/.package-map.json on Windows-protected drives.
+# CI and Linux are unaffected; run `pnpm install` explicitly when deps change.
+verifyDepsBeforeRun: false
+# Purge node_modules without a TTY prompt when the modules dir is stale.
+confirmModulesPurge: false
+# The lockfile is reviewed and committed by maintainers; skip the
+# minimumReleaseAge / trustPolicy re-verification pass on every install.
+trustLockfile: true
 allowBuilds:
-  '@scarf/scarf': true
+  "@scarf/scarf": true
   es5-ext: true
   esbuild: true

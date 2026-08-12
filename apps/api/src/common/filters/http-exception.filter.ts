@@ -1,13 +1,7 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from "@nestjs/common";
-import { Request, Response } from "express";
-import { ErrorResponseDto } from "../dto/error-response.dto";
+import { Catch, HttpException, HttpStatus, Logger } from "@nestjs/common";
+import type { ArgumentsHost, ExceptionFilter } from "@nestjs/common";
+import type { Request, Response } from "express";
+import type { ErrorResponseDto } from "../dto/error-response.dto";
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -28,7 +22,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message =
         typeof exResponse === "string"
           ? exResponse
-          : (exResponse as Record<string, unknown>)["message"] as string ?? exception.message;
+          : (((exResponse as Record<string, unknown>)["message"] as string) ?? exception.message);
       code = HttpStatus[status] ?? "UNKNOWN_ERROR";
     } else {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -36,10 +30,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       code = "INTERNAL_SERVER_ERROR";
 
       if (exception instanceof Error) {
-        this.logger.error(
-          `Unhandled exception: ${exception.message}`,
-          exception.stack,
-        );
+        this.logger.error(`Unhandled exception: ${exception.message}`, exception.stack);
       } else {
         this.logger.error(`Unhandled non-error exception: ${String(exception)}`);
       }

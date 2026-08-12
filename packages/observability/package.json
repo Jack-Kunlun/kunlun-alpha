@@ -13,11 +13,14 @@
   },
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {},
   "devDependencies": {
     "@kunlun/config": "workspace:*",
+    "@types/node": "^26.2.0",
     "typescript": "^5.7.0"
   }
 }

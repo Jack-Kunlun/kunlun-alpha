@@ -8,14 +8,14 @@ A 股智能投研、量化研究与交易决策平台。覆盖 A 股及 ETF 的�
 
 ## 技术栈
 
-| 层 | 技术 |
-|---|---|
-| 前端 | React, TypeScript, Vite, shadcn/ui, Tailwind CSS, TradingView Lightweight Charts, Apache ECharts |
-| 控制面 | NestJS, TypeScript, PostgreSQL, TypeORM |
-| Python 引擎 | Python 3.12, FastAPI, Pydantic, Polars, DuckDB, PyArrow |
-| 数据 | PostgreSQL（业务状态）, ClickHouse（时序/分析）, Redis（缓存/实时）, MinIO/COS（对象存储） |
-| 工程 | Turborepo + pnpm workspace, uv workspace, Docker Compose |
-| 可观测 | OpenTelemetry, Prometheus, Grafana, Loki |
+| 层          | 技术                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------ |
+| 前端        | React, TypeScript, Vite, shadcn/ui, Tailwind CSS, TradingView Lightweight Charts, Apache ECharts |
+| 控制面      | NestJS, TypeScript, PostgreSQL, TypeORM                                                          |
+| Python 引擎 | Python 3.12, FastAPI, Pydantic, Polars, DuckDB, PyArrow                                          |
+| 数据        | PostgreSQL（业务状态）, ClickHouse（时序/分析）, Redis（缓存/实时）, MinIO/COS（对象存储）       |
+| 工程        | Turborepo + pnpm workspace, uv workspace, Docker Compose                                         |
+| 可观测      | OpenTelemetry, Prometheus, Grafana, Loki                                                         |
 
 ## 项目结构
 
@@ -33,16 +33,16 @@ scripts/              跨平台开发、CI 和运维入口
 
 ## 开发阶段
 
-| 阶段 | 主题 | 节点数 |
-|---|---|---|
-| Phase 0 | 工程基础设施 | 15 |
-| Phase 1 | A 股数据底座 | 14 |
-| Phase 2 | 市场情绪与板块轮动 | 10 |
-| Phase 3 | 新闻、事件与热点 Intelligence | 10 |
-| Phase 4 | 龙虎榜席位与 KOL Intelligence | 10 |
-| Phase 5 | Feature Store、量化研究与回测 | 14 |
-| Phase 6 | 智能决策终端与模拟组合 | 13 |
-| Phase 7 | QMT、独立风控与实盘交易 | 12 |
+| 阶段    | 主题                          | 节点数 |
+| ------- | ----------------------------- | ------ |
+| Phase 0 | 工程基础设施                  | 15     |
+| Phase 1 | A 股数据底座                  | 14     |
+| Phase 2 | 市场情绪与板块轮动            | 10     |
+| Phase 3 | 新闻、事件与热点 Intelligence | 10     |
+| Phase 4 | 龙虎榜席位与 KOL Intelligence | 10     |
+| Phase 5 | Feature Store、量化研究与回测 | 14     |
+| Phase 6 | 智能决策终端与模拟组合        | 13     |
+| Phase 7 | QMT、独立风控与实盘交易       | 12     |
 
 完整实施手册见 `outputs/昆仑智策项目总体规划与分阶段实施手册.docx`。
 

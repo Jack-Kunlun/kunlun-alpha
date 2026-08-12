@@ -4,12 +4,12 @@
 
 ## 锁定版本
 
-| 工具 | 版本 | 状态 | 锁定日期 |
-|---|---|---|---|
-| Node.js | 24.19.0 | Active LTS | 2026-08-11 |
-| pnpm | 11.21.0 | Current | 2026-08-11 |
-| Python | 3.12.13 | Security-only | 2026-08-11 |
-| uv | 0.12.3 | Current | 2026-08-11 |
+| 工具    | 版本    | 状态          | 锁定日期   |
+| ------- | ------- | ------------- | ---------- |
+| Node.js | 24.19.0 | Active LTS    | 2026-08-11 |
+| pnpm    | 11.21.0 | Current       | 2026-08-11 |
+| Python  | 3.12.13 | Security-only | 2026-08-11 |
+| uv      | 0.12.3  | Current       | 2026-08-11 |
 
 ## 版本选择依据
 
@@ -20,15 +20,15 @@
 
 ## 配置方式
 
-| 方式 | 文件 | 适用范围 |
-|---|---|---|
-| `.node-version` | 根目录 | fnm/nodenv/asdf 等版本管理器 |
-| `package.json#engines` | 根目录 | pnpm/npm 运行时约束 |
-| `package.json#packageManager` | 根目录 | Corepack 自动切换 |
-| `package.json#volta` | 根目录 | Volta 版本管理器 |
-| `.python-version` | 根目录 | pyenv/asdf 等版本管理器 |
-| `pyproject.toml#requires-python` | 根目录 | uv/pip 依赖解析约束 |
-| `pyproject.toml#[tool.uv].required-version` | 根目录 | uv 自身版本约束 |
+| 方式                                        | 文件   | 适用范围                     |
+| ------------------------------------------- | ------ | ---------------------------- |
+| `.node-version`                             | 根目录 | fnm/nodenv/asdf 等版本管理器 |
+| `package.json#engines`                      | 根目录 | pnpm/npm 运行时约束          |
+| `package.json#packageManager`               | 根目录 | Corepack 自动切换            |
+| `package.json#volta`                        | 根目录 | Volta 版本管理器             |
+| `.python-version`                           | 根目录 | pyenv/asdf 等版本管理器      |
+| `pyproject.toml#requires-python`            | 根目录 | uv/pip 依赖解析约束          |
+| `pyproject.toml#[tool.uv].required-version` | 根目录 | uv 自身版本约束              |
 
 ## 升级策略
 

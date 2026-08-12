@@ -11,9 +11,7 @@ export function Home() {
             <CardTitle className="text-2xl">{env.TITLE}</CardTitle>
             <Badge variant="secondary">v0.0.0</Badge>
           </div>
-          <CardDescription className="text-base">
-            观势 · 知势 · 策势
-          </CardDescription>
+          <CardDescription className="text-base">观势 · 知势 · 策势</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">

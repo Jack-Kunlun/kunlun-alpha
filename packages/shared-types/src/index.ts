@@ -6,7 +6,7 @@ export interface HealthStatus {
   /**
    * Current health status
    */
-  status: 'ok' | 'degraded' | 'error';
+  status: "ok" | "degraded" | "error";
   /**
    * ISO 8601 timestamp of the check
    */
@@ -16,4 +16,3 @@ export interface HealthStatus {
    */
   version: string;
 }
-
