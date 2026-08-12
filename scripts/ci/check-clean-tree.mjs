@@ -20,9 +20,7 @@ const status = execFileSync("git", ["status", "--porcelain"], {
 if (status.length > 0) {
   console.error("[check-clean-tree] Working tree is dirty after build:");
   console.error(status);
-  console.error(
-    "\nExpected a clean tree. Add ignored paths to .gitignore or fix generators.",
-  );
+  console.error("\nExpected a clean tree. Add ignored paths to .gitignore or fix generators.");
   process.exit(1);
 }
 

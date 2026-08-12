@@ -17,8 +17,7 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
 // Binary extensions from .gitattributes + common build/asset formats.
-const BINARY_RE =
-  /\.(png|jpg|jpeg|gif|pdf|docx|xlsx|parquet|woff2?|eot|ttf|ico|zip|gz|lockb?)$/i;
+const BINARY_RE = /\.(png|jpg|jpeg|gif|pdf|docx|xlsx|parquet|woff2?|eot|ttf|ico|zip|gz|lockb?)$/i;
 // Files configured with `text eol=crlf`.
 const CRLF_RE = /\.(bat|cmd)$/i;
 
@@ -52,6 +51,4 @@ if (offenders.length > 0) {
   process.exit(1);
 }
 
-console.log(
-  `[check-line-endings] OK: ${tracked.length} text files, LF-only.`,
-);
+console.log(`[check-line-endings] OK: ${tracked.length} text files, LF-only.`);

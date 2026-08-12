@@ -48,17 +48,26 @@ scripts/              跨平台开发、CI 和运维入口
 
 ## 开发
 
-开发遵循 AGENTS.md 中定义的 WorkBuddy/Codex 协作流程。所有更改按单节点粒度推进。
+完整的环境搭建见 [开发者启动手册](./docs/development/index.md)。快速开始：
 
 ```bash
-# 安装和启动（待 Phase 0 完成后可用）
-pnpm install
+# 1. 安装依赖（Node + Python）
+pnpm install --frozen-lockfile
+uv sync --locked
+
+# 2. 启动本地数据基础设施（首次需 cp infra/docker/.env.example infra/docker/.env）
+pnpm infra:up
+
+# 3. 启动应用（API:3001, Web:5173）
 pnpm dev
 ```
+
+质量门禁：`pnpm check`（format + lint + typecheck + vitest + pytest）。所有更改按 AGENTS.md 中的节点粒度推进，并遵循该文件定义的 WorkBuddy/Codex 协作流程。
 
 ## 文档
 
 - [AGENTS.md](./AGENTS.md) — 仓库级 Agent 操作规范
+- [开发者启动手册](./docs/development/index.md) — 环境搭建、启动、端口与故障排查
 - [项目设计稿](./docs/superpowers/specs/)
 - [实施计划](./docs/superpowers/plans/)
 - [架构决策记录](./docs/adr/)
