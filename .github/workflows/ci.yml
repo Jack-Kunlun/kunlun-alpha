@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "11.21.0"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # Three-OS matrix. All checks are read-only commands routed through
+  # pnpm / uv / node scripts (no Bash-specific syntax), so the exact same
+  # steps run on every runner. Linux additionally builds all packages and
+  # asserts the tree stays clean afterwards.
+  quality-gates:
+    name: gates (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Bootstrap (pnpm)
+        run: pnpm install --frozen-lockfile
+
+      - name: Bootstrap (uv)
+        run: uv sync --locked
+
+      - name: Line endings
+        run: node scripts/ci/check-line-endings.mjs
+
+      # format:check + eslint + ruff + tsc + basedpyright + vitest + pytest
+      # (single cross-platform entry, see root package.json)
+      - name: Quality gates
+        run: pnpm check
+
+      - name: Build (all packages)
+        if: runner.os == 'Linux'
+        run: pnpm build
+
+      - name: Clean tree (artifacts gitignored)
+        if: runner.os == 'Linux'
+        run: node scripts/ci/check-clean-tree.mjs
