@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/emotion/limit-event.json",
+  "title": "LimitEvent",
+  "description": "A single limit-up/limit-down fact: seal, seal break, or open count",
+  "type": "object",
+  "properties": {
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}\\.\\d{6}$",
+      "description": "Instrument unified code"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange code"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Trading day in Asia/Shanghai"
+    },
+    "eventType": {
+      "enum": ["LIMIT_UP", "LIMIT_DOWN", "SEAL", "BREAK_SEAL", "OPEN_COUNT"],
+      "description": "LIMIT_UP / LIMIT_DOWN / SEAL / BREAK_SEAL / OPEN_COUNT"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event time, UTC ISO 8601"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Event price in CNY"
+    },
+    "openCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of times the seal has been opened"
+    }
+  },
+  "required": ["unifiedCode", "exchange", "date", "eventType", "timestamp", "price"],
+  "additionalProperties": false
+}

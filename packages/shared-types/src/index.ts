@@ -78,6 +78,74 @@ export interface TradingSession {
 }
 
 /**
+ * A single limit-up/limit-down fact: seal, seal break, or open count
+ */
+export interface LimitEvent {
+  /**
+   * Instrument unified code
+   */
+  unifiedCode: string;
+  /**
+   * Exchange code
+   */
+  exchange: "SH" | "SZ" | "BJ";
+  /**
+   * Trading day in Asia/Shanghai
+   */
+  date: string;
+  /**
+   * LIMIT_UP / LIMIT_DOWN / SEAL / BREAK_SEAL / OPEN_COUNT
+   */
+  eventType: "LIMIT_UP" | "LIMIT_DOWN" | "SEAL" | "BREAK_SEAL" | "OPEN_COUNT";
+  /**
+   * Event time, UTC ISO 8601
+   */
+  timestamp: string;
+  /**
+   * Event price in CNY
+   */
+  price: number;
+  /**
+   * Number of times the seal has been opened
+   */
+  openCount?: number;
+}
+
+/**
+ * A point-in-time snapshot of the limit-up/limit-down pool
+ */
+export interface LimitPoolSnapshot {
+  /**
+   * Trading day in Asia/Shanghai
+   */
+  date: string;
+  /**
+   * Snapshot time, UTC ISO 8601
+   */
+  timestamp: string;
+  /**
+   * Number of limit-up instruments
+   */
+  limitUpCount: number;
+  /**
+   * Number of limit-down instruments
+   */
+  limitDownCount: number;
+  /**
+   * Number of sealed (unopened) limit-up instruments
+   */
+  sealedCount: number;
+  /**
+   * Limit-up unified codes
+   */
+  limitUpInstruments?: string[];
+  /**
+   * Limit-down unified codes
+   */
+  limitDownInstruments?: string[];
+}
+
+/**
  * Exchange-traded precious-metal fund metadata; the underlying commodity is explicit and never inferred from the product name
  */
 export interface PreciousMetalFund {

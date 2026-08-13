@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/emotion/limit-pool-snapshot.json",
+  "title": "LimitPoolSnapshot",
+  "description": "A point-in-time snapshot of the limit-up/limit-down pool",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Trading day in Asia/Shanghai"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Snapshot time, UTC ISO 8601"
+    },
+    "limitUpCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of limit-up instruments"
+    },
+    "limitDownCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of limit-down instruments"
+    },
+    "sealedCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of sealed (unopened) limit-up instruments"
+    },
+    "limitUpInstruments": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Limit-up unified codes"
+    },
+    "limitDownInstruments": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Limit-down unified codes"
+    }
+  },
+  "required": ["date", "timestamp", "limitUpCount", "limitDownCount", "sealedCount"],
+  "additionalProperties": false
+}

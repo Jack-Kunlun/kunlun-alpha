@@ -7,8 +7,10 @@ members = [
     "ashare-common",
     "ashare-contracts",
     "data-worker",
+    "emotion-core",
     "kunlun-alpha",
     "market-core",
+    "rotation-core",
     "sample-engine",
 ]
 
@@ -223,6 +225,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/14/4b/4652f0bb085a564982c3e515a0b02bcee21765ddac967bcf152a70d2af14/datamodel_code_generator-0.72.3.tar.gz", hash = "sha256:a20160de09b76d4a293ccba5a9ee5c341b5365890237ac1ff812f420e4c09f3b", size = 1965678, upload-time = "2026-08-10T18:58:41.636Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/84/fd/9d8a0594aedcc6ee8133b21dd3543d6021842e013058803a69918720d0aa/datamodel_code_generator-0.72.3-py3-none-any.whl", hash = "sha256:4536f6dd12dd86c9c7a78b16ef83ae9aa7a9cbdb8bef8a3b63baa4ad9d3d3829", size = 554226, upload-time = "2026-08-10T18:58:40.087Z" },
+]
+
+[[package]]
+name = "emotion-core"
+version = "0.0.0"
+source = { editable = "python/packages/emotion-core" }
+dependencies = [
+    { name = "ashare-contracts" },
+    { name = "market-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ashare-contracts", editable = "python/packages/ashare-contracts" },
+    { name = "market-core", editable = "python/packages/market-core" },
 ]
 
 [[package]]
@@ -685,6 +702,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ac/c3/e2a2b89f2d3e2179abd6d00ebd70bff6273f37fb3e0cc209f48b39d00cbf/requests-2.34.2.tar.gz", hash = "sha256:f288924cae4e29463698d6d60bc6a4da69c89185ad1e0bcc4104f584e960b9ed", size = 142856, upload-time = "2026-05-14T19:25:27.735Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl", hash = "sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0", size = 73075, upload-time = "2026-05-14T19:25:26.443Z" },
+]
+
+[[package]]
+name = "rotation-core"
+version = "0.0.0"
+source = { editable = "python/packages/rotation-core" }
+dependencies = [
+    { name = "ashare-contracts" },
+    { name = "market-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ashare-contracts", editable = "python/packages/ashare-contracts" },
+    { name = "market-core", editable = "python/packages/market-core" },
 ]
 
 [[package]]
