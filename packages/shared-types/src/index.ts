@@ -488,3 +488,67 @@ export interface Tick {
    */
   tradeType: "MATCH" | "AUCTION" | "BLOCK";
 }
+
+/**
+ * An instrument's membership in a sector, with a validity window and source
+ */
+export interface SectorMembership {
+  /**
+   * Instrument unified code
+   */
+  unifiedCode: string;
+  /**
+   * Sector id
+   */
+  sectorId: string;
+  /**
+   * Start of membership validity
+   */
+  validFrom: string;
+  /**
+   * End of membership validity, null means current
+   */
+  validTo?: string | null;
+  /**
+   * Data source provenance
+   */
+  source: string;
+}
+
+/**
+ * A sector node in the taxonomy: industry, concept or theme with hierarchy, aliases and validity
+ */
+export interface Sector {
+  /**
+   * Stable sector id
+   */
+  sectorId: string;
+  /**
+   * Display name
+   */
+  name: string;
+  /**
+   * Parent sector id (null for a root)
+   */
+  parentId?: string | null;
+  /**
+   * INDUSTRY / CONCEPT / THEME
+   */
+  kind: "INDUSTRY" | "CONCEPT" | "THEME";
+  /**
+   * Data source provenance
+   */
+  source: string;
+  /**
+   * Start of validity
+   */
+  validFrom: string;
+  /**
+   * End of validity, null means current
+   */
+  validTo?: string | null;
+  /**
+   * Alternative names
+   */
+  aliases: string[];
+}
