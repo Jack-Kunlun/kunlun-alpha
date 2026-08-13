@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/instrument/instrument.json",
+  "title": "Instrument",
+  "description": "Unified security master identity. The unifiedCode is the single domain key; external formats must be normalized before entering the domain layer",
+  "type": "object",
+  "properties": {
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}\\.\\d{6}$",
+      "description": "Unified domain key in the form {EXCHANGE}.{code}, e.g. SH.600000"
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^\\d{6}$",
+      "description": "Raw 6-digit exchange code"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange code; must match the unifiedCode prefix"
+    },
+    "board": {
+      "enum": ["MAIN", "CHINEXT", "STAR", "BSE"],
+      "description": "Listing board"
+    },
+    "type": {
+      "enum": ["STOCK", "ETF", "LOF", "FUND"],
+      "description": "Security type: STOCK / ETF / LOF / FUND"
+    },
+    "name": {
+      "type": "string",
+      "description": "Security display name"
+    },
+    "tradingStatus": {
+      "enum": ["LISTED", "SUSPENDED", "ST", "DELISTED"],
+      "description": "Trading status; ST and delisting are fields, not code changes"
+    },
+    "currency": {
+      "enum": ["CNY"],
+      "description": "Trading currency"
+    },
+    "listDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Optional first listing date (ISO 8601 date)"
+    },
+    "delistDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Optional delisting date (ISO 8601 date)"
+    }
+  },
+  "required": ["unifiedCode", "code", "exchange", "board", "type", "name", "tradingStatus", "currency"],
+  "additionalProperties": false
+}

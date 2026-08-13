@@ -29,6 +29,9 @@ export default tseslint.config(
       "apps/api/src/**/*.js",
       // Generated schema outputs.
       "packages/contracts/generated/**",
+      // Runtime data / vendored code (kept out of git via .gitignore).
+      "infra/docker/data/**",
+      ".venv-*/**",
     ],
   },
   ...tseslint.configs.recommended,

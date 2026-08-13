@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/instrument/exchange.json",
+  "title": "Exchange",
+  "description": "Securities exchange identity used by the unified instrument code",
+  "type": "object",
+  "properties": {
+    "code": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange code used in the unified instrument code (SH.600000)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Full exchange name in Chinese"
+    },
+    "abbreviation": {
+      "type": "string",
+      "description": "Common Chinese short name"
+    },
+    "mic": {
+      "type": "string",
+      "description": "ISO 10383 Market Identifier Code (XSHG / XSHE / XBES)"
+    },
+    "country": {
+      "enum": ["CN"],
+      "description": "ISO 3166-1 alpha-2 country code"
+    },
+    "currency": {
+      "enum": ["CNY"],
+      "description": "Settlement currency of the exchange"
+    }
+  },
+  "required": ["code", "name", "abbreviation", "mic", "country", "currency"],
+  "additionalProperties": false
+}

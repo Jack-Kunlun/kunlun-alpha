@@ -1,0 +1,49 @@
+{
+  "$comment": "A-share 6-digit code prefix table — single source of truth for both TS and Python code parsers. Match longest prefix first. Scope: exchange-listed STOCK / ETF / LOF / FUND on SH, SZ, BJ.",
+  "rules": [
+    { "prefix": "600", "exchange": "SH", "board": "MAIN", "type": "STOCK" },
+    { "prefix": "601", "exchange": "SH", "board": "MAIN", "type": "STOCK" },
+    { "prefix": "603", "exchange": "SH", "board": "MAIN", "type": "STOCK" },
+    { "prefix": "605", "exchange": "SH", "board": "MAIN", "type": "STOCK" },
+    { "prefix": "688", "exchange": "SH", "board": "STAR", "type": "STOCK" },
+    { "prefix": "689", "exchange": "SH", "board": "STAR", "type": "STOCK" },
+
+    { "prefix": "510", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "511", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "512", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "513", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "515", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "516", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "517", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "518", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "560", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "561", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "562", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "563", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "564", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "588", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+    { "prefix": "589", "exchange": "SH", "board": "MAIN", "type": "ETF" },
+
+    { "prefix": "501", "exchange": "SH", "board": "MAIN", "type": "LOF" },
+
+    { "prefix": "000", "exchange": "SZ", "board": "MAIN", "type": "STOCK" },
+    { "prefix": "001", "exchange": "SZ", "board": "MAIN", "type": "STOCK" },
+    { "prefix": "002", "exchange": "SZ", "board": "MAIN", "type": "STOCK" },
+    { "prefix": "003", "exchange": "SZ", "board": "MAIN", "type": "STOCK" },
+    { "prefix": "300", "exchange": "SZ", "board": "CHINEXT", "type": "STOCK" },
+    { "prefix": "301", "exchange": "SZ", "board": "CHINEXT", "type": "STOCK" },
+    { "prefix": "302", "exchange": "SZ", "board": "CHINEXT", "type": "STOCK" },
+
+    { "prefix": "159", "exchange": "SZ", "board": "MAIN", "type": "ETF" },
+
+    { "prefix": "50", "exchange": "SH", "board": "MAIN", "type": "FUND" },
+    { "prefix": "15", "exchange": "SZ", "board": "MAIN", "type": "FUND" },
+    { "prefix": "16", "exchange": "SZ", "board": "MAIN", "type": "LOF" },
+
+    { "prefix": "43", "exchange": "BJ", "board": "BSE", "type": "STOCK" },
+    { "prefix": "83", "exchange": "BJ", "board": "BSE", "type": "STOCK" },
+    { "prefix": "87", "exchange": "BJ", "board": "BSE", "type": "STOCK" },
+    { "prefix": "88", "exchange": "BJ", "board": "BSE", "type": "STOCK" },
+    { "prefix": "92", "exchange": "BJ", "board": "BSE", "type": "STOCK" }
+  ]
+}
