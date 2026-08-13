@@ -1,0 +1,14 @@
+{
+  "$comment": "A-share market data precision rules — single source of truth for both TS (packages/contracts/src/market-data) and Python (market-core/models) validators. Prices are CNY with 2 decimal places and a 0.01 minimum increment; volumes are integer shares; amounts are CNY with 2 decimal places.",
+  "price": {
+    "decimalPlaces": 2,
+    "minIncrement": 0.01
+  },
+  "volume": {
+    "unit": "SHARES",
+    "integer": true
+  },
+  "amount": {
+    "decimalPlaces": 2
+  }
+}

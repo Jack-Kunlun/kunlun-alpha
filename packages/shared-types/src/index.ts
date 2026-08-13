@@ -202,3 +202,175 @@ export interface TradingStatus {
    */
   label: string;
 }
+
+/**
+ * Adjustment factor applied on ex-date to derive adjusted research prices
+ */
+export interface AdjustmentFactor {
+  /**
+   * Instrument unified code, e.g. SH.600000
+   */
+  unifiedCode: string;
+  /**
+   * Exchange code
+   */
+  exchange: "SH" | "SZ" | "BJ";
+  /**
+   * Ex-dividend date in Asia/Shanghai
+   */
+  date: string;
+  /**
+   * Adjustment factor, must be strictly > 0
+   */
+  factor: number;
+  /**
+   * FORWARD / BACKWARD adjustment
+   */
+  factorType: "FORWARD" | "BACKWARD";
+  /**
+   * Optional free-text note
+   */
+  note?: string;
+}
+
+/**
+ * OHLCV bar with explicit price type; adjusted (research) and raw (trade) prices stay separate
+ */
+export interface Bar {
+  /**
+   * Instrument unified code, e.g. SH.600000
+   */
+  unifiedCode: string;
+  /**
+   * Exchange code
+   */
+  exchange: "SH" | "SZ" | "BJ";
+  /**
+   * Trading day in Asia/Shanghai, e.g. 2026-08-13
+   */
+  date: string;
+  /**
+   * Bar interval: DAILY / MINUTE_1 / MINUTE_5
+   */
+  interval: "DAILY" | "MINUTE_1" | "MINUTE_5";
+  /**
+   * Session the bar belongs to
+   */
+  session: "CONTINUOUS" | "OPEN_AUCTION" | "CLOSE_AUCTION";
+  /**
+   * Bar start time, UTC ISO 8601 with millisecond precision
+   */
+  timestamp: string;
+  /**
+   * Open price in CNY
+   */
+  open: number;
+  /**
+   * High price in CNY
+   */
+  high: number;
+  /**
+   * Low price in CNY
+   */
+  low: number;
+  /**
+   * Close price in CNY
+   */
+  close: number;
+  /**
+   * Volume in shares
+   */
+  volume: number;
+  /**
+   * Turnover in CNY
+   */
+  amount: number;
+  /**
+   * RAW (trade price) / FORWARD_ADJUSTED / BACKWARD_ADJUSTED (research price)
+   */
+  priceType: "RAW" | "FORWARD_ADJUSTED" | "BACKWARD_ADJUSTED";
+  /**
+   * True when the instrument was suspended for this bar
+   */
+  suspended?: boolean;
+}
+
+/**
+ * A corporate action event: dividend, stock dividend, split or rights issue
+ */
+export interface CorporateAction {
+  /**
+   * Instrument unified code, e.g. SH.600000
+   */
+  unifiedCode: string;
+  /**
+   * Exchange code
+   */
+  exchange: "SH" | "SZ" | "BJ";
+  /**
+   * Ex-date in Asia/Shanghai
+   */
+  exDate: string;
+  /**
+   * DIVIDEND / STOCK_DIVIDEND / SPLIT / RIGHTS_ISSUE
+   */
+  actionType: "DIVIDEND" | "STOCK_DIVIDEND" | "SPLIT" | "RIGHTS_ISSUE";
+  /**
+   * Human-readable description
+   */
+  description: string;
+  /**
+   * Cash dividend per share in CNY (optional)
+   */
+  perShareCash?: number;
+  /**
+   * Stock dividend per share (optional)
+   */
+  perShareStock?: number;
+  /**
+   * Rights issue ratio (optional)
+   */
+  ratio?: number;
+}
+
+/**
+ * A single executed trade with millisecond-precision timestamp
+ */
+export interface Tick {
+  /**
+   * Instrument unified code, e.g. SH.600000
+   */
+  unifiedCode: string;
+  /**
+   * Exchange code
+   */
+  exchange: "SH" | "SZ" | "BJ";
+  /**
+   * Trading day in Asia/Shanghai, e.g. 2026-08-13
+   */
+  date: string;
+  /**
+   * Trade time, UTC ISO 8601 with millisecond precision
+   */
+  timestamp: string;
+  /**
+   * Trade price in CNY
+   */
+  price: number;
+  /**
+   * Trade volume in shares
+   */
+  volume: number;
+  /**
+   * Trade turnover in CNY
+   */
+  amount: number;
+  /**
+   * Aggressor direction: BUY / SELL / NEUTRAL
+   */
+  direction: "BUY" | "SELL" | "NEUTRAL";
+  /**
+   * MATCH / AUCTION / BLOCK
+   */
+  tradeType: "MATCH" | "AUCTION" | "BLOCK";
+}

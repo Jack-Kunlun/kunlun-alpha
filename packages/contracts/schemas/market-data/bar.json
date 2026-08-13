@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/market-data/bar.json",
+  "title": "Bar",
+  "description": "OHLCV bar with explicit price type; adjusted (research) and raw (trade) prices stay separate",
+  "type": "object",
+  "properties": {
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}\\.\\d{6}$",
+      "description": "Instrument unified code, e.g. SH.600000"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange code"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Trading day in Asia/Shanghai, e.g. 2026-08-13"
+    },
+    "interval": {
+      "enum": ["DAILY", "MINUTE_1", "MINUTE_5"],
+      "description": "Bar interval: DAILY / MINUTE_1 / MINUTE_5"
+    },
+    "session": {
+      "enum": ["CONTINUOUS", "OPEN_AUCTION", "CLOSE_AUCTION"],
+      "description": "Session the bar belongs to"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Bar start time, UTC ISO 8601 with millisecond precision"
+    },
+    "open": { "type": "number", "minimum": 0, "description": "Open price in CNY" },
+    "high": { "type": "number", "minimum": 0, "description": "High price in CNY" },
+    "low": { "type": "number", "minimum": 0, "description": "Low price in CNY" },
+    "close": { "type": "number", "minimum": 0, "description": "Close price in CNY" },
+    "volume": { "type": "integer", "minimum": 0, "description": "Volume in shares" },
+    "amount": { "type": "number", "minimum": 0, "description": "Turnover in CNY" },
+    "priceType": {
+      "enum": ["RAW", "FORWARD_ADJUSTED", "BACKWARD_ADJUSTED"],
+      "description": "RAW (trade price) / FORWARD_ADJUSTED / BACKWARD_ADJUSTED (research price)"
+    },
+    "suspended": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the instrument was suspended for this bar"
+    }
+  },
+  "required": [
+    "unifiedCode",
+    "exchange",
+    "date",
+    "interval",
+    "session",
+    "timestamp",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "amount",
+    "priceType"
+  ],
+  "additionalProperties": false
+}

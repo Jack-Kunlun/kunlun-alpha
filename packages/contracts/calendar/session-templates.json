@@ -4,27 +4,105 @@
   "exchanges": {
     "SH": {
       "sessions": [
-        { "sessionId": "open-auction", "kind": "OPEN_AUCTION", "start": "09:15", "end": "09:25", "exchange": "SH" },
-        { "sessionId": "morning", "kind": "CONTINUOUS", "start": "09:30", "end": "11:30", "exchange": "SH" },
-        { "sessionId": "lunch-break", "kind": "BREAK", "start": "11:30", "end": "13:00", "exchange": "SH" },
-        { "sessionId": "afternoon", "kind": "CONTINUOUS", "start": "13:00", "end": "15:00", "exchange": "SH" }
+        {
+          "sessionId": "open-auction",
+          "kind": "OPEN_AUCTION",
+          "start": "09:15",
+          "end": "09:25",
+          "exchange": "SH"
+        },
+        {
+          "sessionId": "morning",
+          "kind": "CONTINUOUS",
+          "start": "09:30",
+          "end": "11:30",
+          "exchange": "SH"
+        },
+        {
+          "sessionId": "lunch-break",
+          "kind": "BREAK",
+          "start": "11:30",
+          "end": "13:00",
+          "exchange": "SH"
+        },
+        {
+          "sessionId": "afternoon",
+          "kind": "CONTINUOUS",
+          "start": "13:00",
+          "end": "15:00",
+          "exchange": "SH"
+        }
       ]
     },
     "SZ": {
       "sessions": [
-        { "sessionId": "open-auction", "kind": "OPEN_AUCTION", "start": "09:15", "end": "09:25", "exchange": "SZ" },
-        { "sessionId": "morning", "kind": "CONTINUOUS", "start": "09:30", "end": "11:30", "exchange": "SZ" },
-        { "sessionId": "lunch-break", "kind": "BREAK", "start": "11:30", "end": "13:00", "exchange": "SZ" },
-        { "sessionId": "afternoon", "kind": "CONTINUOUS", "start": "13:00", "end": "14:57", "exchange": "SZ" },
-        { "sessionId": "close-auction", "kind": "CLOSE_AUCTION", "start": "14:57", "end": "15:00", "exchange": "SZ" }
+        {
+          "sessionId": "open-auction",
+          "kind": "OPEN_AUCTION",
+          "start": "09:15",
+          "end": "09:25",
+          "exchange": "SZ"
+        },
+        {
+          "sessionId": "morning",
+          "kind": "CONTINUOUS",
+          "start": "09:30",
+          "end": "11:30",
+          "exchange": "SZ"
+        },
+        {
+          "sessionId": "lunch-break",
+          "kind": "BREAK",
+          "start": "11:30",
+          "end": "13:00",
+          "exchange": "SZ"
+        },
+        {
+          "sessionId": "afternoon",
+          "kind": "CONTINUOUS",
+          "start": "13:00",
+          "end": "14:57",
+          "exchange": "SZ"
+        },
+        {
+          "sessionId": "close-auction",
+          "kind": "CLOSE_AUCTION",
+          "start": "14:57",
+          "end": "15:00",
+          "exchange": "SZ"
+        }
       ]
     },
     "BJ": {
       "sessions": [
-        { "sessionId": "open-auction", "kind": "OPEN_AUCTION", "start": "09:15", "end": "09:25", "exchange": "BJ" },
-        { "sessionId": "morning", "kind": "CONTINUOUS", "start": "09:30", "end": "11:30", "exchange": "BJ" },
-        { "sessionId": "lunch-break", "kind": "BREAK", "start": "11:30", "end": "13:00", "exchange": "BJ" },
-        { "sessionId": "afternoon", "kind": "CONTINUOUS", "start": "13:00", "end": "15:00", "exchange": "BJ" }
+        {
+          "sessionId": "open-auction",
+          "kind": "OPEN_AUCTION",
+          "start": "09:15",
+          "end": "09:25",
+          "exchange": "BJ"
+        },
+        {
+          "sessionId": "morning",
+          "kind": "CONTINUOUS",
+          "start": "09:30",
+          "end": "11:30",
+          "exchange": "BJ"
+        },
+        {
+          "sessionId": "lunch-break",
+          "kind": "BREAK",
+          "start": "11:30",
+          "end": "13:00",
+          "exchange": "BJ"
+        },
+        {
+          "sessionId": "afternoon",
+          "kind": "CONTINUOUS",
+          "start": "13:00",
+          "end": "15:00",
+          "exchange": "BJ"
+        }
       ]
     }
   }
