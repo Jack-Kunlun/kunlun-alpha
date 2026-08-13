@@ -50,6 +50,9 @@ from ashare_contracts.market_data_tick import Direction as Direction
 from ashare_contracts.market_data_tick import Exchange as Exchange_11
 from ashare_contracts.market_data_tick import Tick as Tick
 from ashare_contracts.market_data_tick import TradeType as TradeType
+from ashare_contracts.sector_sector import Kind as Kind_1
+from ashare_contracts.sector_sector import Sector as Sector
+from ashare_contracts.sector_sector_membership import SectorMembership as SectorMembership
 
 __all__ = [
     "Exchange",
@@ -102,4 +105,7 @@ __all__ = [
     "Exchange_11",
     "Tick",
     "TradeType",
+    "Kind_1",
+    "Sector",
+    "SectorMembership",
 ]

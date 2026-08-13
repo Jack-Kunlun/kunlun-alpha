@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/sector/sector.json",
+  "title": "Sector",
+  "description": "A sector node in the taxonomy: industry, concept or theme with hierarchy, aliases and validity",
+  "type": "object",
+  "properties": {
+    "sectorId": {
+      "type": "string",
+      "description": "Stable sector id"
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name"
+    },
+    "parentId": {
+      "type": ["string", "null"],
+      "description": "Parent sector id (null for a root)"
+    },
+    "kind": {
+      "enum": ["INDUSTRY", "CONCEPT", "THEME"],
+      "description": "INDUSTRY / CONCEPT / THEME"
+    },
+    "source": {
+      "type": "string",
+      "description": "Data source provenance"
+    },
+    "validFrom": {
+      "type": "string",
+      "format": "date",
+      "description": "Start of validity"
+    },
+    "validTo": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "End of validity, null means current"
+    },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Alternative names"
+    }
+  },
+  "required": ["sectorId", "name", "kind", "source", "validFrom", "aliases"],
+  "additionalProperties": false
+}

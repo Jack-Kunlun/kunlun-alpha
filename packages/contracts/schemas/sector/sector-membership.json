@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/sector/sector-membership.json",
+  "title": "SectorMembership",
+  "description": "An instrument's membership in a sector, with a validity window and source",
+  "type": "object",
+  "properties": {
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}\\.\\d{6}$",
+      "description": "Instrument unified code"
+    },
+    "sectorId": {
+      "type": "string",
+      "description": "Sector id"
+    },
+    "validFrom": {
+      "type": "string",
+      "format": "date",
+      "description": "Start of membership validity"
+    },
+    "validTo": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "End of membership validity, null means current"
+    },
+    "source": {
+      "type": "string",
+      "description": "Data source provenance"
+    }
+  },
+  "required": ["unifiedCode", "sectorId", "validFrom", "source"],
+  "additionalProperties": false
+}
