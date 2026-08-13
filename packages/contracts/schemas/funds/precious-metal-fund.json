@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/funds/precious-metal-fund.json",
+  "title": "PreciousMetalFund",
+  "description": "Exchange-traded precious-metal fund metadata; the underlying commodity is explicit and never inferred from the product name",
+  "type": "object",
+  "properties": {
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}\\.\\d{6}$",
+      "description": "Instrument unified code, e.g. SH.518880"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange code"
+    },
+    "fundAssetClass": {
+      "enum": ["GOLD", "SILVER", "OTHER"],
+      "description": "Fund asset class: GOLD / SILVER / OTHER"
+    },
+    "underlyingCommodity": {
+      "enum": ["GOLD", "SILVER", "OTHER"],
+      "description": "Underlying commodity, explicit (never guessed from name)"
+    },
+    "currency": {
+      "enum": ["CNY"],
+      "description": "Trading currency, must be CNY"
+    },
+    "benchmark": {
+      "type": "string",
+      "description": "Benchmark index or commodity, e.g. Au99.99"
+    },
+    "managementFeeRate": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Annual management fee rate (0-1)"
+    },
+    "validFrom": {
+      "type": "string",
+      "format": "date",
+      "description": "Start of validity in Asia/Shanghai"
+    },
+    "validTo": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "End of validity, null means currently valid"
+    },
+    "source": {
+      "type": "string",
+      "description": "Data source provenance"
+    }
+  },
+  "required": [
+    "unifiedCode",
+    "exchange",
+    "fundAssetClass",
+    "underlyingCommodity",
+    "currency",
+    "benchmark",
+    "managementFeeRate",
+    "validFrom",
+    "source"
+  ],
+  "additionalProperties": false
+}

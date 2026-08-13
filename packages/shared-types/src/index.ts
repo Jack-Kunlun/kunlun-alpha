@@ -78,6 +78,52 @@ export interface TradingSession {
 }
 
 /**
+ * Exchange-traded precious-metal fund metadata; the underlying commodity is explicit and never inferred from the product name
+ */
+export interface PreciousMetalFund {
+  /**
+   * Instrument unified code, e.g. SH.518880
+   */
+  unifiedCode: string;
+  /**
+   * Exchange code
+   */
+  exchange: "SH" | "SZ" | "BJ";
+  /**
+   * Fund asset class: GOLD / SILVER / OTHER
+   */
+  fundAssetClass: "GOLD" | "SILVER" | "OTHER";
+  /**
+   * Underlying commodity, explicit (never guessed from name)
+   */
+  underlyingCommodity: "GOLD" | "SILVER" | "OTHER";
+  /**
+   * Trading currency, must be CNY
+   */
+  currency: "CNY";
+  /**
+   * Benchmark index or commodity, e.g. Au99.99
+   */
+  benchmark: string;
+  /**
+   * Annual management fee rate (0-1)
+   */
+  managementFeeRate: number;
+  /**
+   * Start of validity in Asia/Shanghai
+   */
+  validFrom: string;
+  /**
+   * End of validity, null means currently valid
+   */
+  validTo?: string | null;
+  /**
+   * Data source provenance
+   */
+  source: string;
+}
+
+/**
  * Service health-check response
  */
 export interface HealthStatus {
