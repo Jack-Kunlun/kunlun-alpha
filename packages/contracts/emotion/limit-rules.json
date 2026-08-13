@@ -1,0 +1,13 @@
+{
+  "$comment": "A-share price limit rules by board and ST status — single source of truth for both TS and Python. Main board 10%, ChiNext/STAR 20%, BSE 30%; ST instruments are capped at 5% on every board. Limit-up/down must be derived from these per-day rules, never a fixed percentage.",
+  "rules": [
+    { "board": "MAIN", "st": false, "limitRate": 0.1 },
+    { "board": "CHINEXT", "st": false, "limitRate": 0.2 },
+    { "board": "STAR", "st": false, "limitRate": 0.2 },
+    { "board": "BSE", "st": false, "limitRate": 0.3 },
+    { "board": "MAIN", "st": true, "limitRate": 0.05 },
+    { "board": "CHINEXT", "st": true, "limitRate": 0.05 },
+    { "board": "STAR", "st": true, "limitRate": 0.05 },
+    { "board": "BSE", "st": true, "limitRate": 0.05 }
+  ]
+}

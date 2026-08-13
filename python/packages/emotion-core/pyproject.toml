@@ -1,0 +1,17 @@
+[project]
+name = "emotion-core"
+version = "0.0.0"
+description = "A-share market sentiment core (limit up/down, ladder, premium, scoring)"
+requires-python = "==3.12.13"
+dependencies = [
+    "ashare-contracts",
+    "market-core",
+]
+
+[tool.uv.sources]
+ashare-contracts = { workspace = true }
+market-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
