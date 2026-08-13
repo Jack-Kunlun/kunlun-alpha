@@ -13,8 +13,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 
 // Binary extensions from .gitattributes + common build/asset formats.
 const BINARY_RE = /\.(png|jpg|jpeg|gif|pdf|docx|xlsx|parquet|woff2?|eot|ttf|ico|zip|gz|lockb?)$/i;
@@ -30,7 +29,7 @@ const tracked = execFileSync(
 )
   .split("\0")
   .map((line) => line.trim())
-  .filter((f) => f.length > 0 && !BINARY_RE.test(f) && !CRLF_RE.test(f));
+  .filter((f) => f.length > 0 && existsSync(f) && !BINARY_RE.test(f) && !CRLF_RE.test(f));
 
 const offenders = [];
 for (const file of tracked) {

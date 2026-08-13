@@ -5,15 +5,15 @@
   "description": "Language-agnostic JSON Schema contracts for Kunlun Alpha",
   "scripts": {
     "gen:typescript": "node scripts/gen-typescript.mjs",
-    "gen:python": "uv run python scripts/gen-python.py",
+    "gen:python": "uv --cache-dir ../../.venv/uv-cache run python scripts/gen-python.py",
     "gen:all": "pnpm gen:typescript && pnpm gen:python",
     "gen:check": "pnpm gen:typescript --check && pnpm gen:python --check",
     "lint": "eslint .",
-    "typecheck": "echo 'ok'"
+    "typecheck": "pnpm gen:check"
   },
   "devDependencies": {
     "@kunlun/config": "workspace:*",
-    "json-schema-to-typescript": "^14.1.0",
-    "typescript": "~5.7"
+    "json-schema-to-typescript": "14.1.0",
+    "typescript": "5.7.3"
   }
 }

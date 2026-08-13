@@ -7,10 +7,10 @@
 | 服务                          | 默认端口 | 配置方式                  | 说明                                                                |
 | ----------------------------- | -------- | ------------------------- | ------------------------------------------------------------------- |
 | Web 终端（Vite）              | 5173     | `apps/web/vite.config.ts` | 开发服务器，`vite` 自动选空闲端口                                   |
-| 控制面 API（NestJS）          | 3001     | 环境变量 `PORT`           | 健康检查 `GET /health`；Swagger 见 `apps/api/src/main.ts`           |
+| 控制面 API（NestJS）          | 3002     | 环境变量 `PORT`           | 健康检查 `GET /api/v1/health`；指标 `GET /api/v1/metrics`           |
 | Python 引擎（FastAPI 类服务） | 8080     | 环境变量 `KUNLUN_PORT`    | `ServiceConfig` 定义于 `ashare-common`，所有服务使用 `KUNLUN_` 前缀 |
 
-> **API 端口 3001 与 Grafana 冲突**：`infra/docker/docker-compose.yml` 将 Grafana 映射到宿主 3001。同时使用时以 `PORT=3002 pnpm --filter @kunlun/api dev` 启动 API。
+> API 使用 3002，Grafana 使用 3001；两者可同时启动且不会占用同一宿主端口。
 
 ### 本地基础设施（Docker Compose，`infra/docker/docker-compose.yml`）
 
@@ -43,7 +43,7 @@
 
 | 变量                              | 默认值        | 读取方                           |
 | --------------------------------- | ------------- | -------------------------------- |
-| `PORT`                            | `3001`        | `apps/api/src/env.ts`（NestJS）  |
+| `PORT`                            | `3002`        | `apps/api/src/env.ts`（NestJS）  |
 | `NODE_ENV`                        | `development` | `apps/api/src/env.ts`            |
 | `KUNLUN_SERVICE_NAME`             | `kunlun`      | `ServiceConfig`（ashare-common） |
 | `KUNLUN_LOG_LEVEL`                | `INFO`        | 同上                             |

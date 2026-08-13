@@ -6,17 +6,17 @@
 
 **症状**：`EADDRINUSE` / `Address already in use`；浏览器访问到错误服务。
 
-**原因**：API 默认端口 3001 与 Grafana（Compose 映射宿主 3001）冲突；其他本机服务也可能占用 5432/6379/5173 等。
+**原因**：其他本机程序可能占用 API 3002、Grafana 3001、ClickHouse native 9002、MinIO 9000，或 5432/6379/5173 等端口。
 
 **解决**：
 
 ```bash
 # 查看占用
-netstat -ano | findstr :3001        # Windows
-lsof -i :3001                        # macOS / Linux
+netstat -ano | findstr :3002        # Windows
+lsof -i :3002                        # macOS / Linux
 
 # 用其他端口启动 API（推荐，不改 Grafana）
-PORT=3002 pnpm --filter @kunlun/api dev
+PORT=3012 pnpm --filter @kunlun/api dev
 ```
 
 Web 侧 Vite 会自动跳空闲端口；如固定端口被占，可在 `apps/web/vite.config.ts` 调整 `server.port`。
@@ -90,7 +90,7 @@ docker logs kunlun-postgres
 
 **症状**：`uv` 命令不存在 / `command not found: uv`。
 
-**解决**：按 [uv 官方文档](https://docs.astral.sh/uv/getting-started/installation/) 安装；`pyproject.toml` 要求 `uv >= 0.12`。安装后重启终端使 PATH 生效。
+**解决**：按 [uv 官方文档](https://docs.astral.sh/uv/getting-started/installation/) 安装；`pyproject.toml` 精确要求 `uv 0.12.3`。安装后重启终端使 PATH 生效。
 
 **症状**：`uv sync` 报 workspace member 缺失。
 

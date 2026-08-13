@@ -47,6 +47,19 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
         print(result.stderr, file=sys.stderr)
         sys.exit(1)
 
+    format_result = subprocess.run(
+        [sys.executable, "-m", "ruff", "format", "--quiet", str(output_file)],
+        capture_output=True,
+        text=True,
+    )
+    if format_result.returncode != 0:
+        print(f"Error formatting generated model {output_file}:", file=sys.stderr)
+        print(format_result.stderr, file=sys.stderr)
+        sys.exit(1)
+
+    normalized = output_file.read_text(encoding="utf-8").replace("\r\n", "\n")
+    output_file.write_text(normalized, encoding="utf-8", newline="\n")
+
 
 def generate() -> None:
     """Generate Python types from all JSON Schema files."""
@@ -92,7 +105,8 @@ def generate() -> None:
             for cls in sorted(module_imports[module_name]):
                 all_content += f'    "{cls}",\n'
         all_content += "]\n"
-    init_path.write_text(all_content, encoding="utf-8")
+    init_path.write_text(all_content, encoding="utf-8", newline="\n")
+    (OUTPUT_DIR / "py.typed").write_text("", encoding="utf-8", newline="\n")
 
     print(f"Generated Python types -> {OUTPUT_DIR}")
 

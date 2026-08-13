@@ -22,7 +22,7 @@ services:
   # PostgreSQL — 业务数据 (TypeORM)
   # ==========================================================================
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.10-alpine3.24
     container_name: kunlun-postgres
     restart: unless-stopped
     environment:
@@ -49,7 +49,7 @@ services:
   # Redis — 实时状态、缓存、锁、排行榜
   # ==========================================================================
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.10-alpine3.21
     container_name: kunlun-redis
     restart: unless-stopped
     command: >
@@ -77,7 +77,7 @@ services:
   # ClickHouse — 时序行情、情绪轮动、Feature 分析数据
   # ==========================================================================
   clickhouse:
-    image: clickhouse/clickhouse-server:25-alpine
+    image: clickhouse/clickhouse-server:25.8.24.21-alpine
     container_name: kunlun-clickhouse
     restart: unless-stopped
     environment:
@@ -87,7 +87,7 @@ services:
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     ports:
       - "8123:8123" # HTTP interface
-      - "9000:9000" # Native protocol
+      - "9002:9000" # Native protocol (host 9002 avoids MinIO API conflict)
     volumes:
       - ./data/clickhouse:/var/lib/clickhouse
       - ./init/clickhouse:/docker-entrypoint-initdb.d:ro
@@ -139,7 +139,7 @@ services:
   # MinIO Bucket Initializer — 首次启动创建默认桶
   # ==========================================================================
   minio-init:
-    image: minio/mc:RELEASE.2025-07-18T21-56-31Z
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
     container_name: kunlun-minio-init
     depends_on:
       minio:
@@ -172,6 +172,7 @@ services:
       - "9090:9090"
     volumes:
       - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../prometheus/rules:/etc/prometheus/rules:ro
       - ./data/prometheus:/prometheus
     healthcheck:
       test:
@@ -188,7 +189,7 @@ services:
   # Grafana — 可视化仪表盘
   # ==========================================================================
   grafana:
-    image: grafana/grafana:11.8.0
+    image: grafana/grafana:12.4.0
     container_name: kunlun-grafana
     restart: unless-stopped
     environment:
@@ -201,7 +202,7 @@ services:
     volumes:
       - ../grafana/datasources:/etc/grafana/provisioning/datasources:ro
       - ../grafana/dashboards/provisioning:/etc/grafana/provisioning/dashboards:ro
-      - ../grafana/dashboards:/etc/grafana/provisioning/dashboards/kunlun:ro
+      - ../grafana/dashboards:/var/lib/grafana/dashboards/kunlun:ro
       - ./data/grafana:/var/lib/grafana
     depends_on:
       - prometheus
@@ -231,7 +232,9 @@ services:
       - ../loki/loki-config.yml:/etc/loki/loki-config.yml:ro
       - ./data/loki:/loki
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      # Loki's official image is distroless and contains no wget/curl/shell.
+      # Container liveness uses the binary; readiness is verified at /ready.
+      test: ["CMD", "/usr/bin/loki", "-version"]
       interval: 15s
       timeout: 5s
       retries: 3

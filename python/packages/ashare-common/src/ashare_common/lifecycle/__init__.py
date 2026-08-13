@@ -25,6 +25,18 @@ class ServiceRunner:
 
     def _signal_handler(self, signum: int, _frame: object) -> None:
         logger.info("Received termination signal %s", signum)
+        self.request_shutdown()
+
+    @property
+    def is_running(self) -> bool:
+        return self._running
+
+    @property
+    def shutdown_timeout(self) -> float:
+        return self._shutdown_timeout
+
+    def request_shutdown(self) -> None:
+        """Request a graceful shutdown without relying on an OS signal."""
         self._stop_event.set()
 
     def add_shutdown_hook(self, hook: ShutdownHook) -> None:

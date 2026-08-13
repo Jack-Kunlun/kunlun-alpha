@@ -2,10 +2,10 @@
 name = "kunlun-alpha"
 version = "0.0.0"
 description = "昆仑智策 - A-Share Intelligence & Quant Platform"
-requires-python = ">=3.12,<3.13"
+requires-python = "==3.12.13"
 
 [tool.uv]
-required-version = ">=0.12"
+required-version = "==0.12.3"
 
 [tool.uv.workspace]
 members = [
@@ -17,11 +17,11 @@ members = [
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14",
-    "basedpyright>=1.31",
-    "pytest>=8.3",
-    "pytest-cov>=6",
-    "datamodel-code-generator>=0.72.3",
+    "ruff==0.14.14",
+    "basedpyright==1.39.9",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "datamodel-code-generator==0.72.3",
 ]
 
 [tool.ruff]
@@ -43,5 +43,5 @@ python_files = ["test_*.py"]
 addopts = "--import-mode=importlib -p no:cacheprovider --cov=python --cov=services --cov-report=term-missing:skip-covered --cov-fail-under=75"
 
 [tool.basedpyright]
-typeCheckingMode = "basic"
+typeCheckingMode = "strict"
 pythonVersion = "3.12"
