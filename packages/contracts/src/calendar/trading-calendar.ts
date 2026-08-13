@@ -160,7 +160,13 @@ export class StaticTradingCalendar implements TradingCalendar {
     const holiday = this.holidaysByKey.get(`${date}:${exchange}`);
     const exchangeId = exchange as ExchangeId;
     if (holiday) {
-      return { date, exchange: exchangeId, isTradingDay: false, reason: holiday.reason, note: holiday.note };
+      return {
+        date,
+        exchange: exchangeId,
+        isTradingDay: false,
+        reason: holiday.reason,
+        note: holiday.note,
+      };
     }
     if (isWeekend(date)) {
       return { date, exchange: exchangeId, isTradingDay: false, reason: "WEEKEND" };
@@ -178,7 +184,8 @@ export class StaticTradingCalendar implements TradingCalendar {
     // [00:00, end) is matched by the *previous* day's session below.
     if (this.isTradingDay(date, exchange)) {
       for (const session of sessions) {
-        const crossesMidnight = session.crossesMidnight || toMinutes(session.start) > toMinutes(session.end);
+        const crossesMidnight =
+          session.crossesMidnight || toMinutes(session.start) > toMinutes(session.end);
         if (crossesMidnight) {
           if (minutes >= toMinutes(session.start)) {
             return { session, date };
@@ -192,7 +199,8 @@ export class StaticTradingCalendar implements TradingCalendar {
     const yesterday = addDays(date, -1);
     if (this.isTradingDay(yesterday, exchange)) {
       for (const session of sessions) {
-        const crossesMidnight = session.crossesMidnight || toMinutes(session.start) > toMinutes(session.end);
+        const crossesMidnight =
+          session.crossesMidnight || toMinutes(session.start) > toMinutes(session.end);
         if (crossesMidnight && minutes < toMinutes(session.end)) {
           return { session, date: yesterday };
         }

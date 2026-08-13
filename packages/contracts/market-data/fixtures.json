@@ -1,0 +1,318 @@
+{
+  "$comment": "Market data fixtures shared by the TS suite (packages/contracts/src/market-data/validators.test.ts) and the Python suite (market-core/tests/test_validators.py). Each invalid case carries a reason. Timestamps are UTC ISO 8601 with millisecond precision; the calendar interprets them in Asia/Shanghai.",
+  "bars": {
+    "valid": [
+      {
+        "name": "daily raw bar",
+        "bar": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "interval": "DAILY",
+          "session": "CONTINUOUS",
+          "timestamp": "2026-08-13T01:30:00.000Z",
+          "open": 10.00,
+          "high": 10.50,
+          "low": 9.80,
+          "close": 10.20,
+          "volume": 1000000,
+          "amount": 10200000.00,
+          "priceType": "RAW"
+        }
+      },
+      {
+        "name": "daily forward-adjusted bar",
+        "bar": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "interval": "DAILY",
+          "session": "CONTINUOUS",
+          "timestamp": "2026-08-13T01:30:00.000Z",
+          "open": 9.50,
+          "high": 9.90,
+          "low": 9.30,
+          "close": 9.70,
+          "volume": 1000000,
+          "amount": 9700000.00,
+          "priceType": "FORWARD_ADJUSTED"
+        }
+      },
+      {
+        "name": "1-minute bar",
+        "bar": {
+          "unifiedCode": "SZ.000001",
+          "exchange": "SZ",
+          "date": "2026-08-13",
+          "interval": "MINUTE_1",
+          "session": "CONTINUOUS",
+          "timestamp": "2026-08-13T01:30:00.000Z",
+          "open": 15.00,
+          "high": 15.05,
+          "low": 14.98,
+          "close": 15.02,
+          "volume": 5000,
+          "amount": 75000.00,
+          "priceType": "RAW"
+        }
+      }
+    ],
+    "suspended": [
+      {
+        "name": "suspended bar zero ohlcv",
+        "bar": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "interval": "DAILY",
+          "session": "CONTINUOUS",
+          "timestamp": "2026-08-13T01:30:00.000Z",
+          "open": 0,
+          "high": 0,
+          "low": 0,
+          "close": 0,
+          "volume": 0,
+          "amount": 0,
+          "priceType": "RAW",
+          "suspended": true
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "name": "high below low",
+        "bar": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "interval": "DAILY",
+          "session": "CONTINUOUS",
+          "timestamp": "2026-08-13T01:30:00.000Z",
+          "open": 10.00,
+          "high": 9.50,
+          "low": 10.00,
+          "close": 9.80,
+          "volume": 1000,
+          "amount": 9800.00,
+          "priceType": "RAW"
+        },
+        "reason": "high must be >= max(open, close, low)"
+      },
+      {
+        "name": "negative volume",
+        "bar": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "interval": "DAILY",
+          "session": "CONTINUOUS",
+          "timestamp": "2026-08-13T01:30:00.000Z",
+          "open": 10.00,
+          "high": 10.50,
+          "low": 9.80,
+          "close": 10.20,
+          "volume": -100,
+          "amount": 1020000.00,
+          "priceType": "RAW"
+        },
+        "reason": "volume must be >= 0"
+      },
+      {
+        "name": "negative close",
+        "bar": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "interval": "DAILY",
+          "session": "CONTINUOUS",
+          "timestamp": "2026-08-13T01:30:00.000Z",
+          "open": 10.00,
+          "high": 10.50,
+          "low": 9.80,
+          "close": -1,
+          "volume": 1000,
+          "amount": 10000.00,
+          "priceType": "RAW"
+        },
+        "reason": "close must be >= 0"
+      },
+      {
+        "name": "low above open",
+        "bar": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "interval": "DAILY",
+          "session": "CONTINUOUS",
+          "timestamp": "2026-08-13T01:30:00.000Z",
+          "open": 10.00,
+          "high": 10.50,
+          "low": 10.60,
+          "close": 10.20,
+          "volume": 1000,
+          "amount": 10200.00,
+          "priceType": "RAW"
+        },
+        "reason": "low must be <= min(open, close, high)"
+      },
+      {
+        "name": "suspended with nonzero volume",
+        "bar": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "interval": "DAILY",
+          "session": "CONTINUOUS",
+          "timestamp": "2026-08-13T01:30:00.000Z",
+          "open": 10.00,
+          "high": 10.00,
+          "low": 10.00,
+          "close": 10.00,
+          "volume": 1000,
+          "amount": 10000.00,
+          "priceType": "RAW",
+          "suspended": true
+        },
+        "reason": "suspended bar must have zero volume and amount"
+      }
+    ]
+  },
+  "ticks": {
+    "valid": [
+      {
+        "name": "match buy tick",
+        "tick": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "timestamp": "2026-08-13T01:30:00.123Z",
+          "price": 10.00,
+          "volume": 100,
+          "amount": 1000.00,
+          "direction": "BUY",
+          "tradeType": "MATCH"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "name": "negative price",
+        "tick": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "timestamp": "2026-08-13T01:30:00.123Z",
+          "price": -1,
+          "volume": 100,
+          "amount": 1000.00,
+          "direction": "BUY",
+          "tradeType": "MATCH"
+        },
+        "reason": "price must be >= 0"
+      },
+      {
+        "name": "negative volume",
+        "tick": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-08-13",
+          "timestamp": "2026-08-13T01:30:00.123Z",
+          "price": 10.00,
+          "volume": -1,
+          "amount": 1000.00,
+          "direction": "BUY",
+          "tradeType": "MATCH"
+        },
+        "reason": "volume must be >= 0"
+      }
+    ]
+  },
+  "factors": {
+    "valid": [
+      {
+        "name": "forward factor",
+        "factor": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-06-01",
+          "factor": 0.9,
+          "factorType": "FORWARD"
+        }
+      },
+      {
+        "name": "backward factor",
+        "factor": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-06-01",
+          "factor": 1.1,
+          "factorType": "BACKWARD"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "name": "zero factor",
+        "factor": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-06-01",
+          "factor": 0,
+          "factorType": "FORWARD"
+        },
+        "reason": "factor must be > 0"
+      },
+      {
+        "name": "negative factor",
+        "factor": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "date": "2026-06-01",
+          "factor": -0.1,
+          "factorType": "FORWARD"
+        },
+        "reason": "factor must be > 0"
+      }
+    ]
+  },
+  "actions": {
+    "valid": [
+      {
+        "name": "cash dividend",
+        "action": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "exDate": "2026-06-01",
+          "actionType": "DIVIDEND",
+          "description": "每股派息 0.50 元",
+          "perShareCash": 0.50
+        }
+      },
+      {
+        "name": "stock dividend",
+        "action": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "exDate": "2026-06-01",
+          "actionType": "STOCK_DIVIDEND",
+          "description": "10 转 5",
+          "perShareStock": 0.5
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "name": "negative cash dividend",
+        "action": {
+          "unifiedCode": "SH.600000",
+          "exchange": "SH",
+          "exDate": "2026-06-01",
+          "actionType": "DIVIDEND",
+          "description": "invalid",
+          "perShareCash": -0.50
+        },
+        "reason": "perShareCash must be >= 0"
+      }
+    ]
+  }
+}

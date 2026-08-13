@@ -24,6 +24,11 @@
     { "date": "2026-10-01", "exchange": "SZ", "reason": "PUBLIC_HOLIDAY", "note": "国庆节" },
     { "date": "2026-10-01", "exchange": "BJ", "reason": "PUBLIC_HOLIDAY", "note": "国庆节" },
 
-    { "date": "2026-08-07", "exchange": "SH", "reason": "TEMPORARY_CLOSURE", "note": "台风临时休市样例" }
+    {
+      "date": "2026-08-07",
+      "exchange": "SH",
+      "reason": "TEMPORARY_CLOSURE",
+      "note": "台风临时休市样例"
+    }
   ]
 }

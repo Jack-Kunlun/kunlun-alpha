@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/market-data/adjustment-factor.json",
+  "title": "AdjustmentFactor",
+  "description": "Adjustment factor applied on ex-date to derive adjusted research prices",
+  "type": "object",
+  "properties": {
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}\\.\\d{6}$",
+      "description": "Instrument unified code, e.g. SH.600000"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange code"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Ex-dividend date in Asia/Shanghai"
+    },
+    "factor": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Adjustment factor, must be strictly > 0"
+    },
+    "factorType": {
+      "enum": ["FORWARD", "BACKWARD"],
+      "description": "FORWARD / BACKWARD adjustment"
+    },
+    "note": { "type": "string", "description": "Optional free-text note" }
+  },
+  "required": ["unifiedCode", "exchange", "date", "factor", "factorType"],
+  "additionalProperties": false
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/market-data/corporate-action.json",
+  "title": "CorporateAction",
+  "description": "A corporate action event: dividend, stock dividend, split or rights issue",
+  "type": "object",
+  "properties": {
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}\\.\\d{6}$",
+      "description": "Instrument unified code, e.g. SH.600000"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange code"
+    },
+    "exDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Ex-date in Asia/Shanghai"
+    },
+    "actionType": {
+      "enum": ["DIVIDEND", "STOCK_DIVIDEND", "SPLIT", "RIGHTS_ISSUE"],
+      "description": "DIVIDEND / STOCK_DIVIDEND / SPLIT / RIGHTS_ISSUE"
+    },
+    "description": { "type": "string", "description": "Human-readable description" },
+    "perShareCash": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Cash dividend per share in CNY (optional)"
+    },
+    "perShareStock": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Stock dividend per share (optional)"
+    },
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Rights issue ratio (optional)"
+    }
+  },
+  "required": ["unifiedCode", "exchange", "exDate", "actionType", "description"],
+  "additionalProperties": false
+}

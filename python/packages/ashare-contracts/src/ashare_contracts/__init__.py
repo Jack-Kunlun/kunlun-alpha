@@ -26,6 +26,21 @@ from ashare_contracts.instrument_instrument import TradingStatus as TradingStatu
 from ashare_contracts.instrument_instrument import Type as Type
 from ashare_contracts.instrument_trading_status import TradingStatus as TradingStatus_1
 from ashare_contracts.instrument_trading_status import Value as Value
+from ashare_contracts.market_data_adjustment_factor import AdjustmentFactor as AdjustmentFactor
+from ashare_contracts.market_data_adjustment_factor import Exchange as Exchange_6
+from ashare_contracts.market_data_adjustment_factor import FactorType as FactorType
+from ashare_contracts.market_data_bar import Bar as Bar
+from ashare_contracts.market_data_bar import Exchange as Exchange_7
+from ashare_contracts.market_data_bar import Interval as Interval
+from ashare_contracts.market_data_bar import PriceType as PriceType
+from ashare_contracts.market_data_bar import Session as Session
+from ashare_contracts.market_data_corporate_action import ActionType as ActionType
+from ashare_contracts.market_data_corporate_action import CorporateAction as CorporateAction
+from ashare_contracts.market_data_corporate_action import Exchange as Exchange_8
+from ashare_contracts.market_data_tick import Direction as Direction
+from ashare_contracts.market_data_tick import Exchange as Exchange_9
+from ashare_contracts.market_data_tick import Tick as Tick
+from ashare_contracts.market_data_tick import TradeType as TradeType
 
 __all__ = [
     "Exchange",
@@ -54,4 +69,19 @@ __all__ = [
     "Type",
     "TradingStatus_1",
     "Value",
+    "AdjustmentFactor",
+    "Exchange_6",
+    "FactorType",
+    "Bar",
+    "Exchange_7",
+    "Interval",
+    "PriceType",
+    "Session",
+    "ActionType",
+    "CorporateAction",
+    "Exchange_8",
+    "Direction",
+    "Exchange_9",
+    "Tick",
+    "TradeType",
 ]

@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/market-data/tick.json",
+  "title": "Tick",
+  "description": "A single executed trade with millisecond-precision timestamp",
+  "type": "object",
+  "properties": {
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}\\.\\d{6}$",
+      "description": "Instrument unified code, e.g. SH.600000"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange code"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Trading day in Asia/Shanghai, e.g. 2026-08-13"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Trade time, UTC ISO 8601 with millisecond precision"
+    },
+    "price": { "type": "number", "minimum": 0, "description": "Trade price in CNY" },
+    "volume": { "type": "integer", "minimum": 0, "description": "Trade volume in shares" },
+    "amount": { "type": "number", "minimum": 0, "description": "Trade turnover in CNY" },
+    "direction": {
+      "enum": ["BUY", "SELL", "NEUTRAL"],
+      "description": "Aggressor direction: BUY / SELL / NEUTRAL"
+    },
+    "tradeType": {
+      "enum": ["MATCH", "AUCTION", "BLOCK"],
+      "description": "MATCH / AUCTION / BLOCK"
+    }
+  },
+  "required": [
+    "unifiedCode",
+    "exchange",
+    "date",
+    "timestamp",
+    "price",
+    "volume",
+    "amount",
+    "direction",
+    "tradeType"
+  ],
+  "additionalProperties": false
+}
