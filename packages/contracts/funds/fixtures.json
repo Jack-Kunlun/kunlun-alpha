@@ -1,0 +1,100 @@
+{
+  "$comment": "Precious-metal fund fixtures shared by the TS suite (packages/contracts/src/funds) and the Python suite (market-core/funds). Covers GOLD/SILVER/OTHER classification, unknown asset class, currency mismatch and historical validity windows.",
+  "valid": [
+    {
+      "name": "gold fund",
+      "fund": {
+        "unifiedCode": "SH.518880",
+        "exchange": "SH",
+        "fundAssetClass": "GOLD",
+        "underlyingCommodity": "GOLD",
+        "currency": "CNY",
+        "benchmark": "Au99.99",
+        "managementFeeRate": 0.005,
+        "validFrom": "2020-01-01",
+        "validTo": null,
+        "source": "provider-x"
+      }
+    },
+    {
+      "name": "silver fund",
+      "fund": {
+        "unifiedCode": "SZ.161226",
+        "exchange": "SZ",
+        "fundAssetClass": "SILVER",
+        "underlyingCommodity": "SILVER",
+        "currency": "CNY",
+        "benchmark": "Ag(T+D)",
+        "managementFeeRate": 0.008,
+        "validFrom": "2019-06-01",
+        "validTo": null,
+        "source": "provider-x"
+      }
+    },
+    {
+      "name": "other commodity fund",
+      "fund": {
+        "unifiedCode": "SH.518660",
+        "exchange": "SH",
+        "fundAssetClass": "OTHER",
+        "underlyingCommodity": "OTHER",
+        "currency": "CNY",
+        "benchmark": "SGE composite",
+        "managementFeeRate": 0.006,
+        "validFrom": "2021-01-01",
+        "validTo": "2023-12-31",
+        "source": "provider-x"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "unknown asset class",
+      "fund": {
+        "unifiedCode": "SH.518880",
+        "exchange": "SH",
+        "fundAssetClass": "PLATINUM",
+        "underlyingCommodity": "GOLD",
+        "currency": "CNY",
+        "benchmark": "Au99.99",
+        "managementFeeRate": 0.005,
+        "validFrom": "2020-01-01",
+        "validTo": null,
+        "source": "provider-x"
+      },
+      "reason": "fundAssetClass must be GOLD/SILVER/OTHER"
+    },
+    {
+      "name": "currency mismatch",
+      "fund": {
+        "unifiedCode": "SH.518880",
+        "exchange": "SH",
+        "fundAssetClass": "GOLD",
+        "underlyingCommodity": "GOLD",
+        "currency": "USD",
+        "benchmark": "Au99.99",
+        "managementFeeRate": 0.005,
+        "validFrom": "2020-01-01",
+        "validTo": null,
+        "source": "provider-x"
+      },
+      "reason": "currency must be CNY"
+    },
+    {
+      "name": "invalid validity window",
+      "fund": {
+        "unifiedCode": "SH.518880",
+        "exchange": "SH",
+        "fundAssetClass": "GOLD",
+        "underlyingCommodity": "GOLD",
+        "currency": "CNY",
+        "benchmark": "Au99.99",
+        "managementFeeRate": 0.005,
+        "validFrom": "2023-01-01",
+        "validTo": "2022-12-31",
+        "source": "provider-x"
+      },
+      "reason": "validFrom must be <= validTo"
+    }
+  ]
+}

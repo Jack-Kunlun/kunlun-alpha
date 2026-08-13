@@ -9,36 +9,41 @@ from ashare_contracts.calendar_trading_day import TradingDay as TradingDay
 from ashare_contracts.calendar_trading_session import Exchange as Exchange_2
 from ashare_contracts.calendar_trading_session import Kind as Kind
 from ashare_contracts.calendar_trading_session import TradingSession as TradingSession
+from ashare_contracts.funds_precious_metal_fund import Currency as Currency
+from ashare_contracts.funds_precious_metal_fund import Exchange as Exchange_3
+from ashare_contracts.funds_precious_metal_fund import FundAssetClass as FundAssetClass
+from ashare_contracts.funds_precious_metal_fund import PreciousMetalFund as PreciousMetalFund
+from ashare_contracts.funds_precious_metal_fund import UnderlyingCommodity as UnderlyingCommodity
 from ashare_contracts.health_status_v1 import HealthStatus as HealthStatus
 from ashare_contracts.health_status_v1 import Status as Status
 from ashare_contracts.instrument_board import Board as Board
-from ashare_contracts.instrument_board import Exchange as Exchange_3
+from ashare_contracts.instrument_board import Exchange as Exchange_4
 from ashare_contracts.instrument_board import Id as Id
 from ashare_contracts.instrument_exchange import Code as Code
 from ashare_contracts.instrument_exchange import Country as Country
-from ashare_contracts.instrument_exchange import Currency as Currency
-from ashare_contracts.instrument_exchange import Exchange as Exchange_4
+from ashare_contracts.instrument_exchange import Currency as Currency_1
+from ashare_contracts.instrument_exchange import Exchange as Exchange_5
 from ashare_contracts.instrument_instrument import Board as Board_1
-from ashare_contracts.instrument_instrument import Currency as Currency_1
-from ashare_contracts.instrument_instrument import Exchange as Exchange_5
+from ashare_contracts.instrument_instrument import Currency as Currency_2
+from ashare_contracts.instrument_instrument import Exchange as Exchange_6
 from ashare_contracts.instrument_instrument import Instrument as Instrument
 from ashare_contracts.instrument_instrument import TradingStatus as TradingStatus
 from ashare_contracts.instrument_instrument import Type as Type
 from ashare_contracts.instrument_trading_status import TradingStatus as TradingStatus_1
 from ashare_contracts.instrument_trading_status import Value as Value
 from ashare_contracts.market_data_adjustment_factor import AdjustmentFactor as AdjustmentFactor
-from ashare_contracts.market_data_adjustment_factor import Exchange as Exchange_6
+from ashare_contracts.market_data_adjustment_factor import Exchange as Exchange_7
 from ashare_contracts.market_data_adjustment_factor import FactorType as FactorType
 from ashare_contracts.market_data_bar import Bar as Bar
-from ashare_contracts.market_data_bar import Exchange as Exchange_7
+from ashare_contracts.market_data_bar import Exchange as Exchange_8
 from ashare_contracts.market_data_bar import Interval as Interval
 from ashare_contracts.market_data_bar import PriceType as PriceType
 from ashare_contracts.market_data_bar import Session as Session
 from ashare_contracts.market_data_corporate_action import ActionType as ActionType
 from ashare_contracts.market_data_corporate_action import CorporateAction as CorporateAction
-from ashare_contracts.market_data_corporate_action import Exchange as Exchange_8
+from ashare_contracts.market_data_corporate_action import Exchange as Exchange_9
 from ashare_contracts.market_data_tick import Direction as Direction
-from ashare_contracts.market_data_tick import Exchange as Exchange_9
+from ashare_contracts.market_data_tick import Exchange as Exchange_10
 from ashare_contracts.market_data_tick import Tick as Tick
 from ashare_contracts.market_data_tick import TradeType as TradeType
 
@@ -52,36 +57,41 @@ __all__ = [
     "Exchange_2",
     "Kind",
     "TradingSession",
+    "Currency",
+    "Exchange_3",
+    "FundAssetClass",
+    "PreciousMetalFund",
+    "UnderlyingCommodity",
     "HealthStatus",
     "Status",
     "Board",
-    "Exchange_3",
+    "Exchange_4",
     "Id",
     "Code",
     "Country",
-    "Currency",
-    "Exchange_4",
-    "Board_1",
     "Currency_1",
     "Exchange_5",
+    "Board_1",
+    "Currency_2",
+    "Exchange_6",
     "Instrument",
     "TradingStatus",
     "Type",
     "TradingStatus_1",
     "Value",
     "AdjustmentFactor",
-    "Exchange_6",
+    "Exchange_7",
     "FactorType",
     "Bar",
-    "Exchange_7",
+    "Exchange_8",
     "Interval",
     "PriceType",
     "Session",
     "ActionType",
     "CorporateAction",
-    "Exchange_8",
-    "Direction",
     "Exchange_9",
+    "Direction",
+    "Exchange_10",
     "Tick",
     "TradeType",
 ]
