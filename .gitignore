@@ -69,3 +69,6 @@ research/cache/
 # Code coverage
 coverage/
 .nyc_output/
+
+# Personal local settings (per-user, not shared)
+.codebuddy/

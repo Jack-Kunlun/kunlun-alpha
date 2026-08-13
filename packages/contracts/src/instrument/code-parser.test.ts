@@ -42,13 +42,10 @@ describe("parseInstrumentCode — valid codes", () => {
 
 describe("parseInstrumentCode — invalid codes", () => {
   const invalid = fixtures.invalid as InvalidFixture[];
-  it.each(invalid.map((f) => [f.code, f.reason] as const))(
-    "rejects %j (%s)",
-    (code, reason) => {
-      expect(parseInstrumentCode(code)).toBeNull();
-      void reason;
-    },
-  );
+  it.each(invalid.map((f) => [f.code, f.reason] as const))("rejects %j (%s)", (code, reason) => {
+    expect(parseInstrumentCode(code)).toBeNull();
+    void reason;
+  });
 });
 
 describe("parseInstrumentCode — ST / delisted / suspended keep their code", () => {
