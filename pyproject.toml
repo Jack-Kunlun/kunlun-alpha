@@ -45,3 +45,12 @@ addopts = "--import-mode=importlib -p no:cacheprovider --cov=python --cov=servic
 [tool.basedpyright]
 typeCheckingMode = "strict"
 pythonVersion = "3.12"
+# Resolve workspace packages through their src/ layouts so imports of a
+# package's own modules (e.g. market_core from its tests) type-check even
+# when the editor/CI does not run inside the synced .venv.
+extraPaths = [
+    "python/packages/ashare-common/src",
+    "python/packages/ashare-contracts/src",
+    "python/packages/market-core/src",
+    "services/sample-engine/src",
+]

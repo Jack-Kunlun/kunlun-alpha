@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/instrument/trading-status.json",
+  "title": "TradingStatus",
+  "description": "Trading status of an instrument. ST and delisting are statuses, never code changes",
+  "type": "object",
+  "properties": {
+    "value": {
+      "enum": ["LISTED", "SUSPENDED", "ST", "DELISTED"],
+      "description": "LISTED: 正常上市; SUSPENDED: 停牌; ST: 风险警示 (ST/*ST); DELISTED: 退市"
+    },
+    "label": {
+      "type": "string",
+      "description": "Human-readable label in Chinese"
+    }
+  },
+  "required": ["value", "label"],
+  "additionalProperties": false
+}

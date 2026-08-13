@@ -9,10 +9,10 @@
  */
 
 import { compile } from "json-schema-to-typescript";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const checkMode = process.argv.includes("--check");
@@ -20,13 +20,42 @@ const checkMode = process.argv.includes("--check");
 const SCHEMAS_DIR = resolve(__dirname, "..", "schemas");
 const TYPES_OUTPUT = resolve(__dirname, "..", "..", "shared-types", "src", "index.ts");
 
+/**
+ * Normalize the generated output with Prettier so it matches the repo's
+ * `format:check` gate. Without this the raw json-schema-to-typescript output
+ * (extra blank lines between interfaces) would fail the Prettier check.
+ */
+function formatWithPrettier(code) {
+  const prettierBin = resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "node_modules",
+    "prettier",
+    "bin",
+    "prettier.cjs",
+  );
+  const result = spawnSync(process.execPath, [prettierBin, "--stdin-filepath", "index.ts"], {
+    input: code,
+    encoding: "utf8",
+  });
+  if (result.status === 0 && result.stdout) {
+    return result.stdout;
+  }
+  return code;
+}
+
 async function main() {
   if (!existsSync(SCHEMAS_DIR)) {
     console.error(`Schemas directory not found: ${SCHEMAS_DIR}`);
     process.exit(1);
   }
 
-  const schemaFiles = readdirSync(SCHEMAS_DIR).filter((f) => f.endsWith(".json"));
+  // Collect *.json recursively (supports subdirectories such as schemas/instrument/).
+  const schemaFiles = readdirSync(SCHEMAS_DIR, { recursive: true })
+    .filter((f) => typeof f === "string" && f.endsWith(".json"))
+    .sort();
 
   if (schemaFiles.length === 0) {
     console.warn("No schema files found in", SCHEMAS_DIR);
@@ -48,7 +77,7 @@ async function main() {
     "/** Shared domain types. Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND. */",
     "",
   ].join("\n");
-  const output = (header + types.join("\n\n")).trimEnd() + "\n";
+  const output = formatWithPrettier((header + types.join("\n\n")).trimEnd() + "\n");
 
   // Ensure output directory exists
   const outDir = dirname(TYPES_OUTPUT);

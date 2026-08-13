@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/instrument/board.json",
+  "title": "Board",
+  "description": "Listing board classification for A-share securities",
+  "type": "object",
+  "properties": {
+    "id": {
+      "enum": ["MAIN", "CHINEXT", "STAR", "BSE"],
+      "description": "Board identifier: MAIN (主板), CHINEXT (创业板), STAR (科创板), BSE (北交所)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Board name in Chinese"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange the board belongs to"
+    }
+  },
+  "required": ["id", "name", "exchange"],
+  "additionalProperties": false
+}
