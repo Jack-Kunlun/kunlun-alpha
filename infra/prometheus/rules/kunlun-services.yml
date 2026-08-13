@@ -1,0 +1,19 @@
+groups:
+  - name: kunlun-services
+    rules:
+      - alert: KunlunServiceDown
+        expr: up{job=~"kunlun-api|kunlun-python"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kunlun service is unavailable"
+          description: "{{ $labels.job }} has not been scrapeable for two minutes."
+      - alert: KunlunApiServerErrors
+        expr: sum(rate(kunlun_api_http_requests_total{status=~"5.."}[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kunlun API is returning server errors"
+          description: "The API has returned 5xx responses during the last five minutes."

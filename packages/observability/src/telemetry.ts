@@ -1,35 +1,49 @@
-/**
- * Placeholder for OpenTelemetry SDK initialization.
- *
- * When OTel SDK packages are installed, replace this with:
- *
- *   import { NodeSDK } from "@opentelemetry/sdk-node";
- *   import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
- *   ...
- *
- * The API surface (initTelemetry options) is designed to be
- * stable so that callers don't need to change when we swap
- * the underlying implementation.
- */
+import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { resourceFromAttributes } from "@opentelemetry/resources";
+import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
 
-/** Options passed to initTelemetry */
 export interface TracingOptions {
-  /** Service name for resource attributes */
   serviceName: string;
-  /** Service version (default: 0.0.0) */
   serviceVersion?: string;
-  /** OTLP HTTP endpoint (default: http://localhost:4318) */
   otlpEndpoint?: string;
+  disabled?: boolean;
 }
 
-/**
- * Initialize OpenTelemetry tracing and metrics.
- *
- * Currently a no-op stub. To activate:
- * 1. Install @opentelemetry/sdk-node, @opentelemetry/exporter-trace-otlp-http,
- *    @opentelemetry/exporter-metrics-otlp-http, @opentelemetry/sdk-metrics
- * 2. Replace this implementation with the actual NodeSDK setup
- */
-export function initTelemetry(_options: TracingOptions): void {
-  // Stub — OTel SDK packages not installed
+export interface TelemetryHandle {
+  shutdown(): Promise<void>;
+}
+
+let activeHandle: TelemetryHandle | undefined;
+
+export function initTelemetry(options: TracingOptions): TelemetryHandle {
+  if (activeHandle) return activeHandle;
+
+  if (options.disabled) {
+    activeHandle = { shutdown: async () => undefined };
+    return activeHandle;
+  }
+
+  const endpoint = (options.otlpEndpoint ?? "http://localhost:4318").replace(/\/$/, "");
+  const sdk = new NodeSDK({
+    resource: resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: options.serviceName,
+      [ATTR_SERVICE_VERSION]: options.serviceVersion ?? "0.0.0",
+    }),
+    traceExporter: new OTLPTraceExporter({ url: `${endpoint}/v1/traces` }),
+    metricReader: new PeriodicExportingMetricReader({
+      exporter: new OTLPMetricExporter({ url: `${endpoint}/v1/metrics` }),
+    }),
+  });
+  sdk.start();
+
+  activeHandle = {
+    async shutdown() {
+      await sdk.shutdown();
+      activeHandle = undefined;
+    },
+  };
+  return activeHandle;
 }

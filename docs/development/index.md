@@ -10,13 +10,13 @@
 
 ## 环境要求
 
-| 工具             | 版本                  | 说明                                                                                       |
-| ---------------- | --------------------- | ------------------------------------------------------------------------------------------ |
-| Node.js          | >= 24（锁定 24.19.0） | 见 `.node-version`；可用 [Volta](https://volta.sh) 或 nvm 安装                             |
-| pnpm             | >= 11（锁定 11.21.0） | `packageManager` 字段声明，Corepack 可自动启用                                             |
-| Python           | 3.12（3.12.13）       | 见 `.python-version`；`requires-python = ">=3.12,<3.13"`                                   |
-| uv               | >= 0.12               | Python 包管理，`pyproject.toml` 中 `[tool.uv] required-version`                            |
-| Docker + Compose | 任意较新版本          | 本地数据基础设施（PostgreSQL、ClickHouse、Redis、MinIO、Prometheus、Grafana、Loki、Tempo） |
+| 工具             | 版本            | 说明                                                                                       |
+| ---------------- | --------------- | ------------------------------------------------------------------------------------------ |
+| Node.js          | 24.19.0         | 见 `.node-version`；可用 [Volta](https://volta.sh) 或 nvm 安装                             |
+| pnpm             | 11.21.0         | `packageManager` 字段声明，Corepack 可自动启用                                             |
+| Python           | 3.12（3.12.13） | 见 `.python-version`；`requires-python = ">=3.12,<3.13"`                                   |
+| uv               | 0.12.3          | Python 包管理，`pyproject.toml` 中 `[tool.uv] required-version`                            |
+| Docker + Compose | 任意较新版本    | 本地数据基础设施（PostgreSQL、ClickHouse、Redis、MinIO、Prometheus、Grafana、Loki、Tempo） |
 
 Windows 开发者请勿使用中文/空格路径放置仓库；如遇"文件被占用/写入被拒"类错误，先看 [故障排查](troubleshooting.md)。
 
@@ -57,18 +57,18 @@ pnpm dev
 
 这会并行启动：
 
-- 控制面 API：<http://localhost:3001>，健康检查 <http://localhost:3001/health>
+- 控制面 API：<http://localhost:3002>，健康检查 <http://localhost:3002/api/v1/health>，指标 <http://localhost:3002/api/v1/metrics>
 - Web 终端：<http://localhost:5173>
 
-> 注意：API 默认端口 3001 与 Grafana 宿主端口冲突（见 [故障排查](troubleshooting.md#端口冲突)）。
-> 若同时使用两者，请用 `PORT=3002 pnpm --filter @kunlun/api dev` 启动 API。
+> API、Grafana、ClickHouse native 与 MinIO 已使用不同宿主端口；可在同一开发机并行启动。
 
 Python 引擎按服务单独启动（引擎是长驻进程，由 `pnpm dev` 之外的终端运行）：
 
 ```bash
 cd services/sample-engine
 uv run sample-engine
-# 健康检查: http://localhost:8080/health （KUNLUN_PORT 可覆盖端口）
+# 健康检查: http://localhost:8080/health；指标: http://localhost:8080/metrics
+# KUNLUN_PORT 可覆盖端口
 ```
 
 ### 4. 验证环境就绪

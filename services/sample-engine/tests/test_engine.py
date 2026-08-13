@@ -1,7 +1,8 @@
+import pytest
 from ashare_common import HealthHandler, ServiceConfig, ServiceRunner
 
 
-def test_health_handler():
+def test_health_handler() -> None:
     health = HealthHandler(service="sample", version="1.0.0")
     result = health.check()
     assert result.status == "ok"
@@ -9,7 +10,7 @@ def test_health_handler():
     assert result.version == "1.0.0"
 
 
-def test_service_config_defaults():
+def test_service_config_defaults() -> None:
     config = ServiceConfig()
     assert config.service_name == "kunlun"
     assert config.log_level == "INFO"
@@ -17,7 +18,7 @@ def test_service_config_defaults():
     assert config.shutdown_timeout_seconds == 10.0
 
 
-def test_config_from_env(monkeypatch):
+def test_config_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("KUNLUN_SERVICE_NAME", "test-engine")
     monkeypatch.setenv("KUNLUN_PORT", "9876")
     config = ServiceConfig()
@@ -25,6 +26,6 @@ def test_config_from_env(monkeypatch):
     assert config.port == 9876
 
 
-def test_service_runner_has_shutdown_timeout():
+def test_service_runner_has_shutdown_timeout() -> None:
     runner = ServiceRunner(shutdown_timeout=5.0)
-    assert runner._shutdown_timeout == 5.0
+    assert runner.shutdown_timeout == 5.0

@@ -2,7 +2,7 @@ import logging
 
 import pytest
 from ashare_common.logging import setup_logging
-from ashare_common.observability import init_telemetry
+from ashare_common.observability import init_telemetry, reset_telemetry_for_test
 
 
 def test_setup_logging_configures_root_handler() -> None:
@@ -37,18 +37,9 @@ def test_setup_logging_invalid_level_falls_back_to_info() -> None:
 
 
 def test_init_telemetry_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: list[tuple] = []
-
-    monkeypatch.setattr(
-        "ashare_common.observability.logger.info",
-        lambda *args, **kwargs: calls.append((args, kwargs)),
-    )
-
-    init_telemetry("svc-a")
-    init_telemetry("svc-b", otlp_endpoint="http://example.com:4318")
-
-    # Second call is a no-op: only one stub activation was logged.
-    assert len(calls) == 1
-    args = calls[0][0][1:]  # logger uses lazy %-formatting
-    assert args[0] == "svc-a"
-    assert args[1] == "http://localhost:4318"
+    reset_telemetry_for_test()
+    first = init_telemetry("svc-a", disabled=True)
+    second = init_telemetry("svc-b", disabled=True)
+    assert second is first
+    first.shutdown()
+    reset_telemetry_for_test()

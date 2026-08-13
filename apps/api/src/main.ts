@@ -7,8 +7,14 @@ import { AppModule } from "./app.module";
 import { GlobalExceptionFilter } from "./common/filters/http-exception.filter";
 import { RequestIdInterceptor } from "./common/interceptors/request-id.interceptor";
 import { env } from "./env";
+import { initTelemetry } from "@kunlun/observability";
 
 async function bootstrap(): Promise<void> {
+  const telemetry = initTelemetry({
+    serviceName: "kunlun-api",
+    serviceVersion: "0.0.0",
+    otlpEndpoint: process.env["OTEL_EXPORTER_OTLP_ENDPOINT"],
+  });
   const logger = new Logger("Bootstrap");
 
   const app = await NestFactory.create(AppModule);
@@ -38,6 +44,10 @@ async function bootstrap(): Promise<void> {
   SwaggerModule.setup("api/docs", app, document);
 
   await app.listen(env.port);
+  app.enableShutdownHooks();
+  const shutdown = async () => telemetry.shutdown();
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
   logger.log(`API running on http://localhost:${env.port}`);
   logger.log(`Swagger docs at http://localhost:${env.port}/api/docs`);
 }

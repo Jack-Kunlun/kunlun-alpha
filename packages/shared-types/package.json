@@ -16,6 +16,6 @@
   },
   "devDependencies": {
     "@kunlun/config": "workspace:*",
-    "typescript": "~5.7"
+    "typescript": "5.7.3"
   }
 }

@@ -4,8 +4,8 @@
   "private": true,
   "description": "昆仑智策 - A-Share Intelligence & Quant Platform",
   "engines": {
-    "node": ">=24",
-    "pnpm": ">=11"
+    "node": "24.19.0",
+    "pnpm": "11.21.0"
   },
   "packageManager": "pnpm@11.21.0",
   "scripts": {
@@ -14,10 +14,10 @@
     "test": "turbo test && pnpm python:test",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "node scripts/ci/prettier-check.mjs --write",
+    "format:check": "node scripts/ci/prettier-check.mjs",
     "clean": "turbo clean",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "check": "pnpm format:check && pnpm lint && pnpm python:lint && pnpm typecheck && pnpm python:typecheck && pnpm test",
     "python:sync": "uv sync",
     "python:lint": "uv run ruff check python/ services/",
     "python:format": "uv run ruff format python/ services/",
@@ -29,13 +29,13 @@
     "infra:logs": "docker compose -f infra/docker/docker-compose.yml logs -f"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "eslint": "^10.8.1",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "prettier": "^3.9.6",
-    "turbo": "^2.5.0",
-    "typescript-eslint": "^8.67.0",
-    "vitest": "^4.1.10"
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.1",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "prettier": "3.9.6",
+    "turbo": "2.10.9",
+    "typescript-eslint": "8.67.0",
+    "vitest": "4.1.10"
   },
   "volta": {
     "node": "24.19.0",

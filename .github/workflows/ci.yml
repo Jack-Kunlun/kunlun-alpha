@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
   workflow_dispatch:
 
@@ -14,9 +14,9 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: "24"
+  NODE_VERSION: "24.19.0"
   PNPM_VERSION: "11.21.0"
-  PYTHON_VERSION: "3.12"
+  PYTHON_VERSION: "3.12.13"
 
 jobs:
   # Three-OS matrix. All checks are read-only commands routed through

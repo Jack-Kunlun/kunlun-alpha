@@ -9,6 +9,12 @@ build/
 .next/
 .turbo/
 *.tsbuildinfo
+# TypeScript emit belongs in build output directories, never beside source files.
+**/src/**/*.js
+**/src/**/*.js.map
+**/src/**/*.d.ts
+**/src/**/*.d.ts.map
+!**/src/vite-env.d.ts
 
 # Python
 __pycache__/

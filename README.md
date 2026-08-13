@@ -58,7 +58,7 @@ uv sync --locked
 # 2. 启动本地数据基础设施（首次需 cp infra/docker/.env.example infra/docker/.env）
 pnpm infra:up
 
-# 3. 启动应用（API:3001, Web:5173）
+# 3. 启动应用（API:3002, Web:5173）
 pnpm dev
 ```
 

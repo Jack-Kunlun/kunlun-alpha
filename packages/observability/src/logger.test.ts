@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createLogger, generateId } from "./logger.js";
+import { initTelemetry } from "./telemetry.js";
+import { MetricsRegistry } from "./metrics.js";
 
 describe("createLogger", () => {
   it("emits a JSON line carrying the service name and level", () => {
@@ -54,6 +56,29 @@ describe("createLogger", () => {
     expect(entry.service).toBe("api");
     expect(entry.requestId).toBe("req-1");
     expect(entry.level).toBe("error");
+  });
+});
+
+describe("initTelemetry", () => {
+  it("returns one reusable lifecycle handle with shutdown support", async () => {
+    const first = initTelemetry({ serviceName: "test-service", disabled: true });
+    const second = initTelemetry({ serviceName: "ignored", disabled: true });
+
+    expect(second).toBe(first);
+    await expect(first.shutdown()).resolves.toBeUndefined();
+  });
+});
+
+describe("MetricsRegistry", () => {
+  it("renders bounded HTTP request metrics in Prometheus format", () => {
+    const metrics = new MetricsRegistry("kunlun_api");
+    metrics.recordHttpRequest("GET", "/api/v1/health", 200, 0.125);
+
+    const output = metrics.render();
+    expect(output).toContain(
+      'kunlun_api_http_requests_total{method="GET",route="/api/v1/health",status="200"} 1',
+    );
+    expect(output).toContain("kunlun_api_http_request_duration_seconds_sum");
   });
 });
 

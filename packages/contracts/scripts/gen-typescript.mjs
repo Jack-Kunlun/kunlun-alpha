@@ -39,7 +39,7 @@ async function main() {
     const schema = JSON.parse(readFileSync(schemaPath, "utf-8"));
     const ts = await compile(schema, schema.title || file.replace(".json", ""), {
       bannerComment: "",
-      style: { singleQuote: true, semi: true, tabWidth: 2, printWidth: 100 },
+      style: { singleQuote: false, semi: true, tabWidth: 2, printWidth: 100 },
     });
     types.push(ts);
   }
@@ -48,7 +48,7 @@ async function main() {
     "/** Shared domain types. Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND. */",
     "",
   ].join("\n");
-  const output = header + types.join("\n\n") + "\n";
+  const output = (header + types.join("\n\n")).trimEnd() + "\n";
 
   // Ensure output directory exists
   const outDir = dirname(TYPES_OUTPUT);
