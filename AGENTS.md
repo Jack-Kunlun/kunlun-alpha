@@ -284,9 +284,14 @@ Update documentation in the same node when behavior changes.
 
 ## 18. Git and commit discipline
 
-- Follow Conventional Commits.
+- Follow Conventional Commits with the exact title form `type(scope): 中文描述` or `type: 中文描述` when no scope is useful.
+- Keep `type` and optional `scope` in lowercase English. Allowed types are `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`, `perf`, `style`, and `revert`.
+- Write the subject and body primarily in Chinese. Keep product names, library names, protocols, commands, paths, identifiers, and other proper technical terms in their original English form.
+- Do not mix an English prose subject with a Chinese prose subject across commits. Examples: `feat(web): 创建 React Web 基础骨架`, `fix(phase0): 修复工程基础设施验收阻断项`, `docs: 补充项目规划文档`.
+- Use an imperative, concrete subject without a trailing period. Keep it concise and describe the resulting change rather than the work process.
+- For development-node commits, put the node ID on the first line of the body, such as `Node: P0-N06`; add a short Chinese summary or verification note only when it materially helps review.
 - Keep commits small, focused, reviewable, and reversible.
-- Reference the development node ID in the commit body or task record.
+- Reference the development node ID in the commit body or task record; WorkBuddy must not invent, omit, or change the assigned node ID.
 - Do not mix unrelated formatting, dependency upgrades, generated-file churn, or broad refactoring into a node.
 - Review generated files before committing them.
 - Do not bypass hooks or CI checks to make a node appear complete.
