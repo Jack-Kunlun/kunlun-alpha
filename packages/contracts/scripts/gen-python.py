@@ -148,10 +148,14 @@ def generate() -> None:
 
 
 def check() -> None:
-    """Verify generated files match schemas (regenerate and diff)."""
+    """Verify generated files match schemas (regenerate and diff).
+
+    Compares only the generated artifacts (schema modules, __init__.py and
+    py.typed), so hand-written subpackages such as providers/ can live
+    alongside them without tripping the sync check.
+    """
     global OUTPUT_DIR
     import tempfile
-    import filecmp
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_output = Path(tmpdir) / "ashare_contracts"
@@ -162,21 +166,31 @@ def check() -> None:
         finally:
             OUTPUT_DIR = old_output_dir
 
-        # Compare
         if not old_output_dir.exists():
             print("ERROR: Generated Python output directory does not exist:", old_output_dir)
             sys.exit(1)
 
-        dircmp = filecmp.dircmp(str(tmp_output), str(old_output_dir))
-        if dircmp.diff_files or dircmp.left_only or dircmp.right_only:
+        mismatches: list[str] = []
+        for tmp_file in sorted(tmp_output.rglob("*.py")):
+            rel = tmp_file.relative_to(tmp_output)
+            real_file = old_output_dir / rel
+            if not real_file.exists():
+                mismatches.append(f"missing: {rel}")
+            elif real_file.read_text(encoding="utf-8") != tmp_file.read_text(encoding="utf-8"):
+                mismatches.append(f"differing: {rel}")
+        if not (old_output_dir / "py.typed").exists():
+            mismatches.append("missing: py.typed")
+
+        generated_names = {f.name for f in tmp_output.glob("*.py")}
+        for real_file in sorted(old_output_dir.glob("*.py")):
+            if real_file.name not in generated_names and real_file.name != "__init__.py":
+                mismatches.append(f"stale: {real_file.name}")
+
+        if mismatches:
             print("ERROR: Generated Python types are out of sync with JSON Schema.")
             print("Run `pnpm gen:python` from packages/contracts/ to regenerate.")
-            if dircmp.diff_files:
-                print("  Differing files:", dircmp.diff_files)
-            if dircmp.left_only:
-                print("  New files:", dircmp.left_only)
-            if dircmp.right_only:
-                print("  Missing files:", dircmp.right_only)
+            for message in mismatches:
+                print("  " + message)
             sys.exit(1)
 
         print("Python types are in sync with JSON Schema.")
