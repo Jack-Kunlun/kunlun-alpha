@@ -53,4 +53,5 @@ extraPaths = [
     "python/packages/ashare-contracts/src",
     "python/packages/market-core/src",
     "services/sample-engine/src",
+    "services/data-worker/src",
 ]
