@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/calendar/trading-day.json",
+  "title": "TradingDay",
+  "description": "Per-date calendar entry for an exchange: whether it is a trading day and, when it is not, why. The sessions of a trading day are assembled from the exchange session template; this model stays a pure per-date status record",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO 8601 calendar date in Asia/Shanghai, e.g. 2026-08-13"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange this day entry applies to"
+    },
+    "isTradingDay": {
+      "type": "boolean",
+      "description": "Whether the exchange trades on this date; weekends and holidays never count as trading days"
+    },
+    "reason": {
+      "enum": ["WEEKEND", "PUBLIC_HOLIDAY", "TEMPORARY_CLOSURE", "SPECIAL"],
+      "description": "Optional reason when isTradingDay is false"
+    },
+    "note": {
+      "type": "string",
+      "description": "Optional free-text note (e.g. holiday name or closure cause)"
+    }
+  },
+  "required": ["date", "exchange", "isTradingDay"],
+  "additionalProperties": false
+}

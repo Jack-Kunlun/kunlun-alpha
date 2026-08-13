@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/calendar/trading-session.json",
+  "title": "TradingSession",
+  "description": "A named time interval within a trading day; local clock HH:MM in Asia/Shanghai, start inclusive, end exclusive. A session crossing midnight belongs to the trading day on which it starts",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Stable machine id, e.g. open-auction / morning / afternoon"
+    },
+    "kind": {
+      "enum": ["CONTINUOUS", "OPEN_AUCTION", "CLOSE_AUCTION", "BREAK", "NIGHT"],
+      "description": "Session kind: CONTINUOUS / OPEN_AUCTION / CLOSE_AUCTION / BREAK / NIGHT"
+    },
+    "start": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+      "description": "Local clock HH:MM (Asia/Shanghai), inclusive start"
+    },
+    "end": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+      "description": "Local clock HH:MM (Asia/Shanghai), exclusive end"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange this session belongs to"
+    },
+    "crossesMidnight": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the session ends after midnight (start > end); it belongs to its start trading day"
+    }
+  },
+  "required": ["sessionId", "kind", "start", "end", "exchange"],
+  "additionalProperties": false
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/calendar/holiday.json",
+  "title": "Holiday",
+  "description": "A scheduled exchange closure: a public holiday or an ad-hoc (temporary) closure. Weekends are derived by the calendar code and never stored as holidays",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO 8601 closure date in Asia/Shanghai, e.g. 2026-01-01"
+    },
+    "exchange": {
+      "enum": ["SH", "SZ", "BJ"],
+      "description": "Exchange the closure applies to"
+    },
+    "reason": {
+      "enum": ["PUBLIC_HOLIDAY", "TEMPORARY_CLOSURE", "SPECIAL"],
+      "description": "PUBLIC_HOLIDAY / TEMPORARY_CLOSURE / SPECIAL"
+    },
+    "note": {
+      "type": "string",
+      "description": "Optional free-text reason, e.g. 元旦 / 台风临时休市"
+    }
+  },
+  "required": ["date", "exchange", "reason"],
+  "additionalProperties": false
+}

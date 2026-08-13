@@ -1,0 +1,29 @@
+{
+  "$comment": "Static seed holidays for the default calendar — P1-N07 will replace this with provider-synced exchange calendars. Weekends are derived by the calendar code and must not be listed here. Each entry applies to a single exchange; list one row per exchange for market-wide closures.",
+  "timezone": "Asia/Shanghai",
+  "holidays": [
+    { "date": "2026-01-01", "exchange": "SH", "reason": "PUBLIC_HOLIDAY", "note": "元旦" },
+    { "date": "2026-01-01", "exchange": "SZ", "reason": "PUBLIC_HOLIDAY", "note": "元旦" },
+    { "date": "2026-01-01", "exchange": "BJ", "reason": "PUBLIC_HOLIDAY", "note": "元旦" },
+    { "date": "2026-01-02", "exchange": "SH", "reason": "PUBLIC_HOLIDAY", "note": "元旦调休" },
+    { "date": "2026-01-02", "exchange": "SZ", "reason": "PUBLIC_HOLIDAY", "note": "元旦调休" },
+    { "date": "2026-01-02", "exchange": "BJ", "reason": "PUBLIC_HOLIDAY", "note": "元旦调休" },
+
+    { "date": "2026-02-17", "exchange": "SH", "reason": "PUBLIC_HOLIDAY", "note": "春节" },
+    { "date": "2026-02-17", "exchange": "SZ", "reason": "PUBLIC_HOLIDAY", "note": "春节" },
+    { "date": "2026-02-17", "exchange": "BJ", "reason": "PUBLIC_HOLIDAY", "note": "春节" },
+    { "date": "2026-02-18", "exchange": "SH", "reason": "PUBLIC_HOLIDAY", "note": "春节调休" },
+    { "date": "2026-02-18", "exchange": "SZ", "reason": "PUBLIC_HOLIDAY", "note": "春节调休" },
+    { "date": "2026-02-18", "exchange": "BJ", "reason": "PUBLIC_HOLIDAY", "note": "春节调休" },
+
+    { "date": "2026-05-01", "exchange": "SH", "reason": "PUBLIC_HOLIDAY", "note": "劳动节" },
+    { "date": "2026-05-01", "exchange": "SZ", "reason": "PUBLIC_HOLIDAY", "note": "劳动节" },
+    { "date": "2026-05-01", "exchange": "BJ", "reason": "PUBLIC_HOLIDAY", "note": "劳动节" },
+
+    { "date": "2026-10-01", "exchange": "SH", "reason": "PUBLIC_HOLIDAY", "note": "国庆节" },
+    { "date": "2026-10-01", "exchange": "SZ", "reason": "PUBLIC_HOLIDAY", "note": "国庆节" },
+    { "date": "2026-10-01", "exchange": "BJ", "reason": "PUBLIC_HOLIDAY", "note": "国庆节" },
+
+    { "date": "2026-08-07", "exchange": "SH", "reason": "TEMPORARY_CLOSURE", "note": "台风临时休市样例" }
+  ]
+}

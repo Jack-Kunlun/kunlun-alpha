@@ -50,6 +50,15 @@
       "description": "Optional delisting date (ISO 8601 date)"
     }
   },
-  "required": ["unifiedCode", "code", "exchange", "board", "type", "name", "tradingStatus", "currency"],
+  "required": [
+    "unifiedCode",
+    "code",
+    "exchange",
+    "board",
+    "type",
+    "name",
+    "tradingStatus",
+    "currency"
+  ],
   "additionalProperties": false
 }

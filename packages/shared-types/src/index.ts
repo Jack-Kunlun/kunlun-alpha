@@ -1,5 +1,83 @@
 /** Shared domain types. Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND. */
 /**
+ * A scheduled exchange closure: a public holiday or an ad-hoc (temporary) closure. Weekends are derived by the calendar code and never stored as holidays
+ */
+export interface Holiday {
+  /**
+   * ISO 8601 closure date in Asia/Shanghai, e.g. 2026-01-01
+   */
+  date: string;
+  /**
+   * Exchange the closure applies to
+   */
+  exchange: "SH" | "SZ" | "BJ";
+  /**
+   * PUBLIC_HOLIDAY / TEMPORARY_CLOSURE / SPECIAL
+   */
+  reason: "PUBLIC_HOLIDAY" | "TEMPORARY_CLOSURE" | "SPECIAL";
+  /**
+   * Optional free-text reason, e.g. 元旦 / 台风临时休市
+   */
+  note?: string;
+}
+
+/**
+ * Per-date calendar entry for an exchange: whether it is a trading day and, when it is not, why. The sessions of a trading day are assembled from the exchange session template; this model stays a pure per-date status record
+ */
+export interface TradingDay {
+  /**
+   * ISO 8601 calendar date in Asia/Shanghai, e.g. 2026-08-13
+   */
+  date: string;
+  /**
+   * Exchange this day entry applies to
+   */
+  exchange: "SH" | "SZ" | "BJ";
+  /**
+   * Whether the exchange trades on this date; weekends and holidays never count as trading days
+   */
+  isTradingDay: boolean;
+  /**
+   * Optional reason when isTradingDay is false
+   */
+  reason?: "WEEKEND" | "PUBLIC_HOLIDAY" | "TEMPORARY_CLOSURE" | "SPECIAL";
+  /**
+   * Optional free-text note (e.g. holiday name or closure cause)
+   */
+  note?: string;
+}
+
+/**
+ * A named time interval within a trading day; local clock HH:MM in Asia/Shanghai, start inclusive, end exclusive. A session crossing midnight belongs to the trading day on which it starts
+ */
+export interface TradingSession {
+  /**
+   * Stable machine id, e.g. open-auction / morning / afternoon
+   */
+  sessionId: string;
+  /**
+   * Session kind: CONTINUOUS / OPEN_AUCTION / CLOSE_AUCTION / BREAK / NIGHT
+   */
+  kind: "CONTINUOUS" | "OPEN_AUCTION" | "CLOSE_AUCTION" | "BREAK" | "NIGHT";
+  /**
+   * Local clock HH:MM (Asia/Shanghai), inclusive start
+   */
+  start: string;
+  /**
+   * Local clock HH:MM (Asia/Shanghai), exclusive end
+   */
+  end: string;
+  /**
+   * Exchange this session belongs to
+   */
+  exchange: "SH" | "SZ" | "BJ";
+  /**
+   * True when the session ends after midnight (start > end); it belongs to its start trading day
+   */
+  crossesMidnight?: boolean;
+}
+
+/**
  * Service health-check response
  */
 export interface HealthStatus {

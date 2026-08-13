@@ -1,21 +1,126 @@
 {
   "$comment": "Cross-language sample data for the instrument code parser. Both the TypeScript (vitest) and Python (pytest) suites read this same file so the two parsers stay aligned.",
   "valid": [
-    { "code": "600000", "exchange": "SH", "board": "MAIN", "type": "STOCK", "unifiedCode": "SH.600000", "note": "SH main board stock" },
-    { "code": "601318", "exchange": "SH", "board": "MAIN", "type": "STOCK", "unifiedCode": "SH.601318", "note": "SH main board stock" },
-    { "code": "000001", "exchange": "SZ", "board": "MAIN", "type": "STOCK", "unifiedCode": "SZ.000001", "note": "SZ main board stock" },
-    { "code": "002594", "exchange": "SZ", "board": "MAIN", "type": "STOCK", "unifiedCode": "SZ.002594", "note": "SZ main board (SME merged into main)" },
-    { "code": "300750", "exchange": "SZ", "board": "CHINEXT", "type": "STOCK", "unifiedCode": "SZ.300750", "note": "ChiNext stock" },
-    { "code": "301236", "exchange": "SZ", "board": "CHINEXT", "type": "STOCK", "unifiedCode": "SZ.301236", "note": "ChiNext stock" },
-    { "code": "688981", "exchange": "SH", "board": "STAR", "type": "STOCK", "unifiedCode": "SH.688981", "note": "STAR market stock" },
-    { "code": "830799", "exchange": "BJ", "board": "BSE", "type": "STOCK", "unifiedCode": "BJ.830799", "note": "BSE stock (legacy segment)" },
-    { "code": "920002", "exchange": "BJ", "board": "BSE", "type": "STOCK", "unifiedCode": "BJ.920002", "note": "BSE stock (new 920 segment)" },
-    { "code": "510300", "exchange": "SH", "board": "MAIN", "type": "ETF", "unifiedCode": "SH.510300", "note": "CSI 300 ETF" },
-    { "code": "588000", "exchange": "SH", "board": "MAIN", "type": "ETF", "unifiedCode": "SH.588000", "note": "STAR 50 ETF" },
-    { "code": "159915", "exchange": "SZ", "board": "MAIN", "type": "ETF", "unifiedCode": "SZ.159915", "note": "ChiNext ETF" },
-    { "code": "161725", "exchange": "SZ", "board": "MAIN", "type": "LOF", "unifiedCode": "SZ.161725", "note": "SZ LOF fund" },
-    { "code": "501018", "exchange": "SH", "board": "MAIN", "type": "LOF", "unifiedCode": "SH.501018", "note": "SH LOF fund" },
-    { "code": "508000", "exchange": "SH", "board": "MAIN", "type": "FUND", "unifiedCode": "SH.508000", "note": "SH on-exchange fund (e.g. REITs)" }
+    {
+      "code": "600000",
+      "exchange": "SH",
+      "board": "MAIN",
+      "type": "STOCK",
+      "unifiedCode": "SH.600000",
+      "note": "SH main board stock"
+    },
+    {
+      "code": "601318",
+      "exchange": "SH",
+      "board": "MAIN",
+      "type": "STOCK",
+      "unifiedCode": "SH.601318",
+      "note": "SH main board stock"
+    },
+    {
+      "code": "000001",
+      "exchange": "SZ",
+      "board": "MAIN",
+      "type": "STOCK",
+      "unifiedCode": "SZ.000001",
+      "note": "SZ main board stock"
+    },
+    {
+      "code": "002594",
+      "exchange": "SZ",
+      "board": "MAIN",
+      "type": "STOCK",
+      "unifiedCode": "SZ.002594",
+      "note": "SZ main board (SME merged into main)"
+    },
+    {
+      "code": "300750",
+      "exchange": "SZ",
+      "board": "CHINEXT",
+      "type": "STOCK",
+      "unifiedCode": "SZ.300750",
+      "note": "ChiNext stock"
+    },
+    {
+      "code": "301236",
+      "exchange": "SZ",
+      "board": "CHINEXT",
+      "type": "STOCK",
+      "unifiedCode": "SZ.301236",
+      "note": "ChiNext stock"
+    },
+    {
+      "code": "688981",
+      "exchange": "SH",
+      "board": "STAR",
+      "type": "STOCK",
+      "unifiedCode": "SH.688981",
+      "note": "STAR market stock"
+    },
+    {
+      "code": "830799",
+      "exchange": "BJ",
+      "board": "BSE",
+      "type": "STOCK",
+      "unifiedCode": "BJ.830799",
+      "note": "BSE stock (legacy segment)"
+    },
+    {
+      "code": "920002",
+      "exchange": "BJ",
+      "board": "BSE",
+      "type": "STOCK",
+      "unifiedCode": "BJ.920002",
+      "note": "BSE stock (new 920 segment)"
+    },
+    {
+      "code": "510300",
+      "exchange": "SH",
+      "board": "MAIN",
+      "type": "ETF",
+      "unifiedCode": "SH.510300",
+      "note": "CSI 300 ETF"
+    },
+    {
+      "code": "588000",
+      "exchange": "SH",
+      "board": "MAIN",
+      "type": "ETF",
+      "unifiedCode": "SH.588000",
+      "note": "STAR 50 ETF"
+    },
+    {
+      "code": "159915",
+      "exchange": "SZ",
+      "board": "MAIN",
+      "type": "ETF",
+      "unifiedCode": "SZ.159915",
+      "note": "ChiNext ETF"
+    },
+    {
+      "code": "161725",
+      "exchange": "SZ",
+      "board": "MAIN",
+      "type": "LOF",
+      "unifiedCode": "SZ.161725",
+      "note": "SZ LOF fund"
+    },
+    {
+      "code": "501018",
+      "exchange": "SH",
+      "board": "MAIN",
+      "type": "LOF",
+      "unifiedCode": "SH.501018",
+      "note": "SH LOF fund"
+    },
+    {
+      "code": "508000",
+      "exchange": "SH",
+      "board": "MAIN",
+      "type": "FUND",
+      "unifiedCode": "SH.508000",
+      "note": "SH on-exchange fund (e.g. REITs)"
+    }
   ],
   "invalid": [
     { "code": "", "reason": "empty string" },
@@ -29,8 +134,16 @@
     { "code": "400000", "reason": "three-board segment not in scope" }
   ],
   "stAndDelisted": [
-    { "code": "600000", "tradingStatus": "ST", "note": "ST is a status field; the exchange code does not change" },
-    { "code": "000001", "tradingStatus": "DELISTED", "note": "Delisted instruments keep their exchange code" },
+    {
+      "code": "600000",
+      "tradingStatus": "ST",
+      "note": "ST is a status field; the exchange code does not change"
+    },
+    {
+      "code": "000001",
+      "tradingStatus": "DELISTED",
+      "note": "Delisted instruments keep their exchange code"
+    },
     { "code": "300750", "tradingStatus": "SUSPENDED", "note": "Suspension is a temporary status" },
     { "code": "688981", "tradingStatus": "LISTED", "note": "Normal listed status" }
   ]
