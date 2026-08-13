@@ -6,13 +6,13 @@
 
 ## 分项与权重
 
-| 分项 | 原始指标 | 标准化 | 权重 |
-|---|---|---|---|
-| 涨停 | limit_up_count | sigmoid((count-50)/30) | 0.30 |
-| 跌停 | limit_down_count | 1 - sigmoid((count-10)/20) | 0.20 |
-| 连板高度 | max_board | min(max_board/10, 1) | 0.20 |
-| 晋级率 | advancement_rate | clamp(rate, 0, 1) | 0.15 |
-| 溢价 | premium | sigmoid(premium*20) | 0.15 |
+| 分项     | 原始指标         | 标准化                     | 权重 |
+| -------- | ---------------- | -------------------------- | ---- |
+| 涨停     | limit_up_count   | sigmoid((count-50)/30)     | 0.30 |
+| 跌停     | limit_down_count | 1 - sigmoid((count-10)/20) | 0.20 |
+| 连板高度 | max_board        | min(max_board/10, 1)       | 0.20 |
+| 晋级率   | advancement_rate | clamp(rate, 0, 1)          | 0.15 |
+| 溢价     | premium          | sigmoid(premium*20)        | 0.15 |
 
 ## 总分
 
