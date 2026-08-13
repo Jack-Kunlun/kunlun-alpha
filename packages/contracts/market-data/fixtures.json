@@ -11,12 +11,12 @@
           "interval": "DAILY",
           "session": "CONTINUOUS",
           "timestamp": "2026-08-13T01:30:00.000Z",
-          "open": 10.00,
-          "high": 10.50,
-          "low": 9.80,
-          "close": 10.20,
+          "open": 10.0,
+          "high": 10.5,
+          "low": 9.8,
+          "close": 10.2,
           "volume": 1000000,
-          "amount": 10200000.00,
+          "amount": 10200000.0,
           "priceType": "RAW"
         }
       },
@@ -29,12 +29,12 @@
           "interval": "DAILY",
           "session": "CONTINUOUS",
           "timestamp": "2026-08-13T01:30:00.000Z",
-          "open": 9.50,
-          "high": 9.90,
-          "low": 9.30,
-          "close": 9.70,
+          "open": 9.5,
+          "high": 9.9,
+          "low": 9.3,
+          "close": 9.7,
           "volume": 1000000,
-          "amount": 9700000.00,
+          "amount": 9700000.0,
           "priceType": "FORWARD_ADJUSTED"
         }
       },
@@ -47,12 +47,12 @@
           "interval": "MINUTE_1",
           "session": "CONTINUOUS",
           "timestamp": "2026-08-13T01:30:00.000Z",
-          "open": 15.00,
+          "open": 15.0,
           "high": 15.05,
           "low": 14.98,
           "close": 15.02,
           "volume": 5000,
-          "amount": 75000.00,
+          "amount": 75000.0,
           "priceType": "RAW"
         }
       }
@@ -88,12 +88,12 @@
           "interval": "DAILY",
           "session": "CONTINUOUS",
           "timestamp": "2026-08-13T01:30:00.000Z",
-          "open": 10.00,
-          "high": 9.50,
-          "low": 10.00,
-          "close": 9.80,
+          "open": 10.0,
+          "high": 9.5,
+          "low": 10.0,
+          "close": 9.8,
           "volume": 1000,
-          "amount": 9800.00,
+          "amount": 9800.0,
           "priceType": "RAW"
         },
         "reason": "high must be >= max(open, close, low)"
@@ -107,12 +107,12 @@
           "interval": "DAILY",
           "session": "CONTINUOUS",
           "timestamp": "2026-08-13T01:30:00.000Z",
-          "open": 10.00,
-          "high": 10.50,
-          "low": 9.80,
-          "close": 10.20,
+          "open": 10.0,
+          "high": 10.5,
+          "low": 9.8,
+          "close": 10.2,
           "volume": -100,
-          "amount": 1020000.00,
+          "amount": 1020000.0,
           "priceType": "RAW"
         },
         "reason": "volume must be >= 0"
@@ -126,12 +126,12 @@
           "interval": "DAILY",
           "session": "CONTINUOUS",
           "timestamp": "2026-08-13T01:30:00.000Z",
-          "open": 10.00,
-          "high": 10.50,
-          "low": 9.80,
+          "open": 10.0,
+          "high": 10.5,
+          "low": 9.8,
           "close": -1,
           "volume": 1000,
-          "amount": 10000.00,
+          "amount": 10000.0,
           "priceType": "RAW"
         },
         "reason": "close must be >= 0"
@@ -145,12 +145,12 @@
           "interval": "DAILY",
           "session": "CONTINUOUS",
           "timestamp": "2026-08-13T01:30:00.000Z",
-          "open": 10.00,
-          "high": 10.50,
-          "low": 10.60,
-          "close": 10.20,
+          "open": 10.0,
+          "high": 10.5,
+          "low": 10.6,
+          "close": 10.2,
           "volume": 1000,
-          "amount": 10200.00,
+          "amount": 10200.0,
           "priceType": "RAW"
         },
         "reason": "low must be <= min(open, close, high)"
@@ -164,12 +164,12 @@
           "interval": "DAILY",
           "session": "CONTINUOUS",
           "timestamp": "2026-08-13T01:30:00.000Z",
-          "open": 10.00,
-          "high": 10.00,
-          "low": 10.00,
-          "close": 10.00,
+          "open": 10.0,
+          "high": 10.0,
+          "low": 10.0,
+          "close": 10.0,
           "volume": 1000,
-          "amount": 10000.00,
+          "amount": 10000.0,
           "priceType": "RAW",
           "suspended": true
         },
@@ -186,9 +186,9 @@
           "exchange": "SH",
           "date": "2026-08-13",
           "timestamp": "2026-08-13T01:30:00.123Z",
-          "price": 10.00,
+          "price": 10.0,
           "volume": 100,
-          "amount": 1000.00,
+          "amount": 1000.0,
           "direction": "BUY",
           "tradeType": "MATCH"
         }
@@ -204,7 +204,7 @@
           "timestamp": "2026-08-13T01:30:00.123Z",
           "price": -1,
           "volume": 100,
-          "amount": 1000.00,
+          "amount": 1000.0,
           "direction": "BUY",
           "tradeType": "MATCH"
         },
@@ -217,9 +217,9 @@
           "exchange": "SH",
           "date": "2026-08-13",
           "timestamp": "2026-08-13T01:30:00.123Z",
-          "price": 10.00,
+          "price": 10.0,
           "volume": -1,
-          "amount": 1000.00,
+          "amount": 1000.0,
           "direction": "BUY",
           "tradeType": "MATCH"
         },
@@ -285,7 +285,7 @@
           "exDate": "2026-06-01",
           "actionType": "DIVIDEND",
           "description": "每股派息 0.50 元",
-          "perShareCash": 0.50
+          "perShareCash": 0.5
         }
       },
       {
@@ -309,7 +309,7 @@
           "exDate": "2026-06-01",
           "actionType": "DIVIDEND",
           "description": "invalid",
-          "perShareCash": -0.50
+          "perShareCash": -0.5
         },
         "reason": "perShareCash must be >= 0"
       }
