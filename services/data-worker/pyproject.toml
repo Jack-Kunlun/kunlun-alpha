@@ -6,6 +6,7 @@ requires-python = "==3.12.13"
 dependencies = [
     "ashare-contracts",
     "market-core",
+    "psycopg[binary]==3.3.4",
 ]
 
 [tool.uv.sources]

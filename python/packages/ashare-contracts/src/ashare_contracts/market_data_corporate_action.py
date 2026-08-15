@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Exchange(Enum):
@@ -23,12 +24,79 @@ class ActionType(Enum):
 
 
 class CorporateAction(BaseModel):
+    @field_validator("per_share_cash", "per_share_stock", "ratio", mode="before")
+    @classmethod
+    def reject_binary_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise TypeError("float is not an accepted decimal boundary value")
+        return value
+
+    @model_validator(mode="after")
+    def validate_unified_identity(self) -> CorporateAction:
+        prefix_rules = (
+            ("600", "SH", "MAIN", "STOCK"),
+            ("601", "SH", "MAIN", "STOCK"),
+            ("603", "SH", "MAIN", "STOCK"),
+            ("605", "SH", "MAIN", "STOCK"),
+            ("688", "SH", "STAR", "STOCK"),
+            ("689", "SH", "STAR", "STOCK"),
+            ("510", "SH", "MAIN", "ETF"),
+            ("511", "SH", "MAIN", "ETF"),
+            ("512", "SH", "MAIN", "ETF"),
+            ("513", "SH", "MAIN", "ETF"),
+            ("515", "SH", "MAIN", "ETF"),
+            ("516", "SH", "MAIN", "ETF"),
+            ("517", "SH", "MAIN", "ETF"),
+            ("518", "SH", "MAIN", "ETF"),
+            ("560", "SH", "MAIN", "ETF"),
+            ("561", "SH", "MAIN", "ETF"),
+            ("562", "SH", "MAIN", "ETF"),
+            ("563", "SH", "MAIN", "ETF"),
+            ("564", "SH", "MAIN", "ETF"),
+            ("588", "SH", "MAIN", "ETF"),
+            ("589", "SH", "MAIN", "ETF"),
+            ("501", "SH", "MAIN", "LOF"),
+            ("000", "SZ", "MAIN", "STOCK"),
+            ("001", "SZ", "MAIN", "STOCK"),
+            ("002", "SZ", "MAIN", "STOCK"),
+            ("003", "SZ", "MAIN", "STOCK"),
+            ("300", "SZ", "CHINEXT", "STOCK"),
+            ("301", "SZ", "CHINEXT", "STOCK"),
+            ("302", "SZ", "CHINEXT", "STOCK"),
+            ("159", "SZ", "MAIN", "ETF"),
+            ("50", "SH", "MAIN", "FUND"),
+            ("15", "SZ", "MAIN", "FUND"),
+            ("16", "SZ", "MAIN", "LOF"),
+            ("43", "BJ", "BSE", "STOCK"),
+            ("83", "BJ", "BSE", "STOCK"),
+            ("87", "BJ", "BSE", "STOCK"),
+            ("88", "BJ", "BSE", "STOCK"),
+            ("92", "BJ", "BSE", "STOCK"),
+        )
+        exchange = getattr(self.exchange, "value", self.exchange)
+        unified_code = self.unified_code
+        if len(unified_code) != 9 or unified_code[6] != ".":
+            raise ValueError("unifiedCode must use suffix form")
+        code = unified_code[:6]
+        suffix = unified_code[7:]
+        if suffix != exchange:
+            raise ValueError("unifiedCode/exchange identity mismatch")
+        expected_rule = next(
+            (rule for rule in prefix_rules if code.startswith(rule[0])),
+            None,
+        )
+        if expected_rule is None:
+            raise ValueError("code is not recognized by code prefix rules")
+        if expected_rule[1] != exchange:
+            raise ValueError("exchange must match code prefix rules")
+        return self
+
     model_config = ConfigDict(
         extra="forbid",
     )
-    unified_code: str = Field(..., alias="unifiedCode", pattern="^[A-Z]{2}\\.\\d{6}$")
+    unified_code: str = Field(..., alias="unifiedCode", pattern="^\\d{6}\\.(SH|SZ|BJ)$")
     """
-    Instrument unified code, e.g. SH.600000
+    Instrument unified code, e.g. 600000.SH
     """
     exchange: Exchange
     """
@@ -46,15 +114,15 @@ class CorporateAction(BaseModel):
     """
     Human-readable description
     """
-    per_share_cash: float | None = Field(None, alias="perShareCash", ge=0.0)
+    per_share_cash: Decimal | None = Field(None, alias="perShareCash", ge=Decimal("0"))
     """
     Cash dividend per share in CNY (optional)
     """
-    per_share_stock: float | None = Field(None, alias="perShareStock", ge=0.0)
+    per_share_stock: Decimal | None = Field(None, alias="perShareStock", ge=Decimal("0"))
     """
     Stock dividend per share (optional)
     """
-    ratio: float | None = Field(None, ge=0.0)
+    ratio: Decimal | None = Field(None, ge=Decimal("0"))
     """
     Rights issue ratio (optional)
     """

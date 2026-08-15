@@ -28,7 +28,7 @@ class Exchange(BaseModel):
     )
     code: Code
     """
-    Exchange code used in the unified instrument code (SH.600000)
+    Exchange code used in the unified instrument code (600000.SH)
     """
     name: str
     """

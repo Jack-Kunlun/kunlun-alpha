@@ -5,7 +5,7 @@
 #   docker compose up -d          # start
 #   docker compose ps             # status
 #   docker compose down           # stop (keeps volumes)
-#   docker compose down -v        # stop and delete data
+#   Keep the ClickHouse data directory and volume when stopping services.
 #
 # Ports:
 #   PostgreSQL:  5432
@@ -89,8 +89,9 @@ services:
       - "8123:8123" # HTTP interface
       - "9002:9000" # Native protocol (host 9002 avoids MinIO API conflict)
     volumes:
-      - ./data/clickhouse:/var/lib/clickhouse
+      - kunlun-clickhouse-data:/var/lib/clickhouse
       - ./init/clickhouse:/docker-entrypoint-initdb.d:ro
+      - ../clickhouse/migrations:/opt/kunlun/clickhouse/migrations:ro
     ulimits:
       nofile:
         soft: 262144
@@ -267,3 +268,7 @@ services:
     labels:
       - "kunlun.service=tempo"
       - "kunlun.description=Distributed tracing backend"
+
+volumes:
+  kunlun-clickhouse-data:
+    name: ${CLICKHOUSE_VOLUME_NAME:-kunlun-clickhouse-data}

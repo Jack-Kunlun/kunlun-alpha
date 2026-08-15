@@ -141,3 +141,53 @@ describe("research vs trade price separation", () => {
     }
   });
 });
+
+describe("unified code and exchange identity", () => {
+  it("rejects a bar whose suffix disagrees with exchange", () => {
+    const bar: Bar = { ...data.bars.valid[0]!.bar, unifiedCode: "600000.SZ", exchange: "SH" };
+    expect(validateBar(bar)).toEqual({
+      valid: false,
+      errors: ["unifiedCode/exchange identity mismatch"],
+    });
+  });
+
+  it("rejects a tick whose suffix disagrees with exchange", () => {
+    const tick: Tick = { ...data.ticks.valid[0]!.tick, unifiedCode: "600000.SZ", exchange: "SH" };
+    expect(validateTick(tick)).toEqual({
+      valid: false,
+      errors: ["unifiedCode/exchange identity mismatch"],
+    });
+  });
+
+  it("rejects an adjustment factor whose suffix disagrees with exchange", () => {
+    const factor: AdjustmentFactor = {
+      ...data.factors.valid[0]!.factor,
+      unifiedCode: "600000.SZ",
+      exchange: "SH",
+    };
+    expect(validateAdjustmentFactor(factor)).toEqual({
+      valid: false,
+      errors: ["unifiedCode/exchange identity mismatch"],
+    });
+  });
+
+  it("rejects a corporate action whose suffix disagrees with exchange", () => {
+    const action: CorporateAction = {
+      ...data.actions.valid[0]!.action,
+      unifiedCode: "600000.SZ",
+      exchange: "SH",
+    };
+    expect(validateCorporateAction(action)).toEqual({
+      valid: false,
+      errors: ["unifiedCode/exchange identity mismatch"],
+    });
+  });
+
+  it("rejects an unknown prefix even when the suffix matches exchange", () => {
+    const bar: Bar = { ...data.bars.valid[0]!.bar, unifiedCode: "123456.SH" };
+    expect(validateBar(bar)).toEqual({
+      valid: false,
+      errors: ["unifiedCode/exchange identity mismatch"],
+    });
+  });
+});

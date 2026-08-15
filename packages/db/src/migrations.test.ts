@@ -76,4 +76,57 @@ describe("MigrationRunner", () => {
       /duplicate primary key/,
     );
   });
+
+  it("rolls back a failed migration including its metadata record", async () => {
+    const driver = new MemorySqlDriver();
+    const runner = new MigrationRunner(driver);
+    const failing: Migration = {
+      version: 3,
+      name: "failing_migration",
+      up: [
+        {
+          name: "temporary_table",
+          columns: [{ name: "id", type: "TEXT", primaryKey: true, notNull: true }],
+        },
+        {
+          name: "duplicate_table",
+          columns: [{ name: "id", type: "TEXT", primaryKey: true, notNull: true }],
+        },
+        {
+          name: "duplicate_table",
+          columns: [{ name: "id", type: "TEXT", primaryKey: true, notNull: true }],
+        },
+      ],
+      down: ["duplicate_table", "temporary_table"],
+    };
+
+    await expect(runner.migrate([failing])).rejects.toThrow(/already exists/);
+
+    expect(await driver.hasTable("temporary_table")).toBe(false);
+    expect(await driver.hasTable("duplicate_table")).toBe(false);
+    expect(await runner.appliedVersions()).not.toContain(3);
+  });
+
+  it("removes migration metadata when a migration is rolled back", async () => {
+    const driver = new MemorySqlDriver();
+    const runner = new MigrationRunner(driver);
+
+    await runner.migrate(migrations);
+    await runner.rollback(migrations, 1);
+
+    expect(await runner.appliedVersions()).toEqual(new Set([1]));
+    await runner.migrate(migrations);
+    expect(await runner.appliedVersions()).toEqual(new Set([1, 2]));
+  });
+
+  it("serializes concurrent migration runners behind the migration lock", async () => {
+    const driver = new MemorySqlDriver();
+    const first = new MigrationRunner(driver);
+    const second = new MigrationRunner(driver);
+
+    const counts = await Promise.all([first.migrate(migrations), second.migrate(migrations)]);
+
+    expect(counts.reduce((sum, count) => sum + count, 0)).toBe(2);
+    expect(await driver.query("schema_migrations")).toHaveLength(2);
+  });
 });

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from decimal import Decimal
 
 from market_core.models.validators import Bar
 
@@ -24,7 +25,7 @@ class SectorSnapshot:
     date: str
     timestamp: str
     average_change: float
-    turnover: float
+    turnover: Decimal
     breadth: float
     leader: str | None
     strength: float
@@ -37,18 +38,18 @@ def compute_snapshot(
     timestamp: str,
     members: list[str],
     bars: dict[str, Bar],
-    prev_close: dict[str, float],
+    prev_close: dict[str, Decimal],
 ) -> SectorSnapshot:
     """Compute a sector snapshot from the member set and their bars.
 
     ``bars`` maps a member code to its bar at ``timestamp``; a missing bar
     means the member has no quote at this instant and is skipped.
     """
-    changes: list[float] = []
-    turnover = 0.0
+    changes: list[Decimal] = []
+    turnover = Decimal("0")
     advancing = 0
     leader: str | None = None
-    leader_change = -math.inf
+    leader_change: Decimal | None = None
 
     for code in members:
         bar = bars.get(code)
@@ -64,22 +65,22 @@ def compute_snapshot(
         turnover += bar.amount
         if change > 0:
             advancing += 1
-        if change > leader_change:
+        if leader_change is None or change > leader_change:
             leader_change = change
             leader = code
 
     count = len(changes)
-    average_change = sum(changes) / count if count else 0.0
-    breadth = advancing / count if count else 0.0
-    strength = 0.6 * _sigmoid(average_change * 20) + 0.4 * breadth
+    average_change = sum(changes, Decimal("0")) / count if count else Decimal("0")
+    breadth = Decimal(advancing) / count if count else Decimal("0")
+    strength = 0.6 * _sigmoid(float(average_change * 20)) + 0.4 * float(breadth)
 
     return SectorSnapshot(
         sector_id=sector_id,
         date=date,
         timestamp=timestamp,
-        average_change=round(average_change, 6),
+        average_change=round(float(average_change), 6),
         turnover=turnover,
-        breadth=round(breadth, 6),
+        breadth=round(float(breadth), 6),
         leader=leader,
         strength=round(strength, 6),
     )
@@ -97,7 +98,7 @@ class SnapshotAggregator:
     """
 
     def __init__(
-        self, sector_id: str, date: str, members: list[str], prev_close: dict[str, float]
+        self, sector_id: str, date: str, members: list[str], prev_close: dict[str, Decimal]
     ) -> None:
         self._sector_id = sector_id
         self._date = date

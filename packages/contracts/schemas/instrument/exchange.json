@@ -7,7 +7,7 @@
   "properties": {
     "code": {
       "enum": ["SH", "SZ", "BJ"],
-      "description": "Exchange code used in the unified instrument code (SH.600000)"
+      "description": "Exchange code used in the unified instrument code (600000.SH)"
     },
     "name": {
       "type": "string",

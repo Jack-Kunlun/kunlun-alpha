@@ -13,7 +13,37 @@ interface MemoryTable {
 }
 
 export class MemorySqlDriver implements SqlDriver {
-  private readonly tables = new Map<string, MemoryTable>();
+  private tables: Map<string, MemoryTable>;
+  private migrationLockTail: Promise<void> = Promise.resolve();
+
+  constructor(tables?: Map<string, MemoryTable>) {
+    this.tables = tables ?? new Map<string, MemoryTable>();
+  }
+
+  async withMigrationLock<T>(operation: (driver: MemorySqlDriver) => Promise<T>): Promise<T> {
+    let release!: () => void;
+    const previous = this.migrationLockTail;
+    this.migrationLockTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await operation(this);
+    } finally {
+      release();
+    }
+  }
+
+  async transaction<T>(operation: (driver: SqlDriver) => Promise<T>): Promise<T> {
+    const transaction = new MemorySqlDriver(this.cloneTables());
+    try {
+      const result = await operation(transaction);
+      this.tables = transaction.tables;
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async createTable(table: TableDefinition): Promise<void> {
     if (this.tables.has(table.name)) {
@@ -56,5 +86,32 @@ export class MemorySqlDriver implements SqlDriver {
       return [];
     }
     return target.rows.map((r) => ({ ...r }));
+  }
+
+  async delete(table: string, where: Record<string, unknown>): Promise<number> {
+    const target = this.tables.get(table);
+    if (!target) {
+      throw new Error(`table ${table} does not exist`);
+    }
+    const before = target.rows.length;
+    target.rows = target.rows.filter(
+      (row) => !Object.entries(where).every(([key, value]) => row[key] === value),
+    );
+    return before - target.rows.length;
+  }
+
+  private cloneTables(): Map<string, MemoryTable> {
+    return new Map(
+      [...this.tables.entries()].map(([name, table]) => [
+        name,
+        {
+          definition: {
+            ...table.definition,
+            columns: table.definition.columns.map((column) => ({ ...column })),
+          },
+          rows: table.rows.map((row) => ({ ...row })),
+        },
+      ]),
+    );
   }
 }

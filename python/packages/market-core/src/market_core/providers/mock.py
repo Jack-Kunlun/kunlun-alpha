@@ -37,7 +37,7 @@ class MockInstrumentProvider(InstrumentProvider):
             return Page(items=[], next_cursor=None)
         instrument = Instrument.model_validate(
             {
-                "unifiedCode": "SH.600000",
+                "unifiedCode": "600000.SH",
                 "code": "600000",
                 "exchange": "SH",
                 "board": "MAIN",

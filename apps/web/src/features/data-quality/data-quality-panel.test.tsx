@@ -8,7 +8,7 @@ const records: DataQualityRecord[] = [
     kind: "NEGATIVE_PRICE",
     date: "2026-08-13",
     source: "provider-x",
-    unifiedCode: "SH.600000",
+    unifiedCode: "600000.SH",
     detail: "close must be >= 0",
     evidenceLink: "raw://objects/abc123",
   },
@@ -29,7 +29,7 @@ describe("DataQualityPanel", () => {
     expect(html).toContain("NEGATIVE_PRICE");
     expect(html).toContain("MISSING_DATE");
     expect(html).toContain("close must be &gt;= 0");
-    expect(html).toContain("SH.600000");
+    expect(html).toContain("600000.SH");
   });
 
   it("links each record to its raw evidence", () => {

@@ -6,10 +6,15 @@ from data_worker.jobs.calendars.collector import (
     CalendarCollectResult,
     detect_alerts,
 )
-from data_worker.jobs.calendars.repository import CalendarRepository, InMemoryCalendarRepository
+from data_worker.jobs.calendars.repository import (
+    CalendarCorrection,
+    CalendarRepository,
+    InMemoryCalendarRepository,
+)
 
 __all__ = [
     "CalendarAlert",
+    "CalendarCorrection",
     "CalendarCollector",
     "CalendarCollectResult",
     "CalendarRepository",

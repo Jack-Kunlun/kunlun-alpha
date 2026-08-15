@@ -7,8 +7,8 @@
   "properties": {
     "unifiedCode": {
       "type": "string",
-      "pattern": "^[A-Z]{2}\\.\\d{6}$",
-      "description": "Unified domain key in the form {EXCHANGE}.{code}, e.g. SH.600000"
+      "pattern": "^\\d{6}\\.(SH|SZ|BJ)$",
+      "description": "Unified domain key in the form {code}.{EXCHANGE}, e.g. 600000.SH"
     },
     "code": {
       "type": "string",
@@ -17,7 +17,7 @@
     },
     "exchange": {
       "enum": ["SH", "SZ", "BJ"],
-      "description": "Exchange code; must match the unifiedCode prefix"
+      "description": "Exchange code; must match the unifiedCode suffix"
     },
     "board": {
       "enum": ["MAIN", "CHINEXT", "STAR", "BSE"],

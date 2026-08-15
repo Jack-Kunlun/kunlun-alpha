@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { parseInstrumentCode, toUnifiedCode } from "./code-parser";
+import { parseInstrument, parseInstrumentCode, toUnifiedCode, validateInstrument } from "./code-parser";
 import fixtures from "../../instrument/fixtures.json";
 
 interface ValidFixture {
@@ -46,6 +46,10 @@ describe("parseInstrumentCode — invalid codes", () => {
     expect(parseInstrumentCode(code)).toBeNull();
     void reason;
   });
+
+  it("rejects the obsolete exchange-prefix form", () => {
+    expect(parseInstrumentCode("SH.600519")).toBeNull();
+  });
 });
 
 describe("parseInstrumentCode — ST / delisted / suspended keep their code", () => {
@@ -63,15 +67,52 @@ describe("parseInstrumentCode — ST / delisted / suspended keep their code", ()
 
 describe("toUnifiedCode", () => {
   it("builds a unified code from exchange + code", () => {
-    expect(toUnifiedCode("SH", "600000")).toBe("SH.600000");
+    expect(toUnifiedCode("SH", "600519")).toBe("600519.SH");
   });
 
   it("trims whitespace", () => {
-    expect(toUnifiedCode("SZ", " 000001 ")).toBe("SZ.000001");
+    expect(toUnifiedCode("SZ", " 000001 ")).toBe("000001.SZ");
+  });
+
+  it("rejects an exchange that does not match the code prefix", () => {
+    expect(toUnifiedCode("SZ", "600519")).toBeNull();
   });
 
   it("returns null for malformed codes", () => {
     expect(toUnifiedCode("SH", "abc")).toBeNull();
     expect(toUnifiedCode("SH", "12345")).toBeNull();
+  });
+});
+
+const validInstrument = {
+  unifiedCode: "600519.SH",
+  code: "600519",
+  exchange: "SH",
+  board: "MAIN",
+  type: "STOCK",
+  name: "贵州茅台",
+  tradingStatus: "LISTED",
+  currency: "CNY",
+} as const;
+
+describe("Instrument deserialization boundary", () => {
+  it("accepts a complete instrument whose code, exchange and unified code agree", () => {
+    expect(validateInstrument(validInstrument)).toEqual({ valid: true, errors: [] });
+    expect(parseInstrument(validInstrument)).toEqual(validInstrument);
+  });
+
+  it.each([
+    ["code mismatch", { ...validInstrument, code: "000001" }],
+    ["exchange mismatch", { ...validInstrument, exchange: "SZ" }],
+    ["suffix mismatch", { ...validInstrument, unifiedCode: "SH.600519" }],
+    [
+      "prefix-rule exchange mismatch",
+      { ...validInstrument, unifiedCode: "600519.SZ", exchange: "SZ" },
+    ],
+  ] as const)("rejects %s", (_reason, input) => {
+    const result = validateInstrument(input);
+    expect(result.valid).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(parseInstrument(input)).toBeNull();
   });
 });

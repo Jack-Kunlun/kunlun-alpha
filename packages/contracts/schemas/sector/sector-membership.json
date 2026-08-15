@@ -7,7 +7,7 @@
   "properties": {
     "unifiedCode": {
       "type": "string",
-      "pattern": "^[A-Z]{2}\\.\\d{6}$",
+      "pattern": "^\\d{6}\\.(SH|SZ|BJ)$",
       "description": "Instrument unified code"
     },
     "sectorId": {
