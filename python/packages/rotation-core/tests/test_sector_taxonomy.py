@@ -18,25 +18,25 @@ def _taxonomy() -> SectorTaxonomy:
         ),
     ]
     memberships = [
-        SectorMembership("SH.600000", "ind-gold", "2020-01-01", None, "src-a"),
-        SectorMembership("SH.600000", "theme-ai", "2024-01-01", None, "src-a"),  # multi-membership
-        SectorMembership("SH.600001", "concept-low-alt", "2025-01-01", None, "src-b"),
-        SectorMembership("SH.600002", "ind-gold", "2020-01-01", "2023-12-31", "src-a"),  # expired
+        SectorMembership("600000.SH", "ind-gold", "2020-01-01", None, "src-a"),
+        SectorMembership("600000.SH", "theme-ai", "2024-01-01", None, "src-a"),  # multi-membership
+        SectorMembership("600001.SH", "concept-low-alt", "2025-01-01", None, "src-b"),
+        SectorMembership("600002.SH", "ind-gold", "2020-01-01", "2023-12-31", "src-a"),  # expired
     ]
     return SectorTaxonomy(sectors, memberships, source_priority=["src-a", "src-b"])
 
 
 def test_multi_membership() -> None:
     taxonomy = _taxonomy()
-    sectors = taxonomy.sectors_of("SH.600000", "2025-06-01")
+    sectors = taxonomy.sectors_of("600000.SH", "2025-06-01")
     assert sectors == ["ind-gold", "theme-ai"]
 
 
 def test_members_of_respects_validity() -> None:
     taxonomy = _taxonomy()
-    # SH.600002 membership expired at 2023-12-31.
-    assert taxonomy.members_of("ind-gold", "2025-06-01") == ["SH.600000"]
-    assert taxonomy.members_of("ind-gold", "2023-01-01") == ["SH.600000", "SH.600002"]
+    # 600002.SH membership expired at 2023-12-31.
+    assert taxonomy.members_of("ind-gold", "2025-06-01") == ["600000.SH"]
+    assert taxonomy.members_of("ind-gold", "2023-01-01") == ["600000.SH", "600002.SH"]
 
 
 def test_alias_resolution() -> None:
@@ -58,6 +58,6 @@ def test_alias_conflict_resolves_by_source_priority() -> None:
 
 def test_history_retains_expired_memberships() -> None:
     taxonomy = _taxonomy()
-    history = taxonomy.history("SH.600002")
+    history = taxonomy.history("600002.SH")
     assert len(history) == 1
     assert history[0].valid_to == "2023-12-31"

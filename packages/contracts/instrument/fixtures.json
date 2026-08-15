@@ -6,7 +6,7 @@
       "exchange": "SH",
       "board": "MAIN",
       "type": "STOCK",
-      "unifiedCode": "SH.600000",
+      "unifiedCode": "600000.SH",
       "note": "SH main board stock"
     },
     {
@@ -14,7 +14,7 @@
       "exchange": "SH",
       "board": "MAIN",
       "type": "STOCK",
-      "unifiedCode": "SH.601318",
+      "unifiedCode": "601318.SH",
       "note": "SH main board stock"
     },
     {
@@ -22,7 +22,7 @@
       "exchange": "SZ",
       "board": "MAIN",
       "type": "STOCK",
-      "unifiedCode": "SZ.000001",
+      "unifiedCode": "000001.SZ",
       "note": "SZ main board stock"
     },
     {
@@ -30,7 +30,7 @@
       "exchange": "SZ",
       "board": "MAIN",
       "type": "STOCK",
-      "unifiedCode": "SZ.002594",
+      "unifiedCode": "002594.SZ",
       "note": "SZ main board (SME merged into main)"
     },
     {
@@ -38,7 +38,7 @@
       "exchange": "SZ",
       "board": "CHINEXT",
       "type": "STOCK",
-      "unifiedCode": "SZ.300750",
+      "unifiedCode": "300750.SZ",
       "note": "ChiNext stock"
     },
     {
@@ -46,7 +46,7 @@
       "exchange": "SZ",
       "board": "CHINEXT",
       "type": "STOCK",
-      "unifiedCode": "SZ.301236",
+      "unifiedCode": "301236.SZ",
       "note": "ChiNext stock"
     },
     {
@@ -54,7 +54,7 @@
       "exchange": "SH",
       "board": "STAR",
       "type": "STOCK",
-      "unifiedCode": "SH.688981",
+      "unifiedCode": "688981.SH",
       "note": "STAR market stock"
     },
     {
@@ -62,7 +62,7 @@
       "exchange": "BJ",
       "board": "BSE",
       "type": "STOCK",
-      "unifiedCode": "BJ.830799",
+      "unifiedCode": "830799.BJ",
       "note": "BSE stock (legacy segment)"
     },
     {
@@ -70,7 +70,7 @@
       "exchange": "BJ",
       "board": "BSE",
       "type": "STOCK",
-      "unifiedCode": "BJ.920002",
+      "unifiedCode": "920002.BJ",
       "note": "BSE stock (new 920 segment)"
     },
     {
@@ -78,7 +78,7 @@
       "exchange": "SH",
       "board": "MAIN",
       "type": "ETF",
-      "unifiedCode": "SH.510300",
+      "unifiedCode": "510300.SH",
       "note": "CSI 300 ETF"
     },
     {
@@ -86,7 +86,7 @@
       "exchange": "SH",
       "board": "MAIN",
       "type": "ETF",
-      "unifiedCode": "SH.588000",
+      "unifiedCode": "588000.SH",
       "note": "STAR 50 ETF"
     },
     {
@@ -94,7 +94,7 @@
       "exchange": "SZ",
       "board": "MAIN",
       "type": "ETF",
-      "unifiedCode": "SZ.159915",
+      "unifiedCode": "159915.SZ",
       "note": "ChiNext ETF"
     },
     {
@@ -102,7 +102,7 @@
       "exchange": "SZ",
       "board": "MAIN",
       "type": "LOF",
-      "unifiedCode": "SZ.161725",
+      "unifiedCode": "161725.SZ",
       "note": "SZ LOF fund"
     },
     {
@@ -110,7 +110,7 @@
       "exchange": "SH",
       "board": "MAIN",
       "type": "LOF",
-      "unifiedCode": "SH.501018",
+      "unifiedCode": "501018.SH",
       "note": "SH LOF fund"
     },
     {
@@ -118,7 +118,7 @@
       "exchange": "SH",
       "board": "MAIN",
       "type": "FUND",
-      "unifiedCode": "SH.508000",
+      "unifiedCode": "508000.SH",
       "note": "SH on-exchange fund (e.g. REITs)"
     }
   ],

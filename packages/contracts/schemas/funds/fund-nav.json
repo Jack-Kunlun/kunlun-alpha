@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/funds/fund-nav.json",
+  "title": "FundNav",
+  "description": "Point-in-time fund NAV/iNAV reference observation; values are not executable prices",
+  "type": "object",
+  "properties": {
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^\\d{6}\\.(SH|SZ|BJ)$",
+      "description": "Instrument unified code, e.g. 518880.SH"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "NAV reference date in Asia/Shanghai"
+    },
+    "nav": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Net asset value reference amount"
+    },
+    "inav": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Indicative NAV reference amount, when available"
+    },
+    "eventTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Economic observation/event time (timezone required)"
+    },
+    "publishTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Provider publication time (timezone required)"
+    },
+    "ingestTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Kunlun ingest time (timezone required)"
+    },
+    "availableTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Earliest research availability time (timezone required)"
+    },
+    "processingTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Normalization/processing time (timezone required)"
+    },
+    "rawObjectId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Immutable raw evidence/object identifier"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Data source provenance identifier"
+    }
+  },
+  "required": [
+    "unifiedCode",
+    "date",
+    "nav",
+    "inav",
+    "eventTime",
+    "publishTime",
+    "ingestTime",
+    "availableTime",
+    "processingTime",
+    "rawObjectId",
+    "source"
+  ],
+  "additionalProperties": false
+}

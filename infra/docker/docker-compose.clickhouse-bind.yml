@@ -1,0 +1,10 @@
+# Explicit legacy-data override. The default compose file uses the named
+# `kunlun-clickhouse-data` volume for cross-platform ClickHouse writes. Use
+# this file only when intentionally inspecting or migrating the existing
+# Windows bind data at infra/docker/data/clickhouse; it never copies or deletes
+# that data automatically.
+
+services:
+  clickhouse:
+    volumes:
+      - ./data/clickhouse:/var/lib/clickhouse

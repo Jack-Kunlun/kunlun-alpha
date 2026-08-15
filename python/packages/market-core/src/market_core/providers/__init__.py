@@ -13,18 +13,30 @@ from market_core.providers.errors import (
 )
 from market_core.providers.interfaces import (
     CalendarProvider,
+    FundBenchmarkProvider,
+    FundFeeProvider,
+    FundInavProvider,
+    FundMetadataProvider,
+    FundNavProvider,
     InstrumentProvider,
     MarketDataProvider,
     NewsProvider,
+    RawFundProviderResponse,
     SectorProvider,
 )
 from market_core.providers.ratelimit import RateLimiter
 
 __all__ = [
     "CalendarProvider",
+    "FundBenchmarkProvider",
+    "FundFeeProvider",
+    "FundInavProvider",
+    "FundMetadataProvider",
+    "FundNavProvider",
     "InstrumentProvider",
     "MarketDataProvider",
     "NewsProvider",
+    "RawFundProviderResponse",
     "Provider",
     "ProviderAuthError",
     "ProviderDataError",

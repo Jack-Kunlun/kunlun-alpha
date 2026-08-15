@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from enum import Enum
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Exchange(Enum):
@@ -15,10 +17,10 @@ class Exchange(Enum):
     bj = "BJ"
 
 
-class FundAssetClass(Enum):
-    gold = "GOLD"
-    silver = "SILVER"
-    other = "OTHER"
+class AssetType(Enum):
+    etf = "ETF"
+    lof = "LOF"
+    fund = "FUND"
 
 
 class UnderlyingCommodity(Enum):
@@ -27,51 +29,194 @@ class UnderlyingCommodity(Enum):
     other = "OTHER"
 
 
-class Currency(Enum):
-    cny = "CNY"
+class RecurringFee(BaseModel):
+    @field_validator("rate", mode="before")
+    @classmethod
+    def reject_binary_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise TypeError("float is not an accepted decimal boundary value")
+        return value
 
-
-class PreciousMetalFund(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    unified_code: str = Field(..., alias="unifiedCode", pattern="^[A-Z]{2}\\.\\d{6}$")
+    kind: str = Field(..., min_length=1)
     """
-    Instrument unified code, e.g. SH.518880
+    Fee kind, e.g. custody or administration
+    """
+    rate: Decimal = Field(..., ge=Decimal("0"), le=Decimal("1"))
+    """
+    Annual fee rate in [0, 1]
+    """
+    valid_from: date = Field(..., alias="validFrom")
+    valid_to: date | None = Field(None, alias="validTo")
+    source: str = Field(..., min_length=1)
+    """
+    Fee source provenance identifier
+    """
+
+
+class ReviewStatus(Enum):
+    unreviewed = "UNREVIEWED"
+    needs_review = "NEEDS_REVIEW"
+    reviewed = "REVIEWED"
+    rejected = "REJECTED"
+
+
+class PreciousMetalFund(BaseModel):
+    @field_validator("management_fee_rate", "confidence", mode="before")
+    @classmethod
+    def reject_binary_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise TypeError("float is not an accepted decimal boundary value")
+        return value
+
+    @model_validator(mode="after")
+    def validate_unified_identity(self) -> PreciousMetalFund:
+        prefix_rules = (
+            ("600", "SH", "MAIN", "STOCK"),
+            ("601", "SH", "MAIN", "STOCK"),
+            ("603", "SH", "MAIN", "STOCK"),
+            ("605", "SH", "MAIN", "STOCK"),
+            ("688", "SH", "STAR", "STOCK"),
+            ("689", "SH", "STAR", "STOCK"),
+            ("510", "SH", "MAIN", "ETF"),
+            ("511", "SH", "MAIN", "ETF"),
+            ("512", "SH", "MAIN", "ETF"),
+            ("513", "SH", "MAIN", "ETF"),
+            ("515", "SH", "MAIN", "ETF"),
+            ("516", "SH", "MAIN", "ETF"),
+            ("517", "SH", "MAIN", "ETF"),
+            ("518", "SH", "MAIN", "ETF"),
+            ("560", "SH", "MAIN", "ETF"),
+            ("561", "SH", "MAIN", "ETF"),
+            ("562", "SH", "MAIN", "ETF"),
+            ("563", "SH", "MAIN", "ETF"),
+            ("564", "SH", "MAIN", "ETF"),
+            ("588", "SH", "MAIN", "ETF"),
+            ("589", "SH", "MAIN", "ETF"),
+            ("501", "SH", "MAIN", "LOF"),
+            ("000", "SZ", "MAIN", "STOCK"),
+            ("001", "SZ", "MAIN", "STOCK"),
+            ("002", "SZ", "MAIN", "STOCK"),
+            ("003", "SZ", "MAIN", "STOCK"),
+            ("300", "SZ", "CHINEXT", "STOCK"),
+            ("301", "SZ", "CHINEXT", "STOCK"),
+            ("302", "SZ", "CHINEXT", "STOCK"),
+            ("159", "SZ", "MAIN", "ETF"),
+            ("50", "SH", "MAIN", "FUND"),
+            ("15", "SZ", "MAIN", "FUND"),
+            ("16", "SZ", "MAIN", "LOF"),
+            ("43", "BJ", "BSE", "STOCK"),
+            ("83", "BJ", "BSE", "STOCK"),
+            ("87", "BJ", "BSE", "STOCK"),
+            ("88", "BJ", "BSE", "STOCK"),
+            ("92", "BJ", "BSE", "STOCK"),
+        )
+        exchange = getattr(self.exchange, "value", self.exchange)
+        unified_code = self.unified_code
+        if len(unified_code) != 9 or unified_code[6] != ".":
+            raise ValueError("unifiedCode must use suffix form")
+        code = unified_code[:6]
+        suffix = unified_code[7:]
+        if suffix != exchange:
+            raise ValueError("unifiedCode/exchange identity mismatch")
+        expected_rule = next(
+            (rule for rule in prefix_rules if code.startswith(rule[0])),
+            None,
+        )
+        if expected_rule is None:
+            raise ValueError("code is not recognized by code prefix rules")
+        if expected_rule[1] != exchange:
+            raise ValueError("exchange must match code prefix rules")
+        return self
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    unified_code: str = Field(..., alias="unifiedCode", pattern="^\\d{6}\\.(SH|SZ|BJ)$")
+    """
+    Instrument unified code, e.g. 518880.SH
     """
     exchange: Exchange
     """
     Exchange code
     """
-    fund_asset_class: FundAssetClass = Field(..., alias="fundAssetClass")
+    asset_type: AssetType = Field(..., alias="assetType")
     """
-    Fund asset class: GOLD / SILVER / OTHER
+    Exchange-listed fund asset type
+    """
+    fund_asset_class: Literal["PRECIOUS_METALS"] = Field(..., alias="fundAssetClass")
+    """
+    Fund asset class; commodity values belong in underlyingCommodity
     """
     underlying_commodity: UnderlyingCommodity = Field(..., alias="underlyingCommodity")
     """
-    Underlying commodity, explicit (never guessed from name)
+    Underlying commodity, explicit and never inferred from product name
     """
-    currency: Currency
+    trading_currency: Literal["CNY"] = Field(..., alias="tradingCurrency")
     """
-    Trading currency, must be CNY
+    Currency used for exchange trading
     """
-    benchmark: str
+    nav_currency: str = Field(..., alias="navCurrency", pattern="^[A-Z]{3}$")
     """
-    Benchmark index or commodity, e.g. Au99.99
+    Currency in which NAV/iNAV is reported
     """
-    management_fee_rate: float = Field(..., alias="managementFeeRate", ge=0.0)
+    benchmark_or_tracking_index: str = Field(..., alias="benchmarkOrTrackingIndex", min_length=1)
     """
-    Annual management fee rate (0-1)
+    Benchmark or tracking index identifier
+    """
+    management_fee_rate: Decimal = Field(
+        ..., alias="managementFeeRate", ge=Decimal("0"), le=Decimal("1")
+    )
+    """
+    Annual management fee rate in [0, 1]
     """
     valid_from: date = Field(..., alias="validFrom")
     """
-    Start of validity in Asia/Shanghai
+    Start of classification validity interval
     """
     valid_to: date | None = Field(None, alias="validTo")
     """
-    End of validity, null means currently valid
+    End of classification validity interval; null means currently valid
     """
-    source: str
+    source: str = Field(..., min_length=1)
     """
-    Data source provenance
+    Data source provenance identifier
+    """
+    event_time: AwareDatetime | None = Field(None, alias="eventTime")
+    """
+    Optional provider event time for the classification record
+    """
+    publish_time: AwareDatetime = Field(..., alias="publishTime")
+    """
+    Provider publication time for the classification record
+    """
+    ingest_time: AwareDatetime = Field(..., alias="ingestTime")
+    """
+    Kunlun ingest time for the classification record
+    """
+    available_time: AwareDatetime = Field(..., alias="availableTime")
+    """
+    Earliest point-in-time availability for the classification record
+    """
+    processing_time: AwareDatetime = Field(..., alias="processingTime")
+    """
+    Normalization/processing time for the classification record
+    """
+    raw_object_id: str = Field(..., alias="rawObjectId", min_length=1)
+    """
+    Immutable raw evidence/object identifier
+    """
+    recurring_fees: list[RecurringFee] | None = Field(None, alias="recurringFees")
+    """
+    Optional recurring fee records; each rate remains source-traceable
+    """
+    confidence: Decimal = Field(..., ge=Decimal("0"), le=Decimal("1"))
+    """
+    Classification confidence in [0, 1]
+    """
+    review_status: ReviewStatus = Field(..., alias="reviewStatus")
+    """
+    Human/data-quality review status
     """

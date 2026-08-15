@@ -2,64 +2,160 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://kunlun-alpha/schemas/funds/precious-metal-fund.json",
   "title": "PreciousMetalFund",
-  "description": "Exchange-traded precious-metal fund metadata; the underlying commodity is explicit and never inferred from the product name",
+  "description": "Exchange-listed precious-metal fund metadata with explicit classification, currency, provenance and validity semantics; NAV/iNAV remain reference data and are never executable prices",
   "type": "object",
   "properties": {
     "unifiedCode": {
       "type": "string",
-      "pattern": "^[A-Z]{2}\\.\\d{6}$",
-      "description": "Instrument unified code, e.g. SH.518880"
+      "pattern": "^\\d{6}\\.(SH|SZ|BJ)$",
+      "description": "Instrument unified code, e.g. 518880.SH"
     },
     "exchange": {
       "enum": ["SH", "SZ", "BJ"],
       "description": "Exchange code"
     },
+    "assetType": {
+      "enum": ["ETF", "LOF", "FUND"],
+      "description": "Exchange-listed fund asset type"
+    },
     "fundAssetClass": {
-      "enum": ["GOLD", "SILVER", "OTHER"],
-      "description": "Fund asset class: GOLD / SILVER / OTHER"
+      "const": "PRECIOUS_METALS",
+      "description": "Fund asset class; commodity values belong in underlyingCommodity"
     },
     "underlyingCommodity": {
       "enum": ["GOLD", "SILVER", "OTHER"],
-      "description": "Underlying commodity, explicit (never guessed from name)"
+      "description": "Underlying commodity, explicit and never inferred from product name"
     },
-    "currency": {
-      "enum": ["CNY"],
-      "description": "Trading currency, must be CNY"
+    "tradingCurrency": {
+      "const": "CNY",
+      "description": "Currency used for exchange trading"
     },
-    "benchmark": {
+    "navCurrency": {
       "type": "string",
-      "description": "Benchmark index or commodity, e.g. Au99.99"
+      "pattern": "^[A-Z]{3}$",
+      "description": "Currency in which NAV/iNAV is reported"
+    },
+    "benchmarkOrTrackingIndex": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Benchmark or tracking index identifier"
     },
     "managementFeeRate": {
       "type": "number",
       "minimum": 0,
-      "description": "Annual management fee rate (0-1)"
+      "maximum": 1,
+      "description": "Annual management fee rate in [0, 1]"
     },
     "validFrom": {
       "type": "string",
       "format": "date",
-      "description": "Start of validity in Asia/Shanghai"
+      "description": "Start of classification validity interval"
     },
     "validTo": {
       "type": ["string", "null"],
       "format": "date",
-      "description": "End of validity, null means currently valid"
+      "description": "End of classification validity interval; null means currently valid"
     },
     "source": {
       "type": "string",
-      "description": "Data source provenance"
+      "minLength": 1,
+      "description": "Data source provenance identifier"
+    },
+    "eventTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional provider event time for the classification record"
+    },
+    "publishTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Provider publication time for the classification record"
+    },
+    "ingestTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Kunlun ingest time for the classification record"
+    },
+    "availableTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Earliest point-in-time availability for the classification record"
+    },
+    "processingTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Normalization/processing time for the classification record"
+    },
+    "rawObjectId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Immutable raw evidence/object identifier"
+    },
+    "recurringFees": {
+      "type": "array",
+      "description": "Optional recurring fee records; each rate remains source-traceable",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Fee kind, e.g. custody or administration"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Annual fee rate in [0, 1]"
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "validTo": {
+            "type": ["string", "null"],
+            "format": "date"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Fee source provenance identifier"
+          }
+        },
+        "required": ["kind", "rate", "validFrom", "source"],
+        "additionalProperties": false
+      }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Classification confidence in [0, 1]"
+    },
+    "reviewStatus": {
+      "enum": ["UNREVIEWED", "NEEDS_REVIEW", "REVIEWED", "REJECTED"],
+      "description": "Human/data-quality review status"
     }
   },
   "required": [
     "unifiedCode",
     "exchange",
+    "assetType",
     "fundAssetClass",
     "underlyingCommodity",
-    "currency",
-    "benchmark",
+    "tradingCurrency",
+    "navCurrency",
+    "benchmarkOrTrackingIndex",
     "managementFeeRate",
     "validFrom",
-    "source"
+    "source",
+    "publishTime",
+    "ingestTime",
+    "availableTime",
+    "processingTime",
+    "rawObjectId",
+    "confidence",
+    "reviewStatus"
   ],
   "additionalProperties": false
 }

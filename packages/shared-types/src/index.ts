@@ -146,11 +146,61 @@ export interface LimitPoolSnapshot {
 }
 
 /**
- * Exchange-traded precious-metal fund metadata; the underlying commodity is explicit and never inferred from the product name
+ * Point-in-time fund NAV/iNAV reference observation; values are not executable prices
+ */
+export interface FundNav {
+  /**
+   * Instrument unified code, e.g. 518880.SH
+   */
+  unifiedCode: string;
+  /**
+   * NAV reference date in Asia/Shanghai
+   */
+  date: string;
+  /**
+   * Net asset value reference amount
+   */
+  nav: number;
+  /**
+   * Indicative NAV reference amount, when available
+   */
+  inav: number | null;
+  /**
+   * Economic observation/event time (timezone required)
+   */
+  eventTime: string;
+  /**
+   * Provider publication time (timezone required)
+   */
+  publishTime: string;
+  /**
+   * Kunlun ingest time (timezone required)
+   */
+  ingestTime: string;
+  /**
+   * Earliest research availability time (timezone required)
+   */
+  availableTime: string;
+  /**
+   * Normalization/processing time (timezone required)
+   */
+  processingTime: string;
+  /**
+   * Immutable raw evidence/object identifier
+   */
+  rawObjectId: string;
+  /**
+   * Data source provenance identifier
+   */
+  source: string;
+}
+
+/**
+ * Exchange-listed precious-metal fund metadata with explicit classification, currency, provenance and validity semantics; NAV/iNAV remain reference data and are never executable prices
  */
 export interface PreciousMetalFund {
   /**
-   * Instrument unified code, e.g. SH.518880
+   * Instrument unified code, e.g. 518880.SH
    */
   unifiedCode: string;
   /**
@@ -158,37 +208,96 @@ export interface PreciousMetalFund {
    */
   exchange: "SH" | "SZ" | "BJ";
   /**
-   * Fund asset class: GOLD / SILVER / OTHER
+   * Exchange-listed fund asset type
    */
-  fundAssetClass: "GOLD" | "SILVER" | "OTHER";
+  assetType: "ETF" | "LOF" | "FUND";
   /**
-   * Underlying commodity, explicit (never guessed from name)
+   * Fund asset class; commodity values belong in underlyingCommodity
+   */
+  fundAssetClass: "PRECIOUS_METALS";
+  /**
+   * Underlying commodity, explicit and never inferred from product name
    */
   underlyingCommodity: "GOLD" | "SILVER" | "OTHER";
   /**
-   * Trading currency, must be CNY
+   * Currency used for exchange trading
    */
-  currency: "CNY";
+  tradingCurrency: "CNY";
   /**
-   * Benchmark index or commodity, e.g. Au99.99
+   * Currency in which NAV/iNAV is reported
    */
-  benchmark: string;
+  navCurrency: string;
   /**
-   * Annual management fee rate (0-1)
+   * Benchmark or tracking index identifier
+   */
+  benchmarkOrTrackingIndex: string;
+  /**
+   * Annual management fee rate in [0, 1]
    */
   managementFeeRate: number;
   /**
-   * Start of validity in Asia/Shanghai
+   * Start of classification validity interval
    */
   validFrom: string;
   /**
-   * End of validity, null means currently valid
+   * End of classification validity interval; null means currently valid
    */
   validTo?: string | null;
   /**
-   * Data source provenance
+   * Data source provenance identifier
    */
   source: string;
+  /**
+   * Optional provider event time for the classification record
+   */
+  eventTime?: string;
+  /**
+   * Provider publication time for the classification record
+   */
+  publishTime: string;
+  /**
+   * Kunlun ingest time for the classification record
+   */
+  ingestTime: string;
+  /**
+   * Earliest point-in-time availability for the classification record
+   */
+  availableTime: string;
+  /**
+   * Normalization/processing time for the classification record
+   */
+  processingTime: string;
+  /**
+   * Immutable raw evidence/object identifier
+   */
+  rawObjectId: string;
+  /**
+   * Optional recurring fee records; each rate remains source-traceable
+   */
+  recurringFees?: {
+    /**
+     * Fee kind, e.g. custody or administration
+     */
+    kind: string;
+    /**
+     * Annual fee rate in [0, 1]
+     */
+    rate: number;
+    validFrom: string;
+    validTo?: string | null;
+    /**
+     * Fee source provenance identifier
+     */
+    source: string;
+  }[];
+  /**
+   * Classification confidence in [0, 1]
+   */
+  confidence: number;
+  /**
+   * Human/data-quality review status
+   */
+  reviewStatus: "UNREVIEWED" | "NEEDS_REVIEW" | "REVIEWED" | "REJECTED";
 }
 
 /**
@@ -232,7 +341,7 @@ export interface Board {
  */
 export interface Exchange {
   /**
-   * Exchange code used in the unified instrument code (SH.600000)
+   * Exchange code used in the unified instrument code (600000.SH)
    */
   code: "SH" | "SZ" | "BJ";
   /**
@@ -262,7 +371,7 @@ export interface Exchange {
  */
 export interface Instrument {
   /**
-   * Unified domain key in the form {EXCHANGE}.{code}, e.g. SH.600000
+   * Unified domain key in the form {code}.{EXCHANGE}, e.g. 600000.SH
    */
   unifiedCode: string;
   /**
@@ -270,7 +379,7 @@ export interface Instrument {
    */
   code: string;
   /**
-   * Exchange code; must match the unifiedCode prefix
+   * Exchange code; must match the unifiedCode suffix
    */
   exchange: "SH" | "SZ" | "BJ";
   /**
@@ -322,7 +431,7 @@ export interface TradingStatus {
  */
 export interface AdjustmentFactor {
   /**
-   * Instrument unified code, e.g. SH.600000
+   * Instrument unified code, e.g. 600000.SH
    */
   unifiedCode: string;
   /**
@@ -352,7 +461,7 @@ export interface AdjustmentFactor {
  */
 export interface Bar {
   /**
-   * Instrument unified code, e.g. SH.600000
+   * Instrument unified code, e.g. 600000.SH
    */
   unifiedCode: string;
   /**
@@ -414,7 +523,7 @@ export interface Bar {
  */
 export interface CorporateAction {
   /**
-   * Instrument unified code, e.g. SH.600000
+   * Instrument unified code, e.g. 600000.SH
    */
   unifiedCode: string;
   /**
@@ -452,7 +561,7 @@ export interface CorporateAction {
  */
 export interface Tick {
   /**
-   * Instrument unified code, e.g. SH.600000
+   * Instrument unified code, e.g. 600000.SH
    */
   unifiedCode: string;
   /**

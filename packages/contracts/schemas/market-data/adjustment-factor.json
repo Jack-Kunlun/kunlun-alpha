@@ -7,8 +7,8 @@
   "properties": {
     "unifiedCode": {
       "type": "string",
-      "pattern": "^[A-Z]{2}\\.\\d{6}$",
-      "description": "Instrument unified code, e.g. SH.600000"
+      "pattern": "^\\d{6}\\.(SH|SZ|BJ)$",
+      "description": "Instrument unified code, e.g. 600000.SH"
     },
     "exchange": {
       "enum": ["SH", "SZ", "BJ"],

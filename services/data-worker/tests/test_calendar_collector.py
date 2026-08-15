@@ -75,3 +75,35 @@ def test_manual_correction_is_audited_without_overwriting_source() -> None:
     # Source data unchanged; correction recorded in the audit log.
     assert len(repo.source_holidays("exchange-a")) == 1
     assert any("CORRECTION 2026-01-02" in line for line in repo.audit_log())
+
+
+def test_multiple_calendar_versions_are_independently_retrievable() -> None:
+    repo = InMemoryCalendarRepository()
+    first = CalendarCollector(
+        FakeCalendarProvider([_holiday("2026-01-01")]), repo, source="exchange-a"
+    ).collect("SH", 2026)
+    second = CalendarCollector(
+        FakeCalendarProvider([_holiday("2026-01-02")]), repo, source="exchange-a"
+    ).collect("SH", 2026)
+
+    assert first.version_id != second.version_id
+    assert [item.date.isoformat() for item in repo.get_version(first.version_id)] == ["2026-01-01"]
+    assert [item.date.isoformat() for item in repo.get_version(second.version_id)] == ["2026-01-02"]
+
+
+def test_calendar_correction_is_an_audited_overlay() -> None:
+    repo = InMemoryCalendarRepository()
+    result = CalendarCollector(
+        FakeCalendarProvider([_holiday("2026-01-01")]), repo, source="exchange-a"
+    ).collect("SH", 2026)
+
+    repo.apply_correction(
+        "2026-01-02",
+        "TEMPORARY_CLOSURE",
+        "manual review",
+        "ops",
+        version_id=result.version_id,
+    )
+
+    assert [item.date.isoformat() for item in repo.get_version(result.version_id)] == ["2026-01-01"]
+    assert [item.date for item in repo.correction_overlay(result.version_id)] == ["2026-01-02"]

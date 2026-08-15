@@ -12,7 +12,7 @@ class SectorMembership(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    unified_code: str = Field(..., alias="unifiedCode", pattern="^[A-Z]{2}\\.\\d{6}$")
+    unified_code: str = Field(..., alias="unifiedCode", pattern="^\\d{6}\\.(SH|SZ|BJ)$")
     """
     Instrument unified code
     """

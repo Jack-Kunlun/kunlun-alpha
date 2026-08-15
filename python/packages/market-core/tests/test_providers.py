@@ -50,7 +50,7 @@ def test_normal_page_returns_items() -> None:
     provider = MockInstrumentProvider()
     page = provider.fetch_instruments("SH")
     assert len(page.items) == 1
-    assert page.items[0].unified_code == "SH.600000"
+    assert page.items[0].unified_code == "600000.SH"
     assert page.next_cursor is None
 
 

@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import date
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Exchange(Enum):
@@ -41,12 +41,71 @@ class Currency(Enum):
 
 
 class Instrument(BaseModel):
+    @model_validator(mode="after")
+    def validate_identity_consistency(self) -> Instrument:
+        prefix_rules = (
+            ("600", "SH", "MAIN", "STOCK"),
+            ("601", "SH", "MAIN", "STOCK"),
+            ("603", "SH", "MAIN", "STOCK"),
+            ("605", "SH", "MAIN", "STOCK"),
+            ("688", "SH", "STAR", "STOCK"),
+            ("689", "SH", "STAR", "STOCK"),
+            ("510", "SH", "MAIN", "ETF"),
+            ("511", "SH", "MAIN", "ETF"),
+            ("512", "SH", "MAIN", "ETF"),
+            ("513", "SH", "MAIN", "ETF"),
+            ("515", "SH", "MAIN", "ETF"),
+            ("516", "SH", "MAIN", "ETF"),
+            ("517", "SH", "MAIN", "ETF"),
+            ("518", "SH", "MAIN", "ETF"),
+            ("560", "SH", "MAIN", "ETF"),
+            ("561", "SH", "MAIN", "ETF"),
+            ("562", "SH", "MAIN", "ETF"),
+            ("563", "SH", "MAIN", "ETF"),
+            ("564", "SH", "MAIN", "ETF"),
+            ("588", "SH", "MAIN", "ETF"),
+            ("589", "SH", "MAIN", "ETF"),
+            ("501", "SH", "MAIN", "LOF"),
+            ("000", "SZ", "MAIN", "STOCK"),
+            ("001", "SZ", "MAIN", "STOCK"),
+            ("002", "SZ", "MAIN", "STOCK"),
+            ("003", "SZ", "MAIN", "STOCK"),
+            ("300", "SZ", "CHINEXT", "STOCK"),
+            ("301", "SZ", "CHINEXT", "STOCK"),
+            ("302", "SZ", "CHINEXT", "STOCK"),
+            ("159", "SZ", "MAIN", "ETF"),
+            ("50", "SH", "MAIN", "FUND"),
+            ("15", "SZ", "MAIN", "FUND"),
+            ("16", "SZ", "MAIN", "LOF"),
+            ("43", "BJ", "BSE", "STOCK"),
+            ("83", "BJ", "BSE", "STOCK"),
+            ("87", "BJ", "BSE", "STOCK"),
+            ("88", "BJ", "BSE", "STOCK"),
+            ("92", "BJ", "BSE", "STOCK"),
+        )
+        expected_rule = next(
+            (rule for rule in prefix_rules if self.code.startswith(rule[0])),
+            None,
+        )
+        if expected_rule is None:
+            raise ValueError("code is not recognized by code prefix rules")
+        _, expected_exchange, expected_board, expected_type = expected_rule
+        if expected_exchange != self.exchange.value:
+            raise ValueError("exchange must match code prefix rules")
+        if expected_board != self.board.value:
+            raise ValueError("board must match code prefix rules")
+        if expected_type != self.type.value:
+            raise ValueError("type must match code prefix rules")
+        if self.unified_code != f"{self.code}.{self.exchange.value}":
+            raise ValueError("unifiedCode must match code and exchange")
+        return self
+
     model_config = ConfigDict(
         extra="forbid",
     )
-    unified_code: str = Field(..., alias="unifiedCode", pattern="^[A-Z]{2}\\.\\d{6}$")
+    unified_code: str = Field(..., alias="unifiedCode", pattern="^\\d{6}\\.(SH|SZ|BJ)$")
     """
-    Unified domain key in the form {EXCHANGE}.{code}, e.g. SH.600000
+    Unified domain key in the form {code}.{EXCHANGE}, e.g. 600000.SH
     """
     code: str = Field(..., pattern="^\\d{6}$")
     """
@@ -54,7 +113,7 @@ class Instrument(BaseModel):
     """
     exchange: Exchange
     """
-    Exchange code; must match the unifiedCode prefix
+    Exchange code; must match the unifiedCode suffix
     """
     board: Board
     """

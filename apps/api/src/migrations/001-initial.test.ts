@@ -35,4 +35,26 @@ describe("initial business model migration", () => {
     expect(await driver.hasTable("providers")).toBe(false);
     expect(await driver.hasTable("tasks")).toBe(false);
   });
+
+  it("defines durable scheduler lease, retry and checkpoint fields", () => {
+    const tasks = migrations[0]?.up.find((table) => table.name === "tasks");
+    const checkpoints = migrations[0]?.up.find((table) => table.name === "checkpoints");
+
+    expect(tasks?.columns.map((column) => column.name)).toEqual(
+      expect.arrayContaining([
+        "attempts",
+        "max_attempts",
+        "lease_token",
+        "lease_expires_at",
+        "next_run_at",
+        "last_error_category",
+        "last_error_detail",
+        "dead_letter_detail",
+        "updated_at",
+      ]),
+    );
+    expect(checkpoints?.columns.map((column) => column.name)).toEqual(
+      expect.arrayContaining(["state", "updated_at"]),
+    );
+  });
 });

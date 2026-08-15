@@ -34,7 +34,7 @@ def process_bars(records: list[dict[str, object]]) -> BarPipelineResult:
     for record in records:
         try:
             bar = normalize_bar(record)
-        except (MissingFieldError, KeyError, ValueError) as exc:
+        except (MissingFieldError, KeyError, TypeError, ValueError) as exc:
             rejection.add(record, f"normalization: {exc}")
             events.append(
                 QualityEvent(

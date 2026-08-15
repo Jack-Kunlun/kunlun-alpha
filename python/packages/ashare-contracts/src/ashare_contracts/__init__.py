@@ -13,10 +13,12 @@ from ashare_contracts.emotion_limit_event import EventType as EventType
 from ashare_contracts.emotion_limit_event import Exchange as Exchange_3
 from ashare_contracts.emotion_limit_event import LimitEvent as LimitEvent
 from ashare_contracts.emotion_limit_pool_snapshot import LimitPoolSnapshot as LimitPoolSnapshot
-from ashare_contracts.funds_precious_metal_fund import Currency as Currency
+from ashare_contracts.funds_fund_nav import FundNav as FundNav
+from ashare_contracts.funds_precious_metal_fund import AssetType as AssetType
 from ashare_contracts.funds_precious_metal_fund import Exchange as Exchange_4
-from ashare_contracts.funds_precious_metal_fund import FundAssetClass as FundAssetClass
 from ashare_contracts.funds_precious_metal_fund import PreciousMetalFund as PreciousMetalFund
+from ashare_contracts.funds_precious_metal_fund import RecurringFee as RecurringFee
+from ashare_contracts.funds_precious_metal_fund import ReviewStatus as ReviewStatus
 from ashare_contracts.funds_precious_metal_fund import UnderlyingCommodity as UnderlyingCommodity
 from ashare_contracts.health_status_v1 import HealthStatus as HealthStatus
 from ashare_contracts.health_status_v1 import Status as Status
@@ -25,10 +27,10 @@ from ashare_contracts.instrument_board import Exchange as Exchange_5
 from ashare_contracts.instrument_board import Id as Id
 from ashare_contracts.instrument_exchange import Code as Code
 from ashare_contracts.instrument_exchange import Country as Country
-from ashare_contracts.instrument_exchange import Currency as Currency_1
+from ashare_contracts.instrument_exchange import Currency as Currency
 from ashare_contracts.instrument_exchange import Exchange as Exchange_6
 from ashare_contracts.instrument_instrument import Board as Board_1
-from ashare_contracts.instrument_instrument import Currency as Currency_2
+from ashare_contracts.instrument_instrument import Currency as Currency_1
 from ashare_contracts.instrument_instrument import Exchange as Exchange_7
 from ashare_contracts.instrument_instrument import Instrument as Instrument
 from ashare_contracts.instrument_instrument import TradingStatus as TradingStatus
@@ -68,10 +70,12 @@ __all__ = [
     "Exchange_3",
     "LimitEvent",
     "LimitPoolSnapshot",
-    "Currency",
+    "FundNav",
+    "AssetType",
     "Exchange_4",
-    "FundAssetClass",
     "PreciousMetalFund",
+    "RecurringFee",
+    "ReviewStatus",
     "UnderlyingCommodity",
     "HealthStatus",
     "Status",
@@ -80,10 +84,10 @@ __all__ = [
     "Id",
     "Code",
     "Country",
-    "Currency_1",
+    "Currency",
     "Exchange_6",
     "Board_1",
-    "Currency_2",
+    "Currency_1",
     "Exchange_7",
     "Instrument",
     "TradingStatus",

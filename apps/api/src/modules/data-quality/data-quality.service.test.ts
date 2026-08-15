@@ -8,7 +8,7 @@ const records: DataQualityRecord[] = [
     kind: "NEGATIVE_PRICE",
     date: "2026-08-13",
     source: "provider-x",
-    unifiedCode: "SH.600000",
+    unifiedCode: "600000.SH",
     detail: "close must be >= 0",
     evidenceLink: "raw://objects/abc123",
   },
@@ -41,7 +41,7 @@ describe("DataQualityService", () => {
 
   it("filters by instrument and links raw evidence", () => {
     const service = new DataQualityService(records);
-    const result = service.query({ unifiedCode: "SH.600000" });
+    const result = service.query({ unifiedCode: "600000.SH" });
     expect(result).toHaveLength(1);
     expect(result[0]!.evidenceLink).toContain("raw://objects/");
   });

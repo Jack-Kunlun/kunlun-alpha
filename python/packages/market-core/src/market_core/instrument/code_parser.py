@@ -26,6 +26,7 @@ _RULES_PATH = (
 )
 
 _CODE_RE = re.compile(r"^\d{6}$")
+_UNIFIED_CODE_RE = re.compile(r"^(?P<code>\d{6})\.(?P<exchange>SH|SZ|BJ)$")
 
 
 @dataclass(frozen=True)
@@ -62,9 +63,36 @@ def parse_instrument_code(input: str) -> InstrumentCodeRef | None:
         if code.startswith(rule["prefix"]):
             return InstrumentCodeRef(
                 code=code,
-                unified_code=f"{rule['exchange']}.{code}",
+                unified_code=f"{code}.{rule['exchange']}",
                 exchange=cast(ExchangeCode, rule["exchange"]),
                 board=cast(BoardId, rule["board"]),
                 type=cast(SecurityType, rule["type"]),
             )
     return None
+
+
+def to_unified_code(exchange: ExchangeCode, code: str) -> str | None:
+    """Build a suffix-form unified code after validating exchange agreement."""
+    normalized_code = code.strip()
+    if not _CODE_RE.fullmatch(normalized_code):
+        return None
+    parsed = parse_instrument_code(normalized_code)
+    if parsed is None or parsed.exchange != exchange:
+        return None
+    return parsed.unified_code
+
+
+def is_unified_code_for_exchange(unified_code: str, exchange: ExchangeCode) -> bool:
+    """Check suffix/exchange identity and known prefix ownership.
+
+    Market-domain records use the shared suffix-form identity. The suffix must
+    match ``exchange`` and the shared prefix table must recognize the code and
+    assign it to that same exchange.
+    """
+    match = _UNIFIED_CODE_RE.fullmatch(unified_code)
+    if match is None:
+        return False
+    if match.group("exchange") != exchange:
+        return False
+    parsed = parse_instrument_code(match.group("code"))
+    return parsed is not None and parsed.exchange == exchange

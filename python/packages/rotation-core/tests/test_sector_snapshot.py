@@ -6,11 +6,13 @@ missing quotes and abnormal turnover.
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from market_core.models.validators import Bar
 from rotation_core.snapshot import SnapshotAggregator, compute_snapshot
 
 
-def _bar(code: str, close: float, amount: float) -> Bar:
+def _bar(code: str, close: Decimal, amount: Decimal) -> Bar:
     return Bar(
         unified_code=code,
         exchange="SH",
@@ -29,13 +31,17 @@ def _bar(code: str, close: float, amount: float) -> Bar:
 
 
 def test_snapshot_aggregation() -> None:
-    members = ["A", "B", "C"]
+    members = ["600000.SH", "600001.SH", "600002.SH"]
     bars = {
-        "A": _bar("A", 11.0, 1000),  # +10%
-        "B": _bar("B", 10.5, 2000),  # +5%
-        "C": _bar("C", 9.5, 3000),  # -5%
+        "600000.SH": _bar("600000.SH", Decimal("11.0"), Decimal("1000")),  # +10%
+        "600001.SH": _bar("600001.SH", Decimal("10.5"), Decimal("2000")),  # +5%
+        "600002.SH": _bar("600002.SH", Decimal("9.5"), Decimal("3000")),  # -5%
     }
-    prev_close = {"A": 10.0, "B": 10.0, "C": 10.0}
+    prev_close = {
+        "600000.SH": Decimal("10.0"),
+        "600001.SH": Decimal("10.0"),
+        "600002.SH": Decimal("10.0"),
+    }
 
     snapshot = compute_snapshot(
         "s1", "2026-08-13", "2026-08-13T02:00:00.000Z", members, bars, prev_close
@@ -44,14 +50,14 @@ def test_snapshot_aggregation() -> None:
     assert abs(snapshot.average_change - (0.10 + 0.05 - 0.05) / 3) < 1e-5
     assert snapshot.turnover == 6000
     assert abs(snapshot.breadth - 2 / 3) < 1e-5
-    assert snapshot.leader == "A"
+    assert snapshot.leader == "600000.SH"
     assert snapshot.version == "sector_snapshot_v1"
 
 
 def test_missing_quote_is_skipped() -> None:
-    members = ["A", "B"]
-    bars = {"A": _bar("A", 11.0, 1000)}  # B has no bar
-    prev_close = {"A": 10.0, "B": 10.0}
+    members = ["600000.SH", "600001.SH"]
+    bars = {"600000.SH": _bar("600000.SH", Decimal("11.0"), Decimal("1000"))}
+    prev_close = {"600000.SH": Decimal("10.0"), "600001.SH": Decimal("10.0")}
 
     snapshot = compute_snapshot(
         "s1", "2026-08-13", "2026-08-13T02:00:00.000Z", members, bars, prev_close
@@ -62,9 +68,12 @@ def test_missing_quote_is_skipped() -> None:
 
 
 def test_abnormal_turnover_is_skipped() -> None:
-    members = ["A", "B"]
-    bars = {"A": _bar("A", 11.0, 1000), "B": _bar("B", 10.5, -100)}  # negative amount
-    prev_close = {"A": 10.0, "B": 10.0}
+    members = ["600000.SH", "600001.SH"]
+    bars = {
+        "600000.SH": _bar("600000.SH", Decimal("11.0"), Decimal("1000")),
+        "600001.SH": _bar("600001.SH", Decimal("10.5"), Decimal("-100")),
+    }
+    prev_close = {"600000.SH": Decimal("10.0"), "600001.SH": Decimal("10.0")}
 
     snapshot = compute_snapshot(
         "s1", "2026-08-13", "2026-08-13T02:00:00.000Z", members, bars, prev_close
@@ -76,23 +85,34 @@ def test_abnormal_turnover_is_skipped() -> None:
 def test_member_change_uses_current_members() -> None:
     # The same snapshot computation with a different member set yields a
     # different aggregate — the set valid at the snapshot time is what matters.
-    bars = {"A": _bar("A", 11.0, 1000), "B": _bar("B", 9.0, 1000)}
-    prev_close = {"A": 10.0, "B": 10.0}
+    bars = {
+        "600000.SH": _bar("600000.SH", Decimal("11.0"), Decimal("1000")),
+        "600001.SH": _bar("600001.SH", Decimal("9.0"), Decimal("1000")),
+    }
+    prev_close = {"600000.SH": Decimal("10.0"), "600001.SH": Decimal("10.0")}
 
     with_a = compute_snapshot(
-        "s1", "2026-08-13", "2026-08-13T02:00:00.000Z", ["A"], bars, prev_close
+        "s1", "2026-08-13", "2026-08-13T02:00:00.000Z", ["600000.SH"], bars, prev_close
     )
     with_both = compute_snapshot(
-        "s1", "2026-08-13", "2026-08-13T02:00:00.000Z", ["A", "B"], bars, prev_close
+        "s1",
+        "2026-08-13",
+        "2026-08-13T02:00:00.000Z",
+        ["600000.SH", "600001.SH"],
+        bars,
+        prev_close,
     )
 
     assert with_a.average_change > with_both.average_change
 
 
 def test_aggregator_matches_batch() -> None:
-    members = ["A", "B"]
-    prev_close = {"A": 10.0, "B": 10.0}
-    bars = [("A", _bar("A", 11.0, 1000)), ("B", _bar("B", 10.5, 2000))]
+    members = ["600000.SH", "600001.SH"]
+    prev_close = {"600000.SH": Decimal("10.0"), "600001.SH": Decimal("10.0")}
+    bars = [
+        ("600000.SH", _bar("600000.SH", Decimal("11.0"), Decimal("1000"))),
+        ("600001.SH", _bar("600001.SH", Decimal("10.5"), Decimal("2000"))),
+    ]
 
     batch = compute_snapshot(
         "s1", "2026-08-13", "2026-08-13T02:00:00.000Z", members, dict(bars), prev_close

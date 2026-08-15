@@ -10,6 +10,8 @@
  * of truth shared with the Python port in market-core/models.
  */
 
+import { isUnifiedCodeForExchange } from "../instrument/code-parser";
+
 export type ExchangeId = "SH" | "SZ" | "BJ";
 export type BarInterval = "DAILY" | "MINUTE_1" | "MINUTE_5";
 export type SessionKind = "CONTINUOUS" | "OPEN_AUCTION" | "CLOSE_AUCTION";
@@ -81,6 +83,10 @@ function fail(error: string): ValidationResult {
   return { valid: false, errors: [error] };
 }
 
+function hasValidIdentity(unifiedCode: string, exchange: ExchangeId): boolean {
+  return isUnifiedCodeForExchange(unifiedCode, exchange);
+}
+
 function isNonNegative(value: number): boolean {
   return Number.isFinite(value) && value >= 0;
 }
@@ -93,6 +99,9 @@ function isNonNegative(value: number): boolean {
  * prices (RAW) are kept separate via the required priceType field.
  */
 export function validateBar(bar: Bar): ValidationResult {
+  if (!hasValidIdentity(bar.unifiedCode, bar.exchange)) {
+    return fail("unifiedCode/exchange identity mismatch");
+  }
   if (!isNonNegative(bar.open)) return fail("open must be >= 0");
   if (!isNonNegative(bar.high)) return fail("high must be >= 0");
   if (!isNonNegative(bar.low)) return fail("low must be >= 0");
@@ -115,6 +124,9 @@ export function validateBar(bar: Bar): ValidationResult {
 
 /** Validate a single executed trade: price, volume and amount are non-negative. */
 export function validateTick(tick: Tick): ValidationResult {
+  if (!hasValidIdentity(tick.unifiedCode, tick.exchange)) {
+    return fail("unifiedCode/exchange identity mismatch");
+  }
   if (!isNonNegative(tick.price)) return fail("price must be >= 0");
   if (!isNonNegative(tick.volume)) return fail("volume must be >= 0");
   if (!isNonNegative(tick.amount)) return fail("amount must be >= 0");
@@ -123,6 +135,9 @@ export function validateTick(tick: Tick): ValidationResult {
 
 /** Validate an adjustment factor: factor must be strictly positive. */
 export function validateAdjustmentFactor(factor: AdjustmentFactor): ValidationResult {
+  if (!hasValidIdentity(factor.unifiedCode, factor.exchange)) {
+    return fail("unifiedCode/exchange identity mismatch");
+  }
   if (!Number.isFinite(factor.factor) || factor.factor <= 0) {
     return fail("factor must be > 0");
   }
@@ -134,6 +149,9 @@ export function validateAdjustmentFactor(factor: AdjustmentFactor): ValidationRe
  * must be non-negative when present.
  */
 export function validateCorporateAction(action: CorporateAction): ValidationResult {
+  if (!hasValidIdentity(action.unifiedCode, action.exchange)) {
+    return fail("unifiedCode/exchange identity mismatch");
+  }
   if (action.perShareCash !== undefined && action.perShareCash < 0) {
     return fail("perShareCash must be >= 0");
   }

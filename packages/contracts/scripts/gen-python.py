@@ -9,6 +9,7 @@ Usage:
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -17,7 +18,253 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMAS_DIR = ROOT / "schemas"
-OUTPUT_DIR = ROOT.parent.parent / "python" / "packages" / "ashare-contracts" / "src" / "ashare_contracts"
+OUTPUT_DIR = (
+    ROOT.parent.parent / "python" / "packages" / "ashare-contracts" / "src" / "ashare_contracts"
+)
+
+_IDENTITY_SCHEMAS = {
+    "funds/precious-metal-fund.json": "PreciousMetalFund",
+    "market-data/bar.json": "Bar",
+    "market-data/tick.json": "Tick",
+    "market-data/adjustment-factor.json": "AdjustmentFactor",
+    "market-data/corporate-action.json": "CorporateAction",
+}
+
+
+def ensure_pydantic_imports(content: str, symbols: tuple[str, ...]) -> str:
+    """Add Pydantic symbols to the generated import without path dependencies."""
+    match = re.search(r"^from pydantic import (?P<imports>[^\n]+)$", content, re.MULTILINE)
+    if match is None:
+        raise RuntimeError("Generated output changed; pydantic import was not found")
+    imports = [item.strip() for item in match.group("imports").split(",")]
+    for symbol in symbols:
+        if symbol not in imports:
+            imports.append(symbol)
+    replacement = f"from pydantic import {', '.join(imports)}"
+    return content[: match.start()] + replacement + content[match.end() :]
+
+
+def load_code_prefix_rules() -> tuple[tuple[str, str, str, str], ...]:
+    """Load and normalize the shared code-prefix table for generated models."""
+    rules_path = ROOT / "instrument" / "code-prefix-rules.json"
+    data = json.loads(rules_path.read_text(encoding="utf-8"))
+    rules = data.get("rules")
+    if not isinstance(rules, list):
+        raise RuntimeError(f"Invalid code-prefix rules in {rules_path}")
+    normalized: list[tuple[str, str, str, str]] = []
+    for rule in rules:
+        if not isinstance(rule, dict) or any(
+            not isinstance(rule.get(field), str)
+            for field in ("prefix", "exchange", "board", "type")
+        ):
+            raise RuntimeError(f"Invalid code-prefix rule in {rules_path}")
+        normalized.append((rule["prefix"], rule["exchange"], rule["board"], rule["type"]))
+    return tuple(sorted(normalized, key=lambda item: len(item[0]), reverse=True))
+
+
+def inject_instrument_identity_validator(schema_file: Path, generated_file: Path) -> None:
+    """Add the cross-field Instrument identity check to the generated model.
+
+    JSON Schema's regular expression validates the suffix shape, but the
+    configured code generator does not carry an ``if``/``then`` relationship
+    between ``unifiedCode``, ``code`` and ``exchange`` into Pydantic. Injecting
+    this small validator from the generator keeps the runtime boundary
+    reproducible without hand-editing generated artifacts or relying on an
+    unstable TypeScript intersection type.
+    """
+    relative_schema = schema_file.relative_to(SCHEMAS_DIR).as_posix()
+    if relative_schema != "instrument/instrument.json":
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    class_marker = "class Instrument(BaseModel):\n"
+    if class_marker not in content:
+        raise RuntimeError(
+            "Instrument generator output changed; cannot inject the identity validator safely"
+        )
+
+    prefix_rules_literal = repr(load_code_prefix_rules())
+    content = ensure_pydantic_imports(content, ("model_validator",))
+    validator = (
+        class_marker
+        + "    @model_validator(mode=\"after\")\n"
+        + "    def validate_identity_consistency(self) -> Instrument:\n"
+        + f"        prefix_rules = {prefix_rules_literal}\n"
+        + "        expected_rule = next(\n"
+        + "            (rule for rule in prefix_rules if self.code.startswith(rule[0])),\n"
+        + "            None,\n"
+        + "        )\n"
+        + "        if expected_rule is None:\n"
+        + "            raise ValueError(\"code is not recognized by code prefix rules\")\n"
+        + "        _, expected_exchange, expected_board, expected_type = expected_rule\n"
+        + "        if expected_exchange != self.exchange.value:\n"
+        + "            raise ValueError(\"exchange must match code prefix rules\")\n"
+        + "        if expected_board != self.board.value:\n"
+        + "            raise ValueError(\"board must match code prefix rules\")\n"
+        + "        if expected_type != self.type.value:\n"
+        + "            raise ValueError(\"type must match code prefix rules\")\n"
+        + "        if self.unified_code != f\"{self.code}.{self.exchange.value}\":\n"
+        + "            raise ValueError(\"unifiedCode must match code and exchange\")\n"
+        + "        return self\n\n"
+    )
+    generated_file.write_text(
+        content.replace(class_marker, validator, 1), encoding="utf-8", newline="\n"
+    )
+
+
+def inject_unified_code_identity_validator(schema_file: Path, generated_file: Path) -> None:
+    """Inject shared prefix/suffix identity validation into fund/market models."""
+    relative_schema = schema_file.relative_to(SCHEMAS_DIR).as_posix()
+    class_name = _IDENTITY_SCHEMAS.get(relative_schema)
+    if class_name is None:
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    class_marker = f"class {class_name}(BaseModel):\n"
+    if class_marker not in content or "unified_code:" not in content or "exchange:" not in content:
+        raise RuntimeError(
+            f"Generated output changed; cannot inject identity validator for {class_name}"
+        )
+
+    content = ensure_pydantic_imports(content, ("model_validator",))
+    prefix_rules_literal = repr(load_code_prefix_rules())
+    validator = (
+        class_marker
+        + "    @model_validator(mode=\"after\")\n"
+        + f"    def validate_unified_identity(self) -> {class_name}:\n"
+        + f"        prefix_rules = {prefix_rules_literal}\n"
+        + "        exchange = getattr(self.exchange, \"value\", self.exchange)\n"
+        + "        unified_code = self.unified_code\n"
+        + "        if len(unified_code) != 9 or unified_code[6] != \".\":\n"
+        + "            raise ValueError(\"unifiedCode must use suffix form\")\n"
+        + "        code = unified_code[:6]\n"
+        + "        suffix = unified_code[7:]\n"
+        + "        if suffix != exchange:\n"
+        + "            raise ValueError(\"unifiedCode/exchange identity mismatch\")\n"
+        + "        expected_rule = next(\n"
+        + "            (rule for rule in prefix_rules if code.startswith(rule[0])),\n"
+        + "            None,\n"
+        + "        )\n"
+        + "        if expected_rule is None:\n"
+        + "            raise ValueError(\"code is not recognized by code prefix rules\")\n"
+        + "        if expected_rule[1] != exchange:\n"
+        + "            raise ValueError(\"exchange must match code prefix rules\")\n"
+        + "        return self\n\n"
+    )
+    generated_file.write_text(
+        content.replace(class_marker, validator, 1), encoding="utf-8", newline="\n"
+    )
+
+
+def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
+    """Use Decimal for price-sensitive fields in generated fund contracts.
+
+    JSON Schema's ``number`` maps to ``float`` by default in
+    datamodel-code-generator.  That is appropriate for transport types but
+    unsafe at the Python domain boundary, so the small set of fund monetary
+    fields is rewritten reproducibly here rather than by hand-editing output.
+    """
+    relative_schema = schema_file.relative_to(SCHEMAS_DIR).as_posix()
+    replacements: dict[str, str]
+    decimal_fields_by_class: dict[str, tuple[str, ...]]
+    if relative_schema == "funds/fund-nav.json":
+        decimal_fields_by_class = {"FundNav": ("nav", "inav")}
+        replacements = {
+            'nav: float = Field(..., ge=0.0)': 'nav: Decimal = Field(..., ge=Decimal("0"))',
+            'inav: float | None = Field(..., ge=0.0)': (
+                'inav: Decimal | None = Field(..., ge=Decimal("0"))'
+            ),
+        }
+    elif relative_schema == "funds/precious-metal-fund.json":
+        decimal_fields_by_class = {
+            "RecurringFee": ("rate",),
+            "PreciousMetalFund": ("management_fee_rate", "confidence"),
+        }
+        replacements = {
+            'management_fee_rate: float = Field(..., alias="managementFeeRate", ge=0.0, le=1.0)': (
+                'management_fee_rate: Decimal = Field(\n'
+                '        ..., alias="managementFeeRate", ge=Decimal("0"), le=Decimal("1")\n'
+                '    )'
+            ),
+            'confidence: float = Field(..., ge=0.0, le=1.0)': (
+                'confidence: Decimal = Field(..., ge=Decimal("0"), le=Decimal("1"))'
+            ),
+            'rate: float = Field(..., ge=0.0, le=1.0)': (
+                'rate: Decimal = Field(..., ge=Decimal("0"), le=Decimal("1"))'
+            ),
+        }
+    elif relative_schema == "market-data/bar.json":
+        decimal_fields_by_class = {"Bar": ("open", "high", "low", "close", "amount")}
+        replacements = {
+            f'{field}: float = Field(..., ge=0.0)': (
+                f'{field}: Decimal = Field(..., ge=Decimal("0"))'
+            )
+            for field in ("open", "high", "low", "close", "amount")
+        }
+    elif relative_schema == "market-data/tick.json":
+        decimal_fields_by_class = {"Tick": ("price", "amount")}
+        replacements = {
+            f'{field}: float = Field(..., ge=0.0)': (
+                f'{field}: Decimal = Field(..., ge=Decimal("0"))'
+            )
+            for field in ("price", "amount")
+        }
+    elif relative_schema == "market-data/adjustment-factor.json":
+        decimal_fields_by_class = {"AdjustmentFactor": ("factor",)}
+        replacements = {
+            'factor: float = Field(..., gt=0.0)': 'factor: Decimal = Field(..., gt=Decimal("0"))'
+        }
+    elif relative_schema == "market-data/corporate-action.json":
+        decimal_fields_by_class = {
+            "CorporateAction": ("per_share_cash", "per_share_stock", "ratio")
+        }
+        replacements = {
+            'per_share_cash: float | None = Field(None, alias="perShareCash", ge=0.0)': (
+                "per_share_cash: Decimal | None = Field("
+                'None, alias="perShareCash", ge=Decimal("0"))'
+            ),
+            'per_share_stock: float | None = Field(None, alias="perShareStock", ge=0.0)': (
+                "per_share_stock: Decimal | None = Field("
+                'None, alias="perShareStock", ge=Decimal("0"))'
+            ),
+            'ratio: float | None = Field(None, ge=0.0)': (
+                'ratio: Decimal | None = Field(None, ge=Decimal("0"))'
+            ),
+        }
+    else:
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    if "from decimal import Decimal" not in content:
+        content = content.replace(
+            "from __future__ import annotations\n",
+            "from __future__ import annotations\n\nfrom decimal import Decimal\n",
+            1,
+        )
+    for old, new in replacements.items():
+        if old not in content:
+            raise RuntimeError(f"Generated output changed; cannot inject Decimal field: {old}")
+        content = content.replace(old, new, 1)
+
+    content = ensure_pydantic_imports(content, ("field_validator",))
+    for class_name, fields in decimal_fields_by_class.items():
+        class_marker = f"class {class_name}(BaseModel):\n"
+        if class_marker not in content:
+            raise RuntimeError(
+                f"Generated output changed; cannot inject Decimal validator for {class_name}"
+            )
+        field_arguments = ", ".join(f'"{field}"' for field in fields)
+        validator = (
+            class_marker
+            + f"    @field_validator({field_arguments}, mode=\"before\")\n"
+            + "    @classmethod\n"
+            + "    def reject_binary_float(cls, value: object) -> object:\n"
+            + "        if isinstance(value, float):\n"
+            + "            raise TypeError(\"float is not an accepted decimal boundary value\")\n"
+            + "        return value\n\n"
+        )
+        content = content.replace(class_marker, validator, 1)
+    generated_file.write_text(content, encoding="utf-8", newline="\n")
 
 
 def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
@@ -66,6 +313,31 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
         shutil.rmtree(tmp_dir, ignore_errors=True)
         print(f"Error formatting generated model {output_file}:", file=sys.stderr)
         print(format_result.stderr, file=sys.stderr)
+        sys.exit(1)
+
+    inject_instrument_identity_validator(schema_file, tmp_file)
+    inject_unified_code_identity_validator(schema_file, tmp_file)
+    inject_decimal_fields(schema_file, tmp_file)
+    format_result = subprocess.run(
+        [sys.executable, "-m", "ruff", "format", "--quiet", str(tmp_file)],
+        capture_output=True,
+        text=True,
+    )
+    if format_result.returncode != 0:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        print(f"Error formatting generated model {output_file}:", file=sys.stderr)
+        print(format_result.stderr, file=sys.stderr)
+        sys.exit(1)
+
+    import_result = subprocess.run(
+        [sys.executable, "-m", "ruff", "check", "--select", "I", "--fix", str(tmp_file)],
+        capture_output=True,
+        text=True,
+    )
+    if import_result.returncode != 0:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        print(f"Error sorting generated imports for {output_file}:", file=sys.stderr)
+        print(import_result.stderr, file=sys.stderr)
         sys.exit(1)
 
     normalized = tmp_file.read_text(encoding="utf-8").replace("\r\n", "\n")
@@ -198,7 +470,9 @@ def check() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate Python types from JSON Schema")
-    parser.add_argument("--check", action="store_true", help="Verify generated files are up-to-date")
+    parser.add_argument(
+        "--check", action="store_true", help="Verify generated files are up-to-date"
+    )
     args = parser.parse_args()
 
     if args.check:

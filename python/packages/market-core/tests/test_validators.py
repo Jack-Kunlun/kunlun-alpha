@@ -8,11 +8,17 @@ aligned. Covers price, volume, amount, suspended and adjustment samples.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
+from decimal import Decimal
 from pathlib import Path
 from typing import TypedDict, cast
 
 import pytest
 from market_core.models.validators import (
+    AdjustmentFactor,
+    Bar,
+    CorporateAction,
+    Tick,
     ValidationResult,
     action_from_dict,
     bar_from_dict,
@@ -71,6 +77,7 @@ _FIXTURES = cast(
             / "market-data"
             / "fixtures.json"
         ).read_text(encoding="utf-8"),
+        parse_float=Decimal,
     ),
 )
 
@@ -172,3 +179,175 @@ def test_research_vs_trade_price_separation() -> None:
     for fixture in valid_bars:
         bar = bar_from_dict(fixture["bar"])
         assert bar.price_type in ("RAW", "FORWARD_ADJUSTED", "BACKWARD_ADJUSTED")
+
+
+def test_price_sensitive_market_fields_use_decimal_without_float_round_trip() -> None:
+    bar = bar_from_dict(
+        {
+            "unifiedCode": "600000.SH",
+            "exchange": "SH",
+            "date": "2026-08-13",
+            "interval": "DAILY",
+            "session": "CONTINUOUS",
+            "timestamp": "2026-08-13T07:00:00.000Z",
+            "open": Decimal("0.1"),
+            "high": Decimal("0.3"),
+            "low": Decimal("0.1"),
+            "close": Decimal("0.3"),
+            "volume": 1,
+            "amount": Decimal("0.3"),
+            "priceType": "RAW",
+        }
+    )
+
+    assert bar.open == Decimal("0.1")
+    assert bar.amount == Decimal("0.3")
+    assert validate_bar(bar).valid is True
+
+    with pytest.raises(TypeError, match="float is not an accepted decimal boundary value"):
+        bar_from_dict({**{
+            "unifiedCode": "600000.SH",
+            "exchange": "SH",
+            "date": "2026-08-13",
+            "interval": "DAILY",
+            "session": "CONTINUOUS",
+            "timestamp": "2026-08-13T07:00:00.000Z",
+            "open": 0.1 + 0.2,
+            "high": Decimal("0.4"),
+            "low": Decimal("0.1"),
+            "close": Decimal("0.3"),
+            "volume": 1,
+            "amount": Decimal("0.3"),
+            "priceType": "RAW",
+        }})
+
+
+def test_direct_market_models_reject_float_price_values() -> None:
+    with pytest.raises(TypeError, match="float is not an accepted decimal boundary value"):
+        Bar(
+            unified_code="600000.SH",
+            exchange="SH",
+            date="2026-08-13",
+            interval="DAILY",
+            session="CONTINUOUS",
+            timestamp="2026-08-13T07:00:00.000Z",
+            open=0.1 + 0.2,
+            high=Decimal("0.4"),
+            low=Decimal("0.1"),
+            close=Decimal("0.3"),
+            volume=1,
+            amount=Decimal("0.3"),
+            price_type="RAW",
+        )
+    with pytest.raises(TypeError, match="float is not an accepted decimal boundary value"):
+        Tick(
+            unified_code="600000.SH",
+            exchange="SH",
+            date="2026-08-13",
+            timestamp="2026-08-13T07:00:00.000Z",
+            price=0.1 + 0.2,
+            volume=1,
+            amount=Decimal("0.3"),
+            direction="BUY",
+            trade_type="MATCH",
+        )
+    with pytest.raises(TypeError, match="float is not an accepted decimal boundary value"):
+        AdjustmentFactor(
+            unified_code="600000.SH",
+            exchange="SH",
+            date="2026-08-13",
+            factor=0.1 + 0.2,
+            factor_type="FORWARD",
+        )
+    with pytest.raises(TypeError, match="float is not an accepted decimal boundary value"):
+        CorporateAction(
+            unified_code="600000.SH",
+            exchange="SH",
+            ex_date="2026-08-13",
+            action_type="DIVIDEND",
+            description="cash dividend",
+            per_share_cash=0.1 + 0.2,
+        )
+
+
+@pytest.mark.parametrize(
+    "factory, raw",
+    [
+        (
+            bar_from_dict,
+            {
+                "unifiedCode": "600000.SZ",
+                "exchange": "SH",
+                "date": "2026-08-13",
+                "interval": "DAILY",
+                "session": "CONTINUOUS",
+                "timestamp": "2026-08-13T07:00:00.000Z",
+                "open": Decimal("0.1"),
+                "high": Decimal("0.4"),
+                "low": Decimal("0.1"),
+                "close": Decimal("0.3"),
+                "volume": 1,
+                "amount": Decimal("0.3"),
+                "priceType": "RAW",
+            },
+        ),
+        (
+            tick_from_dict,
+            {
+                "unifiedCode": "600000.SZ",
+                "exchange": "SH",
+                "date": "2026-08-13",
+                "timestamp": "2026-08-13T07:00:00.000Z",
+                "price": Decimal("0.3"),
+                "volume": 1,
+                "amount": Decimal("0.3"),
+                "direction": "BUY",
+                "tradeType": "MATCH",
+            },
+        ),
+        (
+            factor_from_dict,
+            {
+                "unifiedCode": "600000.SZ",
+                "exchange": "SH",
+                "date": "2026-08-13",
+                "factor": Decimal("1"),
+                "factorType": "FORWARD",
+            },
+        ),
+        (
+            action_from_dict,
+            {
+                "unifiedCode": "600000.SZ",
+                "exchange": "SH",
+                "exDate": "2026-08-13",
+                "actionType": "DIVIDEND",
+                "description": "cash dividend",
+                "perShareCash": Decimal("0.3"),
+            },
+        ),
+        (
+            bar_from_dict,
+            {
+                "unifiedCode": "123456.SH",
+                "exchange": "SH",
+                "date": "2026-08-13",
+                "interval": "DAILY",
+                "session": "CONTINUOUS",
+                "timestamp": "2026-08-13T07:00:00.000Z",
+                "open": Decimal("0.1"),
+                "high": Decimal("0.4"),
+                "low": Decimal("0.1"),
+                "close": Decimal("0.3"),
+                "volume": 1,
+                "amount": Decimal("0.3"),
+                "priceType": "RAW",
+            },
+        ),
+    ],
+)
+def test_factories_reject_unified_code_exchange_mismatch(
+    factory: Callable[[dict[str, object]], object], raw: dict[str, object]
+) -> None:
+    with pytest.raises(ValueError, match="unifiedCode/exchange identity mismatch"):
+        factory(raw)

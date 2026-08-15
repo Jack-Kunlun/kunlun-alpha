@@ -1,100 +1,213 @@
 {
-  "$comment": "Precious-metal fund fixtures shared by the TS suite (packages/contracts/src/funds) and the Python suite (market-core/funds). Covers GOLD/SILVER/OTHER classification, unknown asset class, currency mismatch and historical validity windows.",
+  "$comment": "Precious-metal fund fixtures shared by the TS and Python suites. Classification is always PRECIOUS_METALS; commodity, currencies, provenance, confidence and review status are explicit.",
   "valid": [
     {
-      "name": "gold fund",
+      "name": "gold ETF with CNY NAV",
       "fund": {
-        "unifiedCode": "SH.518880",
+        "unifiedCode": "518880.SH",
         "exchange": "SH",
-        "fundAssetClass": "GOLD",
+        "assetType": "ETF",
+        "fundAssetClass": "PRECIOUS_METALS",
         "underlyingCommodity": "GOLD",
-        "currency": "CNY",
-        "benchmark": "Au99.99",
+        "tradingCurrency": "CNY",
+        "navCurrency": "CNY",
+        "benchmarkOrTrackingIndex": "Au99.99",
         "managementFeeRate": 0.005,
         "validFrom": "2020-01-01",
         "validTo": null,
-        "source": "provider-x"
+        "source": "provider-x",
+        "publishTime": "2026-08-13T09:00:00Z",
+        "ingestTime": "2026-08-13T09:01:00Z",
+        "availableTime": "2026-08-13T09:02:00Z",
+        "processingTime": "2026-08-13T09:03:00Z",
+        "rawObjectId": "sha256:gold-classification",
+        "recurringFees": [
+          {
+            "kind": "CUSTODY",
+            "rate": 0.001,
+            "validFrom": "2020-01-01",
+            "validTo": null,
+            "source": "provider-x"
+          }
+        ],
+        "confidence": 0.95,
+        "reviewStatus": "REVIEWED"
       }
     },
     {
-      "name": "silver fund",
+      "name": "silver LOF with USD NAV",
       "fund": {
-        "unifiedCode": "SZ.161226",
+        "unifiedCode": "161226.SZ",
         "exchange": "SZ",
-        "fundAssetClass": "SILVER",
+        "assetType": "LOF",
+        "fundAssetClass": "PRECIOUS_METALS",
         "underlyingCommodity": "SILVER",
-        "currency": "CNY",
-        "benchmark": "Ag(T+D)",
+        "tradingCurrency": "CNY",
+        "navCurrency": "USD",
+        "benchmarkOrTrackingIndex": "Silver benchmark",
         "managementFeeRate": 0.008,
         "validFrom": "2019-06-01",
         "validTo": null,
-        "source": "provider-x"
+        "source": "provider-x",
+        "publishTime": "2026-08-13T09:00:00Z",
+        "ingestTime": "2026-08-13T09:01:00Z",
+        "availableTime": "2026-08-13T09:02:00Z",
+        "processingTime": "2026-08-13T09:03:00Z",
+        "rawObjectId": "sha256:silver-classification",
+        "confidence": 0.9,
+        "reviewStatus": "NEEDS_REVIEW"
       }
     },
     {
-      "name": "other commodity fund",
+      "name": "other precious-metal fund with historical interval",
       "fund": {
-        "unifiedCode": "SH.518660",
+        "unifiedCode": "518660.SH",
         "exchange": "SH",
-        "fundAssetClass": "OTHER",
+        "assetType": "FUND",
+        "fundAssetClass": "PRECIOUS_METALS",
         "underlyingCommodity": "OTHER",
-        "currency": "CNY",
-        "benchmark": "SGE composite",
+        "tradingCurrency": "CNY",
+        "navCurrency": "CNY",
+        "benchmarkOrTrackingIndex": "SGE composite",
         "managementFeeRate": 0.006,
         "validFrom": "2021-01-01",
         "validTo": "2023-12-31",
-        "source": "provider-x"
+        "source": "provider-x",
+        "publishTime": "2023-01-01T09:00:00Z",
+        "ingestTime": "2023-01-01T09:01:00Z",
+        "availableTime": "2023-01-01T09:02:00Z",
+        "processingTime": "2023-01-01T09:03:00Z",
+        "rawObjectId": "sha256:other-classification",
+        "confidence": 0.8,
+        "reviewStatus": "REVIEWED"
       }
     }
   ],
   "invalid": [
     {
-      "name": "unknown asset class",
+      "name": "commodity incorrectly used as asset class",
       "fund": {
-        "unifiedCode": "SH.518880",
+        "unifiedCode": "518880.SH",
         "exchange": "SH",
-        "fundAssetClass": "PLATINUM",
-        "underlyingCommodity": "GOLD",
-        "currency": "CNY",
-        "benchmark": "Au99.99",
-        "managementFeeRate": 0.005,
-        "validFrom": "2020-01-01",
-        "validTo": null,
-        "source": "provider-x"
-      },
-      "reason": "fundAssetClass must be GOLD/SILVER/OTHER"
-    },
-    {
-      "name": "currency mismatch",
-      "fund": {
-        "unifiedCode": "SH.518880",
-        "exchange": "SH",
+        "assetType": "ETF",
         "fundAssetClass": "GOLD",
         "underlyingCommodity": "GOLD",
-        "currency": "USD",
-        "benchmark": "Au99.99",
+        "tradingCurrency": "CNY",
+        "navCurrency": "CNY",
+        "benchmarkOrTrackingIndex": "Au99.99",
         "managementFeeRate": 0.005,
         "validFrom": "2020-01-01",
         "validTo": null,
-        "source": "provider-x"
+        "source": "provider-x",
+        "publishTime": "2026-08-13T09:00:00Z",
+        "ingestTime": "2026-08-13T09:01:00Z",
+        "availableTime": "2026-08-13T09:02:00Z",
+        "processingTime": "2026-08-13T09:03:00Z",
+        "rawObjectId": "sha256:invalid-classification",
+        "confidence": 0.95,
+        "reviewStatus": "REVIEWED"
       },
-      "reason": "currency must be CNY"
+      "reason": "fundAssetClass must be PRECIOUS_METALS"
+    },
+    {
+      "name": "trading currency mismatch",
+      "fund": {
+        "unifiedCode": "518880.SH",
+        "exchange": "SH",
+        "assetType": "ETF",
+        "fundAssetClass": "PRECIOUS_METALS",
+        "underlyingCommodity": "GOLD",
+        "tradingCurrency": "USD",
+        "navCurrency": "USD",
+        "benchmarkOrTrackingIndex": "Au99.99",
+        "managementFeeRate": 0.005,
+        "validFrom": "2020-01-01",
+        "validTo": null,
+        "source": "provider-x",
+        "publishTime": "2026-08-13T09:00:00Z",
+        "ingestTime": "2026-08-13T09:01:00Z",
+        "availableTime": "2026-08-13T09:02:00Z",
+        "processingTime": "2026-08-13T09:03:00Z",
+        "rawObjectId": "sha256:invalid-currency",
+        "confidence": 0.95,
+        "reviewStatus": "REVIEWED"
+      },
+      "reason": "tradingCurrency must be CNY"
     },
     {
       "name": "invalid validity window",
       "fund": {
-        "unifiedCode": "SH.518880",
+        "unifiedCode": "518880.SH",
         "exchange": "SH",
-        "fundAssetClass": "GOLD",
+        "assetType": "ETF",
+        "fundAssetClass": "PRECIOUS_METALS",
         "underlyingCommodity": "GOLD",
-        "currency": "CNY",
-        "benchmark": "Au99.99",
+        "tradingCurrency": "CNY",
+        "navCurrency": "CNY",
+        "benchmarkOrTrackingIndex": "Au99.99",
         "managementFeeRate": 0.005,
         "validFrom": "2023-01-01",
         "validTo": "2022-12-31",
-        "source": "provider-x"
+        "source": "provider-x",
+        "publishTime": "2026-08-13T09:00:00Z",
+        "ingestTime": "2026-08-13T09:01:00Z",
+        "availableTime": "2026-08-13T09:02:00Z",
+        "processingTime": "2026-08-13T09:03:00Z",
+        "rawObjectId": "sha256:invalid-window",
+        "confidence": 0.95,
+        "reviewStatus": "REVIEWED"
       },
       "reason": "validFrom must be <= validTo"
+    },
+    {
+      "name": "missing provenance",
+      "fund": {
+        "unifiedCode": "518880.SH",
+        "exchange": "SH",
+        "assetType": "ETF",
+        "fundAssetClass": "PRECIOUS_METALS",
+        "underlyingCommodity": "GOLD",
+        "tradingCurrency": "CNY",
+        "navCurrency": "CNY",
+        "benchmarkOrTrackingIndex": "Au99.99",
+        "managementFeeRate": 0.005,
+        "validFrom": "2020-01-01",
+        "validTo": null,
+        "source": "",
+        "publishTime": "2026-08-13T09:00:00Z",
+        "ingestTime": "2026-08-13T09:01:00Z",
+        "availableTime": "2026-08-13T09:02:00Z",
+        "processingTime": "2026-08-13T09:03:00Z",
+        "rawObjectId": "sha256:missing-source",
+        "confidence": 0.95,
+        "reviewStatus": "REVIEWED"
+      },
+      "reason": "source must be non-empty"
+    },
+    {
+      "name": "invalid confidence",
+      "fund": {
+        "unifiedCode": "518880.SH",
+        "exchange": "SH",
+        "assetType": "ETF",
+        "fundAssetClass": "PRECIOUS_METALS",
+        "underlyingCommodity": "GOLD",
+        "tradingCurrency": "CNY",
+        "navCurrency": "CNY",
+        "benchmarkOrTrackingIndex": "Au99.99",
+        "managementFeeRate": 0.005,
+        "validFrom": "2020-01-01",
+        "validTo": null,
+        "source": "provider-x",
+        "publishTime": "2026-08-13T09:00:00Z",
+        "ingestTime": "2026-08-13T09:01:00Z",
+        "availableTime": "2026-08-13T09:02:00Z",
+        "processingTime": "2026-08-13T09:03:00Z",
+        "rawObjectId": "sha256:invalid-confidence",
+        "confidence": 1.1,
+        "reviewStatus": "REVIEWED"
+      },
+      "reason": "confidence must be between 0 and 1"
     }
   ]
 }
