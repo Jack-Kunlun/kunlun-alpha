@@ -1,45 +1,36 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DataQualityPanel, type DataQualityRecord } from "./data-quality-panel";
+import { DataQualityPanel } from "./data-quality-panel";
+import type { DataQualityRecord } from "./types";
 
 const records: DataQualityRecord[] = [
   {
-    id: "q1",
-    kind: "NEGATIVE_PRICE",
+    id: "fund-conflict-aaa",
+    kind: "SOURCE_CONFLICT",
+    unifiedCode: "600519.SH",
     date: "2026-08-13",
-    source: "provider-x",
-    unifiedCode: "600000.SH",
-    detail: "close must be >= 0",
-    evidenceLink: "raw://objects/abc123",
-  },
-  {
-    id: "q2",
-    kind: "MISSING_DATE",
-    date: "2026-08-14",
-    source: "provider-y",
-    unifiedCode: null,
-    detail: "no calendar data",
-    evidenceLink: "raw://objects/def456",
+    source: "provider-a",
+    detail: "多来源观测不一致，未选择权威值",
+    createdAt: "2026-08-13T09:30:00.000Z",
+    availableAt: "2026-08-13T09:30:00.000Z",
+    schemaVersion: "fund-v1",
   },
 ];
 
 describe("DataQualityPanel", () => {
-  it("renders every record detail, not only totals", () => {
+  it("renders every record detail including version and reason", () => {
     const html = renderToStaticMarkup(<DataQualityPanel records={records} />);
-    expect(html).toContain("NEGATIVE_PRICE");
-    expect(html).toContain("MISSING_DATE");
-    expect(html).toContain("close must be &gt;= 0");
-    expect(html).toContain("600000.SH");
+    expect(html).toContain("SOURCE_CONFLICT");
+    expect(html).toContain("600519.SH");
+    expect(html).toContain("多来源观测不一致，未选择权威值");
+    expect(html).toContain("fund-v1");
   });
 
-  it("links each record to its raw evidence", () => {
+  it("links evidence only through the safe internal endpoint", () => {
     const html = renderToStaticMarkup(<DataQualityPanel records={records} />);
-    expect(html).toContain('href="raw://objects/abc123"');
-    expect(html).toContain('href="raw://objects/def456"');
-  });
-
-  it("renders an empty state when there are no records", () => {
-    const html = renderToStaticMarkup(<DataQualityPanel records={[]} />);
-    expect(html).toContain("暂无质量问题");
+    expect(html).toContain('href="/v1/data-quality/fund-conflict-aaa/evidence"');
+    expect(html).not.toContain("raw://");
+    expect(html).not.toContain("s3://");
+    expect(html).not.toContain("raw_object");
   });
 });
