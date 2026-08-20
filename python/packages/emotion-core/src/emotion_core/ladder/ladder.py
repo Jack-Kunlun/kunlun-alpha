@@ -4,11 +4,16 @@ Consecutive-board counting walks backwards over a trading-day sequence — never
 natural days — so weekends do not break a streak and a suspended day does not
 count as a broken board. The snapshot reports the distribution of board counts
 and the advancement rate from board N to N+1 (e.g. 1 -> 2).
+
+P2-R01: the snapshot carries an algorithm version and the suspended-day
+exclusions that shaped each streak, so results stay auditable.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+LADDER_VERSION = "board_ladder_v1"
 
 
 @dataclass(frozen=True)
@@ -18,6 +23,8 @@ class BoardLadderSnapshot:
     date: str
     boards: dict[int, list[str]]
     advancement: dict[int, float]
+    exclusions: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    version: str = LADDER_VERSION
 
 
 def consecutive_boards(
@@ -67,6 +74,15 @@ def compute_board_ladder(
         for code in codes
     }
 
+    # Record, per code, the suspended trading days that fell inside the observed
+    # window — these are the exclusions that shaped the streak.
+    window = set(trading_days)
+    exclusions: dict[str, tuple[str, ...]] = {}
+    for code, days in (suspended or {}).items():
+        within = tuple(sorted(day for day in days if day in window))
+        if within:
+            exclusions[code] = within
+
     boards: dict[int, list[str]] = {}
     for code, count in board_counts.items():
         if count > 0:
@@ -89,4 +105,6 @@ def compute_board_ladder(
             advanced = sum(1 for code in yesterday_n if limit_up_history.get(code, {}).get(today))
             advancement[n] = advanced / len(yesterday_n)
 
-    return BoardLadderSnapshot(date=date, boards=boards, advancement=advancement)
+    return BoardLadderSnapshot(
+        date=date, boards=boards, advancement=advancement, exclusions=exclusions
+    )
