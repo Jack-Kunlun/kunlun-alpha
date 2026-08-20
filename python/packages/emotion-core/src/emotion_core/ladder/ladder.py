@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from emotion_core.provenance import SampleProvenance
+
 LADDER_VERSION = "board_ladder_v1"
 
 
@@ -23,6 +25,7 @@ class BoardLadderSnapshot:
     date: str
     boards: dict[int, list[str]]
     advancement: dict[int, float]
+    provenance: SampleProvenance
     exclusions: dict[str, tuple[str, ...]] = field(default_factory=dict)
     version: str = LADDER_VERSION
 
@@ -88,6 +91,11 @@ def compute_board_ladder(
         if count > 0:
             boards.setdefault(count, []).append(code)
 
+    # Structured provenance: instruments on the ladder are included; the rest
+    # are excluded with a reason so the sample is fully auditable.
+    included = tuple(sorted(code for code, count in board_counts.items() if count > 0))
+    excluded = {code: "not_on_ladder" for code, count in board_counts.items() if count == 0}
+
     # Advancement: of the codes with N boards yesterday, how many are limit-up today.
     advancement: dict[int, float] = {}
     if len(trading_days) >= 2:
@@ -105,6 +113,17 @@ def compute_board_ladder(
             advanced = sum(1 for code in yesterday_n if limit_up_history.get(code, {}).get(today))
             advancement[n] = advanced / len(yesterday_n)
 
+    provenance = SampleProvenance(
+        algorithm_version=LADDER_VERSION,
+        as_of=date,
+        included=included,
+        excluded=excluded,
+    )
+
     return BoardLadderSnapshot(
-        date=date, boards=boards, advancement=advancement, exclusions=exclusions
+        date=date,
+        boards=boards,
+        advancement=advancement,
+        provenance=provenance,
+        exclusions=exclusions,
     )

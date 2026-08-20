@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 from datetime import date as date_aliased
+from decimal import Decimal
 from enum import Enum
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
 
 class Exchange(Enum):
@@ -24,6 +25,13 @@ class EventType(Enum):
 
 
 class LimitEvent(BaseModel):
+    @field_validator("price", mode="before")
+    @classmethod
+    def reject_binary_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise TypeError("float is not an accepted decimal boundary value")
+        return value
+
     model_config = ConfigDict(
         extra="forbid",
     )
@@ -47,7 +55,7 @@ class LimitEvent(BaseModel):
     """
     Event time, UTC ISO 8601
     """
-    price: float = Field(..., ge=0.0)
+    price: Decimal = Field(..., ge=Decimal("0"))
     """
     Event price in CNY
     """

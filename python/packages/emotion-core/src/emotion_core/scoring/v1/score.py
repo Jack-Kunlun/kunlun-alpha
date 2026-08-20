@@ -13,6 +13,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+from emotion_core.pit import Instant
+from emotion_core.provenance import SampleProvenance
+
 SCORE_VERSION = "emotion_score_v1"
 
 
@@ -32,6 +35,7 @@ class EmotionScoreV1:
     """The emotion_score_v1 result."""
 
     total: float
+    provenance: SampleProvenance
     components: dict[str, float] = field(default_factory=dict)
     explanations: dict[str, str] = field(default_factory=dict)
     version: str = SCORE_VERSION
@@ -73,12 +77,15 @@ _COMPONENTS = {
 def score_emotion_v1(
     metrics: dict[str, float | None],
     weights: ScoringWeights | None = None,
+    *,
+    as_of: str | None = None,
 ) -> EmotionScoreV1:
     """Score sentiment deterministically from raw metrics.
 
     ``metrics`` maps raw metric names to values; a value of ``None`` (or a
     missing key) marks the component as unavailable and it is dropped from the
-    weighted average, with the remaining weights re-normalized.
+    weighted average, with the remaining weights re-normalized. ``as_of`` is an
+    optional decision instant recorded in the structured provenance.
     """
     weights = weights or ScoringWeights()
     weight_map = {
@@ -91,20 +98,39 @@ def score_emotion_v1(
 
     components: dict[str, float] = {}
     explanations: dict[str, str] = {}
+    excluded: dict[str, str] = {}
     available_weight = 0.0
 
     for component, (metric_name, normalize) in _COMPONENTS.items():
         raw = metrics.get(metric_name)
         if raw is None:
             explanations[component] = "missing"
+            excluded[component] = "missing"
             continue
         score = normalize(raw)
         components[component] = score
         explanations[component] = f"{metric_name}={raw} -> {score:.3f}"
         available_weight += weight_map[component]
 
+    provenance = SampleProvenance(
+        algorithm_version=SCORE_VERSION,
+        as_of=Instant.parse(as_of).isoformat() if as_of is not None else "",
+        included=tuple(components.keys()),
+        excluded=excluded,
+    )
+
     if available_weight <= 0:
-        return EmotionScoreV1(total=0.0, components=components, explanations=explanations)
+        return EmotionScoreV1(
+            total=0.0,
+            provenance=provenance,
+            components=components,
+            explanations=explanations,
+        )
 
     total = sum(components[c] * weight_map[c] for c in components) / available_weight
-    return EmotionScoreV1(total=round(total, 4), components=components, explanations=explanations)
+    return EmotionScoreV1(
+        total=round(total, 4),
+        provenance=provenance,
+        components=components,
+        explanations=explanations,
+    )
