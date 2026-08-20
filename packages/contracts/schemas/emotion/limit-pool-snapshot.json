@@ -39,6 +39,21 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "Limit-down unified codes"
+    },
+    "firstSealTime": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Earliest first-seal event time across the pool, UTC ISO 8601, or null when none sealed"
+    },
+    "lastSealTime": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Latest seal event time across the pool, UTC ISO 8601, or null when none sealed"
+    },
+    "totalOpenCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of seal openings (break-then-reseal) across the pool"
     }
   },
   "required": ["date", "timestamp", "limitUpCount", "limitDownCount", "sealedCount"],

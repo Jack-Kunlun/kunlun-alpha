@@ -40,3 +40,15 @@ class LimitPoolSnapshot(BaseModel):
     """
     Limit-down unified codes
     """
+    first_seal_time: AwareDatetime | None = Field(None, alias="firstSealTime")
+    """
+    Earliest first-seal event time across the pool, UTC ISO 8601, or null when none sealed
+    """
+    last_seal_time: AwareDatetime | None = Field(None, alias="lastSealTime")
+    """
+    Latest seal event time across the pool, UTC ISO 8601, or null when none sealed
+    """
+    total_open_count: int | None = Field(None, alias="totalOpenCount", ge=0)
+    """
+    Total number of seal openings (break-then-reseal) across the pool
+    """

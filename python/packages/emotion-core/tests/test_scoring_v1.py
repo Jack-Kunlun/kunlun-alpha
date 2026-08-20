@@ -48,3 +48,12 @@ def test_all_missing_gives_zero() -> None:
 def test_version_is_stable() -> None:
     result = score_emotion_v1({"limit_up_count": 80})
     assert result.version == "emotion_score_v1"
+
+
+def test_score_records_provenance_for_available_components() -> None:
+    metrics: dict[str, float | None] = {"limit_up_count": 80, "limit_down_count": None}
+    result = score_emotion_v1(metrics)
+    # Available component keeps a provenance/explanation trail; missing one is
+    # explicitly marked, never silently dropped without a reason.
+    assert "limit_up" in result.explanations
+    assert result.explanations["limit_down"] == "missing"

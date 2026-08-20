@@ -143,6 +143,18 @@ export interface LimitPoolSnapshot {
    * Limit-down unified codes
    */
   limitDownInstruments?: string[];
+  /**
+   * Earliest first-seal event time across the pool, UTC ISO 8601, or null when none sealed
+   */
+  firstSealTime?: string | null;
+  /**
+   * Latest seal event time across the pool, UTC ISO 8601, or null when none sealed
+   */
+  lastSealTime?: string | null;
+  /**
+   * Total number of seal openings (break-then-reseal) across the pool
+   */
+  totalOpenCount?: number;
 }
 
 /**

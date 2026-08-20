@@ -6,7 +6,7 @@ suspension not breaking a streak, broken streaks, and advancement rates.
 
 from __future__ import annotations
 
-from emotion_core.ladder import compute_board_ladder, consecutive_boards
+from emotion_core.ladder import LADDER_VERSION, compute_board_ladder, consecutive_boards
 
 # Trading days: Mon-Fri, skipping the weekend (natural-day continuity is not
 # assumed anywhere).
@@ -64,3 +64,18 @@ def test_ladder_distribution_and_advancement() -> None:
     # A advanced (1/1); C advanced but B broke (1/2).
     assert abs(snapshot.advancement[2] - 1.0) < 1e-9
     assert abs(snapshot.advancement[1] - 0.5) < 1e-9
+
+
+def test_ladder_snapshot_carries_version() -> None:
+    history = {"A": {"2026-08-14": True}}
+    snapshot = compute_board_ladder("2026-08-14", TRADING_DAYS, history)
+    assert snapshot.version == LADDER_VERSION
+
+
+def test_suspended_codes_recorded_as_exclusions() -> None:
+    history = {
+        "A": {"2026-08-13": True, "2026-08-14": True},
+    }
+    suspended = {"A": {"2026-08-13"}}
+    snapshot = compute_board_ladder("2026-08-14", TRADING_DAYS, history, suspended)
+    assert snapshot.exclusions.get("A") == ("2026-08-13",)
