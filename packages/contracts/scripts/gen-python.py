@@ -214,6 +214,13 @@ def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
         replacements = {
             'factor: float = Field(..., gt=0.0)': 'factor: Decimal = Field(..., gt=Decimal("0"))'
         }
+    elif relative_schema == "emotion/limit-event.json":
+        decimal_fields_by_class = {"LimitEvent": ("price",)}
+        replacements = {
+            'price: float = Field(..., ge=0.0)': (
+                'price: Decimal = Field(..., ge=Decimal("0"))'
+            )
+        }
     elif relative_schema == "market-data/corporate-action.json":
         decimal_fields_by_class = {
             "CorporateAction": ("per_share_cash", "per_share_stock", "ratio")

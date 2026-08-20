@@ -79,3 +79,29 @@ def test_suspended_codes_recorded_as_exclusions() -> None:
     suspended = {"A": {"2026-08-13"}}
     snapshot = compute_board_ladder("2026-08-14", TRADING_DAYS, history, suspended)
     assert snapshot.exclusions.get("A") == ("2026-08-13",)
+
+
+def test_ladder_carries_structured_provenance() -> None:
+    history = {
+        "A": {"2026-08-13": True, "2026-08-14": True},  # 2 boards, included
+        "B": {"2026-08-14": False},  # 0 boards, excluded (not on ladder)
+    }
+    snapshot = compute_board_ladder("2026-08-14", TRADING_DAYS, history)
+
+    prov = snapshot.provenance
+    assert prov.algorithm_version == LADDER_VERSION
+    assert prov.as_of == "2026-08-14"
+    assert prov.included == ("A",)  # only instruments on the ladder
+    assert prov.sample_size == 1
+    assert prov.excluded["B"] == "not_on_ladder"
+
+
+def test_ladder_provenance_records_suspension_exclusion_reason() -> None:
+    history = {
+        "A": {"2026-08-14": False},  # never limit-up -> off ladder
+    }
+    suspended = {"A": {"2026-08-13"}}
+    snapshot = compute_board_ladder("2026-08-14", TRADING_DAYS, history, suspended)
+    # A carries a suspended-day exclusion window AND is off the ladder; the
+    # structured provenance records why it is not counted.
+    assert "A" in snapshot.provenance.excluded

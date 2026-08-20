@@ -2,6 +2,7 @@
 
 from emotion_core.premium.premium import (
     PREMIUM_VERSION,
+    DrawdownResult,
     PremiumResult,
     compute_drawdown,
     compute_premium,
@@ -9,6 +10,7 @@ from emotion_core.premium.premium import (
 
 __all__ = [
     "PREMIUM_VERSION",
+    "DrawdownResult",
     "PremiumResult",
     "compute_drawdown",
     "compute_premium",

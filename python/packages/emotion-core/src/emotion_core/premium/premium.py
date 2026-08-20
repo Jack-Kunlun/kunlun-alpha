@@ -1,20 +1,31 @@
 """Yesterday-limit premium and loss-making effect.
 
 Measures how yesterday's limit-up (or multi-board) pool performs today. The
-sample is unbiased: suspended instruments (no data), one-word boards (opening
-already at limit, so no reasonable entry) and instruments whose observation is
-not yet available at the decision time are excluded, and every exclusion is
-recorded with a reason. Only fields available at the decision time are used —
-never a same-day close/high that leaks after the observation time.
+sample is unbiased and point-in-time correct: suspended instruments (no data),
+one-word boards (opening already at limit, so no reasonable entry) and any
+instrument whose observation is not yet available at the decision instant are
+excluded, and every exclusion is recorded with a reason.
 
-P2-R01: ``decision_time`` + per-instrument ``available_times`` enforce
-point-in-time correctness; results carry a version and per-instrument exclusion
-reasons for auditability.
+P2-R01 (round 2):
+
+* Prices are :class:`PriceObservation` values — :class:`~decimal.Decimal` bound
+  to event/availability instants and source/version/evidence provenance.
+* ``decision_time`` is a mandatory :class:`Instant`; there is no default that
+  would silently admit future data. Both the prior close and today's price must
+  be available at or before the decision (fail-closed on missing or leaked
+  data). ``available_time == decision_time`` is inclusive.
+* Results carry a structured :class:`SampleProvenance` (algorithm version,
+  as_of, included/excluded samples with reasons, source versions, evidence
+  ids), and drawdown returns a structured result — never a bare float.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from decimal import Decimal
+
+from emotion_core.pit import Instant, PriceObservation
+from emotion_core.provenance import SampleProvenance
 
 PREMIUM_VERSION = "premium_v1"
 
@@ -24,118 +35,160 @@ class PremiumResult:
     """Premium / loss-making effect for a pool of yesterday's limit-ups."""
 
     sample_size: int
-    average_premium: float
-    win_rate: float
-    exclusion_reasons: dict[str, str] = field(default_factory=dict)
+    average_premium: Decimal
+    win_rate: Decimal
+    provenance: SampleProvenance
     version: str = PREMIUM_VERSION
 
 
-def _available_at(
-    code: str,
-    available_times: dict[str, str] | None,
-    decision_time: str | None,
-) -> bool:
-    """Whether ``code``'s observation is available at ``decision_time``.
+@dataclass(frozen=True)
+class DrawdownResult:
+    """Average high-to-close drawdown for a pool (loss-making effect)."""
 
-    Availability is unconstrained when the caller supplies no timing context.
-    Otherwise an instrument is available only if its ``available_time`` is at or
-    before ``decision_time`` (ISO 8601 strings compare lexicographically when
-    normalized to the same UTC layout).
-    """
-    if decision_time is None or available_times is None:
-        return True
-    available_time = available_times.get(code)
-    if available_time is None:
-        return False
-    return available_time <= decision_time
+    sample_size: int
+    average_drawdown: Decimal
+    provenance: SampleProvenance
+    version: str = PREMIUM_VERSION
 
 
 def compute_premium(
     yesterday_pool: list[str],
-    yesterday_close: dict[str, float],
-    today_price: dict[str, float],
+    yesterday_close: dict[str, PriceObservation],
+    today_price: dict[str, PriceObservation],
     *,
+    decision_time: Instant,
     suspended: set[str] | None = None,
     one_word_board: set[str] | None = None,
-    available_times: dict[str, str] | None = None,
-    decision_time: str | None = None,
 ) -> PremiumResult:
     """Average premium of yesterday's pool at today's observation price.
 
-    ``today_price`` may be the open price (open-based) or close price
-    (close-based); the caller decides which field to pass. Suspended,
-    one-word-board and not-yet-available instruments are excluded so the sample
-    is unbiased and point-in-time correct.
+    ``today_price`` may be the open (open-based) or close (close-based); the
+    caller decides which observation to pass. Suspended, one-word-board,
+    missing and not-yet-available instruments are excluded so the sample is
+    unbiased and point-in-time correct.
     """
     suspended = suspended or set()
     one_word_board = one_word_board or set()
 
-    premiums: list[float] = []
+    premiums: list[Decimal] = []
     wins = 0
-    exclusion_reasons: dict[str, str] = {}
+    included: list[str] = []
+    excluded: dict[str, str] = {}
+    evidence_ids: list[str] = []
+    source_versions: set[str] = set()
+
     for code in yesterday_pool:
         if code in suspended:
-            exclusion_reasons[code] = "suspended"
+            excluded[code] = "suspended"
             continue
         if code in one_word_board:
-            exclusion_reasons[code] = "one_word_board"
+            excluded[code] = "one_word_board"
             continue
-        if not _available_at(code, available_times, decision_time):
-            exclusion_reasons[code] = "unavailable_at_decision_time"
-            continue
-        prev_close = yesterday_close.get(code)
+        prev = yesterday_close.get(code)
         price = today_price.get(code)
-        if prev_close is None or price is None or prev_close <= 0:
-            exclusion_reasons[code] = "missing_price"
+        if prev is None or price is None:
+            excluded[code] = "missing_price"
             continue
-        premium = price / prev_close - 1.0
+        if not prev.available_at(decision_time) or not price.available_at(decision_time):
+            excluded[code] = "unavailable_at_decision_time"
+            continue
+        if prev.value <= 0:
+            excluded[code] = "missing_price"
+            continue
+        premium = price.value / prev.value - Decimal("1")
         premiums.append(premium)
+        included.append(code)
+        evidence_ids.extend((prev.evidence_id, price.evidence_id))
+        source_versions.update((prev.source_version, price.source_version))
         if premium > 0:
             wins += 1
+
+    provenance = SampleProvenance(
+        algorithm_version=PREMIUM_VERSION,
+        as_of=decision_time.isoformat(),
+        included=tuple(included),
+        excluded=excluded,
+        source_versions=tuple(sorted(source_versions)),
+        evidence_ids=tuple(evidence_ids),
+    )
 
     if not premiums:
         return PremiumResult(
             sample_size=0,
-            average_premium=0.0,
-            win_rate=0.0,
-            exclusion_reasons=exclusion_reasons,
+            average_premium=Decimal("0"),
+            win_rate=Decimal("0"),
+            provenance=provenance,
         )
 
+    count = Decimal(len(premiums))
     return PremiumResult(
         sample_size=len(premiums),
-        average_premium=sum(premiums) / len(premiums),
-        win_rate=wins / len(premiums),
-        exclusion_reasons=exclusion_reasons,
+        average_premium=sum(premiums, Decimal("0")) / count,
+        win_rate=Decimal(wins) / count,
+        provenance=provenance,
     )
 
 
 def compute_drawdown(
     pool: list[str],
-    today_high: dict[str, float],
-    today_close: dict[str, float],
+    today_high: dict[str, PriceObservation],
+    today_close: dict[str, PriceObservation],
     *,
+    decision_time: Instant,
     suspended: set[str] | None = None,
-    available_times: dict[str, str] | None = None,
-    decision_time: str | None = None,
-) -> float:
+) -> DrawdownResult:
     """Average high-to-close drawdown of a pool (loss-making effect).
 
-    Instruments that are suspended or whose close is not yet available at the
-    decision time are excluded, so the measure never uses leaked same-day data.
+    ``high`` and ``close`` are independent observations: an instrument is
+    included only when *both* are available at the decision instant, so the
+    measure never uses a leaked same-day value. Returns a structured, versioned,
+    provenance-carrying result rather than a bare float.
     """
     suspended = suspended or set()
-    drawdowns: list[float] = []
+    drawdowns: list[Decimal] = []
+    included: list[str] = []
+    excluded: dict[str, str] = {}
+    evidence_ids: list[str] = []
+    source_versions: set[str] = set()
+
     for code in pool:
         if code in suspended:
-            continue
-        if not _available_at(code, available_times, decision_time):
+            excluded[code] = "suspended"
             continue
         high = today_high.get(code)
         close = today_close.get(code)
-        if high is None or close is None or high <= 0:
+        if high is None or close is None:
+            excluded[code] = "missing_price"
             continue
-        drawdowns.append((high - close) / high)
+        if not high.available_at(decision_time) or not close.available_at(decision_time):
+            excluded[code] = "unavailable_at_decision_time"
+            continue
+        if high.value <= 0:
+            excluded[code] = "missing_price"
+            continue
+        drawdowns.append((high.value - close.value) / high.value)
+        included.append(code)
+        evidence_ids.extend((high.evidence_id, close.evidence_id))
+        source_versions.update((high.source_version, close.source_version))
+
+    provenance = SampleProvenance(
+        algorithm_version=PREMIUM_VERSION,
+        as_of=decision_time.isoformat(),
+        included=tuple(included),
+        excluded=excluded,
+        source_versions=tuple(sorted(source_versions)),
+        evidence_ids=tuple(evidence_ids),
+    )
 
     if not drawdowns:
-        return 0.0
-    return sum(drawdowns) / len(drawdowns)
+        return DrawdownResult(
+            sample_size=0,
+            average_drawdown=Decimal("0"),
+            provenance=provenance,
+        )
+
+    return DrawdownResult(
+        sample_size=len(drawdowns),
+        average_drawdown=sum(drawdowns, Decimal("0")) / Decimal(len(drawdowns)),
+        provenance=provenance,
+    )
