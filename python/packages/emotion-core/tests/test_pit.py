@@ -125,3 +125,73 @@ def test_price_observation_missing_provenance_is_rejected() -> None:
             source_version="quote_v2",
             evidence_id="evt-123",
         )
+
+
+# --- Round 3: stronger time invariants --------------------------------------
+
+
+def test_event_time_after_available_time_is_rejected() -> None:
+    # A value cannot become available before the event it refers to.
+    with pytest.raises(ValueError, match="event_time"):
+        PriceObservation(
+            value=Decimal("11.05"),
+            event_time=Instant.parse("2026-08-14T07:10:00.000Z"),
+            available_time=Instant.parse("2026-08-14T07:05:00.000Z"),  # earlier
+            source="vendor-a",
+            source_version="quote_v2",
+            evidence_id="evt-123",
+        )
+
+
+def test_event_time_not_instant_is_rejected() -> None:
+    with pytest.raises(TypeError):
+        PriceObservation(
+            value=Decimal("11.05"),
+            event_time="2026-08-14T07:00:00.000Z",  # type: ignore[arg-type]
+            available_time=Instant.parse("2026-08-14T07:05:00.000Z"),
+            source="vendor-a",
+            source_version="quote_v2",
+            evidence_id="evt-123",
+        )
+
+
+def test_available_time_not_instant_is_rejected() -> None:
+    with pytest.raises(TypeError):
+        PriceObservation(
+            value=Decimal("11.05"),
+            event_time=Instant.parse("2026-08-14T07:00:00.000Z"),
+            available_time="2026-08-14T07:05:00.000Z",  # type: ignore[arg-type]
+            source="vendor-a",
+            source_version="quote_v2",
+            evidence_id="evt-123",
+        )
+
+
+def test_available_at_requires_instant_decision_time() -> None:
+    obs = PriceObservation(
+        value=Decimal("11.05"),
+        event_time=Instant.parse("2026-08-14T07:00:00.000Z"),
+        available_time=Instant.parse("2026-08-14T07:05:00.000Z"),
+        source="vendor-a",
+        source_version="quote_v2",
+        evidence_id="evt-123",
+    )
+    with pytest.raises(TypeError):
+        obs.available_at("2026-08-14T07:05:00.000Z")  # type: ignore[arg-type]
+
+
+def test_available_at_requires_event_time_before_decision() -> None:
+    # An observation whose *event* is in the future of the decision must not be
+    # usable, even if its availability instant is already at or before it.
+    obs = PriceObservation(
+        value=Decimal("11.05"),
+        event_time=Instant.parse("2026-08-14T07:00:00.000Z"),
+        available_time=Instant.parse("2026-08-14T07:00:00.000Z"),
+        source="vendor-a",
+        source_version="quote_v2",
+        evidence_id="evt-123",
+    )
+    # Decision is before the event -> not usable (future event).
+    assert obs.available_at(Instant.parse("2026-08-14T06:59:59.000Z")) is False
+    # Decision at the event instant -> usable.
+    assert obs.available_at(Instant.parse("2026-08-14T07:00:00.000Z")) is True

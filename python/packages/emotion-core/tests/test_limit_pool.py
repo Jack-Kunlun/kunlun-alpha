@@ -11,11 +11,13 @@ from decimal import Decimal
 
 from emotion_core.limit_pool import (
     InstrumentContext,
+    LimitBarObservation,
     LimitPoolAggregator,
     LimitPoolCorrection,
     compute_limit_facts,
 )
 from emotion_core.models import LimitEvent
+from emotion_core.pit import Instant
 from market_core.models.validators import Bar, ExchangeId
 
 
@@ -40,6 +42,26 @@ def _bar(
         volume=1000,
         amount=close * Decimal("1000"),
         price_type="RAW",
+    )
+
+
+def _obs(
+    code: str,
+    timestamp: str,
+    close: Decimal,
+    *,
+    revision: int = 0,
+    exchange: ExchangeId = "SH",
+    date: str = "2026-08-13",
+) -> LimitBarObservation:
+    return LimitBarObservation(
+        bar=_bar(code, timestamp, close, exchange=exchange, date=date),
+        event_time=Instant.parse(timestamp),
+        available_time=Instant.parse(timestamp),
+        revision=revision,
+        source="test",
+        source_version="v1",
+        evidence_id="ev-1",
     )
 
 
@@ -177,21 +199,21 @@ def test_duplicate_timestamp_is_idempotent() -> None:
 
 
 def test_correction_replaces_prior_observation() -> None:
-    # A corrected bar at the same timestamp changes the fact; state must not
-    # drift or keep the stale event.
+    # A corrected observation (same identity, higher revision) changes the fact;
+    # state must not drift or keep the stale event.
     contexts = {"600000.SH": _context("600000.SH")}
     aggregator = LimitPoolAggregator(contexts)
 
     # First observation: a limit-up seal.
-    aggregator.feed(_bar("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00")))
+    aggregator.feed(_obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision=0))
     assert [e.event_type for e in aggregator.events()] == ["LIMIT_UP"]
 
-    # Correction at the same timestamp: it was actually not a limit-up.
-    aggregator.feed(_bar("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80")))
+    # Correction at the same identity (revision 1): it was actually not a limit-up.
+    aggregator.feed(_obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80"), revision=1))
     assert aggregator.events() == []
 
     corrected_batch = compute_limit_facts(
-        [_bar("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80"))], contexts
+        [_obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80"), revision=1)], contexts
     )
     assert aggregator.events() == corrected_batch
 
@@ -217,15 +239,19 @@ def test_feed_returns_correction_envelope_with_revision() -> None:
     contexts = {"600000.SH": _context("600000.SH")}
     aggregator = LimitPoolAggregator(contexts)
 
-    first = aggregator.feed(_bar("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00")))
+    first = aggregator.feed(
+        _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision=0)
+    )
     assert isinstance(first, LimitPoolCorrection)
     assert [e.event_type for e in first.upserts] == ["LIMIT_UP"]
     assert first.retractions == []
     assert first.revision == 1
 
-    # Correction at the same timestamp: no longer a limit-up. The previously
-    # emitted LIMIT_UP must be retracted so the downstream consumer drops it.
-    second = aggregator.feed(_bar("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80")))
+    # Correction at the same identity (revision 1): no longer a limit-up. The
+    # previously emitted LIMIT_UP must be retracted so the consumer drops it.
+    second = aggregator.feed(
+        _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80"), revision=1)
+    )
     assert second.upserts == []
     assert [e.event_type for e in second.retractions] == ["LIMIT_UP"]
     assert second.revision == 2
@@ -239,11 +265,11 @@ def test_replay_of_correction_envelopes_reconstructs_canonical() -> None:
     aggregator = LimitPoolAggregator(contexts)
 
     downstream: list[LimitEvent] = []
-    for bar in [
-        _bar("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00")),  # LIMIT_UP
-        _bar("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80")),  # retracts it
+    for obs in [
+        _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision=0),  # LIMIT_UP
+        _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80"), revision=1),  # retracts it
     ]:
-        env = aggregator.feed(bar)
+        env = aggregator.feed(obs)
         for retracted in env.retractions:
             downstream.remove(retracted)
         downstream.extend(env.upserts)
@@ -308,17 +334,19 @@ def test_snapshot_isolates_by_trading_date() -> None:
 
 
 def test_sorting_and_dedup_use_canonical_instant() -> None:
-    # Blocking #7: two bars whose timestamps are the same instant in different
-    # timezone representations must be treated as one (last write wins), and
-    # ordering must use the canonical instant, not the raw string.
+    # Blocking #7: two observations whose event_times are the same instant in
+    # different timezone representations share one identity, so a higher-revision
+    # correction supersedes the earlier one; ordering uses the canonical instant.
     contexts = {"600000.SH": _context("600000.SH")}
     aggregator = LimitPoolAggregator(contexts)
 
-    aggregator.feed(_bar("600000.SH", "2026-08-13T09:32:00.000+08:00", Decimal("11.00")))
+    aggregator.feed(
+        _obs("600000.SH", "2026-08-13T09:32:00.000+08:00", Decimal("11.00"), revision=0)
+    )
     # Same instant (01:32Z) expressed as UTC, corrected value -> not a limit-up.
-    aggregator.feed(_bar("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80")))
+    aggregator.feed(_obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("10.80"), revision=1))
 
-    # Deduped to one bar by canonical instant; the correction wins.
+    # One identity by canonical instant; the higher-revision correction wins.
     assert aggregator.events() == []
 
 
