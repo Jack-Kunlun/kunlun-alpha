@@ -6,7 +6,12 @@ suspension not breaking a streak, broken streaks, and advancement rates.
 
 from __future__ import annotations
 
-from emotion_core.ladder import LADDER_VERSION, compute_board_ladder, consecutive_boards
+from emotion_core.ladder import (
+    LADDER_VERSION,
+    LimitUpRecord,
+    compute_board_ladder,
+    consecutive_boards,
+)
 
 # Trading days: Mon-Fri, skipping the weekend (natural-day continuity is not
 # assumed anywhere).
@@ -105,3 +110,50 @@ def test_ladder_provenance_records_suspension_exclusion_reason() -> None:
     # A carries a suspended-day exclusion window AND is off the ladder; the
     # structured provenance records why it is not counted.
     assert "A" in snapshot.provenance.excluded
+
+
+# --- P2-R01 R3-5: typed, traceable limit-up history ------------------------
+
+
+def _rec(
+    *,
+    source_version: str = "limit_v1",
+    evidence_id: str = "ev-1",
+    available_time: str = "2026-08-14T07:00:00.000Z",
+) -> LimitUpRecord:
+    return LimitUpRecord(
+        is_limit_up=True,
+        source_version=source_version,
+        evidence_id=evidence_id,
+        available_time=available_time,
+    )
+
+
+def test_typed_limit_up_history_counts_boards() -> None:
+    # A LimitUpRecord is accepted in place of a bare bool.
+    history = {"A": {"2026-08-13": _rec(), "2026-08-14": _rec()}}
+    assert consecutive_boards("A", "2026-08-14", TRADING_DAYS, history) == 2
+
+
+def test_ladder_provenance_aggregates_source_versions_and_evidence() -> None:
+    history = {
+        "A": {
+            "2026-08-13": _rec(source_version="limit_v1", evidence_id="ev-a1"),
+            "2026-08-14": _rec(source_version="limit_v2", evidence_id="ev-a2"),
+        },
+    }
+    snapshot = compute_board_ladder("2026-08-14", TRADING_DAYS, history)
+    prov = snapshot.provenance
+    # Traceable back to the exact source versions and evidence that produced it.
+    assert "limit_v1" in prov.source_versions
+    assert "limit_v2" in prov.source_versions
+    assert "ev-a1" in prov.evidence_ids
+    assert "ev-a2" in prov.evidence_ids
+
+
+def test_typed_and_bool_history_are_compatible() -> None:
+    # Bare bool history stays supported (no provenance); typed records add it.
+    history = {"A": {"2026-08-14": True}, "B": {"2026-08-14": _rec()}}
+    snapshot = compute_board_ladder("2026-08-14", TRADING_DAYS, history)
+    assert set(snapshot.boards[1]) == {"A", "B"}
+    assert "ev-1" in snapshot.provenance.evidence_ids

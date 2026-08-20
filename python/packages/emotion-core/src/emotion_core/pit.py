@@ -104,7 +104,13 @@ class PriceObservation:
     evidence_id: str
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "event_time", _require_instant(self.event_time, "event_time"))
+        object.__setattr__(
+            self, "available_time", _require_instant(self.available_time, "available_time")
+        )
         object.__setattr__(self, "value", _reject_binary_float(self.value))
+        if self.event_time > self.available_time:
+            raise ValueError("event_time must be <= available_time")
         if not self.source.strip():
             raise ValueError("source must be non-empty (missing provenance)")
         if not self.source_version.strip():
@@ -115,10 +121,24 @@ class PriceObservation:
     def available_at(self, decision_time: Instant) -> bool:
         """Whether this observation may be used at ``decision_time``.
 
-        Inclusive of an exactly-equal boundary: a value available at the same
-        instant as the decision is usable.
+        Usable only when *both* the event and the availability instants are at
+        or before the decision — a value never leaks from the future, and a
+        future event is never consumed as if already known. The equal-instant
+        boundary is inclusive.
         """
-        return self.available_time <= decision_time
+        decision = _require_instant(decision_time, "decision_time")
+        return self.event_time <= decision and self.available_time <= decision
+
+
+def _require_instant(value: object, name: str) -> Instant:
+    """Runtime-enforce that ``value`` is an :class:`Instant` (fail-closed).
+
+    The check does not rely on the static type annotation: a caller that passes
+    a raw string, a naive datetime or ``None`` is rejected at the boundary.
+    """
+    if not isinstance(value, Instant):
+        raise TypeError(f"{name} must be an Instant")
+    return value
 
 
 def _reject_binary_float(value: object) -> Decimal:

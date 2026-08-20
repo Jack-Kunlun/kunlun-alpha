@@ -1,5 +1,6 @@
 {
   "$comment": "A-share price limit rules by board and ST status — single source of truth for both TS and Python. Main board 10%, ChiNext/STAR 20%, BSE 30%; ST instruments are capped at 5% on every board. Limit-up/down must be derived from these per-day rules, never a fixed percentage.",
+  "version": "limit_rules_v1",
   "rules": [
     { "board": "MAIN", "st": false, "limitRate": 0.1 },
     { "board": "CHINEXT", "st": false, "limitRate": 0.2 },
@@ -9,5 +10,28 @@
     { "board": "CHINEXT", "st": true, "limitRate": 0.05 },
     { "board": "STAR", "st": true, "limitRate": 0.05 },
     { "board": "BSE", "st": true, "limitRate": 0.05 }
-  ]
+  ],
+  "tickAdjustment": {
+    "$comment": "Per-exchange tick size and minimum one-tick adjustment rules. SSE 交易规则 3.3.11 (tick 0.01) / 3.3.17 (差<一个申报价格最小变动单位时，以前收盘价加/减一个最小变动单位为涨/跌幅价格); SZSE 交易规则 3.3.11 (tick 0.01) / 3.3.19 (同上，且价格下限为一个最小变动单位); BSE 交易规则 (tick 0.01, 30% 涨跌幅, 同构最小变动单位取整). Three exchanges all use tick 0.01 and equivalent minimum-one-tick adjustment; SZSE additionally enforces a price floor of one tick. Rules are stated explicitly per exchange, never inferred.",
+    "exchanges": {
+      "SH": {
+        "tickSize": 0.01,
+        "minTickAdjustment": true,
+        "priceFloorTicks": 0,
+        "source": "SSE Trading Rules 3.3.11 / 3.3.17"
+      },
+      "SZ": {
+        "tickSize": 0.01,
+        "minTickAdjustment": true,
+        "priceFloorTicks": 1,
+        "source": "SZSE Trading Rules 3.3.11 / 3.3.19"
+      },
+      "BSE": {
+        "tickSize": 0.01,
+        "minTickAdjustment": true,
+        "priceFloorTicks": 1,
+        "source": "BSE Trading Rules (tick 0.01, 30% band, tick rounding)"
+      }
+    }
+  }
 }

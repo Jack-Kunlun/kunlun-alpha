@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+import pytest
 from emotion_core.models import (
     is_limit_down,
     is_limit_up,
@@ -79,3 +80,44 @@ def test_no_price_makes_no_judgement() -> None:
     # prev_close == 0 (e.g. suspended with no reference price)
     assert is_limit_up(Decimal("0.00"), Decimal("0.00"), "MAIN", False) is False
     assert is_limit_down(Decimal("0.00"), Decimal("0.00"), "MAIN", False) is False
+
+
+# --- P2-R01 R3-2: minimum one-tick adjustment for low-priced securities ---
+#
+# Per SSE Trading Rules 3.3.17 / SZSE Trading Rules 3.3.19: when the rounded
+# limit price would differ from prev_close by less than one tick, the limit-up
+# price is prev_close + one tick and the limit-down price is prev_close - one
+# tick. SZSE additionally enforces a price floor of one tick. All three
+# exchanges use tick 0.01 and equivalent minimum-one-tick adjustment. The tick
+# size and adjustment rule are versioned in limit-rules.json, never hardcoded.
+
+
+def test_low_price_st_limit_up_gets_min_one_tick() -> None:
+    # prev_close 0.09, MAIN ST 5%: 0.09 * 1.05 = 0.0945 -> rounds to 0.09,
+    # which equals prev_close (diff 0.00 < one tick). Must lift to prev + 1 tick.
+    assert limit_up_price(Decimal("0.09"), "MAIN", True, exchange="SH") == Decimal("0.10")
+
+
+def test_low_price_st_limit_down_gets_min_one_tick() -> None:
+    # prev_close 0.09, MAIN ST 5%: 0.09 * 0.95 = 0.0855 -> rounds to 0.09,
+    # which equals prev_close (diff 0.00 < one tick). Must drop to prev - 1 tick.
+    assert limit_down_price(Decimal("0.09"), "MAIN", True, exchange="SH") == Decimal("0.08")
+
+
+def test_low_price_limit_down_not_below_min_legal_price_sz() -> None:
+    # prev_close 0.01 on SZSE: naive limit-down would go to 0.00, but the SZSE
+    # price floor is one tick (0.01). The result must not be below one tick.
+    assert limit_down_price(Decimal("0.01"), "MAIN", True, exchange="SZ") == Decimal("0.01")
+
+
+def test_normal_price_is_unchanged_by_tick_adjustment() -> None:
+    # 10.00 main board: 11.00 / 9.00 — diff is far more than one tick,
+    # so the minimum-one-tick adjustment is a no-op.
+    assert limit_up_price(Decimal("10.00"), "MAIN", False, exchange="SH") == Decimal("11.00")
+    assert limit_down_price(Decimal("10.00"), "MAIN", False, exchange="SH") == Decimal("9.00")
+
+
+def test_unknown_exchange_is_rejected() -> None:
+    # Fail-closed: an exchange with no versioned tick rule must not be guessed.
+    with pytest.raises(ValueError, match="unknown exchange"):
+        limit_up_price(Decimal("10.00"), "MAIN", False, exchange="XX")

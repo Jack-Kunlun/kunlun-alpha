@@ -87,7 +87,7 @@ def inject_instrument_identity_validator(schema_file: Path, generated_file: Path
     content = ensure_pydantic_imports(content, ("model_validator",))
     validator = (
         class_marker
-        + "    @model_validator(mode=\"after\")\n"
+        + '    @model_validator(mode="after")\n'
         + "    def validate_identity_consistency(self) -> Instrument:\n"
         + f"        prefix_rules = {prefix_rules_literal}\n"
         + "        expected_rule = next(\n"
@@ -95,16 +95,16 @@ def inject_instrument_identity_validator(schema_file: Path, generated_file: Path
         + "            None,\n"
         + "        )\n"
         + "        if expected_rule is None:\n"
-        + "            raise ValueError(\"code is not recognized by code prefix rules\")\n"
+        + '            raise ValueError("code is not recognized by code prefix rules")\n'
         + "        _, expected_exchange, expected_board, expected_type = expected_rule\n"
         + "        if expected_exchange != self.exchange.value:\n"
-        + "            raise ValueError(\"exchange must match code prefix rules\")\n"
+        + '            raise ValueError("exchange must match code prefix rules")\n'
         + "        if expected_board != self.board.value:\n"
-        + "            raise ValueError(\"board must match code prefix rules\")\n"
+        + '            raise ValueError("board must match code prefix rules")\n'
         + "        if expected_type != self.type.value:\n"
-        + "            raise ValueError(\"type must match code prefix rules\")\n"
-        + "        if self.unified_code != f\"{self.code}.{self.exchange.value}\":\n"
-        + "            raise ValueError(\"unifiedCode must match code and exchange\")\n"
+        + '            raise ValueError("type must match code prefix rules")\n'
+        + '        if self.unified_code != f"{self.code}.{self.exchange.value}":\n'
+        + '            raise ValueError("unifiedCode must match code and exchange")\n'
         + "        return self\n\n"
     )
     generated_file.write_text(
@@ -130,25 +130,25 @@ def inject_unified_code_identity_validator(schema_file: Path, generated_file: Pa
     prefix_rules_literal = repr(load_code_prefix_rules())
     validator = (
         class_marker
-        + "    @model_validator(mode=\"after\")\n"
+        + '    @model_validator(mode="after")\n'
         + f"    def validate_unified_identity(self) -> {class_name}:\n"
         + f"        prefix_rules = {prefix_rules_literal}\n"
-        + "        exchange = getattr(self.exchange, \"value\", self.exchange)\n"
+        + '        exchange = getattr(self.exchange, "value", self.exchange)\n'
         + "        unified_code = self.unified_code\n"
-        + "        if len(unified_code) != 9 or unified_code[6] != \".\":\n"
-        + "            raise ValueError(\"unifiedCode must use suffix form\")\n"
+        + '        if len(unified_code) != 9 or unified_code[6] != ".":\n'
+        + '            raise ValueError("unifiedCode must use suffix form")\n'
         + "        code = unified_code[:6]\n"
         + "        suffix = unified_code[7:]\n"
         + "        if suffix != exchange:\n"
-        + "            raise ValueError(\"unifiedCode/exchange identity mismatch\")\n"
+        + '            raise ValueError("unifiedCode/exchange identity mismatch")\n'
         + "        expected_rule = next(\n"
         + "            (rule for rule in prefix_rules if code.startswith(rule[0])),\n"
         + "            None,\n"
         + "        )\n"
         + "        if expected_rule is None:\n"
-        + "            raise ValueError(\"code is not recognized by code prefix rules\")\n"
+        + '            raise ValueError("code is not recognized by code prefix rules")\n'
         + "        if expected_rule[1] != exchange:\n"
-        + "            raise ValueError(\"exchange must match code prefix rules\")\n"
+        + '            raise ValueError("exchange must match code prefix rules")\n'
         + "        return self\n\n"
     )
     generated_file.write_text(
@@ -170,8 +170,8 @@ def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
     if relative_schema == "funds/fund-nav.json":
         decimal_fields_by_class = {"FundNav": ("nav", "inav")}
         replacements = {
-            'nav: float = Field(..., ge=0.0)': 'nav: Decimal = Field(..., ge=Decimal("0"))',
-            'inav: float | None = Field(..., ge=0.0)': (
+            "nav: float = Field(..., ge=0.0)": 'nav: Decimal = Field(..., ge=Decimal("0"))',
+            "inav: float | None = Field(..., ge=0.0)": (
                 'inav: Decimal | None = Field(..., ge=Decimal("0"))'
             ),
         }
@@ -182,21 +182,21 @@ def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
         }
         replacements = {
             'management_fee_rate: float = Field(..., alias="managementFeeRate", ge=0.0, le=1.0)': (
-                'management_fee_rate: Decimal = Field(\n'
+                "management_fee_rate: Decimal = Field(\n"
                 '        ..., alias="managementFeeRate", ge=Decimal("0"), le=Decimal("1")\n'
-                '    )'
+                "    )"
             ),
-            'confidence: float = Field(..., ge=0.0, le=1.0)': (
+            "confidence: float = Field(..., ge=0.0, le=1.0)": (
                 'confidence: Decimal = Field(..., ge=Decimal("0"), le=Decimal("1"))'
             ),
-            'rate: float = Field(..., ge=0.0, le=1.0)': (
+            "rate: float = Field(..., ge=0.0, le=1.0)": (
                 'rate: Decimal = Field(..., ge=Decimal("0"), le=Decimal("1"))'
             ),
         }
     elif relative_schema == "market-data/bar.json":
         decimal_fields_by_class = {"Bar": ("open", "high", "low", "close", "amount")}
         replacements = {
-            f'{field}: float = Field(..., ge=0.0)': (
+            f"{field}: float = Field(..., ge=0.0)": (
                 f'{field}: Decimal = Field(..., ge=Decimal("0"))'
             )
             for field in ("open", "high", "low", "close", "amount")
@@ -204,7 +204,7 @@ def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
     elif relative_schema == "market-data/tick.json":
         decimal_fields_by_class = {"Tick": ("price", "amount")}
         replacements = {
-            f'{field}: float = Field(..., ge=0.0)': (
+            f"{field}: float = Field(..., ge=0.0)": (
                 f'{field}: Decimal = Field(..., ge=Decimal("0"))'
             )
             for field in ("price", "amount")
@@ -212,14 +212,12 @@ def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
     elif relative_schema == "market-data/adjustment-factor.json":
         decimal_fields_by_class = {"AdjustmentFactor": ("factor",)}
         replacements = {
-            'factor: float = Field(..., gt=0.0)': 'factor: Decimal = Field(..., gt=Decimal("0"))'
+            "factor: float = Field(..., gt=0.0)": 'factor: Decimal = Field(..., gt=Decimal("0"))'
         }
     elif relative_schema == "emotion/limit-event.json":
         decimal_fields_by_class = {"LimitEvent": ("price",)}
         replacements = {
-            'price: float = Field(..., ge=0.0)': (
-                'price: Decimal = Field(..., ge=Decimal("0"))'
-            )
+            "price: float = Field(..., ge=0.0)": ('price: Decimal = Field(..., ge=Decimal("0"))')
         }
     elif relative_schema == "market-data/corporate-action.json":
         decimal_fields_by_class = {
@@ -234,7 +232,7 @@ def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
                 "per_share_stock: Decimal | None = Field("
                 'None, alias="perShareStock", ge=Decimal("0"))'
             ),
-            'ratio: float | None = Field(None, ge=0.0)': (
+            "ratio: float | None = Field(None, ge=0.0)": (
                 'ratio: Decimal | None = Field(None, ge=Decimal("0"))'
             ),
         }
@@ -263,11 +261,11 @@ def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
         field_arguments = ", ".join(f'"{field}"' for field in fields)
         validator = (
             class_marker
-            + f"    @field_validator({field_arguments}, mode=\"before\")\n"
+            + f'    @field_validator({field_arguments}, mode="before")\n'
             + "    @classmethod\n"
             + "    def reject_binary_float(cls, value: object) -> object:\n"
             + "        if isinstance(value, float):\n"
-            + "            raise TypeError(\"float is not an accepted decimal boundary value\")\n"
+            + '            raise TypeError("float is not an accepted decimal boundary value")\n'
             + "        return value\n\n"
         )
         content = content.replace(class_marker, validator, 1)
@@ -390,6 +388,7 @@ def generate() -> None:
         if gen_file.exists():
             content = gen_file.read_text(encoding="utf-8")
             import re
+
             classes = re.findall(r"^class (\w+)", content, re.MULTILINE)
             if classes:
                 module_imports[module_name] = set(classes)
