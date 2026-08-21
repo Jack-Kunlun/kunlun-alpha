@@ -1,0 +1,10 @@
+[project]
+name = "event-core"
+version = "0.0.0"
+description = "News/event raw content contract and source policy"
+requires-python = "==3.12.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
