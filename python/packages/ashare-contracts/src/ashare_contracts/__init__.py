@@ -11,6 +11,7 @@ from ashare_contracts.calendar_trading_session import Kind as Kind
 from ashare_contracts.calendar_trading_session import TradingSession as TradingSession
 from ashare_contracts.content_raw_content import ContentSource as ContentSource
 from ashare_contracts.content_raw_content import ContentType as ContentType
+from ashare_contracts.content_raw_content import FingerprintVersion as FingerprintVersion
 from ashare_contracts.content_raw_content import LicenseMetadata as LicenseMetadata
 from ashare_contracts.content_raw_content import RawContent as RawContent
 from ashare_contracts.emotion_limit_event import EventType as EventType
@@ -72,6 +73,7 @@ __all__ = [
     "TradingSession",
     "ContentSource",
     "ContentType",
+    "FingerprintVersion",
     "LicenseMetadata",
     "RawContent",
     "EventType",

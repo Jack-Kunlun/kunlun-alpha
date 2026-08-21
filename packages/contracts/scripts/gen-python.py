@@ -15,12 +15,19 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import cast
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMAS_DIR = ROOT / "schemas"
 OUTPUT_DIR = (
     ROOT.parent.parent / "python" / "packages" / "ashare-contracts" / "src" / "ashare_contracts"
 )
+
+# Restricted JSON value types, used to type-narrow json.loads results without
+# reaching for `Any` or suppressing the type checker.
+type JsonScalar = str | int | float | bool | None
+type JsonObject = dict[str, "JsonValue"]
+type JsonValue = JsonScalar | list["JsonValue"] | JsonObject
 
 _IDENTITY_SCHEMAS = {
     "funds/precious-metal-fund.json": "PreciousMetalFund",
@@ -47,18 +54,26 @@ def ensure_pydantic_imports(content: str, symbols: tuple[str, ...]) -> str:
 def load_code_prefix_rules() -> tuple[tuple[str, str, str, str], ...]:
     """Load and normalize the shared code-prefix table for generated models."""
     rules_path = ROOT / "instrument" / "code-prefix-rules.json"
-    data = json.loads(rules_path.read_text(encoding="utf-8"))
+    data = cast(JsonObject, json.loads(rules_path.read_text(encoding="utf-8")))
     rules = data.get("rules")
     if not isinstance(rules, list):
         raise RuntimeError(f"Invalid code-prefix rules in {rules_path}")
     normalized: list[tuple[str, str, str, str]] = []
     for rule in rules:
-        if not isinstance(rule, dict) or any(
-            not isinstance(rule.get(field), str)
-            for field in ("prefix", "exchange", "board", "type")
+        if not isinstance(rule, dict):
+            raise RuntimeError(f"Invalid code-prefix rule in {rules_path}")
+        prefix = rule.get("prefix")
+        exchange = rule.get("exchange")
+        board = rule.get("board")
+        rule_type = rule.get("type")
+        if (
+            not isinstance(prefix, str)
+            or not isinstance(exchange, str)
+            or not isinstance(board, str)
+            or not isinstance(rule_type, str)
         ):
             raise RuntimeError(f"Invalid code-prefix rule in {rules_path}")
-        normalized.append((rule["prefix"], rule["exchange"], rule["board"], rule["type"]))
+        normalized.append((prefix, exchange, board, rule_type))
     return tuple(sorted(normalized, key=lambda item: len(item[0]), reverse=True))
 
 
@@ -272,6 +287,154 @@ def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
     generated_file.write_text(content, encoding="utf-8", newline="\n")
 
 
+def _snake_case(name: str) -> str:
+    """camelCase -> snake_case (matches datamodel-code-generator --snake-case-field)."""
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _collect_strict_bool_fields(schema: JsonObject) -> dict[str, set[str]]:
+    """Map model class name -> strict boolean field names marked ``x-python-strict``.
+
+    The mapping is keyed by the generated Pydantic class (the schema ``title``
+    for the root object, or the definition name), so two models sharing a field
+    name are never confused.
+    """
+    result: dict[str, set[str]] = {}
+
+    def add_model(model_name: str, props: JsonObject) -> None:
+        for name, prop in props.items():
+            if isinstance(prop, dict) and prop.get("x-python-strict") is True:
+                result.setdefault(model_name, set()).add(_snake_case(name))
+
+    props = schema.get("properties")
+    if isinstance(props, dict):
+        title = schema.get("title")
+        if isinstance(title, str):
+            add_model(title, props)
+
+    definitions = schema.get("definitions")
+    if isinstance(definitions, dict):
+        for def_name, def_schema in definitions.items():
+            if isinstance(def_schema, dict):
+                def_props = def_schema.get("properties")
+                if isinstance(def_props, dict):
+                    add_model(def_name, def_props)
+
+    return result
+
+
+def inject_strict_bool(schema_file: Path, generated_file: Path) -> None:
+    """Use ``StrictBool`` for boolean fields marked ``x-python-strict``.
+
+    JSON Schema ``type: boolean`` maps to a permissive Pydantic ``bool`` that
+    coerces ``1``/``0``/``"true"``/``"false"``. For authorization and deletion
+    flags that coercion is unsafe, so the schema opts those fields into strict
+    booleans via a local extension, reproduced here without hand-editing output
+    or making the whole repository strict. The replacement is scoped to the
+    generated class that owns the field, so a same-named boolean in another
+    model is never touched.
+    """
+    schema = json.loads(schema_file.read_text(encoding="utf-8"))
+    strict_by_model = _collect_strict_bool_fields(schema)
+    if not strict_by_model:
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    for model_name, fields in sorted(strict_by_model.items()):
+        class_marker = f"class {model_name}(BaseModel):\n"
+        start = content.find(class_marker)
+        if start == -1:
+            raise RuntimeError(
+                f"Generated output changed; cannot find class {model_name} for StrictBool"
+            )
+        next_class = content.find("\nclass ", start + len(class_marker))
+        end = next_class if next_class != -1 else len(content)
+        block = content[start:end]
+        for field_name in sorted(fields):
+            old = f"    {field_name}: bool\n"
+            new = f"    {field_name}: StrictBool\n"
+            if old not in block:
+                raise RuntimeError(
+                    "Generated output changed; cannot inject StrictBool for "
+                    f"{model_name}.{field_name}"
+                )
+            block = block.replace(old, new, 1)
+        content = content[:start] + block + content[end:]
+    content = ensure_pydantic_imports(content, ("StrictBool",))
+    generated_file.write_text(content, encoding="utf-8", newline="\n")
+
+
+def inject_deleted_condition(schema_file: Path, generated_file: Path) -> None:
+    """Inject the deleted/deletedAt conditional invariant for RawContent.
+
+    Draft-07 ``if``/``then``/``else`` is not translated into a Pydantic
+    cross-field validator by datamodel-code-generator, so the small conditional
+    is injected from the generator (mirroring the identity validators above) to
+    keep the DTO consistent with the Schema conclusion: ``deleted=true``
+    requires a non-null ``deletedAt`` and ``deleted=false`` forbids one.
+
+    The error is raised with an explicit ``deletedAt`` location (rather than the
+    model root) via ``ValidationError.from_exception_data`` so callers can rely
+    on a precise field path.
+    """
+    relative_schema = schema_file.relative_to(SCHEMAS_DIR).as_posix()
+    if relative_schema != "content/raw-content.json":
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    class_marker = "class RawContent(BaseModel):\n"
+    if class_marker not in content:
+        raise RuntimeError(
+            "Generated output changed; cannot inject the deleted/deletedAt validator safely"
+        )
+    content = ensure_pydantic_imports(content, ("model_validator", "ValidationError"))
+    if "from pydantic_core import InitErrorDetails" not in content:
+        content = content.replace(
+            "from pydantic import ",
+            "from pydantic_core import InitErrorDetails\nfrom pydantic import ",
+            1,
+        )
+    validator = (
+        class_marker
+        + '    @model_validator(mode="after")\n'
+        + "    def validate_deleted_condition(self) -> RawContent:\n"
+        + "        if self.deleted and self.deleted_at is None:\n"
+        + "            raise ValidationError.from_exception_data(\n"
+        + '                "RawContent",\n'
+        + "                [\n"
+        + "                    InitErrorDetails(\n"
+        + '                        type="value_error",\n'
+        + '                        loc=("deletedAt",),\n'
+        + "                        input=None,\n"
+        + "                        ctx={\n"
+        + '                            "error": ValueError("deleted content must have deletedAt")\n'
+        + "                        },\n"
+        + "                    )\n"
+        + "                ],\n"
+        + "            )\n"
+        + "        if not self.deleted and self.deleted_at is not None:\n"
+        + "            raise ValidationError.from_exception_data(\n"
+        + '                "RawContent",\n'
+        + "                [\n"
+        + "                    InitErrorDetails(\n"
+        + '                        type="value_error",\n'
+        + '                        loc=("deletedAt",),\n'
+        + "                        input=self.deleted_at,\n"
+        + "                        ctx={\n"
+        + '                            "error": ValueError(\n'
+        + '                                "non-deleted content must not have deletedAt"\n'
+        + "                            )\n"
+        + "                        },\n"
+        + "                    )\n"
+        + "                ],\n"
+        + "            )\n"
+        + "        return self\n\n"
+    )
+    generated_file.write_text(
+        content.replace(class_marker, validator, 1), encoding="utf-8", newline="\n"
+    )
+
+
 def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     """Run datamodel-code-generator on a single schema file.
 
@@ -323,6 +486,8 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     inject_instrument_identity_validator(schema_file, tmp_file)
     inject_unified_code_identity_validator(schema_file, tmp_file)
     inject_decimal_fields(schema_file, tmp_file)
+    inject_strict_bool(schema_file, tmp_file)
+    inject_deleted_condition(schema_file, tmp_file)
     format_result = subprocess.run(
         [sys.executable, "-m", "ruff", "format", "--quiet", str(tmp_file)],
         capture_output=True,
@@ -353,9 +518,9 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def generate() -> None:
+def generate(output_dir: Path = OUTPUT_DIR) -> None:
     """Generate Python types from all JSON Schema files."""
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     header = "# Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND.\n\n"
 
@@ -367,24 +532,24 @@ def generate() -> None:
         print("No schema files found in", SCHEMAS_DIR, file=sys.stderr)
         sys.exit(1)
 
-    generated_files = []
+    generated_files: list[Path] = []
     for schema_file in schema_files:
         rel = schema_file.relative_to(SCHEMAS_DIR)
         parts = list(rel.parts[:-1]) + [rel.stem]
         module_name = "_".join(parts).replace("-", "_")
-        output_file = OUTPUT_DIR / f"{module_name}.py"
+        output_file = output_dir / f"{module_name}.py"
         run_datamodel_codegen(schema_file, output_file)
         generated_files.append(output_file)
         print(f"  {output_file}")
 
     # Write __init__.py that re-exports all generated models
-    init_path = OUTPUT_DIR / "__init__.py"
+    init_path = output_dir / "__init__.py"
     module_imports: dict[str, set[str]] = {}
     for sf in schema_files:
         rel = sf.relative_to(SCHEMAS_DIR)
         parts = list(rel.parts[:-1]) + [rel.stem]
         module_name = "_".join(parts).replace("-", "_")
-        gen_file = OUTPUT_DIR / f"{module_name}.py"
+        gen_file = output_dir / f"{module_name}.py"
         if gen_file.exists():
             content = gen_file.read_text(encoding="utf-8")
             import re
@@ -420,9 +585,9 @@ def generate() -> None:
             all_content += f'    "{export_name}",\n'
         all_content += "]\n"
     init_path.write_text(all_content, encoding="utf-8", newline="\n")
-    (OUTPUT_DIR / "py.typed").write_text("", encoding="utf-8", newline="\n")
+    (output_dir / "py.typed").write_text("", encoding="utf-8", newline="\n")
 
-    print(f"Generated Python types -> {OUTPUT_DIR}")
+    print(f"Generated Python types -> {output_dir}")
 
 
 def check() -> None:
@@ -432,35 +597,29 @@ def check() -> None:
     py.typed), so hand-written subpackages such as providers/ can live
     alongside them without tripping the sync check.
     """
-    global OUTPUT_DIR
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_output = Path(tmpdir) / "ashare_contracts"
-        old_output_dir = OUTPUT_DIR
-        OUTPUT_DIR = tmp_output
-        try:
-            generate()
-        finally:
-            OUTPUT_DIR = old_output_dir
+        generate(tmp_output)
 
-        if not old_output_dir.exists():
-            print("ERROR: Generated Python output directory does not exist:", old_output_dir)
+        if not OUTPUT_DIR.exists():
+            print("ERROR: Generated Python output directory does not exist:", OUTPUT_DIR)
             sys.exit(1)
 
         mismatches: list[str] = []
         for tmp_file in sorted(tmp_output.rglob("*.py")):
             rel = tmp_file.relative_to(tmp_output)
-            real_file = old_output_dir / rel
+            real_file = OUTPUT_DIR / rel
             if not real_file.exists():
                 mismatches.append(f"missing: {rel}")
             elif real_file.read_text(encoding="utf-8") != tmp_file.read_text(encoding="utf-8"):
                 mismatches.append(f"differing: {rel}")
-        if not (old_output_dir / "py.typed").exists():
+        if not (OUTPUT_DIR / "py.typed").exists():
             mismatches.append("missing: py.typed")
 
         generated_names = {f.name for f in tmp_output.glob("*.py")}
-        for real_file in sorted(old_output_dir.glob("*.py")):
+        for real_file in sorted(OUTPUT_DIR.glob("*.py")):
             if real_file.name not in generated_names and real_file.name != "__init__.py":
                 mismatches.append(f"stale: {real_file.name}")
 

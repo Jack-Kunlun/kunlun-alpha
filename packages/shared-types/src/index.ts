@@ -78,13 +78,21 @@ export interface TradingSession {
 }
 
 /**
- * Immutable, versioned raw content record for news, announcements, research, interactive and social content. publishTime and ingestTime are distinct (publication vs Kunlun ingest); the content fingerprint is deterministic and algorithm-versioned; updates and deletions never overwrite history.
+ * Immutable, versioned raw content record for news, announcements, research, interactive and social content. publishTime <= ingestTime <= availableTime (all timezone-aware). recordId identifies the content lineage; versionId identifies the current immutable version; previousVersionId links the direct predecessor. The content fingerprint is a deterministic 64-hex SHA-256 that the domain recomputes (never trusted from the wire). Updates and deletions never overwrite history.
  */
 export interface RawContent {
   /**
    * Content category: NEWS / ANNOUNCEMENT / RESEARCH / INTERACTION / SOCIAL
    */
   contentType: "NEWS" | "ANNOUNCEMENT" | "RESEARCH" | "INTERACTION" | "SOCIAL";
+  /**
+   * Stable identifier of the content lineage; shared by every version
+   */
+  recordId: string;
+  /**
+   * Unique identifier of the current immutable version (64-hex SHA-256)
+   */
+  versionId: string;
   /**
    * Original URL or source locator for the raw content
    */
@@ -98,7 +106,7 @@ export interface RawContent {
    */
   body: string;
   /**
-   * When the content was published (timezone-aware, never later than ingestTime)
+   * When the content was published (timezone-aware)
    */
   publishTime: string;
   /**
@@ -106,26 +114,30 @@ export interface RawContent {
    */
   ingestTime: string;
   /**
-   * Deterministic content fingerprint (see fingerprintAlgorithmVersion)
+   * Earliest time this record may enter research or downstream computation
+   */
+  availableTime: string;
+  /**
+   * Deterministic 64-hex lowercase SHA-256 content fingerprint
    */
   fingerprint: string;
   /**
-   * Algorithm version used to compute the fingerprint
+   * Fingerprint algorithm version
    */
-  fingerprintAlgorithmVersion: string;
+  fingerprintAlgorithmVersion: "sha256-v1";
   source: ContentSource;
   license: LicenseMetadata;
   originalSource?: ContentSource1;
   /**
-   * Fingerprint of the version this record supersedes; absent for the first version
+   * versionId of the direct predecessor; null for the first version
    */
-  previousFingerprint?: string;
+  previousVersionId?: string | null;
   /**
    * Whether this content has been deleted; deletion preserves evidence
    */
   deleted: boolean;
   /**
-   * Deletion time (timezone-aware); required when deleted is true
+   * Deletion time; required when deleted is true, and not before availableTime
    */
   deletedAt?: string | null;
 }
@@ -159,7 +171,7 @@ export interface LicenseMetadata {
    */
   usageRestriction: string;
   /**
-   * Whether use of the content is authorized
+   * Explicit authorization; usable only when true
    */
   authorized: boolean;
 }
