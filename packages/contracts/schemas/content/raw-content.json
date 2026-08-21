@@ -2,12 +2,22 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://kunlun-alpha/schemas/content/raw-content.json",
   "title": "RawContent",
-  "description": "Immutable, versioned raw content record for news, announcements, research, interactive and social content. publishTime and ingestTime are distinct (publication vs Kunlun ingest); the content fingerprint is deterministic and algorithm-versioned; updates and deletions never overwrite history.",
+  "description": "Immutable, versioned raw content record for news, announcements, research, interactive and social content. publishTime <= ingestTime <= availableTime (all timezone-aware). recordId identifies the content lineage; versionId identifies the current immutable version; previousVersionId links the direct predecessor. The content fingerprint is a deterministic 64-hex SHA-256 that the domain recomputes (never trusted from the wire). Updates and deletions never overwrite history.",
   "type": "object",
   "properties": {
     "contentType": {
       "enum": ["NEWS", "ANNOUNCEMENT", "RESEARCH", "INTERACTION", "SOCIAL"],
       "description": "Content category: NEWS / ANNOUNCEMENT / RESEARCH / INTERACTION / SOCIAL"
+    },
+    "recordId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier of the content lineage; shared by every version"
+    },
+    "versionId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Unique identifier of the current immutable version (64-hex SHA-256)"
     },
     "url": {
       "type": "string",
@@ -25,21 +35,26 @@
     "publishTime": {
       "type": "string",
       "format": "date-time",
-      "description": "When the content was published (timezone-aware, never later than ingestTime)"
+      "description": "When the content was published (timezone-aware)"
     },
     "ingestTime": {
       "type": "string",
       "format": "date-time",
       "description": "When Kunlun ingested the content (timezone-aware)"
     },
+    "availableTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Earliest time this record may enter research or downstream computation"
+    },
     "fingerprint": {
       "type": "string",
-      "description": "Deterministic content fingerprint (see fingerprintAlgorithmVersion)"
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Deterministic 64-hex lowercase SHA-256 content fingerprint"
     },
     "fingerprintAlgorithmVersion": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Algorithm version used to compute the fingerprint"
+      "$ref": "#/definitions/FingerprintVersion",
+      "description": "Fingerprint algorithm version"
     },
     "source": {
       "$ref": "#/definitions/ContentSource",
@@ -53,27 +68,53 @@
       "$ref": "#/definitions/ContentSource",
       "description": "Original source for a repost; absent for non-repost content"
     },
-    "previousFingerprint": {
-      "type": "string",
-      "description": "Fingerprint of the version this record supersedes; absent for the first version"
+    "previousVersionId": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "versionId of the direct predecessor; null for the first version"
     },
     "deleted": {
       "type": "boolean",
+      "x-python-strict": true,
       "description": "Whether this content has been deleted; deletion preserves evidence"
     },
     "deletedAt": {
       "type": ["string", "null"],
       "format": "date-time",
-      "description": "Deletion time (timezone-aware); required when deleted is true"
+      "description": "Deletion time; required when deleted is true, and not before availableTime"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "required": ["deleted"],
+        "properties": { "deleted": { "const": true } }
+      },
+      "then": {
+        "required": ["deletedAt"],
+        "properties": { "deletedAt": { "type": "string", "format": "date-time" } }
+      }
+    },
+    {
+      "if": {
+        "required": ["deleted"],
+        "properties": { "deleted": { "const": false } }
+      },
+      "then": {
+        "properties": { "deletedAt": { "type": "null" } }
+      }
+    }
+  ],
   "required": [
     "contentType",
+    "recordId",
+    "versionId",
     "url",
     "title",
     "body",
     "publishTime",
     "ingestTime",
+    "availableTime",
     "fingerprint",
     "fingerprintAlgorithmVersion",
     "source",
@@ -82,6 +123,11 @@
   ],
   "additionalProperties": false,
   "definitions": {
+    "FingerprintVersion": {
+      "type": "string",
+      "enum": ["sha256-v1"],
+      "description": "Fingerprint algorithm version"
+    },
     "ContentSource": {
       "type": "object",
       "description": "Attribution of content to its source (id / version / evidence)",
@@ -107,7 +153,7 @@
     },
     "LicenseMetadata": {
       "type": "object",
-      "description": "License and usage-restriction metadata; empty strings never stand in for 'no restriction'",
+      "description": "License and usage-restriction metadata; authorized must be explicit",
       "properties": {
         "licenseId": {
           "type": "string",
@@ -121,7 +167,8 @@
         },
         "authorized": {
           "type": "boolean",
-          "description": "Whether use of the content is authorized"
+          "x-python-strict": true,
+          "description": "Explicit authorization; usable only when true"
         }
       },
       "required": ["licenseId", "usageRestriction", "authorized"],

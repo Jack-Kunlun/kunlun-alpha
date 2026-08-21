@@ -249,6 +249,12 @@ requires-dist = [
 name = "event-core"
 version = "0.0.0"
 source = { editable = "python/packages/event-core" }
+dependencies = [
+    { name = "ashare-contracts" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "ashare-contracts", editable = "python/packages/ashare-contracts" }]
 
 [[package]]
 name = "genson"

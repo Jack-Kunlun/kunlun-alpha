@@ -3,9 +3,18 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, StrEnum
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    ValidationError,
+    model_validator,
+)
+from pydantic_core import InitErrorDetails
 
 
 class ContentType(Enum):
@@ -14,6 +23,10 @@ class ContentType(Enum):
     research = "RESEARCH"
     interaction = "INTERACTION"
     social = "SOCIAL"
+
+
+class FingerprintVersion(StrEnum):
+    sha256_v1 = "sha256-v1"
 
 
 class ContentSource(BaseModel):
@@ -46,19 +59,55 @@ class LicenseMetadata(BaseModel):
     """
     Usage restriction; a non-restricting license states it explicitly
     """
-    authorized: bool
+    authorized: StrictBool
     """
-    Whether use of the content is authorized
+    Explicit authorization; usable only when true
     """
 
 
 class RawContent(BaseModel):
+    @model_validator(mode="after")
+    def validate_deleted_condition(self) -> RawContent:
+        if self.deleted and self.deleted_at is None:
+            raise ValidationError.from_exception_data(
+                "RawContent",
+                [
+                    InitErrorDetails(
+                        type="value_error",
+                        loc=("deletedAt",),
+                        input=None,
+                        ctx={"error": ValueError("deleted content must have deletedAt")},
+                    )
+                ],
+            )
+        if not self.deleted and self.deleted_at is not None:
+            raise ValidationError.from_exception_data(
+                "RawContent",
+                [
+                    InitErrorDetails(
+                        type="value_error",
+                        loc=("deletedAt",),
+                        input=self.deleted_at,
+                        ctx={"error": ValueError("non-deleted content must not have deletedAt")},
+                    )
+                ],
+            )
+        return self
+
     model_config = ConfigDict(
         extra="forbid",
     )
     content_type: ContentType = Field(..., alias="contentType")
     """
     Content category: NEWS / ANNOUNCEMENT / RESEARCH / INTERACTION / SOCIAL
+    """
+    record_id: str = Field(..., alias="recordId", min_length=1)
+    """
+    Stable identifier of the content lineage; shared by every version
+    """
+    version_id: str = Field(..., alias="versionId", pattern="^[0-9a-f]{64}$")
+    """
+    Unique identifier of the current immutable version (64-hex SHA-256)
     """
     url: str = Field(..., min_length=1)
     """
@@ -74,21 +123,25 @@ class RawContent(BaseModel):
     """
     publish_time: AwareDatetime = Field(..., alias="publishTime")
     """
-    When the content was published (timezone-aware, never later than ingestTime)
+    When the content was published (timezone-aware)
     """
     ingest_time: AwareDatetime = Field(..., alias="ingestTime")
     """
     When Kunlun ingested the content (timezone-aware)
     """
-    fingerprint: str
+    available_time: AwareDatetime = Field(..., alias="availableTime")
     """
-    Deterministic content fingerprint (see fingerprintAlgorithmVersion)
+    Earliest time this record may enter research or downstream computation
     """
-    fingerprint_algorithm_version: str = Field(
-        ..., alias="fingerprintAlgorithmVersion", min_length=1
+    fingerprint: str = Field(..., pattern="^[0-9a-f]{64}$")
+    """
+    Deterministic 64-hex lowercase SHA-256 content fingerprint
+    """
+    fingerprint_algorithm_version: FingerprintVersion = Field(
+        ..., alias="fingerprintAlgorithmVersion"
     )
     """
-    Algorithm version used to compute the fingerprint
+    Fingerprint algorithm version
     """
     source: ContentSource
     """
@@ -102,15 +155,17 @@ class RawContent(BaseModel):
     """
     Original source for a repost; absent for non-repost content
     """
-    previous_fingerprint: str | None = Field(None, alias="previousFingerprint")
+    previous_version_id: str | None = Field(
+        None, alias="previousVersionId", pattern="^[0-9a-f]{64}$"
+    )
     """
-    Fingerprint of the version this record supersedes; absent for the first version
+    versionId of the direct predecessor; null for the first version
     """
-    deleted: bool
+    deleted: StrictBool
     """
     Whether this content has been deleted; deletion preserves evidence
     """
     deleted_at: AwareDatetime | None = Field(None, alias="deletedAt")
     """
-    Deletion time (timezone-aware); required when deleted is true
+    Deletion time; required when deleted is true, and not before availableTime
     """
