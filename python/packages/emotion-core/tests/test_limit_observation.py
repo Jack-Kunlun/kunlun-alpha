@@ -133,6 +133,37 @@ def test_negative_revision_is_rejected() -> None:
         _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision=-1)
 
 
+# --- revision type boundary (blocking #6) ----------------------------------
+
+
+def test_revision_bool_true_is_rejected() -> None:
+    # bool is an int subclass; a True/False must not be accepted as a revision.
+    with pytest.raises(TypeError):
+        _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision=True)  # type: ignore[arg-type]
+
+
+def test_revision_float_is_rejected() -> None:
+    with pytest.raises(TypeError):
+        _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision=1.0)  # type: ignore[arg-type]
+
+
+def test_revision_string_is_rejected() -> None:
+    with pytest.raises(TypeError):
+        _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision="1")  # type: ignore[arg-type]
+
+
+def test_revision_none_is_rejected() -> None:
+    with pytest.raises(TypeError):
+        _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision=None)  # type: ignore[arg-type]
+
+
+def test_revision_zero_and_positive_int_allowed() -> None:
+    zero = _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision=0)
+    two = _obs("600000.SH", "2026-08-13T01:32:00.000Z", Decimal("11.00"), revision=2)
+    assert zero.revision == 0
+    assert two.revision == 2
+
+
 def test_identity_uses_canonical_event_time() -> None:
     # Two representations of the same instant (UTC and +08:00) are one identity;
     # the later revision wins after dedup.

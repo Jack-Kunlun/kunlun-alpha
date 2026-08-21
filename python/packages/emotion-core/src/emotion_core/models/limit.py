@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Literal, cast
 
 BoardId = Literal["MAIN", "CHINEXT", "STAR", "BSE"]
-ExchangeId = Literal["SH", "SZ", "BSE"]
+ExchangeId = Literal["SH", "SZ", "BJ"]
 EventType = Literal["LIMIT_UP", "LIMIT_DOWN", "SEAL", "BREAK_SEAL", "OPEN_COUNT"]
 
 _RULES_PATH = (

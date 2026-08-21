@@ -195,3 +195,38 @@ def test_available_at_requires_event_time_before_decision() -> None:
     assert obs.available_at(Instant.parse("2026-08-14T06:59:59.000Z")) is False
     # Decision at the event instant -> usable.
     assert obs.available_at(Instant.parse("2026-08-14T07:00:00.000Z")) is True
+
+
+# --- Round 4: direct-construction time-zone invariants ----------------------
+
+
+def test_instant_direct_construction_rejects_naive_datetime() -> None:
+    # Constructing Instant(datetime(...naive...)) directly must be rejected the
+    # same way parse() rejects a naive timestamp — the invariant cannot be
+    # bypassed through the dataclass constructor.
+    with pytest.raises(ValueError, match="timezone"):
+        Instant(datetime(2026, 8, 14, 11, 30))  # naive
+
+
+def test_instant_direct_construction_normalizes_non_utc_to_utc() -> None:
+    from datetime import timedelta, timezone
+
+    east8 = timezone(timedelta(hours=8))
+    inst = Instant(datetime(2026, 8, 14, 19, 30, tzinfo=east8))  # 11:30Z
+    assert inst.as_utc() == datetime(2026, 8, 14, 11, 30, tzinfo=UTC)
+    assert inst.as_utc().tzinfo == UTC
+
+
+def test_instant_direct_construction_equals_parse() -> None:
+    from datetime import timedelta, timezone
+
+    east8 = timezone(timedelta(hours=8))
+    direct = Instant(datetime(2026, 8, 14, 19, 30, tzinfo=east8))
+    parsed = Instant.parse("2026-08-14T11:30:00.000Z")
+    assert direct == parsed
+    assert hash(direct) == hash(parsed)
+
+
+def test_instant_rejects_non_datetime_internal_value() -> None:
+    with pytest.raises(TypeError):
+        Instant("2026-08-14T11:30:00.000Z")  # type: ignore[arg-type]
