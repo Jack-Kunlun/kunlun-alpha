@@ -78,6 +78,110 @@ export interface TradingSession {
 }
 
 /**
+ * Immutable, versioned raw content record for news, announcements, research, interactive and social content. publishTime and ingestTime are distinct (publication vs Kunlun ingest); the content fingerprint is deterministic and algorithm-versioned; updates and deletions never overwrite history.
+ */
+export interface RawContent {
+  /**
+   * Content category: NEWS / ANNOUNCEMENT / RESEARCH / INTERACTION / SOCIAL
+   */
+  contentType: "NEWS" | "ANNOUNCEMENT" | "RESEARCH" | "INTERACTION" | "SOCIAL";
+  /**
+   * Original URL or source locator for the raw content
+   */
+  url: string;
+  /**
+   * Original raw title
+   */
+  title: string;
+  /**
+   * Original raw body
+   */
+  body: string;
+  /**
+   * When the content was published (timezone-aware, never later than ingestTime)
+   */
+  publishTime: string;
+  /**
+   * When Kunlun ingested the content (timezone-aware)
+   */
+  ingestTime: string;
+  /**
+   * Deterministic content fingerprint (see fingerprintAlgorithmVersion)
+   */
+  fingerprint: string;
+  /**
+   * Algorithm version used to compute the fingerprint
+   */
+  fingerprintAlgorithmVersion: string;
+  source: ContentSource;
+  license: LicenseMetadata;
+  originalSource?: ContentSource1;
+  /**
+   * Fingerprint of the version this record supersedes; absent for the first version
+   */
+  previousFingerprint?: string;
+  /**
+   * Whether this content has been deleted; deletion preserves evidence
+   */
+  deleted: boolean;
+  /**
+   * Deletion time (timezone-aware); required when deleted is true
+   */
+  deletedAt?: string | null;
+}
+/**
+ * Current source attribution
+ */
+export interface ContentSource {
+  /**
+   * Source provider or platform identifier
+   */
+  sourceId: string;
+  /**
+   * Provider data/API version
+   */
+  sourceVersion: string;
+  /**
+   * Immutable identifier of the raw evidence this content derives from
+   */
+  evidenceId: string;
+}
+/**
+ * License, authorization and usage-restriction metadata
+ */
+export interface LicenseMetadata {
+  /**
+   * License or right-grant identifier
+   */
+  licenseId: string;
+  /**
+   * Usage restriction; a non-restricting license states it explicitly
+   */
+  usageRestriction: string;
+  /**
+   * Whether use of the content is authorized
+   */
+  authorized: boolean;
+}
+/**
+ * Original source for a repost; absent for non-repost content
+ */
+export interface ContentSource1 {
+  /**
+   * Source provider or platform identifier
+   */
+  sourceId: string;
+  /**
+   * Provider data/API version
+   */
+  sourceVersion: string;
+  /**
+   * Immutable identifier of the raw evidence this content derives from
+   */
+  evidenceId: string;
+}
+
+/**
  * A single limit-up/limit-down fact: seal, seal break, or open count
  */
 export interface LimitEvent {

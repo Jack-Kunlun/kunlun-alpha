@@ -9,6 +9,10 @@ from ashare_contracts.calendar_trading_day import TradingDay as TradingDay
 from ashare_contracts.calendar_trading_session import Exchange as Exchange_2
 from ashare_contracts.calendar_trading_session import Kind as Kind
 from ashare_contracts.calendar_trading_session import TradingSession as TradingSession
+from ashare_contracts.content_raw_content import ContentSource as ContentSource
+from ashare_contracts.content_raw_content import ContentType as ContentType
+from ashare_contracts.content_raw_content import LicenseMetadata as LicenseMetadata
+from ashare_contracts.content_raw_content import RawContent as RawContent
 from ashare_contracts.emotion_limit_event import EventType as EventType
 from ashare_contracts.emotion_limit_event import Exchange as Exchange_3
 from ashare_contracts.emotion_limit_event import LimitEvent as LimitEvent
@@ -66,6 +70,10 @@ __all__ = [
     "Exchange_2",
     "Kind",
     "TradingSession",
+    "ContentSource",
+    "ContentType",
+    "LicenseMetadata",
+    "RawContent",
     "EventType",
     "Exchange_3",
     "LimitEvent",

@@ -8,6 +8,7 @@ members = [
     "ashare-contracts",
     "data-worker",
     "emotion-core",
+    "event-core",
     "kunlun-alpha",
     "market-core",
     "rotation-core",
@@ -243,6 +244,11 @@ requires-dist = [
     { name = "ashare-contracts", editable = "python/packages/ashare-contracts" },
     { name = "market-core", editable = "python/packages/market-core" },
 ]
+
+[[package]]
+name = "event-core"
+version = "0.0.0"
+source = { editable = "python/packages/event-core" }
 
 [[package]]
 name = "genson"
