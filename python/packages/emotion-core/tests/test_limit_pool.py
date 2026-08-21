@@ -21,7 +21,7 @@ from emotion_core.pit import Instant
 from market_core.models.validators import Bar, ExchangeId
 
 
-def _bar(
+def _raw_bar(
     code: str,
     timestamp: str,
     close: Decimal,
@@ -45,6 +45,23 @@ def _bar(
     )
 
 
+def _bar(
+    code: str,
+    timestamp: str,
+    close: Decimal,
+    exchange: ExchangeId = "SH",
+    date: str = "2026-08-13",
+) -> LimitBarObservation:
+    return LimitBarObservation(
+        bar=_raw_bar(code, timestamp, close, exchange=exchange, date=date),
+        event_time=Instant.parse(timestamp),
+        available_time=Instant.parse(timestamp),
+        source="test",
+        source_version="v1",
+        evidence_id="ev-1",
+    )
+
+
 def _obs(
     code: str,
     timestamp: str,
@@ -55,7 +72,7 @@ def _obs(
     date: str = "2026-08-13",
 ) -> LimitBarObservation:
     return LimitBarObservation(
-        bar=_bar(code, timestamp, close, exchange=exchange, date=date),
+        bar=_raw_bar(code, timestamp, close, exchange=exchange, date=date),
         event_time=Instant.parse(timestamp),
         available_time=Instant.parse(timestamp),
         revision=revision,

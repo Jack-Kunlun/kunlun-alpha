@@ -41,6 +41,26 @@ class Instant:
 
     _utc: datetime
 
+    def __post_init__(self) -> None:
+        """Enforce the UTC-instant invariant on *every* construction path.
+
+        ``parse`` and ``from_datetime`` funnel through the dataclass
+        constructor, but a caller can also write ``Instant(datetime(...))``
+        directly. That path must not bypass the invariant, so the normalization
+        and the naive-datetime rejection live here: the internal value must be a
+        timezone-aware :class:`datetime`, and it is canonicalized to UTC.
+        """
+
+        def runtime_value(candidate: object) -> object:
+            return candidate
+
+        value = runtime_value(self._utc)
+        if not isinstance(value, datetime):
+            raise TypeError("Instant value must be a datetime")
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("timezone required: naive datetime is rejected")
+        object.__setattr__(self, "_utc", value.astimezone(UTC))
+
     @classmethod
     def parse(cls, value: object) -> Instant:
         """Parse an ISO 8601 string into a canonical UTC instant.

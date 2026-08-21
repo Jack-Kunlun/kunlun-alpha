@@ -9,9 +9,9 @@ P2-R01 (round 3):
 
 * Observations are typed :class:`LimitBarObservation` values carrying the bar,
   its canonical ``event_time`` / ``available_time`` :class:`Instant`, a
-  non-negative ``revision`` and provenance (source / source_version /
-  evidence_id). A bare :class:`Bar` is accepted for backward compatibility and
-  wrapped as ``revision 0`` with ``available_time == event_time``.
+  non-negative ``revision`` and non-empty provenance (source / source_version /
+  evidence_id). Public research flows reject bare :class:`Bar` values because
+  they cannot provide point-in-time or evidence metadata.
 * The observation identity is ``(trading_date, unified_code, canonical
   event_time)``. :func:`canonicalize_observations` applies the revision rules
   (higher revision wins; same revision + same payload is idempotent; same
@@ -63,6 +63,21 @@ def _as_instant(value: object) -> Instant:
     return Instant.parse(value)
 
 
+def _require_revision(value: object) -> int:
+    """Runtime-enforce a non-negative ``int`` revision (fail-closed).
+
+    ``bool`` is an ``int`` subclass, so it is rejected explicitly; ``float``,
+    ``Decimal``, ``str`` and ``None`` are rejected with ``TypeError``; a
+    negative integer is rejected with ``ValueError``. This does not rely on the
+    static annotation — a mistyped revision never silently reorders revisions.
+    """
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError("revision must be a non-negative int (bool is not accepted)")
+    if value < 0:
+        raise ValueError("revision must be a non-negative integer")
+    return value
+
+
 @dataclass(frozen=True)
 class InstrumentContext:
     """Reference data needed to judge a limit-up/down."""
@@ -98,10 +113,15 @@ class LimitBarObservation:
     def __post_init__(self) -> None:
         object.__setattr__(self, "event_time", _as_instant(self.event_time))
         object.__setattr__(self, "available_time", _as_instant(self.available_time))
-        if self.revision < 0:
-            raise ValueError("revision must be a non-negative integer")
+        object.__setattr__(self, "revision", _require_revision(self.revision))
         if self.event_time > self.available_time:
             raise ValueError("event_time must be <= available_time")
+        if not self.source.strip():
+            raise ValueError("source must be non-empty (missing provenance)")
+        if not self.source_version.strip():
+            raise ValueError("source_version must be non-empty (missing provenance)")
+        if not self.evidence_id.strip():
+            raise ValueError("evidence_id must be non-empty (missing evidence)")
 
     @property
     def identity(self) -> tuple[str, str, str]:
@@ -109,26 +129,27 @@ class LimitBarObservation:
         return (self.bar.date, self.bar.unified_code, self.event_time.isoformat())
 
     @property
-    def payload(self) -> Bar:
-        """The payload compared for idempotency / conflict at the same revision."""
-        return self.bar
+    def payload(self) -> tuple[Bar, Instant, Instant, str, str, str]:
+        """The complete semantic payload compared at the same revision."""
+        return (
+            self.bar,
+            self.event_time,
+            self.available_time,
+            self.source,
+            self.source_version,
+            self.evidence_id,
+        )
 
 
-def _as_observation(item: Bar | LimitBarObservation) -> LimitBarObservation:
-    """Wrap a bare :class:`Bar` as a ``revision 0`` observation (compat path)."""
-    if isinstance(item, LimitBarObservation):
-        return item
-    instant = Instant.parse(item.timestamp)
-    return LimitBarObservation(
-        bar=item,
-        event_time=instant,
-        available_time=instant,
-        revision=0,
-    )
+def _require_observation(value: object) -> LimitBarObservation:
+    """Reject unprovenanced values at the public limit-pool boundary."""
+    if not isinstance(value, LimitBarObservation):
+        raise TypeError("LimitBarObservation is required; bare Bar values are not accepted")
+    return value
 
 
 def canonicalize_observations(
-    observations: Sequence[Bar | LimitBarObservation],
+    observations: Sequence[LimitBarObservation],
     *,
     as_of: Instant | None = None,
 ) -> list[LimitBarObservation]:
@@ -149,21 +170,25 @@ def canonicalize_observations(
     The result is sorted by ``(event_time, unified_code)`` so downstream replay
     is deterministic.
     """
-    winners: dict[tuple[str, str, str], LimitBarObservation] = {}
+    candidates: dict[tuple[str, str, str], list[LimitBarObservation]] = {}
     for raw in observations:
-        obs = _as_observation(raw)
+        obs = _require_observation(raw)
         if as_of is not None and obs.available_time > as_of:
             continue  # not yet available at the decision time
-        key = obs.identity
-        current = winners.get(key)
-        if current is None or obs.revision > current.revision:
-            winners[key] = obs
-        elif obs.revision == current.revision and obs.payload != current.payload:
+        candidates.setdefault(obs.identity, []).append(obs)
+
+    winners: list[LimitBarObservation] = []
+    for key, group in candidates.items():
+        winning_revision = max(obs.revision for obs in group)
+        winning = [obs for obs in group if obs.revision == winning_revision]
+        winner = winning[0]
+        if any(obs.payload != winner.payload for obs in winning[1:]):
             raise RevisionConflictError(
-                f"conflicting observations for {key!r} at revision {obs.revision}"
+                f"conflicting observations for {key!r} at revision {winning_revision}"
             )
-        # revision < current.revision, or equal-and-identical: keep current.
-    return sorted(winners.values(), key=lambda o: (o.event_time, o.bar.unified_code))
+        winners.append(winner)
+
+    return sorted(winners, key=lambda o: (o.event_time, o.bar.unified_code, o.bar.date))
 
 
 @dataclass
@@ -193,8 +218,20 @@ def _process_bar(
     code = bar.unified_code
     instant = obs.event_time
     events: list[LimitEvent] = []
-    at_up = is_limit_up(bar.close, context.prev_close, context.board, context.is_st)
-    at_down = is_limit_down(bar.close, context.prev_close, context.board, context.is_st)
+    at_up = is_limit_up(
+        bar.close,
+        context.prev_close,
+        context.board,
+        context.is_st,
+        exchange=bar.exchange,
+    )
+    at_down = is_limit_down(
+        bar.close,
+        context.prev_close,
+        context.board,
+        context.is_st,
+        exchange=bar.exchange,
+    )
 
     if at_up:
         if state.status in ("normal", "limit_down"):
@@ -293,7 +330,7 @@ def _replay(
 
 
 def compute_limit_facts(
-    bars: Sequence[Bar | LimitBarObservation], contexts: dict[str, InstrumentContext]
+    bars: Sequence[LimitBarObservation], contexts: dict[str, InstrumentContext]
 ) -> list[LimitEvent]:
     """Compute limit facts from a (possibly out-of-order) observation sequence.
 
@@ -323,14 +360,20 @@ class LimitPoolAggregator:
         self._last_events: list[LimitEvent] = []
         self._revision = 0
 
-    def feed(self, item: Bar | LimitBarObservation) -> LimitPoolCorrection:
+    def feed(self, item: LimitBarObservation) -> LimitPoolCorrection:
         """Buffer the observation and return the correction envelope since last feed."""
-        self._buffer.append(_as_observation(item))
-        canonical = canonicalize_observations(list(self._buffer))
+        observation = _require_observation(item)
+        candidate_buffer = [*self._buffer, observation]
+        canonical = canonicalize_observations(candidate_buffer)
         new_events = _replay(canonical, self._contexts)
         diverge = _divergence_point(self._last_events, new_events)
         retractions = self._last_events[diverge:]
         upserts = new_events[diverge:]
+
+        # Commit only after canonicalization and replay both succeed. A
+        # conflicting observation or an unknown exchange must not poison the
+        # buffer and prevent a later valid revision from recovering.
+        self._buffer = candidate_buffer
         self._last_events = new_events
         self._revision += 1
         return LimitPoolCorrection(

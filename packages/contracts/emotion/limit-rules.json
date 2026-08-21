@@ -26,7 +26,7 @@
         "priceFloorTicks": 1,
         "source": "SZSE Trading Rules 3.3.11 / 3.3.19"
       },
-      "BSE": {
+      "BJ": {
         "tickSize": 0.01,
         "minTickAdjustment": true,
         "priceFloorTicks": 1,
