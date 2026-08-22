@@ -98,6 +98,8 @@ def test_inject_deleted_condition_adds_validator(
     content = generated.read_text()
     assert "validate_deleted_condition" in content
     assert "deleted content must have deletedAt" in content
+    assert "deletedAt must be >= availableTime" in content
+    assert "self.deleted_at < self.available_time" in content
 
 
 def test_inject_deleted_condition_skips_other_schemas(

@@ -11,7 +11,6 @@ operate on the real camelCase wire payload, never a snake_case Python object.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
 
 import pytest
 from ashare_contracts import ContentType as ContentTypeDTO
@@ -27,6 +26,24 @@ from event_core.content import (
     updated_content,
 )
 from pydantic import ValidationError
+
+# Recursive JSON value types for the wire payload, so nested mutation is
+# type-narrowed with runtime checks instead of `Any` / `type: ignore`.
+type JSONScalar = str | int | float | bool | None
+type JSONValue = JSONScalar | list[JSONValue] | dict[str, JSONValue]
+type JSONObject = dict[str, JSONValue]
+
+
+def _nested_object(data: JSONObject, path: list[str]) -> JSONObject:
+    """Navigate to a nested object, failing loudly if a node is not an object."""
+    node: JSONValue = data
+    for key in path:
+        if not isinstance(node, dict):
+            raise AssertionError(f"expected a JSON object while navigating {path!r}")
+        node = node[key]
+    if not isinstance(node, dict):
+        raise AssertionError(f"expected a JSON object at {path!r}")
+    return node
 
 
 def _domain(
@@ -56,7 +73,7 @@ def _domain(
     )
 
 
-def _wire_data(domain: RawContent | None = None) -> dict[str, Any]:
+def _wire_data(domain: RawContent | None = None) -> JSONObject:
     """The real camelCase wire payload (by_alias + JSON mode)."""
     return to_contract(domain or _domain()).model_dump(by_alias=True, mode="json")
 
@@ -138,28 +155,28 @@ def test_forged_version_id_is_rejected() -> None:
 
 def test_version_id_binds_source() -> None:
     data = _wire_data()
-    data["source"]["sourceId"] = "evil-source"  # type: ignore[index]
+    _nested_object(data, ["source"])["sourceId"] = "evil-source"
     with pytest.raises(ValueError, match="version_id"):
         from_contract(RawContentDTO.model_validate(data))
 
 
 def test_version_id_binds_license_policy() -> None:
     data = _wire_data()
-    data["license"]["licenseId"] = "EVIL-LICENSE"  # type: ignore[index]
+    _nested_object(data, ["license"])["licenseId"] = "EVIL-LICENSE"
     with pytest.raises(ValueError, match="version_id"):
         from_contract(RawContentDTO.model_validate(data))
 
 
 def test_version_id_binds_authorized() -> None:
     data = _wire_data()
-    data["license"]["authorized"] = False  # type: ignore[index]
+    _nested_object(data, ["license"])["authorized"] = False
     with pytest.raises(ValueError, match="version_id"):
         from_contract(RawContentDTO.model_validate(data))
 
 
 def test_version_id_binds_usage_restriction() -> None:
     data = _wire_data()
-    data["license"]["usageRestriction"] = "evil-restriction"  # type: ignore[index]
+    _nested_object(data, ["license"])["usageRestriction"] = "evil-restriction"
     with pytest.raises(ValueError, match="version_id"):
         from_contract(RawContentDTO.model_validate(data))
 
@@ -223,7 +240,7 @@ def test_version_id_binds_deleted_time() -> None:
 
 
 def _assert_validation_error(
-    data: dict[str, Any],
+    data: JSONObject,
     expected_loc: tuple[str | int, ...],
     msg_contains: str | None = None,
 ) -> None:
@@ -238,12 +255,9 @@ def _assert_validation_error(
         assert any(msg_contains in m for m in msgs), f"expected msg containing {msg_contains!r}"
 
 
-def _with(data: dict[str, Any], field_path: list[str], value: object) -> dict[str, Any]:
+def _with(data: JSONObject, field_path: list[str], value: JSONValue) -> JSONObject:
     """Return a copy of ``data`` with one nested field mutated."""
-    node = data
-    for key in field_path[:-1]:
-        node = node[key]  # type: ignore[index]
-    node[field_path[-1]] = value  # type: ignore[index]
+    _nested_object(data, field_path[:-1])[field_path[-1]] = value
     return data
 
 
@@ -260,7 +274,7 @@ def test_authorized_strict_bool_rejects_non_bool() -> None:
 
 def test_authorized_missing_is_rejected() -> None:
     data = _wire_data()
-    del data["license"]["authorized"]  # type: ignore[arg-type]
+    del _nested_object(data, ["license"])["authorized"]
     _assert_validation_error(data, ("license", "authorized"))
 
 
@@ -326,6 +340,39 @@ def test_deleted_false_without_deleted_at_passes() -> None:
     assert RawContentDTO.model_validate(data).deleted is False
 
 
+def _deleted_wire(deleted_at: str) -> JSONObject:
+    """A tombstone wire payload with availableTime fixed at 02:00 UTC."""
+    domain = _domain(available_time=datetime(2026, 8, 21, 2, 0, tzinfo=UTC))
+    tombstone = mark_deleted(domain, deleted_at=datetime(2026, 8, 21, 2, 0, tzinfo=UTC))
+    data = _wire_data(tombstone)
+    data["deletedAt"] = deleted_at
+    return data
+
+
+# --- deletedAt >= availableTime (time-order condition) ----------------------
+
+
+def test_deleted_at_before_available_time_rejected() -> None:
+    data = _deleted_wire("2026-08-21T01:00:00Z")
+    _assert_validation_error(data, ("deletedAt",), msg_contains="availableTime")
+
+
+def test_deleted_at_equal_available_time_passes() -> None:
+    data = _deleted_wire("2026-08-21T02:00:00Z")
+    assert RawContentDTO.model_validate(data).deleted_at is not None
+
+
+def test_deleted_at_after_available_time_passes() -> None:
+    data = _deleted_wire("2026-08-21T03:00:00Z")
+    assert RawContentDTO.model_validate(data).deleted_at is not None
+
+
+def test_deleted_at_equivalent_offset_passes() -> None:
+    # 10:00 +08:00 is the same absolute instant as 02:00 UTC (availableTime).
+    data = _deleted_wire("2026-08-21T10:00:00+08:00")
+    assert RawContentDTO.model_validate(data).deleted_at is not None
+
+
 # --- DTO field constraint with exact loc (I4) -------------------------------
 
 
@@ -370,7 +417,7 @@ def test_invalid_previous_version_id_rejected_by_dto() -> None:
 
 def test_empty_usage_restriction_rejected_by_dto() -> None:
     data = _wire_data()
-    data["license"]["usageRestriction"] = ""  # type: ignore[index]
+    _nested_object(data, ["license"])["usageRestriction"] = ""
     _assert_validation_error(data, ("license", "usageRestriction"))
 
 
