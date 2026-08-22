@@ -1,0 +1,15 @@
+[project]
+name = "intelligence-engine"
+version = "0.0.0"
+description = "Content normalization for the intelligence engine (P3-N02)"
+requires-python = "==3.12.13"
+dependencies = [
+    "event-core",
+]
+
+[tool.uv.sources]
+event-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
