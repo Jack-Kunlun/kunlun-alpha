@@ -57,4 +57,5 @@ extraPaths = [
     "python/packages/event-core/src",
     "services/sample-engine/src",
     "services/data-worker/src",
+    "services/intelligence-engine/src",
 ]
