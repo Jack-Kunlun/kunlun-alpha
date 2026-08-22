@@ -92,6 +92,18 @@ class RawContent(BaseModel):
                     )
                 ],
             )
+        if self.deleted and self.deleted_at is not None and self.deleted_at < self.available_time:
+            raise ValidationError.from_exception_data(
+                "RawContent",
+                [
+                    InitErrorDetails(
+                        type="value_error",
+                        loc=("deletedAt",),
+                        input=self.deleted_at,
+                        ctx={"error": ValueError("deletedAt must be >= availableTime")},
+                    )
+                ],
+            )
         return self
 
     model_config = ConfigDict(

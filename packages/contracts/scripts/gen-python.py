@@ -371,7 +371,8 @@ def inject_deleted_condition(schema_file: Path, generated_file: Path) -> None:
     cross-field validator by datamodel-code-generator, so the small conditional
     is injected from the generator (mirroring the identity validators above) to
     keep the DTO consistent with the Schema conclusion: ``deleted=true``
-    requires a non-null ``deletedAt`` and ``deleted=false`` forbids one.
+    requires a non-null ``deletedAt``, ``deleted=false`` forbids one, and a
+    ``deletedAt`` (when present) must never precede ``availableTime``.
 
     The error is raised with an explicit ``deletedAt`` location (rather than the
     model root) via ``ValidationError.from_exception_data`` so callers can rely
@@ -424,6 +425,24 @@ def inject_deleted_condition(schema_file: Path, generated_file: Path) -> None:
         + '                            "error": ValueError(\n'
         + '                                "non-deleted content must not have deletedAt"\n'
         + "                            )\n"
+        + "                        },\n"
+        + "                    )\n"
+        + "                ],\n"
+        + "            )\n"
+        + "        if (\n"
+        + "            self.deleted\n"
+        + "            and self.deleted_at is not None\n"
+        + "            and self.deleted_at < self.available_time\n"
+        + "        ):\n"
+        + "            raise ValidationError.from_exception_data(\n"
+        + '                "RawContent",\n'
+        + "                [\n"
+        + "                    InitErrorDetails(\n"
+        + '                        type="value_error",\n'
+        + '                        loc=("deletedAt",),\n'
+        + "                        input=self.deleted_at,\n"
+        + "                        ctx={\n"
+        + '                            "error": ValueError("deletedAt must be >= availableTime")\n'
         + "                        },\n"
         + "                    )\n"
         + "                ],\n"
