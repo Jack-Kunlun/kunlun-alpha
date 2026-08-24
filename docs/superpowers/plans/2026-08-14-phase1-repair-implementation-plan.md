@@ -137,8 +137,8 @@
 - Create: `packages/db/src/postgres-driver.ts`
 - Modify: `packages/db/src/migrations.ts`
 - Modify: `packages/db/src/index.ts`
-- Modify: `apps/api/src/migrations/001-initial.ts`
-- Create/Modify: database integration tests under `packages/db` and `apps/api`
+- Modify: `apps/server/src/migrations/001-initial.ts`
+- Create/Modify: database integration tests under `packages/db` and `apps/server`
 - Create: `services/data-worker/src/data_worker/scheduler/postgres_store.py`
 - Modify: `services/data-worker/src/data_worker/scheduler/scheduler.py`
 - Modify: scheduler tests and environment documentation
@@ -201,7 +201,7 @@
 
 **Files:**
 
-- Modify: `apps/api/src/modules/data-quality/*`
+- Modify: `apps/server/src/modules/data-quality/*`
 - Modify: `apps/web/src/features/data-quality/*`
 - Create: web API client/query hook and route/page files
 - Modify: `apps/web/src/App.tsx`
@@ -288,7 +288,7 @@
 
 **Files:**
 
-- Modify: `apps/api/src/modules/emotion/*`
+- Modify: `apps/server/src/modules/emotion/*`
 - Modify/Create: emotion/rotation repository adapters and persistence schemas
 - Modify: `apps/web/src/features/market-regime/*`
 - Create: web page, API client/query hook and route

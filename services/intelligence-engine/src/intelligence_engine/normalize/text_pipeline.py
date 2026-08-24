@@ -447,6 +447,10 @@ def _normalize_pure(
     """
     if type(text) is not str:
         raise TypeError("text must be a str")
+    if type(strip_html) is not bool:
+        raise TypeError("strip_html must be a bool")
+    if type(recover_mojibake) is not bool:
+        raise TypeError("recover_mojibake must be a bool")
     if "\ufffd" in text:
         raise UnrecoverableTextError(
             "text contains U+FFFD (replacement character) and cannot be safely recovered"

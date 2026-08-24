@@ -72,12 +72,7 @@ export function MarketRegimeView({ result }: { result: MarketRegimeResult }) {
   if (result.status === "empty" || result.data === null) {
     return <p className="text-muted-foreground">该交易日暂无可回放数据</p>;
   }
-  return (
-    <MarketRegimeTimeline
-      snapshots={result.data.snapshots}
-      events={result.data.events}
-    />
-  );
+  return <MarketRegimeTimeline snapshots={result.data.snapshots} events={result.data.events} />;
 }
 
 export function MarketRegimePage() {
@@ -117,9 +112,7 @@ export function MarketRegimePage() {
           label="算法版本"
           value={draft.algorithmVersion ?? ""}
           placeholder="emotion_score_v1"
-          onChange={(algorithmVersion) =>
-            setDraft((current) => ({ ...current, algorithmVersion }))
-          }
+          onChange={(algorithmVersion) => setDraft((current) => ({ ...current, algorithmVersion }))}
         />
         <Field
           id="regime-sector"

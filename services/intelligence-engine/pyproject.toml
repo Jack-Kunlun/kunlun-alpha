@@ -1,7 +1,7 @@
 [project]
 name = "intelligence-engine"
 version = "0.0.0"
-description = "Content normalization for the intelligence engine (P3-N02)"
+description = "Content normalization and versioned LLM intelligence services"
 requires-python = "==3.12.13"
 dependencies = [
     "event-core",

@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kunlun-alpha.local/schemas/event/event-feedback.json",
+  "title": "EventFeedback",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "feedbackId",
+    "clientRequestId",
+    "eventId",
+    "modelConfigurationFingerprint",
+    "action",
+    "reasonCode",
+    "reviewerRef",
+    "submissionFingerprint",
+    "createdAt",
+    "availableAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "event-feedback-v1" },
+    "feedbackId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "clientRequestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "eventId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "modelConfigurationFingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "action": { "enum": ["CONFIRM", "REJECT", "CORRECT"] },
+    "reasonCode": {
+      "enum": [
+        "ACCURATE",
+        "WRONG_TYPE",
+        "WRONG_ENTITY",
+        "WRONG_EVIDENCE",
+        "DUPLICATE",
+        "NOT_MARKET_EVENT",
+        "OTHER"
+      ]
+    },
+    "correction": { "$ref": "#/$defs/correction" },
+    "comment": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "reviewerRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "submissionFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "availableAt": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "const": "CORRECT" } } },
+      "then": { "required": ["correction"] },
+      "else": { "not": { "required": ["correction"] } }
+    }
+  ],
+  "$defs": {
+    "correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "eventType": {
+          "enum": [
+            "CORPORATE",
+            "EARNINGS",
+            "FINANCING",
+            "REGULATORY",
+            "POLICY",
+            "MACRO",
+            "INDUSTRY",
+            "MARKET",
+            "RISK",
+            "OTHER"
+          ]
+        },
+        "headline": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 5000 },
+        "instrumentIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" }
+        },
+        "sectorIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+        },
+        "evidenceIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    }
+  }
+}

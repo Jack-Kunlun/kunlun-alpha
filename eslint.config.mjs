@@ -26,7 +26,7 @@ export default tseslint.config(
       "**/*.js.map",
       "**/*.d.ts.map",
       // NestJS emits .js next to sources during local builds.
-      "apps/api/src/**/*.js",
+      "apps/server/src/**/*.js",
       // Generated schema outputs.
       "packages/contracts/generated/**",
       // Runtime data / vendored code (kept out of git via .gitignore).

@@ -28,8 +28,10 @@ from event_core.dedup import (
 )
 from event_core.dedup.evaluation import (
     EVALUATION_SET_VERSION,
+    EvaluationCase,
     evaluation_set_fingerprint,
 )
+from event_core.dedup.similarity import jaccard_bps
 
 _BASE = datetime(2026, 8, 21, 1, 0, tzinfo=UTC)
 
@@ -106,6 +108,27 @@ def test_precision_recall_computed_correctly() -> None:
         assert result.recall_bps == 0
     else:
         assert result.recall_bps == round(10000 * tp / (tp + fn))
+
+
+def test_half_basis_point_rounds_up_without_floating_point() -> None:
+    left_shingles = frozenset({"shared"})
+    right_shingles = frozenset({"shared"} | {f"other-{index}" for index in range(31)})
+    assert jaccard_bps(left_shingles, right_shingles) == 313
+
+    left, right = _pair(_TITLE_A, _BODY_A, _TITLE_A, _BODY_A)
+    cases = tuple(
+        EvaluationCase(
+            case_id=f"half-up-{index}",
+            left=left,
+            right=right,
+            expected_duplicate=index == 0,
+        )
+        for index in range(32)
+    )
+    result = evaluate_labeled_set(cases, policy=DedupPolicy())
+    assert result.true_positives == 1
+    assert result.false_positives == 31
+    assert result.precision_bps == 313
 
 
 def test_zero_denominator_is_explicit() -> None:

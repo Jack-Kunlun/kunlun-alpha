@@ -349,6 +349,8 @@ def compute_mention_id(
     """
     if not content_id:
         raise ValueError("content_id must be non-empty")
+    if type(policy) is not ExtractionPolicy:
+        raise TypeError("policy must be a validated ExtractionPolicy")
     if type(start_offset) is not int or type(end_offset) is not int:
         raise TypeError("span offsets must be int")
     if start_offset < 0 or end_offset < start_offset:

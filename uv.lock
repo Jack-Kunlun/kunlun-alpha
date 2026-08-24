@@ -9,6 +9,7 @@ members = [
     "data-worker",
     "emotion-core",
     "event-core",
+    "hotspot-core",
     "intelligence-engine",
     "kunlun-alpha",
     "market-core",
@@ -277,6 +278,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/72/73/74bcab964c9a7a61f
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9a/51/186c02b8549b69ccda44429cf6ff5081e4b61a602ddfe6a8020d1be31d1b/googleapis_common_protos-1.75.1-py3-none-any.whl", hash = "sha256:28a1934bcd33b9c9da66ac301a0a4227e3367f095a17d0375cb98f0a09d93b79", size = 300626, upload-time = "2026-08-06T06:23:46.696Z" },
 ]
+
+[[package]]
+name = "hotspot-core"
+version = "0.0.0"
+source = { editable = "python/packages/hotspot-core" }
+dependencies = [
+    { name = "event-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "event-core", editable = "python/packages/event-core" }]
 
 [[package]]
 name = "idna"

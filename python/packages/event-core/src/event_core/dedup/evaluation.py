@@ -22,11 +22,11 @@ from datetime import UTC, datetime
 
 from event_core.dedup.engine import decide_pair
 from event_core.dedup.models import (
-    BASIS_POINTS_SCALE,
     DedupInput,
     DedupPolicy,
     Eligibility,
 )
+from event_core.dedup.similarity import quantize_ratio_bps
 
 # Independent identity for the labeled evaluation set. It is versioned so that
 # any change to the cases (inputs, labels, ordering, field boundaries) yields a
@@ -392,8 +392,8 @@ def evaluate_labeled_set(
             fp += 1
         else:
             tn += 1
-    precision_bps = round(BASIS_POINTS_SCALE * tp / (tp + fp)) if (tp + fp) else 0
-    recall_bps = round(BASIS_POINTS_SCALE * tp / (tp + fn)) if (tp + fn) else 0
+    precision_bps = quantize_ratio_bps(tp, tp + fp) if (tp + fp) else 0
+    recall_bps = quantize_ratio_bps(tp, tp + fn) if (tp + fn) else 0
     return EvaluationResult(
         true_positives=tp,
         false_positives=fp,

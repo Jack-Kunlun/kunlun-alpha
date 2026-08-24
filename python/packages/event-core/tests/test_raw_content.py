@@ -279,6 +279,18 @@ def test_delete_creates_tombstone_preserving_audit() -> None:
     assert original.deleted is False  # original untouched
 
 
+def test_delete_tombstone_is_not_available_before_deletion() -> None:
+    original = _content(available_time=datetime(2026, 8, 21, 1, 5, tzinfo=UTC))
+    deleted_at = datetime(2026, 8, 21, 4, 0, tzinfo=UTC)
+
+    tombstone = mark_deleted(original, deleted_at=deleted_at)
+
+    assert tombstone.ingest_time == deleted_at
+    assert tombstone.available_time == deleted_at
+    assert not tombstone.available_at(datetime(2026, 8, 21, 3, 59, tzinfo=UTC))
+    assert tombstone.available_at(deleted_at)
+
+
 def test_delete_tombstone_is_not_self_referencing() -> None:
     original = _content()
     tombstone = mark_deleted(original, deleted_at=datetime(2026, 8, 21, 4, 0, tzinfo=UTC))

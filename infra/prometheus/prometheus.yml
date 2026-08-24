@@ -18,14 +18,14 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  - job_name: "kunlun-api"
+  - job_name: "kunlun-server"
     metrics_path: /api/v1/metrics
     static_configs:
       - targets: ["host.docker.internal:3002"]
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
-        replacement: "kunlun-api"
+        replacement: "kunlun-server"
 
   - job_name: "kunlun-python"
     metrics_path: /metrics

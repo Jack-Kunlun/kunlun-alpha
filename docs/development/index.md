@@ -7,6 +7,7 @@
 - [相关文档](#相关文档)
 
 更详细的参考见 [端口与环境变量](reference.md) 和 [故障排查](troubleshooting.md)。
+完整容器部署见 [Phase 0–3 本地 Docker 部署](docker-local.md)。
 
 ## 环境要求
 
@@ -85,6 +86,7 @@ pnpm check
 - [端口与环境变量](reference.md) — 端口清单、环境变量、常用命令、数据重置
 - [故障排查](troubleshooting.md) — 常见问题与解决方案
 - [情绪与轮动持久化回放](emotion-rotation-replay.md) — ClickHouse、API 与 Web 回放入口
+- [Phase 0–3 本地 Docker 部署](docker-local.md) — 基础设施、应用、迁移与数据保留策略
 - [AGENTS.md](../../AGENTS.md) — 仓库级 Agent 协作规范（按节点推进）
 - [架构决策记录](../../docs/adr/) — 关键架构决策
 - 完整实施手册：`../../outputs/昆仑智策项目总体规划与分阶段实施手册.docx`

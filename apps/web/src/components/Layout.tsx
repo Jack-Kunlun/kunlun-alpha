@@ -5,6 +5,7 @@ const navigation = [
   { to: "/", label: "首页" },
   { to: "/data-quality", label: "数据质量" },
   { to: "/market-regime", label: "情绪与轮动" },
+  { to: "/event-workbench", label: "事件观势" },
 ];
 
 export function Layout() {

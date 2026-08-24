@@ -24,6 +24,37 @@ from ashare_contracts.emotion_market_emotion_snapshot import (
     MarketEmotionSnapshot as MarketEmotionSnapshot,
 )
 from ashare_contracts.emotion_market_emotion_snapshot import SourceVersion as SourceVersion
+from ashare_contracts.event_event_feedback import Action as Action
+from ashare_contracts.event_event_feedback import Correction as Correction
+from ashare_contracts.event_event_feedback import EventFeedback as EventFeedback
+from ashare_contracts.event_event_feedback import EventType as EventType_1
+from ashare_contracts.event_event_feedback import EvidenceId as EvidenceId_1
+from ashare_contracts.event_event_feedback import InstrumentId as InstrumentId
+from ashare_contracts.event_event_feedback import ReasonCode as ReasonCode
+from ashare_contracts.event_event_feedback import SectorId as SectorId
+from ashare_contracts.event_event_feedback_submission import Action as Action_1
+from ashare_contracts.event_event_feedback_submission import Correction as Correction_1
+from ashare_contracts.event_event_feedback_submission import (
+    EventFeedbackSubmission as EventFeedbackSubmission,
+)
+from ashare_contracts.event_event_feedback_submission import EventType as EventType_2
+from ashare_contracts.event_event_feedback_submission import EvidenceId as EvidenceId_2
+from ashare_contracts.event_event_feedback_submission import InstrumentId as InstrumentId_1
+from ashare_contracts.event_event_feedback_submission import ReasonCode as ReasonCode_1
+from ashare_contracts.event_event_feedback_submission import SectorId as SectorId_1
+from ashare_contracts.event_hot_topic_snapshot import Components as Components
+from ashare_contracts.event_hot_topic_snapshot import EventId as EventId
+from ashare_contracts.event_hot_topic_snapshot import HotTopicSnapshot as HotTopicSnapshot
+from ashare_contracts.event_hot_topic_snapshot import Lifecycle as Lifecycle
+from ashare_contracts.event_market_event import EvidenceReference as EvidenceReference
+from ashare_contracts.event_market_event import InstrumentId as InstrumentId_2
+from ashare_contracts.event_market_event import MarketEvent as MarketEvent
+from ashare_contracts.event_market_event import MarketEventType as MarketEventType
+from ashare_contracts.event_market_event import ModelProvenance as ModelProvenance
+from ashare_contracts.event_market_event import OutputSchemaVersion as OutputSchemaVersion
+from ashare_contracts.event_market_event import ProducerType as ProducerType
+from ashare_contracts.event_market_event import SchemaVersion as SchemaVersion
+from ashare_contracts.event_market_event import SectorId as SectorId_2
 from ashare_contracts.funds_fund_nav import FundNav as FundNav
 from ashare_contracts.funds_precious_metal_fund import AssetType as AssetType
 from ashare_contracts.funds_precious_metal_fund import Exchange as Exchange_4
@@ -67,8 +98,8 @@ from ashare_contracts.sector_sector import Alias as Alias
 from ashare_contracts.sector_sector import Kind as Kind_1
 from ashare_contracts.sector_sector import Sector as Sector
 from ashare_contracts.sector_sector_membership import SectorMembership as SectorMembership
-from ashare_contracts.sector_sector_rotation_event import EventType as EventType_1
-from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_1
+from ashare_contracts.sector_sector_rotation_event import EventType as EventType_3
+from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_3
 from ashare_contracts.sector_sector_rotation_event import SectorRotationEvent as SectorRotationEvent
 from ashare_contracts.sector_sector_rotation_event import SourceVersion as SourceVersion_1
 
@@ -95,6 +126,35 @@ __all__ = [
     "LadderItem",
     "MarketEmotionSnapshot",
     "SourceVersion",
+    "Action",
+    "Correction",
+    "EventFeedback",
+    "EventType_1",
+    "EvidenceId_1",
+    "InstrumentId",
+    "ReasonCode",
+    "SectorId",
+    "Action_1",
+    "Correction_1",
+    "EventFeedbackSubmission",
+    "EventType_2",
+    "EvidenceId_2",
+    "InstrumentId_1",
+    "ReasonCode_1",
+    "SectorId_1",
+    "Components",
+    "EventId",
+    "HotTopicSnapshot",
+    "Lifecycle",
+    "EvidenceReference",
+    "InstrumentId_2",
+    "MarketEvent",
+    "MarketEventType",
+    "ModelProvenance",
+    "OutputSchemaVersion",
+    "ProducerType",
+    "SchemaVersion",
+    "SectorId_2",
     "FundNav",
     "AssetType",
     "Exchange_4",
@@ -138,8 +198,8 @@ __all__ = [
     "Kind_1",
     "Sector",
     "SectorMembership",
-    "EventType_1",
-    "EvidenceId_1",
+    "EventType_3",
+    "EvidenceId_3",
     "SectorRotationEvent",
     "SourceVersion_1",
 ]

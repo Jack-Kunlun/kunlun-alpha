@@ -334,10 +334,16 @@ def mark_deleted(old: RawContent, *, deleted_at: datetime) -> RawContent:
 
     The tombstone keeps the source, license, fingerprint, url and repost
     provenance, points ``previous_version_id`` at the deleted version, and adds
-    ``deleted=True`` with the deletion time. Nothing is physically erased.
+    ``deleted=True`` with the deletion time. The deletion is a new fact, so the
+    tombstone's ingest and availability timestamps start at ``deleted_at``
+    rather than inheriting the predecessor's timestamps. Nothing is physically
+    erased.
     """
     if old.deleted:
         raise ValueError("record is already deleted")
+    deletion_time = _require_aware_datetime(deleted_at, "deleted_at").astimezone(UTC)
+    if deletion_time < old.available_time:
+        raise ValueError("deleted_at must be >= previous available_time")
     return RawContent(
         content_type=old.content_type,
         source=old.source,
@@ -345,12 +351,12 @@ def mark_deleted(old: RawContent, *, deleted_at: datetime) -> RawContent:
         title=old.title,
         body=old.body,
         publish_time=old.publish_time,
-        ingest_time=old.ingest_time,
-        available_time=old.available_time,
+        ingest_time=deletion_time,
+        available_time=deletion_time,
         license=old.license,
         record_id=old.record_id,
         original_source=old.original_source,
         previous_version_id=old.version_id,
         deleted=True,
-        deleted_at=deleted_at,
+        deleted_at=deletion_time,
     )

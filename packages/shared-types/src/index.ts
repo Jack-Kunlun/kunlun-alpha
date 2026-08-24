@@ -292,6 +292,185 @@ export interface MarketEmotionSnapshot {
   evidenceIds: string[];
 }
 
+export interface EventFeedbackSubmission {
+  schemaVersion: "event-feedback-submission-v1";
+  clientRequestId: string;
+  eventId: string;
+  modelConfigurationFingerprint: string;
+  action: "CONFIRM" | "REJECT" | "CORRECT";
+  reasonCode:
+    | "ACCURATE"
+    | "WRONG_TYPE"
+    | "WRONG_ENTITY"
+    | "WRONG_EVIDENCE"
+    | "DUPLICATE"
+    | "NOT_MARKET_EVENT"
+    | "OTHER";
+  correction?: Correction;
+  comment?: string;
+}
+export interface Correction {
+  eventType?:
+    | "CORPORATE"
+    | "EARNINGS"
+    | "FINANCING"
+    | "REGULATORY"
+    | "POLICY"
+    | "MACRO"
+    | "INDUSTRY"
+    | "MARKET"
+    | "RISK"
+    | "OTHER";
+  headline?: string;
+  summary?: string;
+  instrumentIds?: string[];
+  sectorIds?: string[];
+  evidenceIds?: string[];
+}
+
+export interface EventFeedback {
+  schemaVersion: "event-feedback-v1";
+  feedbackId: string;
+  clientRequestId: string;
+  eventId: string;
+  modelConfigurationFingerprint: string;
+  action: "CONFIRM" | "REJECT" | "CORRECT";
+  reasonCode:
+    | "ACCURATE"
+    | "WRONG_TYPE"
+    | "WRONG_ENTITY"
+    | "WRONG_EVIDENCE"
+    | "DUPLICATE"
+    | "NOT_MARKET_EVENT"
+    | "OTHER";
+  correction?: Correction;
+  comment?: string;
+  reviewerRef: string;
+  submissionFingerprint: string;
+  createdAt: string;
+  availableAt: string;
+}
+export interface Correction {
+  eventType?:
+    | "CORPORATE"
+    | "EARNINGS"
+    | "FINANCING"
+    | "REGULATORY"
+    | "POLICY"
+    | "MACRO"
+    | "INDUSTRY"
+    | "MARKET"
+    | "RISK"
+    | "OTHER";
+  headline?: string;
+  summary?: string;
+  instrumentIds?: string[];
+  sectorIds?: string[];
+  evidenceIds?: string[];
+}
+
+export interface HotTopicSnapshot {
+  schemaVersion: "hot-topic-snapshot-v1";
+  snapshotId: string;
+  topicId: string;
+  topicName: string;
+  lifecycle: "EMERGING" | "RISING" | "HOT" | "COOLING" | "DORMANT";
+  decisionTime: string;
+  windowStart: string;
+  windowEnd: string;
+  scoreBps: number;
+  confidenceBps: number;
+  components: {
+    evidenceQualityBps: number;
+    recencyBps: number;
+    sourceDiversityBps: number;
+    breadthBps: number;
+    momentumBps: number;
+  };
+  eventCount: number;
+  recentEventCount: number;
+  staleEventCount: number;
+  sourceCount: number;
+  instrumentCount: number;
+  sectorCount: number;
+  eventIds: string[];
+  policyFingerprint: string;
+  previousSnapshotId?: string | null;
+  algorithmVersion: "hot-score-v1";
+}
+
+export type MarketEventType =
+  | "CORPORATE"
+  | "EARNINGS"
+  | "FINANCING"
+  | "REGULATORY"
+  | "POLICY"
+  | "MACRO"
+  | "INDUSTRY"
+  | "MARKET"
+  | "RISK"
+  | "OTHER";
+export type ProducerType = "MODEL" | "RULE";
+
+/**
+ * Immutable, versioned market event with point-in-time evidence and model provenance
+ */
+export interface MarketEvent {
+  /**
+   * Persistent MarketEvent contract version
+   */
+  schemaVersion: "market-event-v1";
+  /**
+   * Domain-derived SHA-256 identity over every immutable event fact
+   */
+  eventId: string;
+  eventType: MarketEventType;
+  headline: string;
+  summary: string;
+  /**
+   * Business occurrence time; it may be in the future for announced plans
+   */
+  occurTime: string;
+  publishTime: string;
+  /**
+   * Earliest instant the validated event may enter downstream computation
+   */
+  availableTime: string;
+  instrumentIds: string[];
+  sectorIds: string[];
+  /**
+   * @minItems 1
+   */
+  evidence: [EvidenceReference, ...EvidenceReference[]];
+  modelProvenance: ModelProvenance;
+  /**
+   * Integer basis-point confidence; never a binary float
+   */
+  confidenceBps: number;
+}
+export interface EvidenceReference {
+  evidenceId: string;
+  contentRecordId: string;
+  contentVersionId: string;
+  sourceId: string;
+  sourceVersion: string;
+  availableTime: string;
+  startOffset: number;
+  endOffset: number;
+  excerpt: string;
+}
+export interface ModelProvenance {
+  producerType: ProducerType;
+  provider: string;
+  modelId: string;
+  modelVersion: string;
+  promptVersion: string;
+  outputSchemaVersion: "market-event-v1";
+  configurationFingerprint: string;
+  extractionRunId: string;
+  processingTime: string;
+}
+
 /**
  * Point-in-time fund NAV/iNAV reference observation; values are not executable prices
  */

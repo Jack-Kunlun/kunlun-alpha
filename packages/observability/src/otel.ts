@@ -5,7 +5,7 @@
  * without them. Install @opentelemetry/* packages and import these
  * modules at service startup to enable tracing/metrics.
  *
- * Node.js (apps/api):
+ * Node.js (apps/server):
  *   import "@kunlun/observability/otel-node";
  *
  * Python (services/):

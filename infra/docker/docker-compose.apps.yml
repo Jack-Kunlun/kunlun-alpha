@@ -1,0 +1,192 @@
+# Phase 0-3 local application overlay.
+# Combine this file with docker-compose.yml; it never removes named or bind volumes.
+
+services:
+  clickhouse-migrate:
+    image: clickhouse/clickhouse-server:25.8.24.21-alpine
+    container_name: kunlun-clickhouse-migrate
+    restart: "no"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-kunlun}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-kunlun-local-dev}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-kunlun}
+    volumes:
+      - ../clickhouse/migrations:/migrations:ro
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        for file in /migrations/*.sql; do
+          echo "Applying $${file}"
+          clickhouse-client \
+            --host clickhouse \
+            --user "$${CLICKHOUSE_USER}" \
+            --password "$${CLICKHOUSE_PASSWORD}" \
+            --database "$${CLICKHOUSE_DB}" \
+            --multiquery < "$${file}"
+        done
+    labels:
+      - "kunlun.service=clickhouse-migrate"
+      - "kunlun.description=Idempotent ClickHouse schema migration"
+
+  server-migrate:
+    image: kunlun-server:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: server
+    container_name: kunlun-server-migrate
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KUNLUN_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+    command: ["node", "apps/server/dist/migrate.js"]
+    labels:
+      - "kunlun.service=server-migrate"
+      - "kunlun.description=Idempotent PostgreSQL schema migration"
+
+  data-worker-migrate:
+    image: kunlun-data-worker-migrate:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: data-worker-migrate
+    container_name: kunlun-data-worker-migrate
+    restart: "no"
+    depends_on:
+      server-migrate:
+        condition: service_completed_successfully
+    environment:
+      KUNLUN_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+    command:
+      - python
+      - -c
+      - |
+        import os
+        import psycopg
+        from data_worker.storage.migrations import apply_precious_metals_migration
+
+        with psycopg.connect(os.environ["KUNLUN_POSTGRES_DSN"]) as connection:
+            apply_precious_metals_migration(connection)
+        print("Data-worker PostgreSQL migration verified")
+    labels:
+      - "kunlun.service=data-worker-migrate"
+      - "kunlun.description=Verified Phase 1 fund schema migration"
+
+  server:
+    image: kunlun-server:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: server
+    container_name: kunlun-server
+    restart: unless-stopped
+    init: true
+    depends_on:
+      server-migrate:
+        condition: service_completed_successfully
+      data-worker-migrate:
+        condition: service_completed_successfully
+      clickhouse-migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATA_QUALITY_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+      EVENT_FEEDBACK_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+      EVENT_INTELLIGENCE_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+      EMOTION_CLICKHOUSE_URL: http://clickhouse:8123
+      EMOTION_CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-kunlun}
+      EMOTION_CLICKHOUSE_USER: ${CLICKHOUSE_USER:-kunlun}
+      EMOTION_CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-kunlun-local-dev}
+    ports:
+      - "${SERVER_PORT:-3002}:3002"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3002/api/v1/health').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1));",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    labels:
+      - "kunlun.service=server"
+      - "kunlun.description=NestJS control plane"
+
+  web:
+    image: kunlun-web:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: web
+    container_name: kunlun-web
+    restart: unless-stopped
+    init: true
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      KUNLUN_SERVER_PROXY_TARGET: http://server:3002
+    ports:
+      - "${WEB_PORT:-5173}:4173"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4173/event-workbench').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1));",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    labels:
+      - "kunlun.service=web"
+      - "kunlun.description=React decision terminal"
+
+  sample-engine:
+    image: kunlun-sample-engine:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: sample-engine
+    container_name: kunlun-sample-engine
+    restart: unless-stopped
+    init: true
+    environment:
+      KUNLUN_SERVICE_NAME: kunlun-sample-engine
+      KUNLUN_LOG_LEVEL: INFO
+      KUNLUN_HOST: 0.0.0.0
+      KUNLUN_PORT: 8080
+      KUNLUN_SHUTDOWN_TIMEOUT_SECONDS: 10.0
+    ports:
+      - "${SAMPLE_ENGINE_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    labels:
+      - "kunlun.service=sample-engine"
+      - "kunlun.description=Python service lifecycle reference"

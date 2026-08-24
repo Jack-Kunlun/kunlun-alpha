@@ -19,6 +19,20 @@
     "sourceVersions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
     "evidenceIds": { "type": "array", "items": { "type": "string", "minLength": 1 } }
   },
-  "required": ["eventId", "date", "eventType", "fromSector", "toSector", "timestamp", "confidence", "evidenceStart", "evidenceEnd", "sampleSize", "algorithmVersion", "sourceVersions", "evidenceIds"],
+  "required": [
+    "eventId",
+    "date",
+    "eventType",
+    "fromSector",
+    "toSector",
+    "timestamp",
+    "confidence",
+    "evidenceStart",
+    "evidenceEnd",
+    "sampleSize",
+    "algorithmVersion",
+    "sourceVersions",
+    "evidenceIds"
+  ],
   "additionalProperties": false
 }

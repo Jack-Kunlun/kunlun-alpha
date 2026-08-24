@@ -249,6 +249,13 @@ def test_non_string_input_rejected() -> None:
         normalize_text(cast(str, b"bytes not allowed"))
 
 
+def test_non_boolean_pipeline_flags_are_rejected() -> None:
+    with pytest.raises(TypeError, match="strip_html"):
+        normalize_text("<b>x</b>", strip_html=cast(bool, "false"))
+    with pytest.raises(TypeError, match="recover_mojibake"):
+        normalize_text("text", recover_mojibake=cast(bool, "false"))
+
+
 # --- P3-N02 fix: BOM + mojibake cross-stage offset fidelity (Critical #1) ---
 
 

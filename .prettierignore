@@ -12,7 +12,7 @@ coverage
 tmp
 uv.lock
 pnpm-lock.yaml
-apps/api/src/**/*.js
+apps/server/src/**/*.js
 *.d.ts
 *.map
 *.tsbuildinfo

@@ -27,6 +27,17 @@
     "sourceVersions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
     "evidenceIds": { "type": "array", "items": { "type": "string", "minLength": 1 } }
   },
-  "required": ["date", "timestamp", "score", "algorithmVersion", "ladder", "freshnessSeconds", "sampleSize", "confidence", "sourceVersions", "evidenceIds"],
+  "required": [
+    "date",
+    "timestamp",
+    "score",
+    "algorithmVersion",
+    "ladder",
+    "freshnessSeconds",
+    "sampleSize",
+    "confidence",
+    "sourceVersions",
+    "evidenceIds"
+  ],
   "additionalProperties": false
 }

@@ -1,0 +1,15 @@
+[project]
+name = "hotspot-core"
+version = "0.0.0"
+description = "Point-in-time market hot-topic aggregation and HotScore V1"
+requires-python = "==3.12.13"
+dependencies = [
+    "event-core",
+]
+
+[tool.uv.sources]
+event-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"

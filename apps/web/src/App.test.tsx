@@ -21,6 +21,9 @@ vi.mock("./features/data-quality/data-quality-page", () => ({
 vi.mock("./features/market-regime/market-regime-page", () => ({
   MarketRegimePage: () => <div>MARKET_REGIME_PAGE_MARKER</div>,
 }));
+vi.mock("./features/event-workbench/event-workbench-page", () => ({
+  EventWorkbenchPage: () => <div>EVENT_WORKBENCH_PAGE_MARKER</div>,
+}));
 vi.mock("./components/ui/sonner", () => ({ Toaster: () => null }));
 
 import { App } from "./App";
@@ -34,5 +37,10 @@ describe("App routing", () => {
   it("serves the persisted market-regime replay page", () => {
     route = "/market-regime";
     expect(renderToStaticMarkup(<App />)).toContain("MARKET_REGIME_PAGE_MARKER");
+  });
+
+  it("serves the Phase 3 event workbench", () => {
+    route = "/event-workbench";
+    expect(renderToStaticMarkup(<App />)).toContain("EVENT_WORKBENCH_PAGE_MARKER");
   });
 });
