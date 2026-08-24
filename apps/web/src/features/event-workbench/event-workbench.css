@@ -1,0 +1,378 @@
+.event-workbench-shell {
+  --event-signal: hsl(25 95% 53%);
+  --event-cyan: hsl(187 78% 39%);
+  position: relative;
+  isolation: isolate;
+  margin: -1rem;
+  min-height: calc(100vh - 7rem);
+  padding: 1.25rem;
+  overflow: hidden;
+}
+
+.event-workbench-shell::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 88% 3%,
+      color-mix(in srgb, var(--event-signal) 13%, transparent),
+      transparent 32rem
+    ),
+    linear-gradient(color-mix(in srgb, var(--border) 36%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--border) 28%, transparent) 1px, transparent 1px);
+  background-size:
+    auto,
+    32px 32px,
+    32px 32px;
+  mask-image: linear-gradient(to bottom, black 0%, transparent 82%);
+}
+
+.event-hero {
+  padding: clamp(1.5rem, 4vw, 3.5rem) 0 2rem;
+  animation: event-rise 480ms ease-out both;
+}
+
+.event-hero-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--event-signal);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.18em;
+}
+
+.event-hero-kicker svg {
+  width: 0.9rem;
+}
+.event-hero-copy {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 2rem;
+  margin-top: 0.75rem;
+}
+.event-hero h1 {
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: clamp(2.25rem, 6vw, 5rem);
+  font-weight: 750;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+.event-hero p {
+  max-width: 42rem;
+  margin-top: 0.9rem;
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
+}
+.event-asof {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.1rem 0.6rem;
+  min-width: 11rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  backdrop-filter: blur(12px);
+}
+.event-asof svg {
+  grid-row: span 2;
+  width: 1rem;
+  color: var(--event-cyan);
+}
+.event-asof span {
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+}
+.event-asof strong {
+  font-size: 0.78rem;
+}
+
+.event-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(8rem, 1fr)) auto;
+  align-items: end;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  box-shadow: 0 12px 38px hsl(220 40% 10% / 0.05);
+  backdrop-filter: blur(16px);
+}
+.event-filter-bar > div {
+  display: grid;
+  gap: 0.3rem;
+}
+.event-filter-bar label {
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+}
+
+.event-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.event-section-title svg {
+  width: 1rem;
+  color: var(--event-signal);
+}
+.event-topic-rail {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.2rem 0.1rem 0.8rem;
+  scroll-snap-type: x proximity;
+}
+.event-topic-card {
+  scroll-snap-align: start;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card) 96%, var(--event-signal)),
+    var(--card)
+  );
+}
+.event-topic-title {
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: 1.15rem;
+}
+.event-score {
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 2rem;
+  font-weight: 750;
+  letter-spacing: -0.08em;
+}
+.event-score-track {
+  height: 0.28rem;
+  margin-top: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--muted);
+}
+.event-score-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--event-cyan), var(--event-signal));
+}
+
+.event-workbench-grid {
+  display: grid;
+  grid-template-columns: minmax(22rem, 0.88fr) minmax(24rem, 1.12fr);
+  gap: 1rem;
+  align-items: start;
+}
+.event-stream-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
+  text-align: left;
+  transition: 160ms ease;
+}
+.event-stream-item:hover,
+.event-stream-item[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--event-signal) 42%, var(--border));
+  background: color-mix(in srgb, var(--event-signal) 7%, var(--card));
+  transform: translateX(3px);
+}
+.event-stream-time {
+  width: 4.6rem;
+  flex: none;
+  font-family: ui-monospace, monospace;
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+}
+.event-stream-item strong,
+.event-stream-item small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.event-stream-item strong {
+  font-size: 0.88rem;
+}
+.event-stream-item small {
+  margin-top: 0.15rem;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+.event-stream-confidence {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--event-cyan);
+}
+.event-detail-card {
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(18px);
+}
+.event-detail-title {
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: 1.35rem;
+  line-height: 1.35;
+}
+.event-fact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.55rem;
+}
+.event-fact-grid div {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.65rem;
+  border-radius: 0.6rem;
+  background: var(--muted);
+}
+.event-fact-grid span {
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+}
+.event-fact-grid strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.event-evidence {
+  padding: 0.9rem 1rem;
+  border-left: 3px solid var(--event-signal);
+  border-radius: 0 0.65rem 0.65rem 0;
+  background: color-mix(in srgb, var(--event-signal) 6%, var(--muted));
+}
+.event-evidence p {
+  font-family: "Songti SC", serif;
+  font-size: 0.9rem;
+  line-height: 1.75;
+}
+.event-evidence footer {
+  margin-top: 0.45rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.63rem;
+  color: var(--muted-foreground);
+}
+.event-provenance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+}
+.event-feedback-panel {
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
+}
+.event-native-control {
+  display: flex;
+  width: 100%;
+  height: 2.25rem;
+  border: 1px solid var(--input);
+  border-radius: 0.375rem;
+  background: transparent;
+  padding: 0 0.65rem;
+  font-size: 0.875rem;
+  outline: none;
+}
+.event-native-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 26%, transparent);
+}
+.event-state {
+  display: flex;
+  min-height: 14rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 1rem;
+  color: var(--muted-foreground);
+}
+.event-state-error {
+  color: var(--destructive);
+}
+.event-radar-spin {
+  animation: event-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes event-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes event-pulse {
+  50% {
+    transform: scale(1.16);
+    opacity: 0.55;
+  }
+}
+
+@media (max-width: 900px) {
+  .event-hero-copy {
+    align-items: start;
+    flex-direction: column;
+  }
+  .event-filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .event-filter-bar button {
+    grid-column: span 2;
+  }
+  .event-workbench-grid {
+    grid-template-columns: 1fr;
+  }
+  .event-detail-card {
+    position: static;
+  }
+}
+
+@media (max-width: 520px) {
+  .event-workbench-shell {
+    margin: -1rem;
+    padding: 1rem;
+  }
+  .event-filter-bar {
+    grid-template-columns: 1fr;
+  }
+  .event-filter-bar button {
+    grid-column: auto;
+  }
+  .event-asof {
+    width: 100%;
+  }
+  .event-fact-grid {
+    grid-template-columns: 1fr;
+  }
+  .event-stream-time {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-hero,
+  .event-radar-spin {
+    animation: none;
+  }
+  .event-stream-item {
+    transition: none;
+  }
+}

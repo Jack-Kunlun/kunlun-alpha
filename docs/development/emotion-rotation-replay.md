@@ -10,28 +10,28 @@ stored.
 
 Apply and verify all canonical migrations:
 
-~~~text
+```text
 node scripts/ci/clickhouse-migration-smoke.mjs --migrate kunlun
-~~~
+```
 
 ## API
 
 The API reads ClickHouse through a repository port. Required local variables:
 
-~~~text
+```text
 EMOTION_CLICKHOUSE_URL=http://localhost:8123
 EMOTION_CLICKHOUSE_DATABASE=kunlun
 EMOTION_CLICKHOUSE_USER=kunlun
 EMOTION_CLICKHOUSE_PASSWORD=kunlun-local-dev
-~~~
+```
 
 Endpoints:
 
-~~~text
+```text
 GET /api/v1/emotion/snapshots?date=2026-08-13&algorithmVersion=emotion_score_v1
 GET /api/v1/emotion/rotation-events?date=2026-08-13&algorithmVersion=rotation_event_v2&sectorId=sector-gold
 GET /api/v1/emotion/versions
-~~~
+```
 
 Dates, versions and sector ids are validated before repository access. Provider
 rows are parsed as untrusted values. Backend response bodies and credentials

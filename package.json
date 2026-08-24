@@ -26,7 +26,11 @@
     "infra:up": "docker compose -f infra/docker/docker-compose.yml --env-file infra/docker/.env up -d",
     "infra:down": "docker compose -f infra/docker/docker-compose.yml --env-file infra/docker/.env down",
     "infra:ps": "docker compose -f infra/docker/docker-compose.yml ps",
-    "infra:logs": "docker compose -f infra/docker/docker-compose.yml logs -f"
+    "infra:logs": "docker compose -f infra/docker/docker-compose.yml logs -f",
+    "docker:up": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml --env-file infra/docker/.env up -d --build",
+    "docker:down": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml --env-file infra/docker/.env down",
+    "docker:ps": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml ps",
+    "docker:logs": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml logs -f"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

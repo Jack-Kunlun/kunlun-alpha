@@ -77,6 +77,17 @@ def test_policy_rejects_non_positive_limits() -> None:
         NormalizationPolicy(max_title_length=-1)
 
 
+def test_policy_rejects_non_strict_parameter_types() -> None:
+    with pytest.raises(TypeError, match="max_title_length"):
+        NormalizationPolicy(max_title_length=True)
+    with pytest.raises(TypeError, match="max_body_length"):
+        NormalizationPolicy(max_body_length=True)
+    with pytest.raises(TypeError, match="strip_html"):
+        NormalizationPolicy(strip_html="false")  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="recover_mojibake"):
+        NormalizationPolicy(recover_mojibake="false")  # type: ignore[arg-type]
+
+
 def test_policy_default_version_is_current() -> None:
     assert NormalizationPolicy().version == NORMALIZATION_VERSION
 

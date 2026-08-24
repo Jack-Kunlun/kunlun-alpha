@@ -1,11 +1,26 @@
 # intelligence-engine
 
-内容规范化（P3-N02）。把 event-core 的不可变 `RawContent` 转换为**可逆清洗记录**与**规范化文本**，
-供下游检索、去重与情报处理消费。所有原始证据保留，任何清洗都可精确回放。
+事件情报处理服务。当前包含内容规范化（P3-N02）以及提示词、模型与抽取配置注册（P3-N06）。
+规范化把 event-core 的不可变 `RawContent` 转换为**可逆清洗记录**与**规范化文本**；注册模块保证每次
+模型选择都可按时间、版本和配置指纹精确回放。
 
 - 模块：`intelligence_engine`
 - 规范化版本：`normalize-v1`（`NORMALIZATION_VERSION`）
 - 依赖：仅标准库 + workspace 内 `event-core`（复用 `RawContent`，不重新定义原始契约）
+
+## LLM 版本注册（P3-N06）
+
+`intelligence_engine.llm` 提供不可变、追加式的 `VersionRegistry`：
+
+- `PromptSpec`、`ModelSpec` 与 `ExtractionProfile` 的坐标不可覆盖，内容以 SHA-256 指纹绑定；
+- 模型配置只保存 `credential_env_ref`，不接收 API Key、Token 或其他凭证值；
+- `Deployment` 使用生效时间和 expected-previous 部署 ID，防止并发覆盖与历史回写；
+- 灰度分流基于 `profile_id + deployment_id + routing_key` 的 SHA-256 万分桶，跨进程稳定；
+- 回滚追加一条 `ROLLBACK` 部署，旧部署不修改，历史 `decision_time` 仍解析到原版本；
+- `ResolvedProfile.configuration_fingerprint` 绑定所选 prompt、model、profile、deployment 与灰度桶，
+  可直接写入事件抽取 provenance。
+
+本模块不调用任何模型，也不处理队列、重试或事件落库；这些能力由 P3-N07 组合实现。
 
 ## 偏移语义（核心约定）
 

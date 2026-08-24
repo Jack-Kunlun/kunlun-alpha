@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kunlun-alpha.local/schemas/event/hot-topic-snapshot.json",
+  "title": "HotTopicSnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotId",
+    "topicId",
+    "topicName",
+    "lifecycle",
+    "decisionTime",
+    "windowStart",
+    "windowEnd",
+    "scoreBps",
+    "confidenceBps",
+    "components",
+    "eventCount",
+    "recentEventCount",
+    "staleEventCount",
+    "sourceCount",
+    "instrumentCount",
+    "sectorCount",
+    "eventIds",
+    "policyFingerprint",
+    "algorithmVersion"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "hot-topic-snapshot-v1" },
+    "snapshotId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "topicId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "topicName": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "lifecycle": { "enum": ["EMERGING", "RISING", "HOT", "COOLING", "DORMANT"] },
+    "decisionTime": { "type": "string", "format": "date-time" },
+    "windowStart": { "type": "string", "format": "date-time" },
+    "windowEnd": { "type": "string", "format": "date-time" },
+    "scoreBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidenceQualityBps",
+        "recencyBps",
+        "sourceDiversityBps",
+        "breadthBps",
+        "momentumBps"
+      ],
+      "properties": {
+        "evidenceQualityBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "recencyBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "sourceDiversityBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "breadthBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "momentumBps": { "type": "integer", "minimum": 0, "maximum": 10000 }
+      }
+    },
+    "eventCount": { "type": "integer", "minimum": 0 },
+    "recentEventCount": { "type": "integer", "minimum": 0 },
+    "staleEventCount": { "type": "integer", "minimum": 0 },
+    "sourceCount": { "type": "integer", "minimum": 0 },
+    "instrumentCount": { "type": "integer", "minimum": 0 },
+    "sectorCount": { "type": "integer", "minimum": 0 },
+    "eventIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    },
+    "policyFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "previousSnapshotId": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+    "algorithmVersion": { "const": "hot-score-v1" }
+  }
+}

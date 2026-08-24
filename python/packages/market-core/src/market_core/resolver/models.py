@@ -230,8 +230,8 @@ class ResolverPolicy:
             "exact_symbol_score_bps",
         ):
             _require_bps(getattr(self, name), name)
-        if self.override_enabled not in (True, False):
-            raise ValueError("override_enabled must be bool")
+        if type(self.override_enabled) is not bool:
+            raise TypeError("override_enabled must be bool")
 
     def fingerprint(self) -> str:
         """Deterministic 64-hex SHA-256 over every result-affecting parameter.

@@ -1,10 +1,6 @@
 import { apiClient } from "@/lib/api-client";
 import { useApiQuery, type QueryResult, type QueryStatus } from "@/lib/use-api-query";
-import type {
-  MarketEmotionSnapshot,
-  MarketRegimeData,
-  SectorRotationEvent,
-} from "./types";
+import type { MarketEmotionSnapshot, MarketRegimeData, SectorRotationEvent } from "./types";
 
 export interface MarketRegimeFilters {
   date: string;

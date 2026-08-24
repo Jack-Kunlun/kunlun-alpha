@@ -217,6 +217,24 @@ class TestMentionIdentity:
                 policy_fingerprint=make_policy().fingerprint(),
             )
 
+    def test_compute_mention_id_rejects_policy_lookalike(self) -> None:
+        class PolicyLookalike:
+            version = ENTITY_EXTRACTION_VERSION
+
+            def fingerprint(self) -> str:
+                return make_policy().fingerprint()
+
+        unsafe_compute: Any = compute_mention_id
+        with pytest.raises(TypeError, match="validated ExtractionPolicy"):
+            unsafe_compute(
+                content_id="content-1",
+                entity_type=EntityType.COMPANY,
+                start_offset=0,
+                end_offset=4,
+                surface="示例酒业",
+                policy=PolicyLookalike(),
+            )
+
 
 class TestExtractionPolicy:
     def test_default_fingerprint_is_stable_sha256(self) -> None:

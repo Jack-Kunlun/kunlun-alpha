@@ -175,7 +175,7 @@ behind. Never use production credentials or production data for this check.
 
 For the final P1-R07 closure, also run the full data-worker and market-core
 suites, the PostgreSQL migration/storage/scheduler selectors, the `@kunlun/db`
-and `@kunlun/api` test/lint/typecheck/build matrix, and the packaged-SQL
+and `@kunlun/server` test/lint/typecheck/build matrix, and the packaged-SQL
 resource test. Use a short `--basetemp` path on Windows and inject the local
 DSN only through a temporary environment variable; never print or persist the
 DSN. The closure gate additionally checks LF/UTF-8 hygiene, the absence of a

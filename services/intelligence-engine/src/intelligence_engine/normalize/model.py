@@ -214,10 +214,18 @@ class NormalizationPolicy:
                 f"unsupported normalization version: {self.version!r} "
                 f"(supported: {NORMALIZATION_VERSION!r})"
             )
+        if type(self.max_title_length) is not int:
+            raise TypeError("max_title_length must be an int")
+        if type(self.max_body_length) is not int:
+            raise TypeError("max_body_length must be an int")
         if self.max_title_length <= 0:
             raise ValueError("max_title_length must be positive")
         if self.max_body_length <= 0:
             raise ValueError("max_body_length must be positive")
+        if type(self.strip_html) is not bool:
+            raise TypeError("strip_html must be a bool")
+        if type(self.recover_mojibake) is not bool:
+            raise TypeError("recover_mojibake must be a bool")
         for separator in self.author_separators:
             if type(separator) is not str or not separator:
                 raise ValueError("author_separators must be non-empty strings")

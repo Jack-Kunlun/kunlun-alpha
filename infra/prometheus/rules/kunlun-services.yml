@@ -2,7 +2,7 @@ groups:
   - name: kunlun-services
     rules:
       - alert: KunlunServiceDown
-        expr: up{job=~"kunlun-api|kunlun-python"} == 0
+        expr: up{job=~"kunlun-server|kunlun-python"} == 0
         for: 2m
         labels:
           severity: critical

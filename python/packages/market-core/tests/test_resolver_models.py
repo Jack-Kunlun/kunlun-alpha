@@ -212,6 +212,10 @@ class TestResolverPolicy:
         with pytest.raises(ValueError):
             ResolverPolicy(exact_symbol_score_bps=10001)
 
+    def test_rejects_non_boolean_override_flag(self) -> None:
+        with pytest.raises(TypeError, match="override_enabled"):
+            ResolverPolicy(override_enabled=1)  # type: ignore[arg-type]
+
 
 class TestAliasTable:
     def test_lookup_requires_aware_datetimes(self) -> None:

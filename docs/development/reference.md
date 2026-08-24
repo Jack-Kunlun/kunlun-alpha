@@ -41,15 +41,15 @@
 
 ### 应用服务
 
-| 变量                              | 默认值        | 读取方                           |
-| --------------------------------- | ------------- | -------------------------------- |
-| `PORT`                            | `3002`        | `apps/api/src/env.ts`（NestJS）  |
-| `NODE_ENV`                        | `development` | `apps/api/src/env.ts`            |
-| `KUNLUN_SERVICE_NAME`             | `kunlun`      | `ServiceConfig`（ashare-common） |
-| `KUNLUN_LOG_LEVEL`                | `INFO`        | 同上                             |
-| `KUNLUN_HOST`                     | `0.0.0.0`     | 同上                             |
-| `KUNLUN_PORT`                     | `8080`        | 同上                             |
-| `KUNLUN_SHUTDOWN_TIMEOUT_SECONDS` | `10.0`        | 同上                             |
+| 变量                              | 默认值        | 读取方                             |
+| --------------------------------- | ------------- | ---------------------------------- |
+| `PORT`                            | `3002`        | `apps/server/src/env.ts`（NestJS） |
+| `NODE_ENV`                        | `development` | `apps/server/src/env.ts`           |
+| `KUNLUN_SERVICE_NAME`             | `kunlun`      | `ServiceConfig`（ashare-common）   |
+| `KUNLUN_LOG_LEVEL`                | `INFO`        | 同上                               |
+| `KUNLUN_HOST`                     | `0.0.0.0`     | 同上                               |
+| `KUNLUN_PORT`                     | `8080`        | 同上                               |
+| `KUNLUN_SHUTDOWN_TIMEOUT_SECONDS` | `10.0`        | 同上                               |
 
 ## 常用命令
 

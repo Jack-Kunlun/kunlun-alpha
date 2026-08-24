@@ -34,7 +34,7 @@ Set `KUNLUN_TEST_POSTGRES_DSN` to a local, disposable database and run:
 $env:KUNLUN_TEST_POSTGRES_DSN = "postgresql://kunlun:kunlun-local-dev@localhost:5432/kunlun"
 \.venv\Scripts\python.exe -m pytest services/data-worker/tests/test_postgres_store.py -q --no-cov
 pnpm.cmd --filter @kunlun/db test -- src/postgres-driver.integration.test.ts
-pnpm.cmd --filter @kunlun/api test -- src/migrations/001-initial.integration.test.ts
+pnpm.cmd --filter @kunlun/server test -- src/migrations/001-initial.integration.test.ts
 ```
 
 Each TypeScript integration suite and the Python fixture creates a unique

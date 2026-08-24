@@ -42,7 +42,7 @@
 
 ```bash
 KUNLUN_TEST_POSTGRES_DSN="postgresql://<user>:<password>@localhost:5432/kunlun" \
-  pnpm --filter @kunlun/api exec vitest run \
+  pnpm --filter @kunlun/server exec vitest run \
     src/modules/data-quality/postgres-quality.repository.integration.test.ts
 ```
 

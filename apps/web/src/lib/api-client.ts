@@ -20,6 +20,7 @@ export class ApiError extends Error {
 
 export interface ApiClient {
   get<T>(path: string, query?: Record<string, string>): Promise<T>;
+  post<TBody, TResponse>(path: string, body: TBody): Promise<TResponse>;
 }
 
 class FetchApiClient implements ApiClient {
@@ -34,6 +35,20 @@ class FetchApiClient implements ApiClient {
     }
 
     const response = await fetch(url.toString());
+    return this.parse<T>(response);
+  }
+
+  async post<TBody, TResponse>(path: string, body: TBody): Promise<TResponse> {
+    const url = new URL(this.baseUrl + path, window.location.origin);
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return this.parse<TResponse>(response);
+  }
+
+  private async parse<T>(response: Response): Promise<T> {
     if (response.status === 403) {
       throw new ApiError("无权访问", 403);
     }

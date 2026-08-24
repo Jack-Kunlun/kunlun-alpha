@@ -18,6 +18,23 @@ from __future__ import annotations
 from event_core.dedup.models import BASIS_POINTS_SCALE
 
 
+def quantize_ratio_bps(numerator: int, denominator: int) -> int:
+    """Quantize a ratio in ``[0, 1]`` to basis points using integer half-up.
+
+    The implementation never constructs a binary float and deliberately avoids
+    Python's banker rounding. An exact half-basis-point boundary rounds upward,
+    so the result is stable across platforms and Python runtimes.
+    """
+    if type(numerator) is not int or type(denominator) is not int:
+        raise TypeError("ratio numerator and denominator must be ints")
+    if denominator <= 0:
+        raise ValueError("ratio denominator must be positive")
+    if numerator < 0 or numerator > denominator:
+        raise ValueError("ratio numerator must be within [0, denominator]")
+    scaled = BASIS_POINTS_SCALE * numerator
+    return (2 * scaled + denominator) // (2 * denominator)
+
+
 def ngram_shingles(text: str, ngram_size: int) -> frozenset[str]:
     """Character n-gram shingles of ``text`` (deterministic, order-free set).
 
@@ -51,7 +68,7 @@ def jaccard_bps(left: frozenset[str], right: frozenset[str]) -> int:
     union = len(left | right)
     if union == 0:
         return 0
-    return round(BASIS_POINTS_SCALE * intersection / union)
+    return quantize_ratio_bps(intersection, union)
 
 
 def title_similarity_bps(left: str, right: str, ngram_size: int) -> int:

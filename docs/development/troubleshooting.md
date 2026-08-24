@@ -16,7 +16,7 @@ netstat -ano | findstr :3002        # Windows
 lsof -i :3002                        # macOS / Linux
 
 # 用其他端口启动 API（推荐，不改 Grafana）
-PORT=3012 pnpm --filter @kunlun/api dev
+PORT=3012 pnpm --filter @kunlun/server dev
 ```
 
 Web 侧 Vite 会自动跳空闲端口；如固定端口被占，可在 `apps/web/vite.config.ts` 调整 `server.port`。
