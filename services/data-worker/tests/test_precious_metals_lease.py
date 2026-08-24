@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import cast
 
 import pytest
 from ashare_contracts.providers import Capability
@@ -14,6 +15,7 @@ from data_worker.scheduler import InMemoryTaskStore, TaskScheduler
 from data_worker.storage import InMemoryFundStorage, LeaseFenceError
 from data_worker.storage.precious_metals import LeaseContext
 from market_core.providers import RawFundProviderResponse
+from market_core.providers.base import Provider as ProviderBase
 
 
 @dataclass
@@ -30,7 +32,10 @@ def test_scheduler_passes_active_lease_context_to_backward_compatible_job() -> N
     scheduler = TaskScheduler(store, now=clock.now)
     seen: list[object] = []
 
-    result = scheduler.run("fund-task", lambda context: seen.append(context))
+    def remember(context: object) -> None:
+        seen.append(context)
+
+    result = scheduler.run("fund-task", remember)
 
     assert result == "SUCCEEDED"
     assert len(seen) == 1
@@ -45,6 +50,7 @@ def test_expired_or_taken_over_worker_writes_zero_rows(tmp_path: Path) -> None:
     first_token = scheduler_store.acquire_lease("fund-task", lease_seconds=1)
     assert first_token is not None
     first_record = scheduler_store.get("fund-task")
+    assert first_record.lease_expires_at is not None
     old_context = LeaseContext(
         task_id="fund-task",
         lease_token=first_token,
@@ -77,7 +83,7 @@ def test_expired_or_taken_over_worker_writes_zero_rows(tmp_path: Path) -> None:
 
     persistence = InMemoryFundStorage(lease_store=scheduler_store, now=clock.now)
     collector = FundCollector(
-        Provider(),
+        cast(ProviderBase, Provider()),
         LocalFileStorage(tmp_path),
         persistence,
         now=clock.now(),

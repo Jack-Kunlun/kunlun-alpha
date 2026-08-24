@@ -14,7 +14,8 @@ import { QUALITY_AUTHORIZER, QUALITY_REPOSITORY } from "./data-quality.tokens";
 export class DataQualityService {
   constructor(
     @Inject(QUALITY_REPOSITORY) private readonly repository: QualityRepository,
-    @Inject(QUALITY_AUTHORIZER) private readonly authorizer: DataQualityAuthorizer = new AllowAllAuthorizer(),
+    @Inject(QUALITY_AUTHORIZER)
+    private readonly authorizer: DataQualityAuthorizer = new AllowAllAuthorizer(),
   ) {}
 
   async query(input: unknown): Promise<DataQualityRecord[]> {

@@ -1,63 +1,147 @@
-"""Sector taxonomy tests.
-
-Covers multi-membership, alias resolution (with conflict via source priority),
-historical changes via validity windows, and current-vs-expired membership.
-"""
-
 from __future__ import annotations
 
-from rotation_core.taxonomy import Sector, SectorMembership, SectorTaxonomy
+import pytest
+from rotation_core.taxonomy import Sector, SectorMembership, SectorTaxonomy, TaxonomyConflictError
+
+_DECISION = "2026-08-13T02:00:00Z"
 
 
-def _taxonomy() -> SectorTaxonomy:
-    sectors = [
-        Sector("ind-gold", "黄金", None, "INDUSTRY", "src-a", "2020-01-01", None, ("贵金属",)),
-        Sector("theme-ai", "人工智能", None, "THEME", "src-a", "2024-01-01", None, ("AI",)),
-        Sector(
-            "concept-low-alt", "低空经济", None, "CONCEPT", "src-b", "2025-01-01", None, ("低空",)
-        ),
-    ]
-    memberships = [
-        SectorMembership("600000.SH", "ind-gold", "2020-01-01", None, "src-a"),
-        SectorMembership("600000.SH", "theme-ai", "2024-01-01", None, "src-a"),  # multi-membership
-        SectorMembership("600001.SH", "concept-low-alt", "2025-01-01", None, "src-b"),
-        SectorMembership("600002.SH", "ind-gold", "2020-01-01", "2023-12-31", "src-a"),  # expired
-    ]
-    return SectorTaxonomy(sectors, memberships, source_priority=["src-a", "src-b"])
+def _sector(
+    sector_id: str,
+    name: str,
+    *,
+    source: str = "src-a",
+    valid_from: str = "2020-01-01",
+    valid_to: str | None = None,
+    available_time: str = "2020-01-01T00:00:00Z",
+    aliases: tuple[str, ...] = (),
+) -> Sector:
+    return Sector(
+        sector_id,
+        name,
+        None,
+        "INDUSTRY",
+        source,
+        valid_from,
+        valid_to,
+        "taxonomy-v1",
+        available_time,
+        f"sector-{sector_id}-{source}-{valid_from}",
+        aliases,
+    )
 
 
-def test_multi_membership() -> None:
-    taxonomy = _taxonomy()
-    sectors = taxonomy.sectors_of("600000.SH", "2025-06-01")
-    assert sectors == ["ind-gold", "theme-ai"]
+def _membership(
+    code: str,
+    sector_id: str,
+    valid_from: str,
+    valid_to: str | None,
+    *,
+    source: str = "src-a",
+    available_time: str = "2020-01-01T00:00:00Z",
+    evidence_id: str | None = None,
+) -> SectorMembership:
+    return SectorMembership(
+        code,
+        sector_id,
+        valid_from,
+        valid_to,
+        source,
+        "membership-v1",
+        available_time,
+        evidence_id or f"membership-{code}-{sector_id}-{source}-{valid_from}",
+    )
 
 
-def test_members_of_respects_validity() -> None:
-    taxonomy = _taxonomy()
-    # 600002.SH membership expired at 2023-12-31.
-    assert taxonomy.members_of("ind-gold", "2025-06-01") == ["600000.SH"]
-    assert taxonomy.members_of("ind-gold", "2023-01-01") == ["600000.SH", "600002.SH"]
+def test_non_overlapping_histories_from_one_source_are_preserved() -> None:
+    taxonomy = SectorTaxonomy(
+        [_sector("s1", "黄金")],
+        [
+            _membership("600000.SH", "s1", "2020-01-01", "2021-12-31"),
+            _membership("600000.SH", "s1", "2022-01-01", None),
+        ],
+        ["src-a"],
+    )
+    assert len(taxonomy.history("600000.SH")) == 2
+    assert taxonomy.members_of("s1", "2021-01-01", decision_time=_DECISION) == ["600000.SH"]
+    assert taxonomy.members_of("s1", "2026-01-01", decision_time=_DECISION) == ["600000.SH"]
 
 
-def test_alias_resolution() -> None:
-    taxonomy = _taxonomy()
-    assert taxonomy.resolve("贵金属") == "ind-gold"
-    assert taxonomy.resolve("AI") == "theme-ai"
-    assert taxonomy.resolve("黄金") == "ind-gold"
+def test_overlapping_conflict_resolves_only_at_query_time_by_source_priority() -> None:
+    taxonomy = SectorTaxonomy(
+        [_sector("s1", "黄金")],
+        [
+            _membership("600000.SH", "s1", "2020-01-01", None, source="src-b"),
+            _membership("600000.SH", "s1", "2025-01-01", None, source="src-a"),
+        ],
+        ["src-a", "src-b"],
+    )
+    winner = taxonomy.memberships_of("s1", "2026-01-01", decision_time=_DECISION)
+    assert winner[0].source == "src-a"
+    assert len(taxonomy.history("600000.SH")) == 2
 
 
-def test_alias_conflict_resolves_by_source_priority() -> None:
-    # Two sectors share the alias "新能源"; src-a has higher priority.
-    sectors = [
-        Sector("ind-a", "行业A", None, "INDUSTRY", "src-a", "2020-01-01", None, ("新能源",)),
-        Sector("ind-b", "行业B", None, "INDUSTRY", "src-b", "2020-01-01", None, ("新能源",)),
-    ]
-    taxonomy = SectorTaxonomy(sectors, [], ["src-a", "src-b"])
-    assert taxonomy.resolve("新能源") == "ind-a"
+def test_membership_unavailable_at_decision_time_is_excluded() -> None:
+    taxonomy = SectorTaxonomy(
+        [_sector("s1", "黄金")],
+        [
+            _membership(
+                "600000.SH",
+                "s1",
+                "2020-01-01",
+                None,
+                available_time="2026-08-13T03:00:00Z",
+            )
+        ],
+        ["src-a"],
+    )
+    assert taxonomy.members_of("s1", "2026-08-13", decision_time=_DECISION) == []
 
 
-def test_history_retains_expired_memberships() -> None:
-    taxonomy = _taxonomy()
-    history = taxonomy.history("600002.SH")
-    assert len(history) == 1
-    assert history[0].valid_to == "2023-12-31"
+def test_multi_membership_and_expired_history() -> None:
+    taxonomy = SectorTaxonomy(
+        [_sector("s1", "黄金"), _sector("s2", "人工智能")],
+        [
+            _membership("600000.SH", "s1", "2020-01-01", None),
+            _membership("600000.SH", "s2", "2024-01-01", None),
+            _membership("600002.SH", "s1", "2020-01-01", "2023-12-31"),
+        ],
+        ["src-a"],
+    )
+    assert taxonomy.sectors_of("600000.SH", "2026-01-01", decision_time=_DECISION) == ["s1", "s2"]
+    assert taxonomy.members_of("s1", "2026-01-01", decision_time=_DECISION) == ["600000.SH"]
+
+
+def test_alias_resolution_is_point_in_time() -> None:
+    taxonomy = SectorTaxonomy(
+        [
+            _sector("old", "旧行业", valid_to="2024-12-31", aliases=("新能源",)),
+            _sector("new", "新行业", valid_from="2025-01-01", aliases=("新能源",)),
+        ],
+        [],
+        ["src-a"],
+    )
+    assert taxonomy.resolve("新能源", "2024-01-01", decision_time=_DECISION) == "old"
+    assert taxonomy.resolve("新能源", "2026-01-01", decision_time=_DECISION) == "new"
+
+
+def test_equally_authoritative_overlapping_conflict_fails_closed() -> None:
+    taxonomy = SectorTaxonomy(
+        [_sector("s1", "黄金")],
+        [
+            _membership("600000.SH", "s1", "2020-01-01", None, evidence_id="evidence-a"),
+            SectorMembership(
+                "600000.SH",
+                "s1",
+                "2025-01-01",
+                None,
+                "src-a",
+                "membership-v2",
+                "2020-01-01T00:00:00Z",
+                "evidence-b",
+            ),
+        ],
+        ["src-a"],
+    )
+    with pytest.raises(TaxonomyConflictError):
+        taxonomy.members_of("s1", "2026-01-01", decision_time=_DECISION)

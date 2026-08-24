@@ -2,34 +2,33 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://kunlun-alpha/schemas/sector/sector.json",
   "title": "Sector",
-  "description": "A sector node in the taxonomy: industry, concept or theme with hierarchy, aliases and validity",
+  "description": "A point-in-time sector taxonomy record with hierarchy, aliases, validity and evidence provenance",
   "type": "object",
   "properties": {
-    "sectorId": {
-      "type": "string",
-      "description": "Stable sector id"
-    },
-    "name": {
-      "type": "string",
-      "description": "Display name"
-    },
-    "parentId": {
-      "type": ["string", "null"],
-      "description": "Parent sector id (null for a root)"
-    },
+    "sectorId": { "type": "string", "minLength": 1, "description": "Stable sector id" },
+    "name": { "type": "string", "minLength": 1, "description": "Display name" },
+    "parentId": { "type": ["string", "null"], "description": "Parent sector id (null for a root)" },
     "kind": {
       "enum": ["INDUSTRY", "CONCEPT", "THEME"],
       "description": "INDUSTRY / CONCEPT / THEME"
     },
-    "source": {
+    "source": { "type": "string", "minLength": 1, "description": "Data source provenance" },
+    "sourceVersion": {
       "type": "string",
-      "description": "Data source provenance"
+      "minLength": 1,
+      "description": "Version of the source taxonomy"
     },
-    "validFrom": {
+    "availableTime": {
       "type": "string",
-      "format": "date",
-      "description": "Start of validity"
+      "format": "date-time",
+      "description": "Earliest point-in-time availability"
     },
+    "evidenceId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Immutable source evidence identifier"
+    },
+    "validFrom": { "type": "string", "format": "date", "description": "Start of validity" },
     "validTo": {
       "type": ["string", "null"],
       "format": "date",
@@ -37,10 +36,20 @@
     },
     "aliases": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": { "type": "string", "minLength": 1 },
       "description": "Alternative names"
     }
   },
-  "required": ["sectorId", "name", "kind", "source", "validFrom", "aliases"],
+  "required": [
+    "sectorId",
+    "name",
+    "kind",
+    "source",
+    "sourceVersion",
+    "availableTime",
+    "evidenceId",
+    "validFrom",
+    "aliases"
+  ],
   "additionalProperties": false
 }

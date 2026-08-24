@@ -5,7 +5,12 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { parseInstrument, parseInstrumentCode, toUnifiedCode, validateInstrument } from "./code-parser";
+import {
+  parseInstrument,
+  parseInstrumentCode,
+  toUnifiedCode,
+  validateInstrument,
+} from "./code-parser";
 import fixtures from "../../instrument/fixtures.json";
 
 interface ValidFixture {

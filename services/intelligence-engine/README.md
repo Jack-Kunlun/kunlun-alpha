@@ -20,14 +20,14 @@ grapheme cluster）：
 
 每次清洗产生一条 `EditRecord`：
 
-| 字段 | 含义 |
-|------|------|
-| `operation` / `reason` | 操作类型与原因（枚举） |
-| `original_start/end` | 被改动片段在原文中的区间 |
-| `normalized_start/end` | 替换后残留片段在规范化文本中的区间（可为零宽） |
-| `original_fragment` | 原文该区间的精确切片，恒等于 `original[original_start:original_end]` |
-| `replacement_fragment` | 创建时写入的替换内容 |
-| `normalization_version` | 产出该记录的版本，跨版本拒绝 |
+| 字段                    | 含义                                                                 |
+| ----------------------- | -------------------------------------------------------------------- |
+| `operation` / `reason`  | 操作类型与原因（枚举）                                               |
+| `original_start/end`    | 被改动片段在原文中的区间                                             |
+| `normalized_start/end`  | 替换后残留片段在规范化文本中的区间（可为零宽）                       |
+| `original_fragment`     | 原文该区间的精确切片，恒等于 `original[original_start:original_end]` |
+| `replacement_fragment`  | 创建时写入的替换内容                                                 |
+| `normalization_version` | 产出该记录的版本，跨版本拒绝                                         |
 
 ### SpanRun（运行映射）
 

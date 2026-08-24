@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 import pytest
 from ashare_contracts.providers import Capability
@@ -12,6 +13,7 @@ from data_worker.jobs.precious_metals_funds import FundCollector
 from data_worker.raw import LocalFileStorage
 from data_worker.storage import InMemoryFundStorage
 from market_core.providers import RawFundProviderResponse
+from market_core.providers.base import Provider as ProviderBase
 
 
 def _item() -> dict[str, object]:
@@ -79,7 +81,7 @@ def _page() -> RawFundProviderResponse:
 
 def _collector(tmp_path: Path, persistence: InMemoryFundStorage) -> FundCollector:
     return FundCollector(
-        Provider(_page()),
+        cast(ProviderBase, Provider(_page())),
         LocalFileStorage(tmp_path),
         persistence,
         now=datetime(2026, 8, 13, 5, 0, tzinfo=UTC),

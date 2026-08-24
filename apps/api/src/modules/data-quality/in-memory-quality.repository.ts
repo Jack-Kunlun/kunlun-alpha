@@ -17,7 +17,8 @@ export class InMemoryQualityRepository implements QualityRepository {
       if (filters.dateFrom !== undefined && record.date < filters.dateFrom) return false;
       if (filters.dateTo !== undefined && record.date > filters.dateTo) return false;
       if (filters.source !== undefined && record.source !== filters.source) return false;
-      if (filters.unifiedCode !== undefined && record.unifiedCode !== filters.unifiedCode) return false;
+      if (filters.unifiedCode !== undefined && record.unifiedCode !== filters.unifiedCode)
+        return false;
       if (filters.kind !== undefined && record.kind !== filters.kind) return false;
       return true;
     });

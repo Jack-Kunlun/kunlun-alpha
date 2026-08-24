@@ -18,7 +18,12 @@ describe("stripConditionalAllOf", () => {
   });
 
   it("deletes allOf entirely when only conditional elements remain", () => {
-    const schema = { allOf: [{ if: {}, then: {} }, { if: {}, else: {} }] };
+    const schema = {
+      allOf: [
+        { if: {}, then: {} },
+        { if: {}, else: {} },
+      ],
+    };
     const result = stripConditionalAllOf(schema);
     expect("allOf" in result).toBe(false);
   });

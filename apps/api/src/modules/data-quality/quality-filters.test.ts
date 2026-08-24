@@ -14,7 +14,9 @@ describe("validateQualityQuery", () => {
   });
 
   it("rejects the legacy prefix form SH.600519", () => {
-    expect(() => validateQualityQuery({ unifiedCode: "SH.600519" })).toThrow(QualityValidationError);
+    expect(() => validateQualityQuery({ unifiedCode: "SH.600519" })).toThrow(
+      QualityValidationError,
+    );
   });
 
   it("rejects path traversal in source", () => {
@@ -32,9 +34,9 @@ describe("validateQualityQuery", () => {
   });
 
   it("rejects a date range where from > to", () => {
-    expect(() =>
-      validateQualityQuery({ dateFrom: "2026-08-14", dateTo: "2026-08-13" }),
-    ).toThrow(QualityValidationError);
+    expect(() => validateQualityQuery({ dateFrom: "2026-08-14", dateTo: "2026-08-13" })).toThrow(
+      QualityValidationError,
+    );
   });
 
   it("rejects non-object input", () => {

@@ -18,6 +18,12 @@ from ashare_contracts.emotion_limit_event import EventType as EventType
 from ashare_contracts.emotion_limit_event import Exchange as Exchange_3
 from ashare_contracts.emotion_limit_event import LimitEvent as LimitEvent
 from ashare_contracts.emotion_limit_pool_snapshot import LimitPoolSnapshot as LimitPoolSnapshot
+from ashare_contracts.emotion_market_emotion_snapshot import EvidenceId as EvidenceId
+from ashare_contracts.emotion_market_emotion_snapshot import LadderItem as LadderItem
+from ashare_contracts.emotion_market_emotion_snapshot import (
+    MarketEmotionSnapshot as MarketEmotionSnapshot,
+)
+from ashare_contracts.emotion_market_emotion_snapshot import SourceVersion as SourceVersion
 from ashare_contracts.funds_fund_nav import FundNav as FundNav
 from ashare_contracts.funds_precious_metal_fund import AssetType as AssetType
 from ashare_contracts.funds_precious_metal_fund import Exchange as Exchange_4
@@ -57,9 +63,14 @@ from ashare_contracts.market_data_tick import Direction as Direction
 from ashare_contracts.market_data_tick import Exchange as Exchange_11
 from ashare_contracts.market_data_tick import Tick as Tick
 from ashare_contracts.market_data_tick import TradeType as TradeType
+from ashare_contracts.sector_sector import Alias as Alias
 from ashare_contracts.sector_sector import Kind as Kind_1
 from ashare_contracts.sector_sector import Sector as Sector
 from ashare_contracts.sector_sector_membership import SectorMembership as SectorMembership
+from ashare_contracts.sector_sector_rotation_event import EventType as EventType_1
+from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_1
+from ashare_contracts.sector_sector_rotation_event import SectorRotationEvent as SectorRotationEvent
+from ashare_contracts.sector_sector_rotation_event import SourceVersion as SourceVersion_1
 
 __all__ = [
     "Exchange",
@@ -80,6 +91,10 @@ __all__ = [
     "Exchange_3",
     "LimitEvent",
     "LimitPoolSnapshot",
+    "EvidenceId",
+    "LadderItem",
+    "MarketEmotionSnapshot",
+    "SourceVersion",
     "FundNav",
     "AssetType",
     "Exchange_4",
@@ -119,7 +134,12 @@ __all__ = [
     "Exchange_11",
     "Tick",
     "TradeType",
+    "Alias",
     "Kind_1",
     "Sector",
     "SectorMembership",
+    "EventType_1",
+    "EvidenceId_1",
+    "SectorRotationEvent",
+    "SourceVersion_1",
 ]

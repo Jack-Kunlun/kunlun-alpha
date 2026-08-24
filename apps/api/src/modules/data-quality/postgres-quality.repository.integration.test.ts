@@ -100,10 +100,16 @@ run("PostgresQualityRepository integration", () => {
 
       expect(await repository.query({})).toHaveLength(2);
       expect((await repository.query({ date: "2026-08-13" })).map((r) => r.id)).toEqual(["evt-1"]);
-      expect((await repository.query({ unifiedCode: "600519.SH" })).map((r) => r.id)).toEqual(["evt-1"]);
-      expect((await repository.query({ source: "provider-a" })).map((r) => r.id)).toEqual(["evt-1"]);
+      expect((await repository.query({ unifiedCode: "600519.SH" })).map((r) => r.id)).toEqual([
+        "evt-1",
+      ]);
+      expect((await repository.query({ source: "provider-a" })).map((r) => r.id)).toEqual([
+        "evt-1",
+      ]);
       expect(await repository.query({ kind: "SOURCE_CONFLICT" })).toHaveLength(2);
-      expect(await repository.query({ dateFrom: "2026-08-13", dateTo: "2026-08-14" })).toHaveLength(2);
+      expect(await repository.query({ dateFrom: "2026-08-13", dateTo: "2026-08-14" })).toHaveLength(
+        2,
+      );
 
       const evidence = await repository.getEvidence("evt-1");
       expect(evidence?.source).toBe("provider-a");

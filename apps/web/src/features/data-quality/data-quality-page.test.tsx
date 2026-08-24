@@ -44,7 +44,11 @@ describe("DataQualityPage states", () => {
   });
 
   it("renders the forbidden state", () => {
-    mockedUseDataQuality.mockReturnValue({ status: "forbidden", data: null, error: new Error("denied") });
+    mockedUseDataQuality.mockReturnValue({
+      status: "forbidden",
+      data: null,
+      error: new Error("denied"),
+    });
     expect(renderToStaticMarkup(<DataQualityPage />)).toContain("无权访问");
   });
 
@@ -72,7 +76,11 @@ describe("DataQualityPage states", () => {
     mockedUseDataQuality.mockReturnValue({ status: "error", data: null, error: new Error("x") });
     expect(renderToStaticMarkup(<DataQualityPage />)).toContain('role="alert"');
 
-    mockedUseDataQuality.mockReturnValue({ status: "forbidden", data: null, error: new Error("x") });
+    mockedUseDataQuality.mockReturnValue({
+      status: "forbidden",
+      data: null,
+      error: new Error("x"),
+    });
     expect(renderToStaticMarkup(<DataQualityPage />)).toContain('role="alert"');
   });
 });

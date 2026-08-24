@@ -86,9 +86,7 @@ export function DataQualityPage() {
           加载中…
         </p>
       )}
-      {result.status === "empty" && (
-        <p className="text-muted-foreground">暂无质量问题</p>
-      )}
+      {result.status === "empty" && <p className="text-muted-foreground">暂无质量问题</p>}
       {result.status === "error" && (
         <p role="alert" className="text-destructive">
           加载失败：{result.error?.message}

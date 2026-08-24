@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/sector/sector-rotation-event.json",
+  "title": "SectorRotationEvent",
+  "description": "Versioned idempotent sector-rotation event with evidence-window provenance",
+  "type": "object",
+  "properties": {
+    "eventId": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "date": { "type": "string", "format": "date" },
+    "eventType": { "enum": ["CROSSOVER", "DECAY"] },
+    "fromSector": { "type": ["string", "null"] },
+    "toSector": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "evidenceStart": { "type": "string", "format": "date-time" },
+    "evidenceEnd": { "type": "string", "format": "date-time" },
+    "sampleSize": { "type": "integer", "minimum": 1 },
+    "algorithmVersion": { "type": "string", "minLength": 1 },
+    "sourceVersions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "evidenceIds": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  },
+  "required": ["eventId", "date", "eventType", "fromSector", "toSector", "timestamp", "confidence", "evidenceStart", "evidenceEnd", "sampleSize", "algorithmVersion", "sourceVersions", "evidenceIds"],
+  "additionalProperties": false
+}

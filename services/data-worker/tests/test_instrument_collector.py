@@ -302,7 +302,7 @@ def test_checkpoint_is_saved_after_each_page_and_restart_resumes_cursor() -> Non
 
 def test_replayed_instrument_page_is_idempotent() -> None:
     first = _instrument("600000", "娴﹀彂閾惰")
-    pages = {None: Page(items=[first], next_cursor=None)}
+    pages: dict[str | None, Page[Instrument]] = {None: Page(items=[first], next_cursor=None)}
     repo = InMemoryInstrumentRepository()
 
     InstrumentCollector(PagedInstrumentProvider(pages), repo).collect("SH")

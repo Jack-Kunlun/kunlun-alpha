@@ -59,7 +59,10 @@ export function useApiQuery<T>(
         if (error instanceof ApiError && error.status === 403) {
           dispatch({ type: "forbidden", error });
         } else {
-          dispatch({ type: "error", error: error instanceof Error ? error : new Error(String(error)) });
+          dispatch({
+            type: "error",
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
         }
       });
 

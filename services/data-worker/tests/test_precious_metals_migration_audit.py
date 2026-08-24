@@ -6,27 +6,39 @@ import hashlib
 import importlib
 import os
 import threading
+from collections.abc import Generator
 from importlib.resources import files
 from pathlib import Path
+from types import ModuleType
+from typing import Any
 from uuid import uuid4
 
 import pytest
 
+MigrationFixture = tuple[Any, str]
+# Any is restricted to the optional psycopg driver loaded through importorskip.
 
-def _migration_module():
+
+def _migration_module() -> ModuleType:
     return importlib.import_module("data_worker.storage.migrations")
+
+
+def _module_path(module: ModuleType) -> Path:
+    module_file = module.__file__
+    assert module_file is not None
+    return Path(module_file)
 
 
 def test_migration_uses_one_packaged_canonical_sql_artifact() -> None:
     module = _migration_module()
-    package_root = Path(module.__file__).parent
+    package_root = _module_path(module).parent
     canonical_path = package_root / "precious_metals_migration.sql"
     assert canonical_path.is_file(), "canonical migration SQL resource is missing"
     canonical = canonical_path.read_bytes()
     loader = getattr(module, "load_precious_metals_migration", None)
     assert callable(loader), "migration loader must read the package resource"
     assert loader() == canonical
-    source = Path(module.__file__).read_text(encoding="utf-8")
+    source = _module_path(module).read_text(encoding="utf-8")
     assert "CREATE TABLE" not in source.upper()
     assert "CREATE INDEX" not in source.upper()
     assert "CREATE TABLE IF NOT EXISTS" not in canonical.decode("utf-8").upper()
@@ -35,7 +47,7 @@ def test_migration_uses_one_packaged_canonical_sql_artifact() -> None:
 
 def test_migration_contract_declares_ledger_and_shared_advisory_lock() -> None:
     module = _migration_module()
-    canonical_path = Path(module.__file__).with_name("precious_metals_migration.sql")
+    canonical_path = _module_path(module).with_name("precious_metals_migration.sql")
     sql = canonical_path.read_text(encoding="utf-8").upper()
     assert "DATA_WORKER_SCHEMA_MIGRATIONS" in sql
     assert "KUNLUN-ALPHA.SCHEMA-MIGRATIONS" in sql
@@ -53,7 +65,7 @@ def test_installed_package_resource_contains_canonical_sql() -> None:
     assert hashlib.sha256(payload).hexdigest()
 
 
-def _create_base_schema(cursor) -> None:  # type: ignore[no-untyped-def]
+def _create_base_schema(cursor: Any) -> None:
     cursor.execute(
         """
         CREATE TABLE providers (
@@ -99,7 +111,7 @@ def _create_base_schema(cursor) -> None:  # type: ignore[no-untyped-def]
     )
 
 
-def _constraint_name(cursor, table: str, constraint_type: str, needle: str) -> str:
+def _constraint_name(cursor: Any, table: str, constraint_type: str, needle: str) -> str:
     """Return a task-owned constraint name for an isolated-schema mutation."""
 
     cursor.execute(
@@ -118,11 +130,11 @@ def _constraint_name(cursor, table: str, constraint_type: str, needle: str) -> s
 
 
 @pytest.fixture()
-def migration_pg():  # type: ignore[no-untyped-def]
+def migration_pg() -> Generator[MigrationFixture, None, None]:
     dsn = os.getenv("KUNLUN_TEST_POSTGRES_DSN")
     if not dsn:
         pytest.skip("KUNLUN_TEST_POSTGRES_DSN is not configured")
-    psycopg = pytest.importorskip("psycopg")
+    psycopg: Any = pytest.importorskip("psycopg")
     try:
         connection = psycopg.connect(dsn)
     except Exception as exc:  # pragma: no cover - environment dependent
@@ -144,7 +156,9 @@ def migration_pg():  # type: ignore[no-untyped-def]
         connection.close()
 
 
-def test_live_migration_creates_checksum_ledger_and_is_idempotent(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_creates_checksum_ledger_and_is_idempotent(
+    migration_pg: MigrationFixture,
+) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -155,7 +169,7 @@ def test_live_migration_creates_checksum_ledger_and_is_idempotent(migration_pg) 
         assert len(rows) == 1
         assert rows[0][0] == 1
         assert rows[0][1] == "precious_metals_migration"
-        canonical = Path(module.__file__).with_name("precious_metals_migration.sql").read_bytes()
+        canonical = _module_path(module).with_name("precious_metals_migration.sql").read_bytes()
         assert rows[0][2] == hashlib.sha256(canonical).hexdigest()
         cursor.execute(
             "SELECT data_type, numeric_precision, numeric_scale "
@@ -167,7 +181,9 @@ def test_live_migration_creates_checksum_ledger_and_is_idempotent(migration_pg) 
         assert (precision, scale) == (30, 12)
 
 
-def test_live_migration_rejects_untracked_partial_fund_schema(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_untracked_partial_fund_schema(
+    migration_pg: MigrationFixture,
+) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     with connection.transaction(), connection.cursor() as cursor:
@@ -178,7 +194,7 @@ def test_live_migration_rejects_untracked_partial_fund_schema(migration_pg) -> N
 
 @pytest.mark.parametrize("rogue_table", ("fund_rogue", "data_worker_rogue"))
 def test_live_migration_rejects_extra_task_owned_table_and_preserves_ledger(
-    migration_pg, rogue_table: str
+    migration_pg: MigrationFixture, rogue_table: str
 ) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
@@ -196,7 +212,9 @@ def test_live_migration_rejects_extra_task_owned_table_and_preserves_ledger(
         assert cursor.fetchone()[0] == rogue_table
 
 
-def test_live_migration_rejects_rogue_column_and_checksum_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_rogue_column_and_checksum_drift(
+    migration_pg: MigrationFixture,
+) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -206,7 +224,7 @@ def test_live_migration_rejects_rogue_column_and_checksum_drift(migration_pg) ->
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_checksum_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_checksum_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -219,7 +237,9 @@ def test_live_migration_rejects_checksum_drift(migration_pg) -> None:  # type: i
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rolls_back_when_canonical_ddl_fails(migration_pg, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rolls_back_when_canonical_ddl_fails(
+    migration_pg: MigrationFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     canonical = module.load_precious_metals_migration()
@@ -228,7 +248,7 @@ def test_live_migration_rolls_back_when_canonical_ddl_fails(migration_pg, monkey
         "load_precious_metals_migration",
         lambda: canonical + b"\nCREATE TABLE deliberately_invalid (id TEXT;\n",
     )
-    psycopg = pytest.importorskip("psycopg")
+    psycopg: Any = pytest.importorskip("psycopg")
     with pytest.raises((ValueError, psycopg.Error)):
         module.apply_precious_metals_migration(connection)
     with connection.transaction(), connection.cursor() as cursor:
@@ -241,7 +261,9 @@ def test_live_migration_rolls_back_when_canonical_ddl_fails(migration_pg, monkey
         assert evidence is None
 
 
-def test_live_migration_rejects_constraint_index_and_default_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_constraint_index_and_default_drift(
+    migration_pg: MigrationFixture,
+) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -254,7 +276,7 @@ def test_live_migration_rejects_constraint_index_and_default_drift(migration_pg)
     # expected to be rolled back by the fixture's schema teardown.
 
 
-def test_live_migration_rejects_fk_and_default_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_fk_and_default_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -271,7 +293,7 @@ def test_live_migration_rejects_fk_and_default_drift(migration_pg) -> None:  # t
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_nullable_or_numeric_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_nullable_or_numeric_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -282,7 +304,7 @@ def test_live_migration_rejects_nullable_or_numeric_drift(migration_pg) -> None:
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_default_and_unique_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_default_and_unique_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -294,11 +316,13 @@ def test_live_migration_rejects_default_and_unique_drift(migration_pg) -> None: 
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_concurrent_connections_have_one_ledger_winner(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_concurrent_connections_have_one_ledger_winner(
+    migration_pg: MigrationFixture,
+) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, schema = migration_pg
     dsn = os.environ["KUNLUN_TEST_POSTGRES_DSN"]
-    psycopg = pytest.importorskip("psycopg")
+    psycopg: Any = pytest.importorskip("psycopg")
     contender = psycopg.connect(dsn)
     try:
         with contender.transaction(), contender.cursor() as cursor:
@@ -306,7 +330,7 @@ def test_live_migration_concurrent_connections_have_one_ledger_winner(migration_
         barrier = threading.Barrier(2)
         errors: list[BaseException] = []
 
-        def run(connection_to_use) -> None:  # type: ignore[no-untyped-def]
+        def run(connection_to_use: Any) -> None:
             try:
                 barrier.wait(timeout=10)
                 module.apply_precious_metals_migration(connection_to_use)
@@ -329,7 +353,9 @@ def test_live_migration_concurrent_connections_have_one_ledger_winner(migration_
         contender.close()
 
 
-def test_live_migration_fails_closed_when_base_schema_is_incomplete(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_fails_closed_when_base_schema_is_incomplete(
+    migration_pg: MigrationFixture,
+) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     with connection.transaction(), connection.cursor() as cursor:
@@ -346,7 +372,7 @@ def test_live_migration_fails_closed_when_base_schema_is_incomplete(migration_pg
         assert ledger is None
 
 
-def test_live_migration_rejects_index_order_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_index_order_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -359,7 +385,7 @@ def test_live_migration_rejects_index_order_drift(migration_pg) -> None:  # type
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_index_method_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_index_method_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -372,7 +398,7 @@ def test_live_migration_rejects_index_method_drift(migration_pg) -> None:  # typ
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_index_predicate_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_index_predicate_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -387,7 +413,7 @@ def test_live_migration_rejects_index_predicate_drift(migration_pg) -> None:  # 
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_index_opclass_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_index_opclass_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -401,7 +427,7 @@ def test_live_migration_rejects_index_opclass_drift(migration_pg) -> None:  # ty
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_same_name_custom_opclass(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_same_name_custom_opclass(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -425,7 +451,7 @@ def test_live_migration_rejects_same_name_custom_opclass(migration_pg) -> None: 
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_index_collation_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_index_collation_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -442,7 +468,7 @@ def test_live_migration_rejects_index_collation_drift(migration_pg) -> None:  # 
 
 
 def test_live_migration_rejects_column_and_index_rogue_collation(
-    migration_pg,
+    migration_pg: MigrationFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
@@ -469,7 +495,7 @@ def test_live_migration_rejects_column_and_index_rogue_collation(
         assert cursor.fetchall() == ledger_before
 
 
-def test_live_migration_rejects_extra_task_owned_index(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_extra_task_owned_index(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -481,7 +507,7 @@ def test_live_migration_rejects_extra_task_owned_index(migration_pg) -> None:  #
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_primary_key_name_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_primary_key_name_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -496,7 +522,7 @@ def test_live_migration_rejects_primary_key_name_drift(migration_pg) -> None:  #
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_missing_primary_key(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_missing_primary_key(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -507,7 +533,7 @@ def test_live_migration_rejects_missing_primary_key(migration_pg) -> None:  # ty
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_extra_unique_constraint(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_extra_unique_constraint(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -520,7 +546,9 @@ def test_live_migration_rejects_extra_unique_constraint(migration_pg) -> None:  
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_unique_constraint_name_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_unique_constraint_name_drift(
+    migration_pg: MigrationFixture,
+) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -541,7 +569,7 @@ def test_live_migration_rejects_unique_constraint_name_drift(migration_pg) -> No
 
 
 def test_live_migration_rejects_unique_nulls_not_distinct_drift(
-    migration_pg,
+    migration_pg: MigrationFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
@@ -563,7 +591,7 @@ def test_live_migration_rejects_unique_nulls_not_distinct_drift(
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_extra_check_constraint(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_extra_check_constraint(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -577,7 +605,7 @@ def test_live_migration_rejects_extra_check_constraint(migration_pg) -> None:  #
 
 
 def test_live_migration_rejects_same_name_check_no_inherit_drift(
-    migration_pg,
+    migration_pg: MigrationFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
@@ -602,7 +630,7 @@ def test_live_migration_rejects_same_name_check_no_inherit_drift(
     ),
 )
 def test_live_migration_rejects_missing_non_negative_check(
-    migration_pg,
+    migration_pg: MigrationFixture,
     table: str,
     needle: str,
 ) -> None:  # type: ignore[no-untyped-def]
@@ -616,7 +644,7 @@ def test_live_migration_rejects_missing_non_negative_check(
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_extra_foreign_key(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_extra_foreign_key(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -630,7 +658,7 @@ def test_live_migration_rejects_extra_foreign_key(migration_pg) -> None:  # type
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_foreign_key_action_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_foreign_key_action_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -646,7 +674,7 @@ def test_live_migration_rejects_foreign_key_action_drift(migration_pg) -> None: 
         module.apply_precious_metals_migration(connection)
 
 
-def test_live_migration_rejects_foreign_key_name_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_foreign_key_name_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -662,7 +690,7 @@ def test_live_migration_rejects_foreign_key_name_drift(migration_pg) -> None:  #
 
 
 def test_live_migration_rejects_cross_schema_same_name_foreign_key(
-    migration_pg,
+    migration_pg: MigrationFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
@@ -695,7 +723,7 @@ def test_live_migration_rejects_cross_schema_same_name_foreign_key(
             cursor.execute(f'DROP SCHEMA IF EXISTS "{cross_schema}" CASCADE')
 
 
-def test_live_migration_rejects_column_order_drift(migration_pg) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_rejects_column_order_drift(migration_pg: MigrationFixture) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     module.apply_precious_metals_migration(connection)
@@ -707,15 +735,17 @@ def test_live_migration_rejects_column_order_drift(migration_pg) -> None:  # typ
 
 
 def test_live_migration_verifies_schema_before_ledger_and_rolls_back_on_failure(
-    migration_pg, monkeypatch
+    migration_pg: MigrationFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:  # type: ignore[no-untyped-def]
     module = _migration_module()
     connection, _schema = migration_pg
     observed_ledger_rows: list[int] = []
 
-    def fail_schema_verification(cursor) -> None:  # type: ignore[no-untyped-def]
+    def fail_schema_verification(cursor: Any) -> None:
         cursor.execute("SELECT count(*) FROM data_worker_schema_migrations")
-        observed_ledger_rows.append(int(cursor.fetchone()[0]))
+        row = cursor.fetchone()
+        assert row is not None
+        observed_ledger_rows.append(int(row[0]))
         raise ValueError("instrumented schema verification failure")
 
     monkeypatch.setattr(module, "_verify_fund_schema", fail_schema_verification)

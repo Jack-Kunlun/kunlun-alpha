@@ -4,6 +4,7 @@ Verifies the immutability contract: a repeated fetch never overwrites a
 previous object, the manifest locates the source and request, checksums match,
 and replay rebuilds from the raw zone.
 """
+# pyright: reportPrivateUsage=false
 
 from __future__ import annotations
 
@@ -739,6 +740,7 @@ def test_manifest_checksum_matches_content(tmp_path: Path) -> None:
     assert manifest.checksum == _sha256(content)
     assert manifest.size == len(content)
     assert manifest.ingest_time.tzinfo is not None
+    assert manifest.available_time is not None
     assert manifest.available_time.tzinfo is not None
     assert manifest.object_id == manifest.checksum
 

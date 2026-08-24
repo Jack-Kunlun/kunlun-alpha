@@ -274,6 +274,25 @@ export interface LimitPoolSnapshot {
 }
 
 /**
+ * Versioned persisted market-emotion snapshot for real-time and historical replay
+ */
+export interface MarketEmotionSnapshot {
+  date: string;
+  timestamp: string;
+  score: number;
+  algorithmVersion: string;
+  ladder: {
+    board: number;
+    count: number;
+  }[];
+  freshnessSeconds: number;
+  sampleSize: number;
+  confidence: number;
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+
+/**
  * Point-in-time fund NAV/iNAV reference observation; values are not executable prices
  */
 export interface FundNav {
@@ -727,7 +746,7 @@ export interface Tick {
 }
 
 /**
- * An instrument's membership in a sector, with a validity window and source
+ * A point-in-time instrument membership interval with source version and evidence
  */
 export interface SectorMembership {
   /**
@@ -750,10 +769,41 @@ export interface SectorMembership {
    * Data source provenance
    */
   source: string;
+  /**
+   * Version of the source membership set
+   */
+  sourceVersion: string;
+  /**
+   * Earliest point-in-time availability
+   */
+  availableTime: string;
+  /**
+   * Immutable source evidence identifier
+   */
+  evidenceId: string;
 }
 
 /**
- * A sector node in the taxonomy: industry, concept or theme with hierarchy, aliases and validity
+ * Versioned idempotent sector-rotation event with evidence-window provenance
+ */
+export interface SectorRotationEvent {
+  eventId: string;
+  date: string;
+  eventType: "CROSSOVER" | "DECAY";
+  fromSector: string | null;
+  toSector: string;
+  timestamp: string;
+  confidence: number;
+  evidenceStart: string;
+  evidenceEnd: string;
+  sampleSize: number;
+  algorithmVersion: string;
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+
+/**
+ * A point-in-time sector taxonomy record with hierarchy, aliases, validity and evidence provenance
  */
 export interface Sector {
   /**
@@ -776,6 +826,18 @@ export interface Sector {
    * Data source provenance
    */
   source: string;
+  /**
+   * Version of the source taxonomy
+   */
+  sourceVersion: string;
+  /**
+   * Earliest point-in-time availability
+   */
+  availableTime: string;
+  /**
+   * Immutable source evidence identifier
+   */
+  evidenceId: string;
   /**
    * Start of validity
    */

@@ -32,7 +32,12 @@ const records: DataQualityRecord[] = [
 ];
 
 const evidence: EvidenceRecord[] = [
-  { id: "ev-1", source: "provider-a", schemaVersion: "fund-v1", availableAt: "2026-08-13T09:30:00.000Z" },
+  {
+    id: "ev-1",
+    source: "provider-a",
+    schemaVersion: "fund-v1",
+    availableAt: "2026-08-13T09:30:00.000Z",
+  },
 ];
 
 const denyAll: DataQualityAuthorizer = { canAccess: () => false };
@@ -51,7 +56,9 @@ describe("DataQualityService", () => {
 
   it("rejects the legacy prefix form SH.600519", async () => {
     const service = new DataQualityService(new InMemoryQualityRepository(records));
-    await expect(service.query({ unifiedCode: "SH.600519" })).rejects.toThrow(QualityValidationError);
+    await expect(service.query({ unifiedCode: "SH.600519" })).rejects.toThrow(
+      QualityValidationError,
+    );
   });
 
   it("rejects illegal dates", async () => {

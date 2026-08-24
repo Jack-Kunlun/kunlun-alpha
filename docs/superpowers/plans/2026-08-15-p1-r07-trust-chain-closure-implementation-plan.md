@@ -22,6 +22,7 @@
 ### Task 1: Bind normalization to the trusted manifest context
 
 **Files:**
+
 - Modify: `services/data-worker/src/data_worker/jobs/precious_metals_funds/collector.py`
 - Modify: `services/data-worker/src/data_worker/raw/manifest.py`
 - Modify: `services/data-worker/src/data_worker/raw/storage.py`
@@ -29,6 +30,7 @@
 - Test: `services/data-worker/tests/test_precious_metals_pipeline.py`
 
 **Interfaces:**
+
 - Consumes: verified `RawObjectManifest` and decoded item mappings.
 - Produces: immutable `TrustedFundContext` used by every normalization path.
 
@@ -50,7 +52,7 @@
 
   Build it only after `RawStorage.get(object_id, checksum, size)` succeeds.
   Force manifest source/ingest/object values, use `max(payload_available,
-  manifest.available_time)`, set processing time from the collector clock, and
+manifest.available_time)`, set processing time from the collector clock, and
   reject a mismatched payload raw object ID.
 
 - [ ] **Step 4: Run GREEN and raw compatibility tests**
@@ -61,12 +63,14 @@
 ### Task 2: Replace raw rejection text with controlled diagnostics
 
 **Files:**
+
 - Modify: `services/data-worker/src/data_worker/jobs/precious_metals_funds/collector.py`
 - Modify: `services/data-worker/src/data_worker/storage/precious_metals.py`
 - Test: `services/data-worker/tests/test_precious_metals_audit_semantics.py`
 - Test: `services/data-worker/tests/test_precious_metals_postgres_adapter.py`
 
 **Interfaces:**
+
 - Consumes: failed decoded item, controlled reason code, item digest, evidence.
 - Produces: `RejectedObservation` without raw values or exception text.
 
@@ -95,12 +99,14 @@
 ### Task 3: Wire provider error taxonomy into the scheduler path
 
 **Files:**
+
 - Modify: `services/data-worker/src/data_worker/jobs/precious_metals_funds/collector.py`
 - Modify: `services/data-worker/src/data_worker/scheduler/scheduler.py` only if the existing controlled category interface is insufficient
 - Test: `services/data-worker/tests/test_precious_metals_audit_recovery.py`
 - Test: `services/data-worker/tests/test_scheduler.py`
 
 **Interfaces:**
+
 - Consumes: `ProviderTimeoutError`, `ProviderRateLimitError`,
   `ProviderUnavailableError`, `ProviderAuthError`, `ProviderNotFoundError`, and
   `ProviderDataError` from the real provider fetch call.
@@ -124,6 +130,7 @@
 ### Task 4: Make rescan replay deterministic by attempt and page ordinal
 
 **Files:**
+
 - Modify: `services/data-worker/src/data_worker/raw/manifest.py`
 - Modify: `services/data-worker/src/data_worker/raw/storage.py`
 - Modify: `services/data-worker/src/data_worker/jobs/precious_metals_funds/collector.py`
@@ -133,6 +140,7 @@
 - Test: `services/data-worker/tests/test_raw_storage.py`
 
 **Interfaces:**
+
 - Consumes: trusted `run_id`, generated `attempt_id`, zero-based
   `page_ordinal`, endpoint kind, controlled source-revision sentinel.
 - Produces: a contiguous, explicitly selected replay attempt.
@@ -160,10 +168,12 @@
 ### Task 5: Verify complete PostgreSQL migration catalog state
 
 **Files:**
+
 - Modify: `services/data-worker/src/data_worker/storage/migrations.py`
 - Test: `services/data-worker/tests/test_precious_metals_migration_audit.py`
 
 **Interfaces:**
+
 - Consumes: canonical SQL checksum and `pg_catalog` metadata.
 - Produces: exact pass/fail result for columns, constraints, foreign keys, and indexes.
 
@@ -189,11 +199,13 @@
 ### Task 6: Final documentation and acceptance matrix
 
 **Files:**
+
 - Modify: `.superpowers/sdd/2026-08-14-phase1-repair-implementation-plan/task-7-brief.md`
 - Modify: `.superpowers/sdd/2026-08-14-phase1-repair-implementation-plan/task-7-report.md`
 - Modify: `docs/development/precious-metals-fund-ingestion.md`
 
 **Interfaces:**
+
 - Consumes: actual RED/GREEN outputs from Tasks 1-5.
 - Produces: final evidence packet for independent review.
 

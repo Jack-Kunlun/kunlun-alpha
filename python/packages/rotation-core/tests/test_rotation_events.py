@@ -1,82 +1,108 @@
-"""Rotation event detection tests.
-
-Covers jitter suppression, ties (equal strength), brief overtakes, rapid
-decay, and non-repetition of the same crossover.
-"""
-
 from __future__ import annotations
 
-from rotation_core.events import SectorStrengthPoint, detect_rotation_events
+import pytest
+from rotation_core.events import (
+    ROTATION_EVENT_VERSION,
+    RotationPointConflictError,
+    SectorStrengthPoint,
+    detect_rotation_events,
+)
 
 
-def _point(timestamp: str, strengths: dict[str, float]) -> SectorStrengthPoint:
-    return SectorStrengthPoint(timestamp=timestamp, strengths=strengths)
+def _point(
+    minute: int,
+    strengths: dict[str, float],
+    *,
+    evidence: str | None = None,
+) -> SectorStrengthPoint:
+    return SectorStrengthPoint(
+        f"2026-08-13T01:{minute:02d}:00Z",
+        strengths,
+        "snapshot-v2",
+        evidence or f"point-{minute}",
+    )
 
 
-def test_jitter_is_suppressed() -> None:
-    # A leads, B briefly overtakes for 2 minutes (< min_lead_minutes), then A
-    # leads again — no crossover emitted.
-    points = [
-        _point("t1", {"A": 0.8, "B": 0.5}),
-        _point("t2", {"A": 0.6, "B": 0.7}),
-        _point("t3", {"A": 0.6, "B": 0.7}),
-        _point("t4", {"A": 0.8, "B": 0.5}),
-        _point("t5", {"A": 0.8, "B": 0.5}),
+def _crossover_points() -> list[SectorStrengthPoint]:
+    return [
+        _point(0, {"A": 0.8, "B": 0.4}),
+        _point(1, {"A": 0.8, "B": 0.4}),
+        _point(2, {"A": 0.8, "B": 0.4}),
+        _point(3, {"A": 0.4, "B": 0.9}),
+        _point(4, {"A": 0.4, "B": 0.9}),
+        _point(5, {"A": 0.4, "B": 0.9}),
     ]
-    events = detect_rotation_events(points, min_lead_minutes=3)
-    assert events == []
 
 
-def test_tie_does_not_flicker_leader() -> None:
+def test_reverse_chronological_input_is_normalized() -> None:
+    points = _crossover_points()
+    assert detect_rotation_events(points) == detect_rotation_events(list(reversed(points)))
+
+
+def test_empty_strengths_are_explicitly_skipped() -> None:
+    assert detect_rotation_events([_point(0, {})]) == []
+
+
+def test_duplicate_timestamp_is_idempotent_but_conflict_fails_closed() -> None:
+    point = _point(0, {"A": 0.8}, evidence="same")
+    assert detect_rotation_events([point, point], min_lead_minutes=1) == []
+    with pytest.raises(RotationPointConflictError):
+        detect_rotation_events(
+            [point, _point(0, {"A": 0.9}, evidence="other")],
+            min_lead_minutes=1,
+        )
+
+
+def test_tie_is_a_barrier_not_insertion_order() -> None:
     points = [
-        _point("t1", {"A": 0.5, "B": 0.5}),
-        _point("t2", {"A": 0.5, "B": 0.5}),
-        _point("t3", {"A": 0.5, "B": 0.5}),
+        _point(0, {"A": 0.5, "B": 0.5}),
+        _point(1, {"B": 0.5, "A": 0.5}),
+        _point(2, {"A": 0.5, "B": 0.5}),
     ]
-    events = detect_rotation_events(points, min_lead_minutes=2)
-    assert events == []
+    assert detect_rotation_events(points) == []
 
 
-def test_sustained_crossover_emits_event() -> None:
+def test_sustained_crossover_has_stable_identity_and_versioned_window() -> None:
+    event = detect_rotation_events(_crossover_points())[0]
+    assert event.event_type == "CROSSOVER"
+    assert event.from_sector == "A"
+    assert event.to_sector == "B"
+    assert event.version == ROTATION_EVENT_VERSION
+    assert len(event.event_id) == 64
+    assert event.evidence_start == "2026-08-13T01:00:00.000Z"
+    assert event.evidence_end == "2026-08-13T01:05:00.000Z"
+
+
+def test_overlapping_replay_windows_emit_same_event_identity() -> None:
+    points = _crossover_points()
+    first = detect_rotation_events(points)
+    second = detect_rotation_events([*points, _point(6, {"A": 0.3, "B": 0.9})])
+    assert [event.event_id for event in first] == [event.event_id for event in second]
+
+
+def test_brief_lead_between_sustained_runs_does_not_fabricate_direct_transition() -> None:
     points = [
-        _point("t1", {"A": 0.8, "B": 0.4}),
-        _point("t2", {"A": 0.8, "B": 0.4}),
-        _point("t3", {"A": 0.8, "B": 0.4}),
-        _point("t4", {"A": 0.4, "B": 0.9}),
-        _point("t5", {"A": 0.4, "B": 0.9}),
-        _point("t6", {"A": 0.4, "B": 0.9}),
+        _point(0, {"A": 0.9, "B": 0.4, "C": 0.2}),
+        _point(1, {"A": 0.9, "B": 0.4, "C": 0.2}),
+        _point(2, {"A": 0.9, "B": 0.4, "C": 0.2}),
+        _point(3, {"A": 0.2, "B": 0.3, "C": 0.9}),
+        _point(4, {"A": 0.2, "B": 0.9, "C": 0.3}),
+        _point(5, {"A": 0.2, "B": 0.9, "C": 0.3}),
+        _point(6, {"A": 0.2, "B": 0.9, "C": 0.3}),
     ]
-    events = detect_rotation_events(points, min_lead_minutes=3)
-    crossovers = [e for e in events if e.event_type == "CROSSOVER"]
-    assert len(crossovers) == 1
-    assert crossovers[0].from_sector == "A"
-    assert crossovers[0].to_sector == "B"
+    assert [
+        event for event in detect_rotation_events(points) if event.event_type == "CROSSOVER"
+    ] == []
 
 
-def test_rapid_decay_emits_event() -> None:
+def test_decay_timestamp_is_first_threshold_crossing_and_is_replay_stable() -> None:
     points = [
-        _point("t1", {"A": 0.9, "B": 0.4}),
-        _point("t2", {"A": 0.9, "B": 0.4}),
-        _point("t3", {"A": 0.9, "B": 0.4}),
-        _point("t4", {"A": 0.5, "B": 0.4}),  # A decays but stays leader
-        _point("t5", {"A": 0.5, "B": 0.4}),
-        _point("t6", {"A": 0.5, "B": 0.4}),
+        _point(0, {"A": 0.9, "B": 0.4}),
+        _point(1, {"A": 0.9, "B": 0.4}),
+        _point(2, {"A": 0.9, "B": 0.4}),
+        _point(3, {"A": 0.5, "B": 0.4}),
+        _point(4, {"A": 0.4, "B": 0.3}),
     ]
-    events = detect_rotation_events(points, min_lead_minutes=3, decay_threshold=0.3)
-    assert any(e.event_type == "DECAY" for e in events)
-
-
-def test_same_crossover_not_repeated() -> None:
-    points = [
-        _point("t1", {"A": 0.8, "B": 0.4}),
-        _point("t2", {"A": 0.8, "B": 0.4}),
-        _point("t3", {"A": 0.8, "B": 0.4}),
-        _point("t4", {"A": 0.4, "B": 0.9}),
-        _point("t5", {"A": 0.4, "B": 0.9}),
-        _point("t6", {"A": 0.4, "B": 0.9}),
-        _point("t7", {"A": 0.4, "B": 0.9}),
-        _point("t8", {"A": 0.4, "B": 0.9}),
-    ]
-    events = detect_rotation_events(points, min_lead_minutes=3)
-    crossovers = [e for e in events if e.event_type == "CROSSOVER"]
-    assert len(crossovers) == 1
+    decays = [event for event in detect_rotation_events(points) if event.event_type == "DECAY"]
+    assert len(decays) == 1
+    assert decays[0].timestamp == "2026-08-13T01:03:00.000Z"
