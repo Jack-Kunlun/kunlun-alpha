@@ -924,6 +924,167 @@ export interface Tick {
   tradeType: "MATCH" | "AUCTION" | "BLOCK";
 }
 
+export type SeatAliasSchemaVersion = "alias-v1";
+export type SeatAliasType = "OFFICIAL" | "FORMER" | "SOURCE" | "ALTERNATE";
+
+/**
+ * Immutable source/display name alias with a half-open business-validity interval.
+ */
+export interface SeatAlias {
+  schemaVersion: SeatAliasSchemaVersion;
+  aliasId: string;
+  seatId: string;
+  name: string;
+  aliasType: SeatAliasType;
+  validFrom: string;
+  /**
+   * Exclusive business-validity end; null means open-ended
+   */
+  validTo: string | null;
+  availableTime: string;
+  source: string;
+  sourceVersion: string;
+  evidenceId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+}
+
+export type SeatPerformanceSchemaVersion = "seat-performance-v1";
+
+/**
+ * Versioned seat performance snapshot. Calculation is owned by a later node.
+ */
+export interface SeatPerformance {
+  schemaVersion: SeatPerformanceSchemaVersion;
+  performanceId: string;
+  seatId: string;
+  windowStart: string;
+  windowEnd: string;
+  calculationVersion: string;
+  sampleCount: number;
+  tPlus1Return: string | null;
+  tPlus3Return: string | null;
+  tPlus5Return: string | null;
+  winRate: string | null;
+  maxDrawdown: string | null;
+  source: string;
+  sourceVersion: string;
+  evidenceId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  availableTime: string;
+}
+
+export type SeatPreferenceSchemaVersion = "seat-preference-v1";
+
+/**
+ * Versioned provenance-backed seat style preference snapshot.
+ */
+export interface SeatPreference {
+  schemaVersion: SeatPreferenceSchemaVersion;
+  preferenceId: string;
+  seatId: string;
+  validFrom: string;
+  /**
+   * Exclusive business-validity end; null means open-ended
+   */
+  validTo: string | null;
+  preferenceVersion: string;
+  /**
+   * @minItems 1
+   */
+  styleTags: [string, ...string[]];
+  confidenceBps: number;
+  source: string;
+  sourceVersion: string;
+  evidenceId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  availableTime: string;
+}
+
+export type SeatProfileSchemaVersion = "seat-profile-v1";
+export type SeatProfileSeatKind = "BROKER_BRANCH" | "INSTITUTION" | "UNKNOWN" | "OTHER";
+export type SeatProfileLineageRelation = "MERGE" | "SPLIT";
+
+/**
+ * Versioned stable seat identity profile. Display names are mutable evidence, not identity.
+ */
+export interface SeatProfile {
+  schemaVersion: SeatProfileSchemaVersion;
+  seatId: string;
+  /**
+   * Single v1 identity algorithm used to derive seatId
+   */
+  seatIdAlgorithm: "seat-id-v1";
+  /**
+   * Canonical non-display identity key: Unicode NFC, namespace:opaque segments, no whitespace
+   */
+  identityKey: string;
+  seatKind: SeatProfileSeatKind;
+  canonicalName: string | null;
+  /**
+   * Inclusive business-validity start
+   */
+  validFrom: string;
+  /**
+   * Exclusive business-validity end; null means open-ended
+   */
+  validTo: string | null;
+  availableTime: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  source: string;
+  sourceVersion: string;
+  evidenceId: string;
+  lineage: SeatLineage[];
+}
+export interface SeatLineage {
+  lineageId: string;
+  relation: SeatProfileLineageRelation;
+  /**
+   * @minItems 1
+   */
+  predecessorSeatIds: [string, ...string[]];
+  /**
+   * @minItems 1
+   */
+  successorSeatIds: [string, ...string[]];
+  effectiveAt: string;
+  source: string;
+  sourceVersion: string;
+  evidenceId: string;
+  revisionId: string;
+}
+
+export type SeatTradeSchemaVersion = "seat-trade-v1";
+
+/**
+ * Immutable public Dragon-Tiger List fact, not a broker order or account transaction.
+ */
+export interface SeatTrade {
+  schemaVersion: SeatTradeSchemaVersion;
+  tradeId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  seatId: string;
+  /**
+   * Original source seat spelling preserved as evidence
+   */
+  rawSeatName: string;
+  instrumentId: string;
+  tradeDate: string;
+  currency: "CNY";
+  buyAmount: string;
+  sellAmount: string;
+  netAmount: string;
+  source: string;
+  sourceVersion: string;
+  rawRecordId: string;
+  evidenceId: string;
+  availableTime: string;
+}
+
 /**
  * A point-in-time instrument membership interval with source version and evidence
  */

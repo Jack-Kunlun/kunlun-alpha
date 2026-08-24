@@ -94,6 +94,33 @@ from ashare_contracts.market_data_tick import Direction as Direction
 from ashare_contracts.market_data_tick import Exchange as Exchange_11
 from ashare_contracts.market_data_tick import Tick as Tick
 from ashare_contracts.market_data_tick import TradeType as TradeType
+from ashare_contracts.seat_alias import SeatAlias as SeatAlias
+from ashare_contracts.seat_alias import SeatAliasSchemaVersion as SeatAliasSchemaVersion
+from ashare_contracts.seat_alias import SeatAliasType as SeatAliasType
+from ashare_contracts.seat_performance import SeatPerformance as SeatPerformance
+from ashare_contracts.seat_performance import (
+    SeatPerformanceSchemaVersion as SeatPerformanceSchemaVersion,
+)
+from ashare_contracts.seat_preference import SeatPreference as SeatPreference
+from ashare_contracts.seat_preference import (
+    SeatPreferenceSchemaVersion as SeatPreferenceSchemaVersion,
+)
+from ashare_contracts.seat_preference import StyleTag as StyleTag
+from ashare_contracts.seat_seat_profile import PredecessorSeatId as PredecessorSeatId
+from ashare_contracts.seat_seat_profile import SeatLineage as SeatLineage
+from ashare_contracts.seat_seat_profile import SeatProfile as SeatProfile
+from ashare_contracts.seat_seat_profile import (
+    SeatProfileLineageRelation as SeatProfileLineageRelation,
+)
+from ashare_contracts.seat_seat_profile import SeatProfileSchemaVersion as SeatProfileSchemaVersion
+from ashare_contracts.seat_seat_profile import (
+    SeatProfileSeatIdAlgorithm as SeatProfileSeatIdAlgorithm,
+)
+from ashare_contracts.seat_seat_profile import SeatProfileSeatKind as SeatProfileSeatKind
+from ashare_contracts.seat_seat_profile import SuccessorSeatId as SuccessorSeatId
+from ashare_contracts.seat_trade import Currency as Currency_2
+from ashare_contracts.seat_trade import SeatTrade as SeatTrade
+from ashare_contracts.seat_trade import SeatTradeSchemaVersion as SeatTradeSchemaVersion
 from ashare_contracts.sector_sector import Alias as Alias
 from ashare_contracts.sector_sector import Kind as Kind_1
 from ashare_contracts.sector_sector import Sector as Sector
@@ -194,6 +221,25 @@ __all__ = [
     "Exchange_11",
     "Tick",
     "TradeType",
+    "SeatAlias",
+    "SeatAliasSchemaVersion",
+    "SeatAliasType",
+    "SeatPerformance",
+    "SeatPerformanceSchemaVersion",
+    "SeatPreference",
+    "SeatPreferenceSchemaVersion",
+    "StyleTag",
+    "PredecessorSeatId",
+    "SeatLineage",
+    "SeatProfile",
+    "SeatProfileLineageRelation",
+    "SeatProfileSchemaVersion",
+    "SeatProfileSeatIdAlgorithm",
+    "SeatProfileSeatKind",
+    "SuccessorSeatId",
+    "Currency_2",
+    "SeatTrade",
+    "SeatTradeSchemaVersion",
     "Alias",
     "Kind_1",
     "Sector",

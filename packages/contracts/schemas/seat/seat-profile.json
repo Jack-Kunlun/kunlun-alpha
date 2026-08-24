@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/seat/seat-profile.json",
+  "title": "SeatProfile",
+  "description": "Versioned stable seat identity profile. Display names are mutable evidence, not identity.",
+  "$comment": "Runtime-only invariants: identityKey is Unicode NFC-normalized, namespace:opaque and non-display; seatId is SHA-256(UTF-8(kunlun-seat-id-v1 + NUL + identityKey)) with the lowercase hex digest prefixed by seat-; lineage cardinality, side, interval and uniqueness rules are validated outside JSON Schema.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/SeatProfileSchemaVersion" },
+    "seatId": { "type": "string", "pattern": "^seat-[0-9a-f]{64}$" },
+    "seatIdAlgorithm": {
+      "$ref": "#/definitions/SeatProfileSeatIdAlgorithm",
+      "description": "Single v1 identity algorithm used to derive seatId"
+    },
+    "identityKey": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\s:]+(?::[^\\s:]+)+$",
+      "description": "Canonical non-display identity key: Unicode NFC, namespace:opaque segments, no whitespace",
+      "$comment": "Must not be a display name. Runtime validation rejects non-NFC input, whitespace, NUL and missing namespace/opaque segments."
+    },
+    "seatKind": { "$ref": "#/definitions/SeatProfileSeatKind" },
+    "canonicalName": { "type": ["string", "null"], "minLength": 1 },
+    "validFrom": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Inclusive business-validity start"
+    },
+    "validTo": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Exclusive business-validity end; null means open-ended"
+    },
+    "availableTime": { "type": "string", "format": "date-time" },
+    "revisionId": { "type": "string", "minLength": 1 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1 },
+    "source": { "type": "string", "minLength": 1 },
+    "sourceVersion": { "type": "string", "minLength": 1 },
+    "evidenceId": { "type": "string", "minLength": 1 },
+    "lineage": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/SeatLineage" },
+      "uniqueItems": true,
+      "$comment": "Runtime validation additionally requires unique lineage_id, effectiveAt inside the profile interval and the profile seat on the relation's correct side."
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "seatId",
+    "seatIdAlgorithm",
+    "identityKey",
+    "seatKind",
+    "canonicalName",
+    "validFrom",
+    "validTo",
+    "availableTime",
+    "revisionId",
+    "previousRevisionId",
+    "source",
+    "sourceVersion",
+    "evidenceId",
+    "lineage"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "SeatProfileSchemaVersion": {
+      "type": "string",
+      "enum": ["seat-profile-v1"]
+    },
+    "SeatProfileSeatIdAlgorithm": {
+      "type": "string",
+      "enum": ["seat-id-v1"]
+    },
+    "SeatProfileSeatKind": {
+      "type": "string",
+      "enum": ["BROKER_BRANCH", "INSTITUTION", "UNKNOWN", "OTHER"]
+    },
+    "SeatProfileLineageRelation": {
+      "type": "string",
+      "enum": ["MERGE", "SPLIT"]
+    },
+    "SeatLineage": {
+      "type": "object",
+      "$comment": "Runtime invariant: predecessorSeatIds and successorSeatIds are disjoint; MERGE has at least two predecessors and exactly one successor; SPLIT has exactly one predecessor and at least two successors; no self-loop is allowed.",
+      "properties": {
+        "lineageId": { "type": "string", "minLength": 1 },
+        "relation": { "$ref": "#/definitions/SeatProfileLineageRelation" },
+        "predecessorSeatIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^seat-[0-9a-f]{64}$" }
+        },
+        "successorSeatIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^seat-[0-9a-f]{64}$" }
+        },
+        "effectiveAt": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "minLength": 1 },
+        "sourceVersion": { "type": "string", "minLength": 1 },
+        "evidenceId": { "type": "string", "minLength": 1 },
+        "revisionId": { "type": "string", "minLength": 1 }
+      },
+      "required": [
+        "lineageId",
+        "relation",
+        "predecessorSeatIds",
+        "successorSeatIds",
+        "effectiveAt",
+        "source",
+        "sourceVersion",
+        "evidenceId",
+        "revisionId"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -56,6 +56,7 @@ extraPaths = [
     "python/packages/rotation-core/src",
     "python/packages/event-core/src",
     "python/packages/hotspot-core/src",
+    "python/packages/seat-core/src",
     "services/sample-engine/src",
     "services/data-worker/src",
     "services/intelligence-engine/src",
