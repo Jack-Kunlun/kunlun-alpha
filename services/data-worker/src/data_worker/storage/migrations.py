@@ -20,6 +20,10 @@ MIGRATION_VERSION = 1
 MIGRATION_NAME = "precious_metals_migration"
 MIGRATION_LOCK_KEY = "kunlun-alpha.schema-migrations"
 _RESOURCE_NAME = "precious_metals_migration.sql"
+SEAT_MIGRATION_VERSION = 2
+SEAT_MIGRATION_NAME = "seat_collection_migration"
+_SEAT_RESOURCE_PACKAGE = "data_worker.jobs.seats"
+_SEAT_RESOURCE_NAME = "seat_collection_migration.sql"
 
 _BASE_COLUMNS: dict[str, dict[str, tuple[str, bool]]] = {
     "tasks": {
@@ -499,6 +503,16 @@ def _migration_checksum() -> str:
     return hashlib.sha256(load_precious_metals_migration()).hexdigest()
 
 
+def load_seat_collection_migration() -> bytes:
+    """Read the canonical seat SQL from the installed package resource."""
+
+    return files(_SEAT_RESOURCE_PACKAGE).joinpath(_SEAT_RESOURCE_NAME).read_bytes()
+
+
+def _seat_migration_checksum() -> str:
+    return hashlib.sha256(load_seat_collection_migration()).hexdigest()
+
+
 # Kept as a compatibility export for existing callers; the source of truth is
 # still the packaged bytes above, never a duplicated SQL literal.
 PRECIOUS_METALS_MIGRATION = load_precious_metals_migration().decode("utf-8")
@@ -937,11 +951,249 @@ def _verify_ledger(cursor: Any, checksum: str) -> None:
         "SELECT version, name, checksum FROM data_worker_schema_migrations ORDER BY version"
     )
     rows = cursor.fetchall()
-    if len(rows) != 1:
-        raise ValueError("schema migration ledger has unexpected rows")
-    version, name, recorded_checksum = rows[0]
-    if (version, name, recorded_checksum) != (MIGRATION_VERSION, MIGRATION_NAME, checksum):
+    expected_entries = {
+        MIGRATION_VERSION: (MIGRATION_NAME, checksum),
+        SEAT_MIGRATION_VERSION: (SEAT_MIGRATION_NAME, _seat_migration_checksum()),
+    }
+    seen_versions: set[int] = set()
+    for row in rows:
+        version = int(row[0])
+        expected = expected_entries.get(version)
+        if expected is None or (str(row[1]), str(row[2])) != expected:
+            raise ValueError("schema migration ledger checksum or name drift")
+        seen_versions.add(version)
+    if MIGRATION_VERSION not in seen_versions:
         raise ValueError("schema migration ledger checksum or name drift")
+
+
+_SEAT_COLUMNS: dict[str, tuple[str, ...]] = {
+    "seat_collection_raw_records": (
+        "source",
+        "revision_id",
+        "raw_record_id",
+        "revision_key",
+        "revision_accepted",
+        "is_latest",
+        "raw_json",
+    ),
+    "seat_collection_normalized": ("trade_id", "raw_record_id", "trade_json"),
+    "seat_collection_rejected": ("raw_record_id", "reason", "rejected_json"),
+    "seat_collection_batches": (
+        "route_key",
+        "batch_id",
+        "request_fingerprint",
+        "batch_fingerprint",
+        "expected_previous_checkpoint",
+        "checkpoint_token",
+        "result_json",
+    ),
+    "seat_collection_checkpoints": (
+        "route_key",
+        "checkpoint_token",
+        "batch_id",
+        "request_fingerprint",
+        "batch_fingerprint",
+    ),
+}
+
+
+def _canonical_catalog_expression(value: object) -> str | None:
+    if value is None:
+        return None
+    return (
+        "".join(str(value).lower().split()).replace("::text", "").replace("(", "").replace(")", "")
+    )
+
+
+def _verify_seat_collection_schema(cursor: Any) -> None:
+    table_names = tuple(_SEAT_COLUMNS)
+    placeholders = ", ".join("%s" for _ in table_names)
+    cursor.execute(
+        "SELECT table_name, column_name "
+        "FROM information_schema.columns "
+        f"WHERE table_schema = current_schema() AND table_name IN ({placeholders})",
+        table_names,
+    )
+    actual = {(str(row[0]), str(row[1])) for row in cursor.fetchall()}
+    missing = {
+        (table, column)
+        for table, columns in _SEAT_COLUMNS.items()
+        for column in columns
+        if (table, column) not in actual
+    }
+    if missing:
+        table, column = sorted(missing)[0]
+        raise ValueError(f"seat schema drift: missing column {table}.{column}")
+
+    cursor.execute(
+        "SELECT table_class.relname, index_class.relname, "
+        "index_catalog.indisunique, index_catalog.indisprimary, "
+        "ARRAY("
+        "  SELECT attribute.attname "
+        "  FROM unnest(index_catalog.indkey) WITH ORDINALITY "
+        "       AS index_key(attnum, position) "
+        "  JOIN pg_attribute AS attribute "
+        "    ON attribute.attrelid = index_catalog.indrelid "
+        "   AND attribute.attnum = index_key.attnum "
+        "  WHERE index_key.position <= index_catalog.indnkeyatts "
+        "  ORDER BY index_key.position"
+        "), pg_get_expr(index_catalog.indpred, index_catalog.indrelid, TRUE) "
+        "FROM pg_index AS index_catalog "
+        "JOIN pg_class AS table_class ON table_class.oid = index_catalog.indrelid "
+        "JOIN pg_class AS index_class ON index_class.oid = index_catalog.indexrelid "
+        "JOIN pg_namespace AS namespace ON namespace.oid = table_class.relnamespace "
+        "WHERE namespace.nspname = current_schema() "
+        f"AND table_class.relname IN ({placeholders})",
+        table_names,
+    )
+    indexes = {
+        (str(row[0]), str(row[1])): (
+            bool(row[2]),
+            bool(row[3]),
+            tuple(str(column) for column in row[4]),
+            _canonical_catalog_expression(row[5]),
+        )
+        for row in cursor.fetchall()
+    }
+    expected_named_indexes = {
+        ("seat_collection_raw_records", "idx_seat_collection_raw_latest"): (
+            False,
+            False,
+            ("revision_key", "is_latest"),
+            None,
+        ),
+        ("seat_collection_raw_records", "uq_seat_collection_raw_latest"): (
+            True,
+            False,
+            ("revision_key",),
+            "is_latest=true",
+        ),
+    }
+    for identity, expected in expected_named_indexes.items():
+        if indexes.get(identity) != expected:
+            raise ValueError(f"seat schema drift: index {identity[1]} definition mismatch")
+
+    cursor.execute(
+        "SELECT source_table.relname, constraint_catalog.contype, "
+        "ARRAY("
+        "  SELECT attribute.attname "
+        "  FROM unnest(constraint_catalog.conkey) WITH ORDINALITY "
+        "       AS constraint_key(attnum, position) "
+        "  JOIN pg_attribute AS attribute "
+        "    ON attribute.attrelid = constraint_catalog.conrelid "
+        "   AND attribute.attnum = constraint_key.attnum "
+        "  ORDER BY constraint_key.position"
+        "), target_table.relname, "
+        "ARRAY("
+        "  SELECT attribute.attname "
+        "  FROM unnest(constraint_catalog.confkey) WITH ORDINALITY "
+        "       AS constraint_key(attnum, position) "
+        "  JOIN pg_attribute AS attribute "
+        "    ON attribute.attrelid = constraint_catalog.confrelid "
+        "   AND attribute.attnum = constraint_key.attnum "
+        "  ORDER BY constraint_key.position"
+        "), pg_get_constraintdef(constraint_catalog.oid, TRUE) "
+        "FROM pg_constraint AS constraint_catalog "
+        "JOIN pg_class AS source_table ON source_table.oid = constraint_catalog.conrelid "
+        "JOIN pg_namespace AS namespace ON namespace.oid = source_table.relnamespace "
+        "LEFT JOIN pg_class AS target_table ON target_table.oid = constraint_catalog.confrelid "
+        "WHERE namespace.nspname = current_schema() "
+        f"AND source_table.relname IN ({placeholders})",
+        table_names,
+    )
+    constraint_rows = cursor.fetchall()
+    constraints = {
+        (
+            str(row[0]),
+            str(row[1]),
+            tuple(str(column) for column in row[2]),
+            str(row[3]) if row[3] is not None else None,
+            tuple(str(column) for column in row[4]),
+        )
+        for row in constraint_rows
+    }
+    required_constraints = {
+        ("seat_collection_raw_records", "p", ("raw_record_id",), None, ()),
+        ("seat_collection_raw_records", "u", ("source", "revision_id"), None, ()),
+        ("seat_collection_normalized", "p", ("trade_id",), None, ()),
+        (
+            "seat_collection_normalized",
+            "f",
+            ("raw_record_id",),
+            "seat_collection_raw_records",
+            ("raw_record_id",),
+        ),
+        ("seat_collection_rejected", "p", ("raw_record_id", "reason"), None, ()),
+        (
+            "seat_collection_rejected",
+            "f",
+            ("raw_record_id",),
+            "seat_collection_raw_records",
+            ("raw_record_id",),
+        ),
+        ("seat_collection_batches", "p", ("route_key", "batch_id"), None, ()),
+        (
+            "seat_collection_batches",
+            "u",
+            ("route_key", "request_fingerprint", "batch_fingerprint"),
+            None,
+            (),
+        ),
+        ("seat_collection_checkpoints", "p", ("route_key",), None, ()),
+    }
+    missing_constraints = required_constraints - constraints
+    if missing_constraints:
+        table, kind, columns, _, _ = sorted(missing_constraints)[0]
+        raise ValueError(f"seat schema drift: missing {kind} constraint on {table}{columns}")
+
+    raw_checks = {
+        _canonical_catalog_expression(row[5])
+        for row in constraint_rows
+        if str(row[0]) == "seat_collection_raw_records" and str(row[1]) == "c"
+    }
+    if "checkraw_payload_hash~'^[0-9a-f]{64}$'" not in raw_checks:
+        raise ValueError("seat schema drift: raw payload hash check mismatch")
+    if "checkis_latest=falseorrevision_accepted=true" not in raw_checks:
+        raise ValueError("seat schema drift: latest revision check mismatch")
+
+
+def apply_seat_collection_migration(connection: Connection[Any]) -> None:
+    """Apply the seat schema as version 2 in the existing worker ledger."""
+
+    checksum = _seat_migration_checksum()
+    with connection.transaction(), connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (MIGRATION_LOCK_KEY,))
+        _verify_ledger(cursor, _migration_checksum())
+        cursor.execute(
+            "SELECT version, name, checksum FROM data_worker_schema_migrations WHERE version = %s",
+            (SEAT_MIGRATION_VERSION,),
+        )
+        rows = cursor.fetchall()
+        if rows:
+            if len(rows) != 1 or tuple(rows[0]) != (
+                SEAT_MIGRATION_VERSION,
+                SEAT_MIGRATION_NAME,
+                checksum,
+            ):
+                raise ValueError("seat migration ledger checksum or name drift")
+            _verify_seat_collection_schema(cursor)
+            return
+
+        cursor.execute(cast(Any, load_seat_collection_migration().decode("utf-8")))
+        _verify_seat_collection_schema(cursor)
+        cursor.execute(
+            "INSERT INTO data_worker_schema_migrations "
+            "(version, name, checksum, applied_at) "
+            "VALUES (%s, %s, %s, CURRENT_TIMESTAMP)",
+            (SEAT_MIGRATION_VERSION, SEAT_MIGRATION_NAME, checksum),
+        )
+
+
+def apply_data_worker_migrations(connection: Connection[Any]) -> None:
+    """Apply all registered data-worker migrations in ledger order."""
+
+    apply_precious_metals_migration(connection)
+    apply_seat_collection_migration(connection)
 
 
 def apply_precious_metals_migration(connection: Connection[Any]) -> None:
@@ -978,4 +1230,4 @@ def apply_precious_metals_migration(connection: Connection[Any]) -> None:
         _verify_fund_schema(cursor)
 
 
-run_migration = apply_precious_metals_migration
+run_migration = apply_data_worker_migrations
