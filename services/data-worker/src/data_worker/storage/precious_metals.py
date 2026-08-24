@@ -686,10 +686,10 @@ class PostgresFundStorage:
         self._now = now if callable(now) else (lambda: datetime.now(UTC))
 
     def migrate(self) -> None:
-        """Apply the additive fund schema explicitly (never on import)."""
-        from data_worker.storage.migrations import apply_precious_metals_migration
+        """Apply all registered data-worker schemas explicitly (never on import)."""
+        from data_worker.storage.migrations import apply_data_worker_migrations
 
-        apply_precious_metals_migration(self._connection)
+        apply_data_worker_migrations(self._connection)
 
     def commit_page(
         self,

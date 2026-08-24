@@ -2,7 +2,9 @@
 
 from data_worker.storage.migrations import (
     PRECIOUS_METALS_MIGRATION,
+    apply_data_worker_migrations,
     apply_precious_metals_migration,
+    apply_seat_collection_migration,
     run_migration,
 )
 from data_worker.storage.precious_metals import (
@@ -36,6 +38,8 @@ __all__ = [
     "fund_checkpoint_key",
     "StorageConflictError",
     "PRECIOUS_METALS_MIGRATION",
+    "apply_data_worker_migrations",
     "apply_precious_metals_migration",
+    "apply_seat_collection_migration",
     "run_migration",
 ]

@@ -70,14 +70,14 @@ services:
       - |
         import os
         import psycopg
-        from data_worker.storage.migrations import apply_precious_metals_migration
+        from data_worker.storage.migrations import apply_data_worker_migrations
 
         with psycopg.connect(os.environ["KUNLUN_POSTGRES_DSN"]) as connection:
-            apply_precious_metals_migration(connection)
+            apply_data_worker_migrations(connection)
         print("Data-worker PostgreSQL migration verified")
     labels:
       - "kunlun.service=data-worker-migrate"
-      - "kunlun.description=Verified Phase 1 fund schema migration"
+      - "kunlun.description=Verified data-worker schema migrations"
 
   server:
     image: kunlun-server:local
