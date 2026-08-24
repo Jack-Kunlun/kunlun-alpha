@@ -863,6 +863,92 @@ export interface KolEvidence {
   availableTime: string;
 }
 
+export type MediaTextEvidenceSchemaVersion = "kol-media-text-evidence-v1";
+export type MediaKind = "AUDIO" | "VIDEO" | "IMAGE";
+export type MediaProcessorKind = "ASR" | "OCR";
+
+/**
+ * Versioned, locator-addressable ASR/OCR text evidence derived from an authorized immutable media version. It is input to later claim extraction, never a Claim, Trade or execution fact.
+ */
+export interface KolMediaTextEvidence {
+  schemaVersion: MediaTextEvidenceSchemaVersion;
+  evidenceId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  mediaManifest: MediaManifest;
+  processorKind: MediaProcessorKind;
+  text: string;
+  language: string;
+  /**
+   * @minItems 1
+   * @maxItems 100000
+   */
+  segments: [MediaTextSegment, ...MediaTextSegment[]];
+  confidenceBps: number;
+  qualityBps: number;
+  eventTime: string | null;
+  publishTime: string;
+  ingestTime: string;
+  processingTime: string;
+  availableTime: string;
+  provenance: MediaEvidenceProvenance;
+  deleted: boolean;
+  deletedAt: string | null;
+  deletionReason: string | null;
+}
+export interface MediaManifest {
+  contentId: string;
+  contentVersion: string;
+  mediaId: string;
+  mediaVersion: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  rawSha256: string;
+  mimeType: string;
+  byteSize: number;
+  mediaKind: MediaKind;
+  source: string;
+  sourceVersion: string;
+  licenseId: string;
+  usageRestriction: string;
+  authorized: boolean;
+  inputAvailableTime: string;
+  width: number | null;
+  height: number | null;
+  durationMs: number | null;
+  deleted: boolean;
+  deletedAt: string | null;
+  deletionReason: string | null;
+}
+export interface MediaTextSegment {
+  text: string;
+  startOffset: number;
+  endOffset: number;
+  startMs: number | null;
+  endMs: number | null;
+  bbox: MediaBoundingBox | null;
+  frameIdentity?: string | null;
+  confidenceBps: number;
+  qualityBps: number;
+}
+export interface MediaBoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+export interface MediaEvidenceProvenance {
+  pipelineVersion: string;
+  processorKind: MediaProcessorKind;
+  provider: string;
+  model: string;
+  modelVersion: string;
+  promptVersion: string;
+  configurationFingerprint: string;
+  policyFingerprint: string;
+  recognitionRunId: string;
+}
+
 export type KolMentionSchemaVersion = "kol-mention-v1";
 export type KolMentionType = "INSTRUMENT" | "PERSON" | "ORGANIZATION" | "TOPIC" | "OTHER";
 

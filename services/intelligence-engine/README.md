@@ -22,6 +22,37 @@
 
 本模块不调用任何模型，也不处理队列、重试或事件落库；这些能力由 P3-N07 组合实现。
 
+## 媒体文字证据（P4-N07）
+
+`intelligence_engine.pipelines.media` 只接受已授权、不可变的 `MediaManifest`，在 `decision_time` 前先校验
+可用时间、授权和删除状态。`MediaObjectReader` 以带确定性 index、摘要和权威时间范围的 `MediaChunk` 流提供
+媒体；reader 在 recognizer 之前完成字节数和 SHA-256 preflight，校验和不匹配只产生
+`CHECKSUM_MISMATCH` 审计终态，不会调用 recognizer。仓库内只提供 fake/in-memory 端口，不连接网络、对象存储或
+ASR/OCR 供应商。
+
+完整 request/config/policy 指纹先经过 `MediaEvidenceStore` 的 claim/CAS；已提交请求不会读取媒体。
+checkpoint 显式区分 `RECOGNIZING` 与 `READY_TO_COMMIT`：每个成功 chunk 立即保存 manifest/revision、chunk
+layout、policy/config 指纹、下一个 chunk index、已完成候选和滚动前缀摘要；完整 checksum、byte count 和 layout
+验证后才保存 `READY_TO_COMMIT`（`next_chunk_index == chunk_count`）。识别失败从该 chunk 恢复，不重放成功
+前缀；提交瞬态失败只重试 CAS，不再读取媒体或调用 recognizer。生产 adapter 必须把 checkpoint CAS 映射到
+持久事务；本节点不提供数据库实现。
+
+`evidence_id` 只由稳定的 content logical identity、media logical identity、processor kind 和 evidence kind
+组成，不包含 provider、model、policy、configuration、run 或 media version；这些可变信息进入 revision、run
+和 provenance。同一媒体逻辑身份的模型或配置升级追加新 revision，`as_of` 只选择当时可见的 revision，且拒绝
+naive datetime。`availableTime` 必须严格等于
+`max(mediaManifest.inputAvailableTime, processingTime)`，adapter 不静默修正输入。
+
+VIDEO OCR 必须使用 reader 提供的稳定 `frame_identity`；重复帧在 recognizer 前去重并留下审计记录。OCR bbox
+默认是全图坐标；当 reader 提供 crop context 时，candidate 使用 crop-local 坐标，输出转换为全图坐标并重新校验
+边界。审计只保存内部生成的 SHA-256 指纹和安全状态码，不保存原始 revision/id、URL/query、异常文本、字节或
+识别全文。
+
+输出是 `KolMediaTextEvidence`：它只包含 transcript/OCR 文本、字符偏移、时间码或像素框、质量和处理 provenance，
+是 P4-N08 Claim 抽取的输入，不是 Claim、Trade、订单、成交或仓位事实。原始媒体字节不进入日志、结果或审计字段；
+append-only 审计只保留 ID、摘要、revision、状态、错误码、attempt、逻辑时间和 policy/config 指纹，禁止原始
+异常文本、URL query、全文和凭证。
+
 ## 偏移语义（核心约定）
 
 所有偏移都是**零基、左闭右开** `[start, end)` 的字符区间，单位是 **Python `str` 码点**（不是字节、不是

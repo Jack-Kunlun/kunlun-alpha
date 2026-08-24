@@ -19,6 +19,8 @@ export const KOL_CONTENT_FINGERPRINT_ALGORITHM_VERSION = "sha256-kol-content-v1"
 export const KOL_EVIDENCE_GRADE_VERSION = "evidence-grade-v1" as const;
 export const APPROVED_REVIEW_SEMANTICS = "PUBLIC_WORDING_REVIEWED_NOT_FACT_OR_EXECUTION" as const;
 export const NON_EXECUTABLE_POSITION_CLAIM = "NON_EXECUTABLE_POSITION_CLAIM" as const;
+export const KOL_MEDIA_TEXT_EVIDENCE_SCHEMA_VERSION = "kol-media-text-evidence-v1" as const;
+export const MEDIA_RECOGNITION_CANDIDATE_SCHEMA_VERSION = "media-recognition-candidate-v1" as const;
 
 const INSTANT_PATTERN = /T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 const FINGERPRINT_PATTERN = /^[0-9a-f]{64}$/;
@@ -174,6 +176,178 @@ function canonicalInstrument(value: unknown): value is string {
   }
   const parsed = parseInstrumentCode(code);
   return parsed !== null && parsed.unifiedCode === value && parsed.exchange === exchange;
+}
+
+const MEDIA_PROCESSORS = new Set(["ASR", "OCR"]);
+const MEDIA_KINDS = new Set(["AUDIO", "VIDEO", "IMAGE"]);
+const MEDIA_MIME_PREFIX: Record<string, string> = {
+  AUDIO: "audio/",
+  VIDEO: "video/",
+  IMAGE: "image/",
+};
+
+function strictInteger(value: unknown, field: string, errors: string[], min: number, max: number): number | undefined {
+  if (typeof value !== "number" || !Number.isInteger(value) || !Number.isFinite(value)) {
+    errors.push(`${field} must be an integer`);
+    return undefined;
+  }
+  if (value < min || value > max) errors.push(`${field} must be between ${min} and ${max}`);
+  return value;
+}
+
+function mediaBBox(value: unknown, field: string, errors: string[]): { x: number; y: number; width: number; height: number } | null | undefined {
+  if (value === null) return null;
+  const bbox = record(value);
+  if (bbox === null) {
+    errors.push(`${field} must be an object or null`);
+    return undefined;
+  }
+  closed(bbox, ["x", "y", "width", "height"], errors);
+  const x = strictInteger(bbox.x, `${field}.x`, errors, 0, 100000);
+  const y = strictInteger(bbox.y, `${field}.y`, errors, 0, 100000);
+  const width = strictInteger(bbox.width, `${field}.width`, errors, 1, 100000);
+  const height = strictInteger(bbox.height, `${field}.height`, errors, 1, 100000);
+  if (x === undefined || y === undefined || width === undefined || height === undefined) return undefined;
+  return { x, y, width, height };
+}
+
+function validateMediaManifest(value: unknown, errors: string[]): JsonRecord | null {
+  const manifest = record(value);
+  if (manifest === null) {
+    errors.push("mediaManifest must be an object");
+    return null;
+  }
+  closed(
+    manifest,
+    [
+      "contentId", "contentVersion", "mediaId", "mediaVersion", "revisionId", "previousRevisionId",
+      "rawSha256", "mimeType", "byteSize", "mediaKind", "source", "sourceVersion", "licenseId",
+      "usageRestriction", "authorized", "inputAvailableTime", "width", "height", "durationMs",
+      "deleted", "deletedAt", "deletionReason",
+    ],
+    errors,
+  );
+  requiredString(manifest, "contentId", errors);
+  requiredString(manifest, "contentVersion", errors);
+  requiredString(manifest, "mediaId", errors);
+  requiredString(manifest, "mediaVersion", errors);
+  revisionChain(manifest, errors);
+  const digest = requiredString(manifest, "rawSha256", errors, 64);
+  if (digest !== undefined && !FINGERPRINT_PATTERN.test(digest)) errors.push("rawSha256 must be lowercase SHA-256");
+  const mime = requiredString(manifest, "mimeType", errors, 128);
+  const kind = enumString(manifest, "mediaKind", MEDIA_KINDS, errors);
+  const mimePrefix = kind === "AUDIO" || kind === "VIDEO" || kind === "IMAGE" ? MEDIA_MIME_PREFIX[kind] : undefined;
+  if (mime !== undefined && mimePrefix !== undefined && !mime.startsWith(mimePrefix)) errors.push("mimeType does not match mediaKind");
+  strictInteger(manifest.byteSize, "byteSize", errors, 1, 1_000_000_000);
+  requiredString(manifest, "source", errors);
+  requiredString(manifest, "sourceVersion", errors);
+  requiredString(manifest, "licenseId", errors);
+  requiredString(manifest, "usageRestriction", errors, 1000);
+  if (typeof manifest.authorized !== "boolean") errors.push("authorized must be a boolean");
+  const inputAvailable = instant(manifest.inputAvailableTime, "inputAvailableTime", errors);
+  const width = manifest.width === null ? null : strictInteger(manifest.width, "width", errors, 1, 100000);
+  const height = manifest.height === null ? null : strictInteger(manifest.height, "height", errors, 1, 100000);
+  if ((width === null) !== (height === null)) errors.push("width and height must be both null or present");
+  const duration = manifest.durationMs === null ? null : strictInteger(manifest.durationMs, "durationMs", errors, 1, 864000000);
+  if (kind === "IMAGE" && (width === null || height === null)) errors.push("image media requires dimensions");
+  if ((kind === "AUDIO" || kind === "VIDEO") && duration === null) errors.push("audio/video media requires durationMs");
+  deletion(manifest, inputAvailable, errors);
+  return manifest;
+}
+
+export function validateKolMediaTextEvidencePayload(input: unknown): ValidationResult {
+  const payload = record(input);
+  if (payload === null) return result(["media evidence must be an object"]);
+  const errors: string[] = [];
+  closed(
+    payload,
+    [
+      "schemaVersion", "evidenceId", "revisionId", "previousRevisionId", "mediaManifest", "processorKind",
+      "text", "language", "segments", "confidenceBps", "qualityBps", "eventTime", "publishTime",
+      "ingestTime", "processingTime", "availableTime", "provenance", "deleted", "deletedAt", "deletionReason",
+    ],
+    errors,
+  );
+  if (payload.schemaVersion !== KOL_MEDIA_TEXT_EVIDENCE_SCHEMA_VERSION) errors.push("unsupported media evidence schema version");
+  requiredString(payload, "evidenceId", errors);
+  revisionChain(payload, errors);
+  const manifest = validateMediaManifest(payload.mediaManifest, errors);
+  const processor = enumString(payload, "processorKind", MEDIA_PROCESSORS, errors);
+  const text = requiredString(payload, "text", errors, 2_000_000);
+  const language = requiredString(payload, "language", errors, 35);
+  if (language !== undefined && !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(language)) errors.push("language must be BCP-47");
+  const confidence = strictInteger(payload.confidenceBps, "confidenceBps", errors, 0, 10000);
+  const quality = strictInteger(payload.qualityBps, "qualityBps", errors, 0, 10000);
+  optionalInstant(payload, "eventTime", errors);
+  const chain = timeChain(payload, errors);
+  if (manifest !== null && chain.available !== undefined && chain.processing !== undefined) {
+    const manifestAvailable = instant(manifest.inputAvailableTime, "inputAvailableTime", errors);
+    if (manifestAvailable !== undefined && chain.available !== Math.max(manifestAvailable, chain.processing)) errors.push("availableTime must equal max(inputAvailableTime, processingTime)");
+  }
+  deletion(payload, chain.available, errors);
+  const provenance = record(payload.provenance);
+  if (provenance === null) errors.push("provenance must be an object");
+  else {
+    closed(provenance, ["pipelineVersion", "processorKind", "provider", "model", "modelVersion", "promptVersion", "configurationFingerprint", "policyFingerprint", "recognitionRunId"], errors);
+    requiredString(provenance, "pipelineVersion", errors, 128);
+    enumString(provenance, "processorKind", MEDIA_PROCESSORS, errors);
+    requiredString(provenance, "provider", errors);
+    requiredString(provenance, "model", errors);
+    requiredString(provenance, "modelVersion", errors);
+    requiredString(provenance, "promptVersion", errors);
+    const config = requiredString(provenance, "configurationFingerprint", errors, 64);
+    if (config !== undefined && !FINGERPRINT_PATTERN.test(config)) errors.push("configurationFingerprint must be lowercase SHA-256");
+    const policy = requiredString(provenance, "policyFingerprint", errors, 64);
+    if (policy !== undefined && !FINGERPRINT_PATTERN.test(policy)) errors.push("policyFingerprint must be lowercase SHA-256");
+    requiredString(provenance, "recognitionRunId", errors);
+    if (processor !== undefined && provenance.processorKind !== processor) errors.push("provenance processorKind must match");
+  }
+  const segments = payload.segments;
+  if (!Array.isArray(segments) || segments.length === 0) errors.push("segments must be a non-empty array");
+  else if (segments.length > 100000) errors.push("segments exceeds maximum length 100000");
+  if (Array.isArray(segments) && text !== undefined && manifest !== null && processor !== undefined) {
+    for (const [index, rawSegment] of segments.entries()) {
+      const segment = record(rawSegment);
+      if (segment === null) {
+        errors.push(`segments[${index}] must be an object`);
+        continue;
+      }
+      closed(segment, ["text", "startOffset", "endOffset", "startMs", "endMs", "bbox", "frameIdentity", "confidenceBps", "qualityBps"], errors);
+      const segmentText = requiredString(segment, "text", errors, 200000);
+      const startOffset = strictInteger(segment.startOffset, `segments[${index}].startOffset`, errors, 0, 2000000);
+      const endOffset = strictInteger(segment.endOffset, `segments[${index}].endOffset`, errors, 1, 2000000);
+      if (segmentText !== undefined && startOffset !== undefined && endOffset !== undefined) {
+        const codePoints = Array.from(text);
+        if (endOffset > codePoints.length || endOffset <= startOffset || codePoints.slice(startOffset, endOffset).join("") !== segmentText) errors.push(`segments[${index}] offsets do not match text`);
+      }
+      const startMs = segment.startMs === null ? null : strictInteger(segment.startMs, `segments[${index}].startMs`, errors, 0, 864000000);
+      const endMs = segment.endMs === null ? null : strictInteger(segment.endMs, `segments[${index}].endMs`, errors, 1, 864000000);
+      if (
+        (startMs === null) !== (endMs === null)
+        || (typeof startMs === "number" && typeof endMs === "number" && endMs <= startMs)
+      ) errors.push(`segments[${index}] invalid time range`);
+      const bbox = mediaBBox(segment.bbox, `segments[${index}].bbox`, errors);
+      if (
+        segment.frameIdentity !== null
+        && segment.frameIdentity !== undefined
+        && (typeof segment.frameIdentity !== "string" || !FINGERPRINT_PATTERN.test(segment.frameIdentity))
+      ) errors.push(`segments[${index}].frameIdentity must be lowercase SHA-256`);
+      strictInteger(segment.confidenceBps, `segments[${index}].confidenceBps`, errors, 0, 10000);
+      strictInteger(segment.qualityBps, `segments[${index}].qualityBps`, errors, 0, 10000);
+      if (
+        bbox !== undefined
+        && bbox !== null
+        && typeof manifest.width === "number"
+        && typeof manifest.height === "number"
+        && (bbox.x + bbox.width > manifest.width || bbox.y + bbox.height > manifest.height)
+      ) errors.push(`segments[${index}] bbox is outside media dimensions`);
+      const kind = manifest.mediaKind;
+      if (processor === "ASR" && (kind !== "AUDIO" && kind !== "VIDEO" || startMs === null || endMs === null)) errors.push(`segments[${index}] ASR requires audio/video timecode`);
+      if (processor === "OCR" && kind === "IMAGE" && bbox === null) errors.push(`segments[${index}] image OCR requires bbox`);
+      if (processor === "OCR" && kind === "VIDEO" && startMs === null && bbox === null) errors.push(`segments[${index}] video OCR requires time or bbox`);
+    }
+  }
+  return result(errors);
 }
 
 const SHA256_K = new Uint32Array([

@@ -98,6 +98,18 @@ from ashare_contracts.kol_evidence import KolEvidenceGrade as KolEvidenceGrade
 from ashare_contracts.kol_evidence import KolEvidenceGradeVersion as KolEvidenceGradeVersion
 from ashare_contracts.kol_evidence import KolEvidenceLocatorType as KolEvidenceLocatorType
 from ashare_contracts.kol_evidence import KolEvidenceSchemaVersion as KolEvidenceSchemaVersion
+from ashare_contracts.kol_media_text_evidence import KolMediaTextEvidence as KolMediaTextEvidence
+from ashare_contracts.kol_media_text_evidence import MediaBoundingBox as MediaBoundingBox
+from ashare_contracts.kol_media_text_evidence import (
+    MediaEvidenceProvenance as MediaEvidenceProvenance,
+)
+from ashare_contracts.kol_media_text_evidence import MediaKind as MediaKind
+from ashare_contracts.kol_media_text_evidence import MediaManifest as MediaManifest
+from ashare_contracts.kol_media_text_evidence import MediaProcessorKind as MediaProcessorKind
+from ashare_contracts.kol_media_text_evidence import (
+    MediaTextEvidenceSchemaVersion as MediaTextEvidenceSchemaVersion,
+)
+from ashare_contracts.kol_media_text_evidence import MediaTextSegment as MediaTextSegment
 from ashare_contracts.kol_mention import KolMention as KolMention
 from ashare_contracts.kol_mention import KolMentionSchemaVersion as KolMentionSchemaVersion
 from ashare_contracts.kol_mention import KolMentionType as KolMentionType
@@ -253,6 +265,14 @@ __all__ = [
     "KolEvidenceGradeVersion",
     "KolEvidenceLocatorType",
     "KolEvidenceSchemaVersion",
+    "KolMediaTextEvidence",
+    "MediaBoundingBox",
+    "MediaEvidenceProvenance",
+    "MediaKind",
+    "MediaManifest",
+    "MediaProcessorKind",
+    "MediaTextEvidenceSchemaVersion",
+    "MediaTextSegment",
     "KolMention",
     "KolMentionSchemaVersion",
     "KolMentionType",

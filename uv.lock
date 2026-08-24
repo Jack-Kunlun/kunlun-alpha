@@ -330,11 +330,15 @@ name = "intelligence-engine"
 version = "0.0.0"
 source = { editable = "services/intelligence-engine" }
 dependencies = [
+    { name = "ashare-contracts" },
     { name = "event-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "event-core", editable = "python/packages/event-core" }]
+requires-dist = [
+    { name = "ashare-contracts", editable = "python/packages/ashare-contracts" },
+    { name = "event-core", editable = "python/packages/event-core" },
+]
 
 [[package]]
 name = "isort"
