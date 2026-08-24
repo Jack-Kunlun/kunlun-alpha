@@ -1,14 +1,8 @@
-"""Sector lifecycle V1.
-
-Classifies a sector into one of eight lifecycle states (startup, ferment,
-accelerate, climax, divergence, repair, ebb, freeze) using multiple metrics —
-not a single change threshold. Transitions are validated against a legal
-transition table; an illegal jump is rejected. Every transition carries a
-reason and a confidence, so replay is explainable.
-"""
+"""Versioned, evidence-preserving sector lifecycle V1."""
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from typing import Literal
 
@@ -24,10 +18,21 @@ LifecycleState = Literal[
     "EBB",
     "FREEZE",
 ]
-
 LIFECYCLE_VERSION = "lifecycle_v1"
 
-# Legal transitions. An illegal jump (e.g. FREEZE -> ACCELERATE) is rejected.
+
+@dataclass(frozen=True)
+class LifecycleConfig:
+    version: str = LIFECYCLE_VERSION
+    freeze_change: float = -0.03
+    freeze_breadth: float = 0.2
+    ebb_change: float = -0.01
+    weak_breadth: float = 0.5
+    accelerate_change: float = 0.03
+    climax_breadth: float = 0.8
+
+
+DEFAULT_CONFIG = LifecycleConfig()
 _TRANSITIONS: dict[LifecycleState, frozenset[LifecycleState]] = {
     "STARTUP": frozenset({"FERMENT", "EBB"}),
     "FERMENT": frozenset({"ACCELERATE", "EBB"}),
@@ -46,74 +51,112 @@ class IllegalTransitionError(Exception):
 
 @dataclass(frozen=True)
 class LifecycleTransition:
-    """One lifecycle transition with reason and confidence."""
-
+    transition_id: str
+    sector_id: str
+    timestamp: str
     from_state: LifecycleState
     to_state: LifecycleState
     reason: str
     confidence: float
+    lifecycle_version: str
+    snapshot_version: str
+    sample_size: int
+    freshness_seconds: int | None
+    evidence_ids: tuple[str, ...]
 
 
-def classify(snapshot: SectorSnapshot) -> LifecycleState:
-    """Classify a snapshot into a lifecycle state using multiple metrics."""
+def classify(snapshot: SectorSnapshot, config: LifecycleConfig = DEFAULT_CONFIG) -> LifecycleState:
     change = snapshot.average_change
     breadth = snapshot.breadth
-
-    if change < -0.03 and breadth < 0.2:
+    if change < config.freeze_change and breadth < config.freeze_breadth:
         return "FREEZE"
-    if change < -0.01 and breadth < 0.5:
+    if change < config.ebb_change and breadth < config.weak_breadth:
         return "EBB"
-    if change < 0 and breadth >= 0.5:
+    if change < 0 and breadth >= config.weak_breadth:
         return "DIVERGENCE"
     if change < 0:
         return "REPAIR"
-    if change < 0.03:
-        return "FERMENT" if breadth >= 0.5 else "STARTUP"
-    if breadth >= 0.8:
+    if change < config.accelerate_change:
+        return "FERMENT" if breadth >= config.weak_breadth else "STARTUP"
+    if breadth >= config.climax_breadth:
         return "CLIMAX"
     return "ACCELERATE"
 
 
-class LifecycleClassifier:
-    """Tracks a sector's lifecycle transitions across snapshots."""
+def _transition_id(
+    snapshot: SectorSnapshot,
+    from_state: LifecycleState,
+    to_state: LifecycleState,
+    config: LifecycleConfig,
+) -> str:
+    payload = "|".join(
+        (
+            config.version,
+            snapshot.version,
+            snapshot.sector_id,
+            snapshot.timestamp,
+            from_state,
+            to_state,
+        )
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-    def __init__(self, initial: LifecycleState = "STARTUP") -> None:
+
+class LifecycleClassifier:
+    def __init__(
+        self,
+        initial: LifecycleState = "STARTUP",
+        config: LifecycleConfig = DEFAULT_CONFIG,
+    ) -> None:
+        if initial not in _TRANSITIONS:
+            raise ValueError(f"unknown lifecycle state: {initial!r}")
         self._state: LifecycleState = initial
+        self._config = config
 
     @property
     def state(self) -> LifecycleState:
         return self._state
 
     def transition(self, snapshot: SectorSnapshot) -> LifecycleTransition:
-        """Advance the lifecycle based on a snapshot.
-
-        Raises :class:`IllegalTransitionError` when the classified target is
-        not reachable from the current state.
-        """
-        target = classify(snapshot)
-        if target == self._state:
-            return LifecycleTransition(self._state, target, "stable", 0.9)
-
-        legal = _TRANSITIONS.get(self._state, frozenset())
-        if target not in legal:
+        target = classify(snapshot, self._config)
+        if target != self._state and target not in _TRANSITIONS[self._state]:
             raise IllegalTransitionError(f"illegal transition {self._state} -> {target}")
-
+        previous = self._state
+        stable = target == previous
         transition = LifecycleTransition(
-            from_state=self._state,
+            transition_id=_transition_id(snapshot, previous, target, self._config),
+            sector_id=snapshot.sector_id,
+            timestamp=snapshot.timestamp,
+            from_state=previous,
             to_state=target,
-            reason=f"change={snapshot.average_change:.4f} breadth={snapshot.breadth:.4f}",
-            confidence=_confidence(self._state, target, snapshot),
+            reason=(
+                "stable"
+                if stable
+                else (
+                    f"change={snapshot.average_change:.4f} "
+                    f"breadth={snapshot.breadth:.4f} "
+                    f"speed={snapshot.speed:.4f} "
+                    f"config={self._config.version}"
+                )
+            ),
+            confidence=(
+                round(snapshot.confidence * 0.9, 6) if stable else _confidence(target, snapshot)
+            ),
+            lifecycle_version=self._config.version,
+            snapshot_version=snapshot.version,
+            sample_size=snapshot.sample_size,
+            freshness_seconds=snapshot.freshness_seconds,
+            evidence_ids=snapshot.evidence_ids,
         )
         self._state = target
         return transition
 
 
-def _confidence(
-    from_state: LifecycleState, to_state: LifecycleState, snapshot: SectorSnapshot
-) -> float:
-    # Higher confidence when the target state's defining metric is strong.
+def _confidence(to_state: LifecycleState, snapshot: SectorSnapshot) -> float:
     if to_state in ("CLIMAX", "ACCELERATE"):
-        return min(0.5 + snapshot.breadth / 2, 1.0)
-    if to_state in ("EBB", "FREEZE"):
-        return min(0.5 + (1.0 - snapshot.breadth) / 2, 1.0)
-    return 0.6
+        metric = min(0.5 + snapshot.breadth / 2, 1.0)
+    elif to_state in ("EBB", "FREEZE"):
+        metric = min(0.5 + (1.0 - snapshot.breadth) / 2, 1.0)
+    else:
+        metric = 0.6
+    return round(metric * snapshot.confidence, 6)

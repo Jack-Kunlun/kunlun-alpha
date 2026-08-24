@@ -27,7 +27,7 @@ const valid: RawContent = {
   deletedAt: null,
 };
 
-const invalid: RawContent = {
+const _invalid: RawContent = {
   ...valid,
   // @ts-expect-error RawContent must reject unknown extra fields
   unexpectedField: "forbidden",

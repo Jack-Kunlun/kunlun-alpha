@@ -12,9 +12,19 @@ const legacyComposeFile = join(repoRoot, "infra", "docker", "docker-compose.clic
 const migrationDir = join(repoRoot, "infra", "clickhouse", "migrations");
 const initDir = join(repoRoot, "infra", "docker", "init", "clickhouse");
 
-const migrationFiles = ["001_bars.sql", "002_corporate_actions.sql"];
+const migrationFiles = [
+  "001_bars.sql",
+  "002_corporate_actions.sql",
+  "003_emotion_rotation_replay.sql",
+];
 const migrationNamespace = "v2";
-const canonicalTableNames = ["bars_minute_v2", "bars_daily_v2", "corporate_actions_v2"];
+const canonicalTableNames = [
+  "bars_minute_v2",
+  "bars_daily_v2",
+  "corporate_actions_v2",
+  "emotion_snapshots_v1",
+  "sector_rotation_events_v1",
+];
 const barsColumns = {
   unified_code: "String",
   exchange: "LowCardinality(String)",
@@ -69,33 +79,87 @@ function withFingerprintMetadata(columns, expression) {
 
 const schemaExpectations = {
   "001_bars.sql": {
-    bars_minute_v2: { columns: withFingerprintMetadata(barsColumns, barRevisionFingerprintExpression), sortingKey: barsSortingKey },
-    bars_daily_v2: { columns: withFingerprintMetadata(barsColumns, barRevisionFingerprintExpression), sortingKey: barsSortingKey },
+    bars_minute_v2: {
+      columns: withFingerprintMetadata(barsColumns, barRevisionFingerprintExpression),
+      sortingKey: barsSortingKey,
+    },
+    bars_daily_v2: {
+      columns: withFingerprintMetadata(barsColumns, barRevisionFingerprintExpression),
+      sortingKey: barsSortingKey,
+    },
   },
   "002_corporate_actions.sql": {
     corporate_actions_v2: {
-      columns: withFingerprintMetadata({
-        unified_code: "String",
-        exchange: "LowCardinality(String)",
-        ex_date: "Date",
-        event_time: "DateTime64(3,'UTC')",
-        action_type: "LowCardinality(String)",
-        source: "LowCardinality(String)",
-        source_event_id: "String",
-        data_version: "LowCardinality(String)",
-        source_version: "String",
-        raw_capture_id: "String",
-        available_time: "DateTime64(3,'UTC')",
-        ingest_time: "DateTime64(3,'UTC')",
-        processing_time: "DateTime64(3,'UTC')",
-        replacement_version: "UInt64",
-        description: "String",
-        per_share_cash: "Nullable(Decimal(20,8))",
-        per_share_stock: "Nullable(Decimal(20,8))",
-        ratio: "Nullable(Decimal(20,8))",
-      }, corporateRevisionFingerprintExpression),
+      columns: withFingerprintMetadata(
+        {
+          unified_code: "String",
+          exchange: "LowCardinality(String)",
+          ex_date: "Date",
+          event_time: "DateTime64(3,'UTC')",
+          action_type: "LowCardinality(String)",
+          source: "LowCardinality(String)",
+          source_event_id: "String",
+          data_version: "LowCardinality(String)",
+          source_version: "String",
+          raw_capture_id: "String",
+          available_time: "DateTime64(3,'UTC')",
+          ingest_time: "DateTime64(3,'UTC')",
+          processing_time: "DateTime64(3,'UTC')",
+          replacement_version: "UInt64",
+          description: "String",
+          per_share_cash: "Nullable(Decimal(20,8))",
+          per_share_stock: "Nullable(Decimal(20,8))",
+          ratio: "Nullable(Decimal(20,8))",
+        },
+        corporateRevisionFingerprintExpression,
+      ),
       sortingKey:
         "unified_code,ex_date,action_type,source,source_event_id,data_version,source_version,available_time,revision_fingerprint",
+    },
+  },
+  "003_emotion_rotation_replay.sql": {
+    emotion_snapshots_v1: {
+      columns: toColumnMetadata({
+        snapshot_id: "String",
+        trading_date: "Date",
+        event_time: "DateTime64(3,'UTC')",
+        algorithm_version: "LowCardinality(String)",
+        score: "Decimal(12,8)",
+        ladder_json: "String",
+        freshness_seconds: "UInt32",
+        sample_size: "UInt32",
+        confidence: "Decimal(9,8)",
+        source_versions: "Array(String)",
+        evidence_ids: "Array(String)",
+        available_time: "DateTime64(3,'UTC')",
+        processing_time: "DateTime64(3,'UTC')",
+        replacement_version: "UInt64",
+        payload_digest: "FixedString(64)",
+      }),
+      sortingKey: "trading_date,event_time,algorithm_version,available_time,payload_digest",
+    },
+    sector_rotation_events_v1: {
+      columns: toColumnMetadata({
+        event_id: "String",
+        trading_date: "Date",
+        event_time: "DateTime64(3,'UTC')",
+        event_type: "LowCardinality(String)",
+        from_sector: "Nullable(String)",
+        to_sector: "String",
+        confidence: "Decimal(9,8)",
+        evidence_start: "DateTime64(3,'UTC')",
+        evidence_end: "DateTime64(3,'UTC')",
+        sample_size: "UInt32",
+        algorithm_version: "LowCardinality(String)",
+        source_versions: "Array(String)",
+        evidence_ids: "Array(String)",
+        available_time: "DateTime64(3,'UTC')",
+        processing_time: "DateTime64(3,'UTC')",
+        replacement_version: "UInt64",
+        payload_digest: "FixedString(64)",
+      }),
+      sortingKey:
+        "trading_date,event_time,algorithm_version,event_id,available_time,payload_digest",
     },
   },
 };
@@ -115,11 +179,11 @@ function assertDatabaseIdentifier(database) {
 }
 
 function runDockerCompose(args, input = "") {
-  const result = spawnSync(
-    "docker",
-    ["compose", "-f", composeFile, ...args],
-    { cwd: repoRoot, encoding: "utf8", input },
-  );
+  const result = spawnSync("docker", ["compose", "-f", composeFile, ...args], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    input,
+  });
   if (result.error) {
     fail(`docker compose failed to start: ${result.error.message}`);
   }
@@ -187,13 +251,17 @@ function assertComposeWiring() {
 }
 
 function assertCanonicalV2Tables() {
-  const canonicalSql = migrationFiles.map((filename) => read(join(migrationDir, filename))).join("\n");
+  const canonicalSql = migrationFiles
+    .map((filename) => read(join(migrationDir, filename)))
+    .join("\n");
   for (const table of canonicalTableNames) {
     if (!new RegExp(`CREATE TABLE IF NOT EXISTS\\s+${table}\\b`).test(canonicalSql)) {
       fail(`canonical migrations must create ${table}`);
     }
   }
-  if (/CREATE TABLE IF NOT EXISTS\s+(bars_minute|bars_daily|corporate_actions)\b/.test(canonicalSql)) {
+  if (
+    /CREATE TABLE IF NOT EXISTS\s+(bars_minute|bars_daily|corporate_actions)\b/.test(canonicalSql)
+  ) {
     fail("canonical migrations must not target legacy ClickHouse table names");
   }
 }
@@ -245,10 +313,7 @@ function withOwnedDatabase(database, operation) {
 
 function normalizeSchemaValue(value) {
   let normalized = value.replace(/\s+/g, "").replaceAll("`", "");
-  normalized = normalized.replace(
-    /isNull\(([A-Za-z_][A-Za-z0-9_]*)\)/g,
-    "$1ISNULL",
-  );
+  normalized = normalized.replace(/isNull\(([A-Za-z_][A-Za-z0-9_]*)\)/g, "$1ISNULL");
   normalized = normalized.replace(
     /CAST\(([^,]+),('?)(Decimal\(\d+,\d+\))\2\)/g,
     "CAST($1,Decimal($3))",
@@ -269,15 +334,24 @@ function validateColumnMetadata(expectedColumns, actualColumns) {
     return `column set drift: expected [${expectedNames.join(", ")}] got [${actualNames.join(", ")}]`;
   }
   for (const name of expectedNames) {
-    const expected = typeof expectedColumns[name] === "string"
-      ? { type: expectedColumns[name], defaultKind: "", defaultExpression: "", compressionCodec: "" }
-      : expectedColumns[name];
+    const expected =
+      typeof expectedColumns[name] === "string"
+        ? {
+            type: expectedColumns[name],
+            defaultKind: "",
+            defaultExpression: "",
+            compressionCodec: "",
+          }
+        : expectedColumns[name];
     const actual = actualColumns[name];
     if (normalizeSchemaValue(actual.type) !== normalizeSchemaValue(expected.type)) {
       return `${name} type drift: expected ${expected.type} got ${actual.type}`;
     }
     for (const field of ["defaultKind", "defaultExpression", "compressionCodec"]) {
-      if (normalizeOptionalSchemaValue(actual[field]) !== normalizeOptionalSchemaValue(expected[field])) {
+      if (
+        normalizeOptionalSchemaValue(actual[field]) !==
+        normalizeOptionalSchemaValue(expected[field])
+      ) {
         return `${name} ${field} drift: expected ${expected[field] || "<empty>"} got ${actual[field] || "<empty>"}`;
       }
     }
@@ -301,15 +375,30 @@ function runSelfTest() {
     fail("bar physical sorting key must end in available_time,revision_fingerprint");
   }
   const expectedColumns = toColumnMetadata(barsColumns);
-  const rogueColumns = { ...expectedColumns, rogue_column: { type: "String", defaultKind: "", defaultExpression: "", compressionCodec: "" } };
+  const rogueColumns = {
+    ...expectedColumns,
+    rogue_column: { type: "String", defaultKind: "", defaultExpression: "", compressionCodec: "" },
+  };
   const driftedColumns = {
     ...expectedColumns,
-    open: { ...expectedColumns.open, defaultKind: "DEFAULT", defaultExpression: "0", compressionCodec: "LZ4" },
+    open: {
+      ...expectedColumns.open,
+      defaultKind: "DEFAULT",
+      defaultExpression: "0",
+      compressionCodec: "LZ4",
+    },
   };
-  if (!validateColumnMetadata(expectedColumns, rogueColumns) || !validateColumnMetadata(expectedColumns, driftedColumns)) {
-    fail("schema drift fixture with rogue/default/codec metadata was accepted before metadata write");
+  if (
+    !validateColumnMetadata(expectedColumns, rogueColumns) ||
+    !validateColumnMetadata(expectedColumns, driftedColumns)
+  ) {
+    fail(
+      "schema drift fixture with rogue/default/codec metadata was accepted before metadata write",
+    );
   }
-  const canonicalSql = migrationFiles.map((filename) => read(join(migrationDir, filename))).join("\n");
+  const canonicalSql = migrationFiles
+    .map((filename) => read(join(migrationDir, filename)))
+    .join("\n");
   const jsonSerializer = ["to", "JSONString"].join("");
   if (canonicalSql.includes(jsonSerializer)) {
     fail(`canonical fingerprint must not use ${jsonSerializer}`);
@@ -320,13 +409,21 @@ function runSelfTest() {
   if (!barsSortingKey.endsWith(",available_time,revision_fingerprint")) {
     fail("revision_fingerprint must follow available_time in the physical key");
   }
-  if (!schemaExpectations["002_corporate_actions.sql"].corporate_actions_v2.sortingKey.endsWith(",available_time,revision_fingerprint")) {
+  if (
+    !schemaExpectations["002_corporate_actions.sql"].corporate_actions_v2.sortingKey.endsWith(
+      ",available_time,revision_fingerprint",
+    )
+  ) {
     fail("corporate revision_fingerprint must follow available_time in the physical key");
   }
   const normalizedCanonicalSql = normalizeSchemaValue(canonicalSql);
-  if (!normalizedCanonicalSql.includes(normalizeSchemaValue(barRevisionFingerprintExpression)) ||
-      !normalizedCanonicalSql.includes(normalizeSchemaValue(corporateRevisionFingerprintExpression))) {
-    fail("canonical revision_fingerprint expression does not match the fixed versioned serialization");
+  if (
+    !normalizedCanonicalSql.includes(normalizeSchemaValue(barRevisionFingerprintExpression)) ||
+    !normalizedCanonicalSql.includes(normalizeSchemaValue(corporateRevisionFingerprintExpression))
+  ) {
+    fail(
+      "canonical revision_fingerprint expression does not match the fixed versioned serialization",
+    );
   }
   const serverNullExpression = corporateRevisionFingerprintExpression
     .replaceAll("isNull(per_share_cash)", "per_share_cash IS NULL")
@@ -336,10 +433,16 @@ function runSelfTest() {
     ",'Decimal(20,8)'",
     ",Decimal(20,8)",
   );
-  if (normalizeSchemaValue(serverNullExpression) !== normalizeSchemaValue(corporateRevisionFingerprintExpression)) {
+  if (
+    normalizeSchemaValue(serverNullExpression) !==
+    normalizeSchemaValue(corporateRevisionFingerprintExpression)
+  ) {
     fail("schema expression normalization must equate isNull(identifier) and identifier IS NULL");
   }
-  if (normalizeSchemaValue(serverDecimalCastExpression) !== normalizeSchemaValue(corporateRevisionFingerprintExpression)) {
+  if (
+    normalizeSchemaValue(serverDecimalCastExpression) !==
+    normalizeSchemaValue(corporateRevisionFingerprintExpression)
+  ) {
     fail("schema expression normalization must equate CAST Decimal(P,S) quote forms");
   }
   const unsafeCreateClause = ["CREATE", "DATABASE", "IF", "NOT", "EXISTS"].join(" ");
@@ -349,18 +452,25 @@ function runSelfTest() {
   }
   const conflictThrowFunction = ["throw", "If"].join("");
   if (!smokeSource.includes(conflictThrowFunction)) {
-    fail(`PIT conflict reader must ${conflictThrowFunction} instead of silently dropping a conflicting identity`);
+    fail(
+      `PIT conflict reader must ${conflictThrowFunction} instead of silently dropping a conflicting identity`,
+    );
   }
   const legacyCreateProbe = ["SHOW", "CREATE", "TABLE"].join(" ");
   if (!smokeSource.includes(legacyCreateProbe)) {
-    fail(`legacy fixture verification must compare ${legacyCreateProbe} and complete column metadata`);
+    fail(
+      `legacy fixture verification must compare ${legacyCreateProbe} and complete column metadata`,
+    );
   }
   const fixtureCanonicalBarsSql = read(join(migrationDir, "001_bars.sql"));
   const fixtureRogueBarsSql = fixtureCanonicalBarsSql.replace(
     /    revision_fingerprint FixedString\(64\) MATERIALIZED/g,
     "    rogue_column String DEFAULT 'rogue' CODEC(LZ4),\n    revision_fingerprint FixedString(64) MATERIALIZED",
   );
-  if (fixtureRogueBarsSql === fixtureCanonicalBarsSql || !fixtureRogueBarsSql.includes("rogue_column")) {
+  if (
+    fixtureRogueBarsSql === fixtureCanonicalBarsSql ||
+    !fixtureRogueBarsSql.includes("rogue_column")
+  ) {
     fail("schema drift fixture did not inject its rogue column");
   }
   const compressionCodecColumn = ["compression", "codec"].join("_");
@@ -376,8 +486,12 @@ function runSelfTest() {
   try {
     runOwnedLifecycle(
       () => fail("database already exists"),
-      () => { collisionDropCalls += 1; },
-      () => { collisionFixtureCalls += 1; },
+      () => {
+        collisionDropCalls += 1;
+      },
+      () => {
+        collisionFixtureCalls += 1;
+      },
     );
   } catch (error) {
     collisionError = String(error).includes("database already exists");
@@ -397,13 +511,24 @@ function verifyMigrationSchema(database, filename) {
     );
     if (!tableRow) fail(`schema verification found no table ${table} for ${filename}`);
     let [engine, engineFull, sortingKey, partitionKey] = tableRow.split("\t");
-    if (engine !== "ReplacingMergeTree" || extractReplacingMergeTreeVersion(engineFull) !== "replacement_version") {
-      fail(`${table} engine/version is ${engineFull}, expected ReplacingMergeTree(replacement_version)`);
+    if (
+      engine !== "ReplacingMergeTree" ||
+      extractReplacingMergeTreeVersion(engineFull) !== "replacement_version"
+    ) {
+      fail(
+        `${table} engine/version is ${engineFull}, expected ReplacingMergeTree(replacement_version)`,
+      );
     }
-    if (normalizeSchemaValue(partitionKey) !== "toYYYYMM(event_time)" && table !== "corporate_actions_v2") {
+    if (
+      normalizeSchemaValue(partitionKey) !== "toYYYYMM(event_time)" &&
+      table !== "corporate_actions_v2"
+    ) {
       fail(`${table} partition key is ${partitionKey}, expected toYYYYMM(event_time)`);
     }
-    if (table === "corporate_actions_v2" && normalizeSchemaValue(partitionKey) !== "toYYYYMM(ex_date)") {
+    if (
+      table === "corporate_actions_v2" &&
+      normalizeSchemaValue(partitionKey) !== "toYYYYMM(ex_date)"
+    ) {
       fail(`${table} partition key is ${partitionKey}, expected toYYYYMM(ex_date)`);
     }
     const normalizedSortingKey = normalizeSchemaValue(sortingKey);
@@ -539,7 +664,10 @@ function waitForClickHouse() {
     );
     if (result.status === 0) return;
     const delay = Math.min(1000 * (attempt + 1), 5000);
-    spawnSync(process.platform === "win32" ? "ping" : "sleep", process.platform === "win32" ? ["-n", "2", "127.0.0.1"] : [String(delay / 1000)]);
+    spawnSync(
+      process.platform === "win32" ? "ping" : "sleep",
+      process.platform === "win32" ? ["-n", "2", "127.0.0.1"] : [String(delay / 1000)],
+    );
   }
   fail("ClickHouse did not become ready within 30 attempts");
 }
@@ -583,7 +711,13 @@ function assertLegacyTableState(database, expected, phase) {
   for (let index = 0; index < expected.length; index += 1) {
     const before = expected[index];
     const after = actual[index];
-    if (before.count !== after.count || before.marker !== after.marker || before.showCreate !== after.showCreate || before.columns !== after.columns || before.engine !== after.engine) {
+    if (
+      before.count !== after.count ||
+      before.marker !== after.marker ||
+      before.showCreate !== after.showCreate ||
+      before.columns !== after.columns ||
+      before.engine !== after.engine
+    ) {
       fail(`legacy table ${before.table} changed during ${phase}`);
     }
   }
@@ -625,13 +759,18 @@ function smoke() {
     const pitQuery = (asOf) =>
       `WITH revision_groups AS (SELECT unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version, any(close) AS close, uniqExact(revision_fingerprint) AS revision_count FROM bars_minute_v2 WHERE available_time <= toDateTime64('${asOf}', 3, 'UTC') GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version HAVING throwIf(uniqExact(revision_fingerprint) > 1, 'revision_fingerprint conflict') = 0) SELECT unified_code, interval, price_type, data_version, source, source_version, toString(argMax(close, replacement_version)), toString(argMax(replacement_version, replacement_version)) FROM revision_groups GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version HAVING max(revision_count) = 1 ORDER BY unified_code, interval, price_type, data_version, source, source_version`;
     const barConflictCount = (asOf) =>
-      query(database, `SELECT count() FROM (SELECT unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version FROM bars_minute_v2 WHERE available_time <= toDateTime64('${asOf}', 3, 'UTC') GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version HAVING uniqExact(revision_fingerprint) > 1)`);
+      query(
+        database,
+        `SELECT count() FROM (SELECT unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version FROM bars_minute_v2 WHERE available_time <= toDateTime64('${asOf}', 3, 'UTC') GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version HAVING uniqExact(revision_fingerprint) > 1)`,
+      );
     const pitAtThree = query(database, pitQuery("2026-08-13 03:00:00.000"));
     const pitRowsAtThree = pitAtThree.split(/\r?\n/).filter(Boolean);
     if (pitRowsAtThree.length !== 4) {
       fail(`PIT selection exposed ${pitRowsAtThree.length} semantic rows, expected 4`);
     }
-    const rawAtThree = pitRowsAtThree.find((row) => row.includes("\tMINUTE_1\tRAW\tbar-v1\tvendor-a\t2026-08-13\t"));
+    const rawAtThree = pitRowsAtThree.find((row) =>
+      row.includes("\tMINUTE_1\tRAW\tbar-v1\tvendor-a\t2026-08-13\t"),
+    );
     if (!rawAtThree || !rawAtThree.endsWith("\t1")) {
       fail(`PIT-before-argMax failed for the replacement row: ${rawAtThree || "missing"}`);
     }
@@ -640,9 +779,16 @@ function smoke() {
       .split(/\r?\n/)
       .find((row) => row.includes("\tMINUTE_1\tRAW\tbar-v1\tvendor-a\t2026-08-13\t"));
     if (!rawAtFive || !rawAtFive.endsWith("\t3")) {
-      fail(`replacement_version=3 did not win for the same available revision: ${rawAtFive || "missing"}`);
+      fail(
+        `replacement_version=3 did not win for the same available revision: ${rawAtFive || "missing"}`,
+      );
     }
-    const settingsMatrixBarInsert = (quoteIntegers, quoteDecimals, namedTuplesAsObjects, dateTimeOutputFormat) =>
+    const settingsMatrixBarInsert = (
+      quoteIntegers,
+      quoteDecimals,
+      namedTuplesAsObjects,
+      dateTimeOutputFormat,
+    ) =>
       query(
         database,
         `SET output_format_json_quote_64bit_integers = ${quoteIntegers}; SET output_format_json_quote_decimals = ${quoteDecimals}; SET output_format_json_named_tuples_as_objects = ${namedTuplesAsObjects}; SET date_time_output_format = '${dateTimeOutputFormat}'; INSERT INTO bars_minute_v2 (unified_code, exchange, interval, event_time, session, price_type, data_version, source, source_version, raw_capture_id, available_time, ingest_time, processing_time, replacement_version, date, open, high, low, close, volume, amount, suspended) VALUES ('600000.SH', 'SH', 'MINUTE_1', toDateTime64('2026-08-13 01:30:00.000', 3, 'UTC'), 'CONTINUOUS', 'RAW', 'bar-settings', 'vendor-a', '2026-08-13', 'raw-settings', toDateTime64('2026-08-13 06:00:00.000', 3, 'UTC'), toDateTime64('2026-08-13 05:45:00.000', 3, 'UTC'), toDateTime64('2026-08-13 06:01:00.000', 3, 'UTC'), 1, '2026-08-13', 12.0000, 12.5000, 11.8000, 12.2000, 1000, 12200.00, 0)`,
@@ -650,7 +796,12 @@ function smoke() {
     settingsMatrixBarInsert(0, 0, 0, "simple");
     settingsMatrixBarInsert(1, 1, 1, "iso");
     query(database, "OPTIMIZE TABLE bars_minute_v2 FINAL");
-    if (query(database, "SELECT uniqExact(revision_fingerprint) FROM bars_minute_v2 WHERE data_version = 'bar-settings'") !== "1") {
+    if (
+      query(
+        database,
+        "SELECT uniqExact(revision_fingerprint) FROM bars_minute_v2 WHERE data_version = 'bar-settings'",
+      ) !== "1"
+    ) {
       fail("settings-dependent bar fingerprint changed for an exact replay");
     }
     if (query(database, "SELECT count() FROM bars_minute_v2") !== "7") {
@@ -661,7 +812,12 @@ function smoke() {
       "INSERT INTO bars_minute_v2 (unified_code, exchange, interval, event_time, session, price_type, data_version, source, source_version, raw_capture_id, available_time, ingest_time, processing_time, replacement_version, date, open, high, low, close, volume, amount, suspended) VALUES ('600000.SH', 'SH', 'MINUTE_1', toDateTime64('2026-08-13 01:30:00.000', 3, 'UTC'), 'CONTINUOUS', 'RAW', 'bar-conflict', 'vendor-a', '2026-08-13', 'raw-conflict-a', toDateTime64('2026-08-13 05:00:00.000', 3, 'UTC'), toDateTime64('2026-08-13 04:45:00.000', 3, 'UTC'), toDateTime64('2026-08-13 05:01:00.000', 3, 'UTC'), 1, '2026-08-13', 11.0000, 11.5000, 10.8000, 11.2000, 1000, 11200.00, 0), ('600000.SH', 'SH', 'MINUTE_1', toDateTime64('2026-08-13 01:30:00.000', 3, 'UTC'), 'CONTINUOUS', 'RAW', 'bar-conflict', 'vendor-a', '2026-08-13', 'raw-conflict-b', toDateTime64('2026-08-13 05:00:00.000', 3, 'UTC'), toDateTime64('2026-08-13 04:45:00.000', 3, 'UTC'), toDateTime64('2026-08-13 05:01:00.000', 3, 'UTC'), 1, '2026-08-13', 11.0000, 11.7000, 10.8000, 11.4000, 1000, 11400.00, 0)",
     );
     query(database, "OPTIMIZE TABLE bars_minute_v2 FINAL");
-    if (query(database, "SELECT uniqExact(revision_fingerprint) FROM bars_minute_v2 WHERE data_version = 'bar-conflict'") !== "2") {
+    if (
+      query(
+        database,
+        "SELECT uniqExact(revision_fingerprint) FROM bars_minute_v2 WHERE data_version = 'bar-conflict'",
+      ) !== "2"
+    ) {
       fail("bar conflict fingerprints were merged or not materialized");
     }
     if (barConflictCount("2026-08-13 03:00:00.000") !== "0") {
@@ -678,7 +834,12 @@ function smoke() {
       fail("corporate-action semantic identity collapsed distinct source events");
     }
     query(database, "OPTIMIZE TABLE corporate_actions_v2 FINAL");
-    const settingsMatrixCorporateInsert = (quoteIntegers, quoteDecimals, namedTuplesAsObjects, dateTimeOutputFormat) =>
+    const settingsMatrixCorporateInsert = (
+      quoteIntegers,
+      quoteDecimals,
+      namedTuplesAsObjects,
+      dateTimeOutputFormat,
+    ) =>
       query(
         database,
         `SET output_format_json_quote_64bit_integers = ${quoteIntegers}; SET output_format_json_quote_decimals = ${quoteDecimals}; SET output_format_json_named_tuples_as_objects = ${namedTuplesAsObjects}; SET date_time_output_format = '${dateTimeOutputFormat}'; INSERT INTO corporate_actions_v2 (unified_code, exchange, ex_date, event_time, action_type, source, source_event_id, data_version, source_version, raw_capture_id, available_time, ingest_time, processing_time, replacement_version, description, per_share_cash, per_share_stock, ratio) VALUES ('600000.SH', 'SH', '2026-08-13', toDateTime64('2026-08-13 00:00:00.000', 3, 'UTC'), 'DIVIDEND', 'vendor-a', 'event-settings', 'ca-settings', '2026-08-13', 'ca-settings', toDateTime64('2026-08-13 06:00:00.000', 3, 'UTC'), toDateTime64('2026-08-13 05:45:00.000', 3, 'UTC'), toDateTime64('2026-08-13 06:01:00.000', 3, 'UTC'), 1, 'settings', 0.70, NULL, NULL)`,
@@ -686,14 +847,22 @@ function smoke() {
     settingsMatrixCorporateInsert(0, 0, 0, "simple");
     settingsMatrixCorporateInsert(1, 1, 1, "iso");
     query(database, "OPTIMIZE TABLE corporate_actions_v2 FINAL");
-    if (query(database, "SELECT uniqExact(revision_fingerprint) FROM corporate_actions_v2 WHERE source_event_id = 'event-settings'") !== "1") {
+    if (
+      query(
+        database,
+        "SELECT uniqExact(revision_fingerprint) FROM corporate_actions_v2 WHERE source_event_id = 'event-settings'",
+      ) !== "1"
+    ) {
       fail("settings-dependent corporate fingerprint changed for an exact replay");
     }
     if (query(database, "SELECT count() FROM corporate_actions_v2") !== "3") {
       fail("settings-matrix corporate replay did not collapse to one physical revision");
     }
     const corporateConflictCount = (asOf) =>
-      query(database, `SELECT count() FROM (SELECT unified_code, ex_date, action_type, source, source_event_id, data_version, source_version, replacement_version FROM corporate_actions_v2 WHERE available_time <= toDateTime64('${asOf}', 3, 'UTC') GROUP BY unified_code, ex_date, action_type, source, source_event_id, data_version, source_version, replacement_version HAVING uniqExact(revision_fingerprint) > 1)`);
+      query(
+        database,
+        `SELECT count() FROM (SELECT unified_code, ex_date, action_type, source, source_event_id, data_version, source_version, replacement_version FROM corporate_actions_v2 WHERE available_time <= toDateTime64('${asOf}', 3, 'UTC') GROUP BY unified_code, ex_date, action_type, source, source_event_id, data_version, source_version, replacement_version HAVING uniqExact(revision_fingerprint) > 1)`,
+      );
     const corporatePitQuery = (asOf) =>
       `WITH revision_groups AS (SELECT unified_code, ex_date, action_type, source, source_event_id, data_version, source_version, replacement_version, any(description) AS description, uniqExact(revision_fingerprint) AS revision_count FROM corporate_actions_v2 WHERE available_time <= toDateTime64('${asOf}', 3, 'UTC') GROUP BY unified_code, ex_date, action_type, source, source_event_id, data_version, source_version, replacement_version HAVING throwIf(uniqExact(revision_fingerprint) > 1, 'revision_fingerprint conflict') = 0) SELECT unified_code, ex_date, action_type, source_event_id, toString(argMax(description, replacement_version)) FROM revision_groups GROUP BY unified_code, ex_date, action_type, source_event_id HAVING max(revision_count) = 1 ORDER BY unified_code, ex_date, action_type, source_event_id`;
     const corporatePitAtThree = query(database, corporatePitQuery("2026-08-13 03:00:00.000"));
@@ -705,10 +874,18 @@ function smoke() {
       "INSERT INTO corporate_actions_v2 (unified_code, exchange, ex_date, event_time, action_type, source, source_event_id, data_version, source_version, raw_capture_id, available_time, ingest_time, processing_time, replacement_version, description, per_share_cash, per_share_stock, ratio) VALUES ('600000.SH', 'SH', '2026-08-13', toDateTime64('2026-08-13 00:00:00.000', 3, 'UTC'), 'DIVIDEND', 'vendor-a', 'event-conflict', 'ca-conflict', '2026-08-13', 'ca-conflict-a', toDateTime64('2026-08-13 05:00:00.000', 3, 'UTC'), toDateTime64('2026-08-13 04:45:00.000', 3, 'UTC'), toDateTime64('2026-08-13 05:01:00.000', 3, 'UTC'), 1, 'cash-a', 0.50, NULL, NULL), ('600000.SH', 'SH', '2026-08-13', toDateTime64('2026-08-13 00:00:00.000', 3, 'UTC'), 'DIVIDEND', 'vendor-a', 'event-conflict', 'ca-conflict', '2026-08-13', 'ca-conflict-b', toDateTime64('2026-08-13 05:00:00.000', 3, 'UTC'), toDateTime64('2026-08-13 04:45:00.000', 3, 'UTC'), toDateTime64('2026-08-13 05:01:00.000', 3, 'UTC'), 1, 'cash-b', 0.60, NULL, NULL)",
     );
     query(database, "OPTIMIZE TABLE corporate_actions_v2 FINAL");
-    if (query(database, "SELECT uniqExact(revision_fingerprint) FROM corporate_actions_v2 WHERE source_event_id = 'event-conflict'") !== "2") {
+    if (
+      query(
+        database,
+        "SELECT uniqExact(revision_fingerprint) FROM corporate_actions_v2 WHERE source_event_id = 'event-conflict'",
+      ) !== "2"
+    ) {
       fail("corporate-action conflict fingerprints were merged or not materialized");
     }
-    if (corporateConflictCount("2026-08-13 03:00:00.000") !== "0" || corporateConflictCount("2026-08-13 05:00:00.000") !== "1") {
+    if (
+      corporateConflictCount("2026-08-13 03:00:00.000") !== "0" ||
+      corporateConflictCount("2026-08-13 05:00:00.000") !== "1"
+    ) {
       fail("corporate-action PIT conflict availability filtering is incorrect");
     }
     const assertCorporateConflictThrows = (phase) => {
@@ -734,7 +911,9 @@ function smoke() {
     const countBeforeRestart = query(database, "SELECT count() FROM bars_minute_v2");
     const corporateCountBeforeRestart = query(database, "SELECT count() FROM corporate_actions_v2");
     if (countBeforeRestart !== "9" || corporateCountBeforeRestart !== "5") {
-      fail(`unexpected physical revision counts before restart: bars=${countBeforeRestart}, corporate=${corporateCountBeforeRestart}`);
+      fail(
+        `unexpected physical revision counts before restart: bars=${countBeforeRestart}, corporate=${corporateCountBeforeRestart}`,
+      );
     }
     const barConflictBeforeRestart = barConflictCount("2026-08-13 05:00:00.000");
     const corporateConflictBeforeRestart = corporateConflictCount("2026-08-13 05:00:00.000");
@@ -743,7 +922,10 @@ function smoke() {
     migrate(database);
     const countAfterRestart = query(database, "SELECT count() FROM bars_minute_v2");
     const corporateCountAfterRestart = query(database, "SELECT count() FROM corporate_actions_v2");
-    if (countAfterRestart !== countBeforeRestart || corporateCountAfterRestart !== corporateCountBeforeRestart) {
+    if (
+      countAfterRestart !== countBeforeRestart ||
+      corporateCountAfterRestart !== corporateCountBeforeRestart
+    ) {
       fail(`restart lost semantic rows: before=${countBeforeRestart}, after=${countAfterRestart}`);
     }
     if (query(database, pitQuery("2026-08-13 03:00:00.000")) !== pitAtThree) {
@@ -754,8 +936,10 @@ function smoke() {
     }
     assertBarConflictThrows("after restart");
     assertCorporateConflictThrows("after restart");
-    if (barConflictCount("2026-08-13 05:00:00.000") !== barConflictBeforeRestart ||
-        corporateConflictCount("2026-08-13 05:00:00.000") !== corporateConflictBeforeRestart) {
+    if (
+      barConflictCount("2026-08-13 05:00:00.000") !== barConflictBeforeRestart ||
+      corporateConflictCount("2026-08-13 05:00:00.000") !== corporateConflictBeforeRestart
+    ) {
       fail("restart changed conflict evidence");
     }
     assertLegacyTableState(database, legacyBeforeMigration, "ClickHouse restart and V2 replay");

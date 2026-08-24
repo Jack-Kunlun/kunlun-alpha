@@ -93,7 +93,7 @@ def _evidence() -> EvidenceEnvelope:
 
 def test_postgres_rejection_payload_redacts_credentials_before_sql() -> None:
     connection = FakeConnection()
-    adapter = PostgresFundStorage(connection)
+    adapter = PostgresFundStorage(cast(Any, connection))
     evidence = _evidence()
     rejected = RejectedObservation(
         record_id=evidence.record_id,
@@ -126,7 +126,7 @@ def test_postgres_rejection_payload_redacts_credentials_before_sql() -> None:
 
 def test_postgres_lease_query_is_database_time_fenced() -> None:
     connection = FakeConnection()
-    adapter = PostgresFundStorage(connection)
+    adapter = PostgresFundStorage(cast(Any, connection))
     context = LeaseContext("fund-task", "lease-token", connection.lease_expires_at)
 
     adapter.commit_page(
@@ -148,7 +148,7 @@ def test_postgres_lease_query_is_database_time_fenced() -> None:
 
 def test_postgres_rejection_non_mapping_payload_does_not_persist_raw_text() -> None:
     connection = FakeConnection()
-    adapter = PostgresFundStorage(connection)
+    adapter = PostgresFundStorage(cast(Any, connection))
     evidence = _evidence()
     rejected = RejectedObservation(
         record_id=evidence.record_id,

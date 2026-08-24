@@ -34,9 +34,9 @@ describe("DataQualityController", () => {
   });
 
   it("maps invalid filters to 400", async () => {
-    await expect(
-      controllerWith().list({ unifiedCode: "SH.600519" } as never),
-    ).rejects.toThrow(BadRequestException);
+    await expect(controllerWith().list({ unifiedCode: "SH.600519" } as never)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it("maps authorization failure to 403", async () => {

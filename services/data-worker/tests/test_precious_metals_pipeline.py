@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, datetime
 from importlib import import_module
+from typing import Any
 
 import pytest
 from data_worker.jobs.precious_metals_funds import collector as collector_module
@@ -17,7 +18,8 @@ except ImportError:
     storage_module = None
 
 
-def _require(module: object, name: str) -> object:
+def _require(module: object, name: str) -> Any:
+    """Resolve a dynamically imported test symbol at the optional-module boundary."""
     assert module is not None, "missing required pipeline module"
     value = getattr(module, name, None)
     assert value is not None, f"missing required pipeline symbol: {name}"
@@ -141,7 +143,7 @@ def test_normalization_requires_trusted_context() -> None:
 
 def test_metadata_scope_and_missing_fields_are_rejected() -> None:
     normalize = _require(collector_module, "normalize_fund_observation")
-    event, publish, ingest, available, processing = _times()
+    _event, publish, ingest, available, processing = _times()
     context = _trusted_context("metadata")
     record = {
         "unifiedCode": "518880.SH",

@@ -592,10 +592,14 @@ def generate(output_dir: Path = OUTPUT_DIR) -> None:
                 export_name = cls
             exports.append((module_name, cls, export_name))
 
-    import_lines = [
-        f"from ashare_contracts.{module_name} import {cls} as {export_name}"
-        for module_name, cls, export_name in exports
-    ]
+    import_lines: list[str] = []
+    for module_name, cls, export_name in exports:
+        import_line = f"from ashare_contracts.{module_name} import {cls} as {export_name}"
+        if len(import_line) > 100:
+            import_line = (
+                f"from ashare_contracts.{module_name} import (\n    {cls} as {export_name},\n)"
+            )
+        import_lines.append(import_line)
 
     all_content = header + "\n".join(import_lines) + "\n"
     if import_lines:

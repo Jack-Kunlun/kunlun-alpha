@@ -30,7 +30,9 @@ function isLegalDate(value: string): boolean {
   const month = Number(parts[1]);
   const day = Number(parts[2]);
   const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
 }
 
 function asNonEmptyString(value: unknown, field: string): string {
@@ -90,11 +92,16 @@ export function validateQualityQuery(input: unknown): QualityQuery {
   if (record.date !== undefined) filters.date = validateDate(record.date, "date");
   if (record.dateFrom !== undefined) filters.dateFrom = validateDate(record.dateFrom, "dateFrom");
   if (record.dateTo !== undefined) filters.dateTo = validateDate(record.dateTo, "dateTo");
-  if (filters.dateFrom !== undefined && filters.dateTo !== undefined && filters.dateFrom > filters.dateTo) {
+  if (
+    filters.dateFrom !== undefined &&
+    filters.dateTo !== undefined &&
+    filters.dateFrom > filters.dateTo
+  ) {
     throw new QualityValidationError("dateFrom must not be after dateTo");
   }
   if (record.source !== undefined) filters.source = validateSource(record.source);
-  if (record.unifiedCode !== undefined) filters.unifiedCode = validateUnifiedCode(record.unifiedCode);
+  if (record.unifiedCode !== undefined)
+    filters.unifiedCode = validateUnifiedCode(record.unifiedCode);
   if (record.kind !== undefined) filters.kind = validateKind(record.kind);
   return filters;
 }

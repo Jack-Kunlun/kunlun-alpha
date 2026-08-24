@@ -84,6 +84,7 @@ pnpm check
 
 - [端口与环境变量](reference.md) — 端口清单、环境变量、常用命令、数据重置
 - [故障排查](troubleshooting.md) — 常见问题与解决方案
+- [情绪与轮动持久化回放](emotion-rotation-replay.md) — ClickHouse、API 与 Web 回放入口
 - [AGENTS.md](../../AGENTS.md) — 仓库级 Agent 协作规范（按节点推进）
 - [架构决策记录](../../docs/adr/) — 关键架构决策
 - 完整实施手册：`../../outputs/昆仑智策项目总体规划与分阶段实施手册.docx`

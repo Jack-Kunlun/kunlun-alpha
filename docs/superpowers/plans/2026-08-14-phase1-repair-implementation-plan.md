@@ -6,16 +6,16 @@
 - Phase 1：`7/8`；整体：`7/13`。
 - 代码尚待本次提交；审计报告属于本地工作区记录，不作为本次提交内容。
 
-| Task | Status |
-| --- | --- |
-| Task 1 | `COMPLETED/PASS` |
-| Task 2 | `COMPLETED/PASS` |
-| Task 3 | `COMPLETED/PASS` |
-| Task 4 | `COMPLETED/PASS` |
-| Task 5 | `COMPLETED/PASS` |
-| Task 6 | `COMPLETED/PASS` |
-| Task 7 | `COMPLETED/PASS` |
-| Task 8–13 | `pending` |
+| Task      | Status           |
+| --------- | ---------------- |
+| Task 1    | `COMPLETED/PASS` |
+| Task 2    | `COMPLETED/PASS` |
+| Task 3    | `COMPLETED/PASS` |
+| Task 4    | `COMPLETED/PASS` |
+| Task 5    | `COMPLETED/PASS` |
+| Task 6    | `COMPLETED/PASS` |
+| Task 7    | `COMPLETED/PASS` |
+| Task 8–13 | `pending`        |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -43,6 +43,7 @@
 ### Task 1: P1-R01 统一证券代码迁移
 
 **Files:**
+
 - Modify: `packages/contracts/schemas/instrument/*.json`
 - Modify: `packages/contracts/instrument/*.json`
 - Modify: `packages/contracts/src/instrument/code-parser.ts`
@@ -52,6 +53,7 @@
 - Modify: all Phase 1/2 fixtures and tests containing the obsolete exchange-prefix form
 
 **Interfaces:**
+
 - Produces: `parseInstrumentCode("600519") -> unifiedCode "600519.SH"` and `toUnifiedCode("SH", "600519") -> "600519.SH"`.
 - Constraint: schemas use `^\\d{6}\\.(SH|SZ|BJ)$` and validate the suffix against `exchange`.
 
@@ -65,6 +67,7 @@
 ### Task 2: P1-R02 贵金属基金与点时精度契约
 
 **Files:**
+
 - Modify: `packages/contracts/schemas/funds/precious-metal-fund.json`
 - Create: `packages/contracts/schemas/funds/fund-nav.json`
 - Modify: `packages/contracts/funds/fixtures.json`
@@ -74,6 +77,7 @@
 - Modify: related TS/Python tests and generated contract files
 
 **Interfaces:**
+
 - Produces: metadata with `assetType`, `fundAssetClass: "PRECIOUS_METALS"`, `underlyingCommodity`, `tradingCurrency`, `navCurrency`, benchmark, recurring fees, effective interval, source, confidence and review status.
 - Produces: `FundNav` carrying `Decimal` NAV/iNAV plus event/publish/ingest/available/processing timestamps and raw evidence id.
 
@@ -87,12 +91,14 @@
 ### Task 3: P1-R03 原始数据采集事件与校验重放
 
 **Files:**
+
 - Modify: `services/data-worker/src/data_worker/raw/manifest.py`
 - Modify: `services/data-worker/src/data_worker/raw/storage.py`
 - Modify: `services/data-worker/src/data_worker/raw/replay.py`
 - Modify: `services/data-worker/tests/test_raw_storage.py`
 
 **Interfaces:**
+
 - Produces: content-addressed immutable object id plus a unique `capture_id` per response.
 - Manifest fields include source, sanitized request identity, response checksum, byte size, content type, ingest/available times and object id.
 
@@ -105,6 +111,7 @@
 ### Task 4: P1-R04 版本化日历与分页检查点恢复
 
 **Files:**
+
 - Modify: `services/data-worker/src/data_worker/jobs/calendars/repository.py`
 - Modify: `services/data-worker/src/data_worker/jobs/calendars/collector.py`
 - Modify: `services/data-worker/tests/test_calendar_collector.py`
@@ -113,6 +120,7 @@
 - Modify: `services/data-worker/tests/test_instrument_collector.py`
 
 **Interfaces:**
+
 - Calendar repository retrieves immutable snapshots by `version_id` and exposes a separately audited correction overlay.
 - Instrument checkpoint records exchange, next cursor, run id and partial-page state; only a fully reconciled snapshot may mark missing instruments delisted.
 
@@ -125,6 +133,7 @@
 ### Task 5: P1-R05 PostgreSQL 迁移与持久化调度
 
 **Files:**
+
 - Create: `packages/db/src/postgres-driver.ts`
 - Modify: `packages/db/src/migrations.ts`
 - Modify: `packages/db/src/index.ts`
@@ -135,6 +144,7 @@
 - Modify: scheduler tests and environment documentation
 
 **Interfaces:**
+
 - Node driver executes parameterized PostgreSQL DDL/DML in transactions and records/removes migration versions correctly.
 - Python store implements atomic lease acquisition, persistent status, attempts, next-run time, checkpoint and dead-letter detail.
 
@@ -147,6 +157,7 @@
 ### Task 6: P1-R06 ClickHouse 可执行迁移与行情版本键
 
 **Files:**
+
 - Modify: `infra/clickhouse/migrations/001_bars.sql`
 - Modify: `infra/clickhouse/migrations/002_corporate_actions.sql`
 - Modify: `infra/docker/docker-compose.yml`
@@ -156,6 +167,7 @@
 - Create: ClickHouse migration smoke test/script under `scripts/ci`
 
 **Interfaces:**
+
 - Bar identity includes instrument, interval, timestamp, price type, data version and source version as required to preserve raw and adjusted histories.
 - ReplacingMergeTree uses an explicit version column; queries select deterministic latest rows without collapsing distinct semantic series.
 
@@ -168,12 +180,14 @@
 ### Task 7: P1-R07 贵金属 metadata 与 NAV/iNAV 端到端管道
 
 **Files:**
+
 - Modify/Create: `services/data-worker/src/data_worker/jobs/precious_metals_funds/*`
 - Create: normalized persistence ports/adapters under `services/data-worker/src/data_worker/storage/`
 - Modify: `services/data-worker/tests/test_nav_collector.py`
 - Add metadata and end-to-end pipeline tests
 
 **Interfaces:**
+
 - Provider capabilities distinguish fund metadata, NAV/iNAV, benchmark metadata and fee metadata.
 - Pipeline is `Provider -> raw capture -> normalization -> validation -> deduplication -> storage -> quality event`.
 
@@ -186,6 +200,7 @@
 ### Task 8: P1-R08 数据质量 API、告警与 shadcn/ui 终端接通
 
 **Files:**
+
 - Modify: `apps/api/src/modules/data-quality/*`
 - Modify: `apps/web/src/features/data-quality/*`
 - Create: web API client/query hook and route/page files
@@ -193,6 +208,7 @@
 - Modify: API/web tests and operational docs
 
 **Interfaces:**
+
 - API reads persisted quality events and validates date/source/symbol filters.
 - Web route renders loading, empty, error, forbidden and success states and links only to a safe internal evidence endpoint.
 
@@ -205,6 +221,7 @@
 ### Task 9: P2-R01 情绪事实、乱序增量与点时样本修复
 
 **Files:**
+
 - Modify: `python/packages/emotion-core/src/emotion_core/models/limit.py`
 - Modify: `python/packages/emotion-core/src/emotion_core/limit_pool/calculator.py`
 - Modify: `python/packages/emotion-core/src/emotion_core/ladder/ladder.py`
@@ -213,6 +230,7 @@
 - Modify: corresponding emotion-core tests and emotion schemas
 
 **Interfaces:**
+
 - Prices and price-limit rounding use `Decimal` and the exchange tick-size rule.
 - Batch and incremental limit-pool APIs produce identical facts for the same data, including out-of-order arrivals, corrections, duplicate timestamps, limit-down facts, first/last seal and open counts.
 - Premium/drawdown inputs carry observation and availability times; samples unavailable at decision time are rejected.
@@ -227,6 +245,7 @@
 ### Task 10: P2-R02 板块历史、Snapshot 与生命周期修复
 
 **Files:**
+
 - Modify: `packages/contracts/schemas/sector/*`
 - Modify: `python/packages/rotation-core/src/rotation_core/taxonomy/sector.py`
 - Modify: `python/packages/rotation-core/src/rotation_core/snapshot/snapshot.py`
@@ -234,6 +253,7 @@
 - Modify: corresponding rotation-core tests and algorithm documentation
 
 **Interfaces:**
+
 - Source-priority resolution keeps non-overlapping historical membership intervals; it only resolves overlapping conflicting records at the queried point in time.
 - Snapshot accepts a taxonomy/membership resolver and decision timestamp instead of trusting a caller-supplied unversioned member list.
 - Snapshot contains change, speed, turnover, breadth, leader, strength, sample/freshness, algorithm version and evidence provenance.
@@ -249,10 +269,12 @@
 ### Task 11: P2-R03 RotationEvent 顺序、去抖与幂等修复
 
 **Files:**
+
 - Modify: `python/packages/rotation-core/src/rotation_core/events/events.py`
 - Modify: `python/packages/rotation-core/tests/test_rotation_events.py`
 
 **Interfaces:**
+
 - Input points require timezone-aware, monotonic event timestamps or are deterministically sorted/deduplicated before detection.
 - Empty strength maps create a quality issue or are explicitly skipped; they never raise `max()` errors.
 - Event identity/version makes repeated overlapping-window execution idempotent.
@@ -265,6 +287,7 @@
 ### Task 12: P2-R04 情绪与轮动持久化回放终端
 
 **Files:**
+
 - Modify: `apps/api/src/modules/emotion/*`
 - Modify/Create: emotion/rotation repository adapters and persistence schemas
 - Modify: `apps/web/src/features/market-regime/*`
@@ -273,6 +296,7 @@
 - Modify: API/web tests and runbooks
 
 **Interfaces:**
+
 - Historical and real-time endpoints share a versioned contract and both read persisted snapshots/events.
 - Queries validate trading date, algorithm version and optional sector filters.
 - UI renders loading, empty, error, forbidden and success states and shows freshness, sample size, version and evidence confidence.
@@ -286,11 +310,13 @@
 ### Task 13: P1/P2-R05 阶段退出门禁与文档收口
 
 **Files:**
+
 - Modify: relevant runbooks, contracts and Phase 1 evidence documentation
 - Create: `docs/reviews/phase1-repair-evidence.md`
 - Modify: cross-platform CI only where required by new integration checks
 
 **Interfaces:**
+
 - Produces one traceable evidence packet mapping every Phase 1/2 blocking finding to tests, commands and implementation files.
 
 - [ ] Run format check, lint, type checking, generated-contract checks, focused tests, full tests and builds.

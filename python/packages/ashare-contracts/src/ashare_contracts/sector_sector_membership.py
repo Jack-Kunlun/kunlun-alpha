@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 
 class SectorMembership(BaseModel):
@@ -16,7 +16,7 @@ class SectorMembership(BaseModel):
     """
     Instrument unified code
     """
-    sector_id: str = Field(..., alias="sectorId")
+    sector_id: str = Field(..., alias="sectorId", min_length=1)
     """
     Sector id
     """
@@ -28,7 +28,19 @@ class SectorMembership(BaseModel):
     """
     End of membership validity, null means current
     """
-    source: str
+    source: str = Field(..., min_length=1)
     """
     Data source provenance
+    """
+    source_version: str = Field(..., alias="sourceVersion", min_length=1)
+    """
+    Version of the source membership set
+    """
+    available_time: AwareDatetime = Field(..., alias="availableTime")
+    """
+    Earliest point-in-time availability
+    """
+    evidence_id: str = Field(..., alias="evidenceId", min_length=1)
+    """
+    Immutable source evidence identifier
     """

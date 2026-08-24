@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://kunlun-alpha/schemas/sector/sector-membership.json",
   "title": "SectorMembership",
-  "description": "An instrument's membership in a sector, with a validity window and source",
+  "description": "A point-in-time instrument membership interval with source version and evidence",
   "type": "object",
   "properties": {
     "unifiedCode": {
@@ -10,10 +10,7 @@
       "pattern": "^\\d{6}\\.(SH|SZ|BJ)$",
       "description": "Instrument unified code"
     },
-    "sectorId": {
-      "type": "string",
-      "description": "Sector id"
-    },
+    "sectorId": { "type": "string", "minLength": 1, "description": "Sector id" },
     "validFrom": {
       "type": "string",
       "format": "date",
@@ -24,11 +21,31 @@
       "format": "date",
       "description": "End of membership validity, null means current"
     },
-    "source": {
+    "source": { "type": "string", "minLength": 1, "description": "Data source provenance" },
+    "sourceVersion": {
       "type": "string",
-      "description": "Data source provenance"
+      "minLength": 1,
+      "description": "Version of the source membership set"
+    },
+    "availableTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Earliest point-in-time availability"
+    },
+    "evidenceId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Immutable source evidence identifier"
     }
   },
-  "required": ["unifiedCode", "sectorId", "validFrom", "source"],
+  "required": [
+    "unifiedCode",
+    "sectorId",
+    "validFrom",
+    "source",
+    "sourceVersion",
+    "availableTime",
+    "evidenceId"
+  ],
   "additionalProperties": false
 }

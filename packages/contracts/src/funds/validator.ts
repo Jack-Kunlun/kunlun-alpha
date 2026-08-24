@@ -56,12 +56,7 @@ export interface FundValidationOptions {
 
 const ASSET_TYPES: readonly string[] = ["ETF", "LOF", "FUND"];
 const COMMODITIES: readonly string[] = ["GOLD", "SILVER", "OTHER"];
-const REVIEW_STATUSES: readonly string[] = [
-  "UNREVIEWED",
-  "NEEDS_REVIEW",
-  "REVIEWED",
-  "REJECTED",
-];
+const REVIEW_STATUSES: readonly string[] = ["UNREVIEWED", "NEEDS_REVIEW", "REVIEWED", "REJECTED"];
 const UNIFIED_CODE_PATTERN = /^\d{6}\.(SH|SZ|BJ)$/;
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;
 

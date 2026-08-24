@@ -51,10 +51,13 @@ function validate(payload: JsonObject): string[] {
         }
       }
     }
-    const deletedAtType = (thenSchema["properties"] as JsonObject | undefined)?.[
-      "deletedAt"
-    ] as { type?: string } | undefined;
-    if (deletedAtType?.type === "null" && payload["deletedAt"] !== null && payload["deletedAt"] !== undefined) {
+    const deletedAtType = (thenSchema["properties"] as JsonObject | undefined)?.["deletedAt"] as
+      { type?: string } | undefined;
+    if (
+      deletedAtType?.type === "null" &&
+      payload["deletedAt"] !== null &&
+      payload["deletedAt"] !== undefined
+    ) {
       errors.push("deletedAt must be null when deleted is false");
     }
     if (
@@ -93,7 +96,9 @@ describe("RawContent schema deleted/deletedAt condition", () => {
 
   it("deleted=true with missing or null deletedAt still fails", () => {
     expect(validate({ deleted: true })).toContain("then required field: deletedAt");
-    expect(validate({ deleted: true, deletedAt: null })).toContain("then required field: deletedAt");
+    expect(validate({ deleted: true, deletedAt: null })).toContain(
+      "then required field: deletedAt",
+    );
   });
 
   it("deleted=false with a date deletedAt fails", () => {

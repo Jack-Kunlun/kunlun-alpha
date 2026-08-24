@@ -100,10 +100,14 @@ async function main() {
   for (const file of schemaFiles) {
     const schemaPath = resolve(SCHEMAS_DIR, file);
     const schema = JSON.parse(readFileSync(schemaPath, "utf-8"));
-    const ts = await compile(stripConditionalAllOf(schema), schema.title || file.replace(".json", ""), {
-      bannerComment: "",
-      style: { singleQuote: false, semi: true, tabWidth: 2, printWidth: 100 },
-    });
+    const ts = await compile(
+      stripConditionalAllOf(schema),
+      schema.title || file.replace(".json", ""),
+      {
+        bannerComment: "",
+        style: { singleQuote: false, semi: true, tabWidth: 2, printWidth: 100 },
+      },
+    );
     types.push(ts);
   }
 
@@ -138,8 +142,7 @@ async function main() {
   }
 }
 
-const isMain =
-  process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (isMain) {
   main().catch((err) => {
     console.error(err);

@@ -3,6 +3,7 @@
 The suite is skipped unless ``KUNLUN_TEST_POSTGRES_DSN`` is provided.  It uses
 an isolated schema and drops only that schema during teardown.
 """
+# pyright: reportPrivateUsage=false
 
 from __future__ import annotations
 
@@ -10,9 +11,11 @@ import hashlib
 import json
 import os
 import threading
+from collections.abc import Generator
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -35,13 +38,16 @@ from data_worker.storage import (
 )
 from data_worker.storage.precious_metals import controlled_rejection_payload
 
+PgFixture = tuple[Any, str]
+# Any is restricted to the optional psycopg driver loaded through importorskip.
+
 
 @pytest.fixture()
-def pg_connection():  # type: ignore[no-untyped-def]
+def pg_connection() -> Generator[PgFixture, None, None]:
     dsn = os.getenv("KUNLUN_TEST_POSTGRES_DSN")
     if not dsn:
         pytest.skip("KUNLUN_TEST_POSTGRES_DSN is not configured")
-    psycopg = pytest.importorskip("psycopg")
+    psycopg: Any = pytest.importorskip("psycopg")
     try:
         connection = psycopg.connect(dsn)
     except Exception as exc:  # pragma: no cover - environment dependent
@@ -131,7 +137,7 @@ def _nav(
     *,
     capture_id: str = "capture-live",
     processing_delta: timedelta = timedelta(0),
-):  # type: ignore[no-untyped-def]
+) -> Any:
     event = datetime(2026, 8, 13, 1, tzinfo=UTC)
     ingest = event + timedelta(hours=2)
     available = event + timedelta(hours=3)
@@ -177,7 +183,7 @@ def _nav(
 
 
 def _insert_task(
-    cursor,
+    cursor: Any,
     now: datetime,
     *,
     task_id: str = "fund-task",
@@ -219,7 +225,12 @@ def _safe_checkpoint(kind: str = "nav", *, task_id: str = "fund-task") -> dict[s
     }
 
 
-def _rejection_for(observation: object) -> RejectedObservation:
+def _require_checkpoint(checkpoint: dict[str, object] | None) -> dict[str, object]:
+    assert checkpoint is not None
+    return checkpoint
+
+
+def _rejection_for(observation: Any) -> RejectedObservation:
     evidence = observation.evidence
     return RejectedObservation(
         record_id=evidence.record_id,
@@ -235,7 +246,7 @@ def _observation(
     *,
     capture_id: str,
     processing_delta: timedelta = timedelta(0),
-) -> object:
+) -> Any:
     event = datetime(2026, 8, 13, 1, tzinfo=UTC)
     ingest = event + timedelta(hours=2)
     available = event + timedelta(hours=3)
@@ -318,7 +329,7 @@ def test_checkpoint_plaintext_cursor_is_rejected_before_inmemory_mutation() -> N
 
 @pytest.mark.parametrize("field", ["next_cursor", "consumed_cursors"])
 def test_checkpoint_plaintext_cursor_is_rejected_before_postgres_mutation(
-    pg_connection, field: str
+    pg_connection: PgFixture, field: str
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -327,7 +338,9 @@ def test_checkpoint_plaintext_cursor_is_rejected_before_postgres_mutation(
         _insert_task(cursor, now)
     adapter = PostgresFundStorage(connection)
     context = LeaseContext("fund-task", "lease-1", now + timedelta(minutes=5))
-    checkpoint = {field: ["secret-cursor"] if field == "consumed_cursors" else "secret-cursor"}
+    checkpoint: dict[str, object] = {
+        field: ["secret-cursor"] if field == "consumed_cursors" else "secret-cursor"
+    }
     with pytest.raises(ValueError, match="remote cursor"):
         adapter.commit_page(
             accepted=(),
@@ -342,7 +355,7 @@ def test_checkpoint_plaintext_cursor_is_rejected_before_postgres_mutation(
 
 
 def test_postgres_stored_semantics_match_inmemory_for_all_five_kinds(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -377,14 +390,14 @@ def test_postgres_stored_semantics_match_inmemory_for_all_five_kinds(
     assert metadata.observation_id == _logical_id(observations[0])
 
 
-def _logical_id(observation: object) -> str:
+def _logical_id(observation: Any) -> str:
     from data_worker.storage.precious_metals import _logical_observation_id
 
     return _logical_observation_id(observation)
 
 
 def test_postgres_same_evidence_cannot_switch_between_accepted_and_rejected(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -430,7 +443,7 @@ def test_inmemory_same_evidence_cannot_switch_between_accepted_and_rejected() ->
 
 
 def test_postgres_same_evidence_cannot_switch_from_rejected_to_accepted(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -483,7 +496,7 @@ def test_inmemory_same_evidence_cannot_switch_from_rejected_to_accepted() -> Non
 
 
 def test_postgres_same_evidence_has_one_accepted_logical_claim(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -539,7 +552,7 @@ def test_inmemory_same_evidence_has_one_accepted_logical_claim() -> None:
 
 
 def test_postgres_same_evidence_cannot_claim_a_second_accepted_kind(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -647,7 +660,7 @@ def test_quality_detail_is_value_free_and_event_fields_are_immutable_inmemory() 
         )
 
 
-def test_quality_detail_and_links_are_immutable_postgres(pg_connection) -> None:  # type: ignore[no-untyped-def]
+def test_quality_detail_and_links_are_immutable_postgres(pg_connection: PgFixture) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
     now = datetime.now(UTC)
@@ -715,7 +728,7 @@ def test_quality_detail_and_links_are_immutable_postgres(pg_connection) -> None:
 
 
 def test_same_logical_observation_different_capture_and_processing_is_idempotent(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -745,7 +758,7 @@ def test_same_logical_observation_different_capture_and_processing_is_idempotent
 
 
 def test_evidence_processing_time_is_first_write_wins_for_same_identity_postgres(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -842,10 +855,12 @@ def test_inmemory_rejection_processing_time_is_first_write_wins_and_content_is_e
             )
         assert len(storage.rejections()) == 1
         assert len(storage.evidence()) == 1
-        assert storage.get_checkpoint("default")["committed_page_count"] == 2
+        assert _require_checkpoint(storage.get_checkpoint("default"))["committed_page_count"] == 2
 
 
-def test_live_concurrent_same_evidence_changed_content_fails_closed(pg_connection) -> None:  # type: ignore[no-untyped-def]
+def test_live_concurrent_same_evidence_changed_content_fails_closed(
+    pg_connection: PgFixture,
+) -> None:  # type: ignore[no-untyped-def]
     """Two independent lease owners must not bypass exact evidence CAS."""
 
     connection, schema = pg_connection
@@ -876,7 +891,7 @@ def test_live_concurrent_same_evidence_changed_content_fails_closed(pg_connectio
             """
         )
 
-    psycopg = pytest.importorskip("psycopg")
+    psycopg: Any = pytest.importorskip("psycopg")
     dsn = os.environ["KUNLUN_TEST_POSTGRES_DSN"]
     second_connection = psycopg.connect(dsn)
     try:
@@ -937,7 +952,9 @@ def test_live_concurrent_same_evidence_changed_content_fails_closed(pg_connectio
         second_connection.close()
 
 
-def test_live_concurrent_same_evidence_equal_content_is_idempotent(pg_connection) -> None:  # type: ignore[no-untyped-def]
+def test_live_concurrent_same_evidence_equal_content_is_idempotent(
+    pg_connection: PgFixture,
+) -> None:  # type: ignore[no-untyped-def]
     """Equal concurrent retries are no-ops rather than false conflicts."""
 
     connection, schema = pg_connection
@@ -965,7 +982,7 @@ def test_live_concurrent_same_evidence_equal_content_is_idempotent(pg_connection
             """
         )
 
-    psycopg = pytest.importorskip("psycopg")
+    psycopg: Any = pytest.importorskip("psycopg")
     dsn = os.environ["KUNLUN_TEST_POSTGRES_DSN"]
     second_connection = psycopg.connect(dsn)
     try:
@@ -1021,7 +1038,7 @@ def test_live_concurrent_same_evidence_equal_content_is_idempotent(pg_connection
         second_connection.close()
 
 
-def test_live_migration_numeric_evidence_restart_and_stale_fence(pg_connection) -> None:  # type: ignore[no-untyped-def]
+def test_live_migration_numeric_evidence_restart_and_stale_fence(pg_connection: PgFixture) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
     apply_precious_metals_migration(connection)
@@ -1050,7 +1067,7 @@ def test_live_migration_numeric_evidence_restart_and_stale_fence(pg_connection) 
         )
         assert cursor.fetchone()[0] == "capture-live"
 
-    psycopg = pytest.importorskip("psycopg")
+    psycopg: Any = pytest.importorskip("psycopg")
     reopened = psycopg.connect(os.environ["KUNLUN_TEST_POSTGRES_DSN"])
     with reopened.transaction(), reopened.cursor() as cursor:
         cursor.execute(f'SET search_path TO "{_schema}"')
@@ -1088,7 +1105,7 @@ def test_live_migration_numeric_evidence_restart_and_stale_fence(pg_connection) 
 
 
 def test_live_postgres_changed_same_evidence_rolls_back_page_and_checkpoint(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -1119,10 +1136,10 @@ def test_live_postgres_changed_same_evidence_rolls_back_page_and_checkpoint(
     with connection.transaction(), connection.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM fund_nav_observations")
         assert cursor.fetchone()[0] == 1
-    assert "next_cursor" not in adapter.get_checkpoint("fund-task")
+    assert "next_cursor" not in _require_checkpoint(adapter.get_checkpoint("fund-task"))
 
 
-def test_live_postgres_reads_return_typed_domain_and_evidence(pg_connection) -> None:  # type: ignore[no-untyped-def]
+def test_live_postgres_reads_return_typed_domain_and_evidence(pg_connection: PgFixture) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
     now = datetime.now(UTC)
@@ -1145,7 +1162,7 @@ def test_live_postgres_reads_return_typed_domain_and_evidence(pg_connection) -> 
 
 
 def test_live_postgres_changed_rejection_rolls_back_page_and_checkpoint(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -1193,11 +1210,11 @@ def test_live_postgres_changed_rejection_rolls_back_page_and_checkpoint(
     with connection.transaction(), connection.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM fund_rejections")
         assert cursor.fetchone()[0] == 1
-    assert "next_cursor" not in adapter.get_checkpoint("fund-task")
+    assert "next_cursor" not in _require_checkpoint(adapter.get_checkpoint("fund-task"))
 
 
 def test_live_postgres_changed_quality_event_or_link_rolls_back_page(
-    pg_connection,
+    pg_connection: PgFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     connection, _schema = pg_connection
     apply_precious_metals_migration(connection)
@@ -1238,4 +1255,4 @@ def test_live_postgres_changed_quality_event_or_link_rolls_back_page(
             checkpoint={**_safe_checkpoint(), "committed_page_count": 2},
             context=context,
         )
-    assert "next_cursor" not in adapter.get_checkpoint("fund-task")
+    assert "next_cursor" not in _require_checkpoint(adapter.get_checkpoint("fund-task"))

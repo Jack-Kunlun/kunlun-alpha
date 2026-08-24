@@ -1,55 +1,117 @@
+import { ForbiddenException } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
+import type { MarketEmotionSnapshot, SectorRotationEvent } from "./emotion-snapshot";
+import type { EmotionAuthorizer } from "./emotion-authorizer";
+import { InMemoryEmotionRepository } from "./in-memory-emotion.repository";
+import { EmotionValidationError } from "./emotion-query";
 import { EmotionService } from "./emotion.service";
-import type { EmotionSnapshot } from "./emotion-snapshot";
 
-const snapshots: EmotionSnapshot[] = [
-  {
-    date: "2026-08-13",
-    timestamp: "2026-08-13T01:31:00.000Z",
-    score: 0.5,
-    version: "emotion_score_v1",
-    ladder: [{ board: 3, count: 2 }],
-  },
+const snapshots: MarketEmotionSnapshot[] = [
   {
     date: "2026-08-13",
     timestamp: "2026-08-13T01:30:00.000Z",
     score: 0.4,
-    version: "emotion_score_v1",
+    algorithmVersion: "emotion_score_v1",
     ladder: [{ board: 2, count: 3 }],
+    freshnessSeconds: 12,
+    sampleSize: 100,
+    confidence: 0.9,
+    sourceVersions: ["limit-v2"],
+    evidenceIds: ["snapshot-1"],
   },
   {
-    date: "2026-08-14",
-    timestamp: "2026-08-14T01:30:00.000Z",
-    score: 0.7,
-    version: "emotion_score_v1",
-    ladder: [],
+    date: "2026-08-13",
+    timestamp: "2026-08-13T01:30:00.000Z",
+    score: 0.45,
+    algorithmVersion: "emotion_score_v2",
+    ladder: [{ board: 2, count: 3 }],
+    freshnessSeconds: 10,
+    sampleSize: 101,
+    confidence: 0.91,
+    sourceVersions: ["limit-v3"],
+    evidenceIds: ["snapshot-2"],
   },
 ];
 
-describe("EmotionService", () => {
-  it("replays a trading day ordered by timestamp", () => {
-    const service = new EmotionService(snapshots);
-    const result = service.query("2026-08-13");
-    expect(result.map((s) => s.timestamp)).toEqual([
-      "2026-08-13T01:30:00.000Z",
-      "2026-08-13T01:31:00.000Z",
+const events: SectorRotationEvent[] = [
+  {
+    eventId: "a".repeat(64),
+    date: "2026-08-13",
+    eventType: "CROSSOVER",
+    fromSector: "sector-a",
+    toSector: "sector-b",
+    timestamp: "2026-08-13T01:35:00.000Z",
+    confidence: 0.8,
+    evidenceStart: "2026-08-13T01:30:00.000Z",
+    evidenceEnd: "2026-08-13T01:35:00.000Z",
+    sampleSize: 6,
+    algorithmVersion: "rotation_event_v2",
+    sourceVersions: ["snapshot-v2"],
+    evidenceIds: ["event-1"],
+  },
+];
+
+const denyAll: EmotionAuthorizer = { canAccess: () => false };
+
+function service(authorizer?: EmotionAuthorizer): EmotionService {
+  return new EmotionService(new InMemoryEmotionRepository(snapshots, events), authorizer);
+}
+
+describe("EmotionService persisted replay", () => {
+  it("queries an arbitrary historical date with coexisting versions", async () => {
+    const result = await service().snapshots({ date: "2026-08-13" });
+    expect(result.map((item) => item.algorithmVersion)).toEqual([
+      "emotion_score_v1",
+      "emotion_score_v2",
     ]);
   });
 
-  it("returns empty for an unknown date", () => {
-    const service = new EmotionService(snapshots);
-    expect(service.query("2026-08-15")).toEqual([]);
+  it("filters by algorithm version and sector", async () => {
+    const selected = await service().snapshots({
+      date: "2026-08-13",
+      algorithmVersion: "emotion_score_v2",
+    });
+    expect(selected.map((item) => item.score)).toEqual([0.45]);
+    const rotation = await service().rotationEvents({
+      date: "2026-08-13",
+      sectorId: "sector-b",
+    });
+    expect(rotation).toHaveLength(1);
   });
 
-  it("lists distinct algorithm versions", () => {
-    const service = new EmotionService(snapshots);
-    expect(service.versions()).toEqual(["emotion_score_v1"]);
+  it("validates date and rejects unknown filters", async () => {
+    await expect(service().snapshots({ date: "2026-13-40" })).rejects.toThrow(
+      EmotionValidationError,
+    );
+    await expect(service().snapshots({ date: "2026-08-13", rawSql: "DROP" })).rejects.toThrow(
+      EmotionValidationError,
+    );
   });
 
-  it("carries the algorithm version on each snapshot", () => {
-    const service = new EmotionService(snapshots);
-    for (const snapshot of service.query("2026-08-13")) {
-      expect(snapshot.version).toBe("emotion_score_v1");
-    }
+  it("lists all persisted algorithm versions", async () => {
+    await expect(service().versions()).resolves.toEqual([
+      "emotion_score_v1",
+      "emotion_score_v2",
+      "rotation_event_v2",
+    ]);
+  });
+
+  it("returns a controlled forbidden response", async () => {
+    await expect(service(denyAll).snapshots({ date: "2026-08-13" })).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it("propagates repository failure rather than fabricating empty history", async () => {
+    const repository = {
+      querySnapshots: async () => {
+        throw new Error("ClickHouse unavailable");
+      },
+      queryRotationEvents: async () => [],
+      listVersions: async () => [],
+    };
+    await expect(new EmotionService(repository).snapshots({ date: "2026-08-13" })).rejects.toThrow(
+      "ClickHouse unavailable",
+    );
   });
 });

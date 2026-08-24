@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import date
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, RootModel
 
 
 class Kind(Enum):
@@ -15,15 +15,19 @@ class Kind(Enum):
     theme = "THEME"
 
 
+class Alias(RootModel[str]):
+    root: str = Field(..., min_length=1)
+
+
 class Sector(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    sector_id: str = Field(..., alias="sectorId")
+    sector_id: str = Field(..., alias="sectorId", min_length=1)
     """
     Stable sector id
     """
-    name: str
+    name: str = Field(..., min_length=1)
     """
     Display name
     """
@@ -35,9 +39,21 @@ class Sector(BaseModel):
     """
     INDUSTRY / CONCEPT / THEME
     """
-    source: str
+    source: str = Field(..., min_length=1)
     """
     Data source provenance
+    """
+    source_version: str = Field(..., alias="sourceVersion", min_length=1)
+    """
+    Version of the source taxonomy
+    """
+    available_time: AwareDatetime = Field(..., alias="availableTime")
+    """
+    Earliest point-in-time availability
+    """
+    evidence_id: str = Field(..., alias="evidenceId", min_length=1)
+    """
+    Immutable source evidence identifier
     """
     valid_from: date = Field(..., alias="validFrom")
     """
@@ -47,7 +63,7 @@ class Sector(BaseModel):
     """
     End of validity, null means current
     """
-    aliases: list[str]
+    aliases: list[Alias]
     """
     Alternative names
     """
