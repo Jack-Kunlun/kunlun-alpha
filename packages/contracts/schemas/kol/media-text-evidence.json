@@ -1,0 +1,208 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/kol/media-text-evidence.json",
+  "title": "KolMediaTextEvidence",
+  "description": "Versioned, locator-addressable ASR/OCR text evidence derived from an authorized immutable media version. It is input to later claim extraction, never a Claim, Trade or execution fact.",
+  "$comment": "Runtime invariants: rawSha256 is verified before recognition; input media must be available, authorized and not deleted at decision time; publishTime <= ingestTime <= processingTime <= availableTime; availableTime == max(mediaManifest.inputAvailableTime, processingTime); transcript offsets are Python str code-point half-open ranges and must slice text exactly; ASR/audio/video segments require millisecond ranges; image OCR requires an in-bounds pixel bbox; video OCR must have a time range or bbox; every correction is an append-only revision; no Claim, direction, instrument, Trade, order, fill, position or review field is produced.",
+  "x-python-available-time": {
+    "field": "availableTime",
+    "maximumOf": ["mediaManifest.inputAvailableTime", "processingTime"]
+  },
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/MediaTextEvidenceSchemaVersion" },
+    "evidenceId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "revisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+    "mediaManifest": { "$ref": "#/definitions/MediaManifest" },
+    "processorKind": { "$ref": "#/definitions/MediaProcessorKind" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 2000000 },
+    "language": { "type": "string", "minLength": 2, "maxLength": 35, "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$" },
+    "segments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "items": { "$ref": "#/definitions/MediaTextSegment" }
+    },
+    "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000, "x-python-strict": true },
+    "qualityBps": { "type": "integer", "minimum": 0, "maximum": 10000, "x-python-strict": true },
+    "eventTime": { "type": ["string", "null"], "format": "date-time" },
+    "publishTime": { "type": "string", "format": "date-time" },
+    "ingestTime": { "type": "string", "format": "date-time" },
+    "processingTime": { "type": "string", "format": "date-time" },
+    "availableTime": { "type": "string", "format": "date-time" },
+    "provenance": { "$ref": "#/definitions/MediaEvidenceProvenance" },
+    "deleted": { "type": "boolean", "x-python-strict": true },
+    "deletedAt": { "type": ["string", "null"], "format": "date-time" },
+    "deletionReason": { "type": ["string", "null"], "minLength": 1, "maxLength": 1000 }
+  },
+  "required": [
+    "schemaVersion",
+    "evidenceId",
+    "revisionId",
+    "previousRevisionId",
+    "mediaManifest",
+    "processorKind",
+    "text",
+    "language",
+    "segments",
+    "confidenceBps",
+    "qualityBps",
+    "eventTime",
+    "publishTime",
+    "ingestTime",
+    "processingTime",
+    "availableTime",
+    "provenance",
+    "deleted",
+    "deletedAt",
+    "deletionReason"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "MediaTextEvidenceSchemaVersion": {
+      "type": "string",
+      "enum": ["kol-media-text-evidence-v1"]
+    },
+    "MediaProcessorKind": {
+      "type": "string",
+      "enum": ["ASR", "OCR"]
+    },
+    "MediaKind": {
+      "type": "string",
+      "enum": ["AUDIO", "VIDEO", "IMAGE"]
+    },
+    "MediaManifest": {
+      "type": "object",
+      "properties": {
+        "contentId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "contentVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "mediaId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "mediaVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "revisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "previousRevisionId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+        "rawSha256": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+        "mimeType": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z]+/[a-z0-9.+-]+$" },
+        "byteSize": { "type": "integer", "minimum": 1, "maximum": 1000000000, "x-python-strict": true },
+        "mediaKind": { "$ref": "#/definitions/MediaKind" },
+        "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "licenseId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "usageRestriction": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "authorized": { "type": "boolean", "x-python-strict": true },
+        "inputAvailableTime": { "type": "string", "format": "date-time" },
+        "width": { "type": ["integer", "null"], "minimum": 1, "maximum": 100000, "x-python-strict": true },
+        "height": { "type": ["integer", "null"], "minimum": 1, "maximum": 100000, "x-python-strict": true },
+        "durationMs": { "type": ["integer", "null"], "minimum": 1, "maximum": 864000000, "x-python-strict": true },
+        "deleted": { "type": "boolean", "x-python-strict": true },
+        "deletedAt": { "type": ["string", "null"], "format": "date-time" },
+        "deletionReason": { "type": ["string", "null"], "minLength": 1, "maxLength": 1000 }
+      },
+      "required": [
+        "contentId",
+        "contentVersion",
+        "mediaId",
+        "mediaVersion",
+        "revisionId",
+        "previousRevisionId",
+        "rawSha256",
+        "mimeType",
+        "byteSize",
+        "mediaKind",
+        "source",
+        "sourceVersion",
+        "licenseId",
+        "usageRestriction",
+        "authorized",
+        "inputAvailableTime",
+        "width",
+        "height",
+        "durationMs",
+        "deleted",
+        "deletedAt",
+        "deletionReason"
+      ],
+      "additionalProperties": false
+    },
+    "MediaBoundingBox": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "minimum": 0, "maximum": 100000, "x-python-strict": true },
+        "y": { "type": "integer", "minimum": 0, "maximum": 100000, "x-python-strict": true },
+        "width": { "type": "integer", "minimum": 1, "maximum": 100000, "x-python-strict": true },
+        "height": { "type": "integer", "minimum": 1, "maximum": 100000, "x-python-strict": true }
+      },
+      "required": ["x", "y", "width", "height"],
+      "additionalProperties": false
+    },
+    "MediaTextSegment": {
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 200000 },
+        "startOffset": { "type": "integer", "minimum": 0, "maximum": 2000000, "x-python-strict": true },
+        "endOffset": { "type": "integer", "minimum": 1, "maximum": 2000000, "x-python-strict": true },
+        "startMs": { "type": ["integer", "null"], "minimum": 0, "maximum": 864000000, "x-python-strict": true },
+        "endMs": { "type": ["integer", "null"], "minimum": 1, "maximum": 864000000, "x-python-strict": true },
+        "bbox": { "anyOf": [{ "$ref": "#/definitions/MediaBoundingBox" }, { "type": "null" }] },
+        "frameIdentity": { "type": ["string", "null"], "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+        "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000, "x-python-strict": true },
+        "qualityBps": { "type": "integer", "minimum": 0, "maximum": 10000, "x-python-strict": true }
+      },
+      "required": [
+        "text",
+        "startOffset",
+        "endOffset",
+        "startMs",
+        "endMs",
+        "bbox",
+        "confidenceBps",
+        "qualityBps"
+      ],
+      "additionalProperties": false
+    },
+    "MediaEvidenceProvenance": {
+      "type": "object",
+      "properties": {
+        "pipelineVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "processorKind": { "$ref": "#/definitions/MediaProcessorKind" },
+        "provider": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "model": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "modelVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "promptVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "configurationFingerprint": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+        "policyFingerprint": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+        "recognitionRunId": { "type": "string", "minLength": 1, "maxLength": 256 }
+      },
+      "required": [
+        "pipelineVersion",
+        "processorKind",
+        "provider",
+        "model",
+        "modelVersion",
+        "promptVersion",
+        "configurationFingerprint",
+        "policyFingerprint",
+        "recognitionRunId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "deleted": { "const": true } } },
+      "then": {
+        "required": ["deletedAt", "deletionReason"],
+        "properties": {
+          "deletedAt": { "type": "string", "format": "date-time" },
+          "deletionReason": { "type": "string", "minLength": 1, "maxLength": 1000 }
+        }
+      },
+      "else": {
+        "properties": {
+          "deletedAt": { "type": "null" },
+          "deletionReason": { "type": "null" }
+        }
+      }
+    }
+  ]
+}

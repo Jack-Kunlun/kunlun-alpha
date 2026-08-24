@@ -303,7 +303,11 @@ def _collect_strict_bool_fields(schema: JsonObject) -> dict[str, set[str]]:
 
     def add_model(model_name: str, props: JsonObject) -> None:
         for name, prop in props.items():
-            if isinstance(prop, dict) and prop.get("x-python-strict") is True:
+            if (
+                isinstance(prop, dict)
+                and prop.get("x-python-strict") is True
+                and prop.get("type") == "boolean"
+            ):
                 result.setdefault(model_name, set()).add(_snake_case(name))
 
     props = schema.get("properties")
@@ -361,6 +365,55 @@ def inject_strict_bool(schema_file: Path, generated_file: Path) -> None:
             block = block.replace(old, new, 1)
         content = content[:start] + block + content[end:]
     content = ensure_pydantic_imports(content, ("StrictBool",))
+    generated_file.write_text(content, encoding="utf-8", newline="\n")
+
+
+def inject_strict_int(schema_file: Path, generated_file: Path) -> None:
+    """Use StrictInt for integer fields marked x-python-strict."""
+    schema = json.loads(schema_file.read_text(encoding="utf-8"))
+    strict_by_model: dict[str, set[str]] = {}
+
+    def add_model(model_name: str, props: JsonObject) -> None:
+        for name, prop in props.items():
+            if not isinstance(prop, dict) or prop.get("x-python-strict") is not True:
+                continue
+            prop_type = prop.get("type")
+            if prop_type == "integer" or (isinstance(prop_type, list) and "integer" in prop_type):
+                strict_by_model.setdefault(model_name, set()).add(_snake_case(name))
+
+    props = schema.get("properties")
+    title = schema.get("title")
+    if isinstance(props, dict) and isinstance(title, str):
+        add_model(title, props)
+    definitions = schema.get("definitions")
+    if isinstance(definitions, dict):
+        for def_name, definition in definitions.items():
+            if isinstance(definition, dict) and isinstance(definition.get("properties"), dict):
+                add_model(def_name, definition["properties"])
+    if not strict_by_model:
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    for model_name, fields in sorted(strict_by_model.items()):
+        class_marker = f"class {model_name}(BaseModel):\n"
+        start = content.find(class_marker)
+        if start == -1:
+            raise RuntimeError(
+                f"Generated output changed; cannot find class {model_name} for StrictInt"
+            )
+        next_class = content.find("\nclass ", start + len(class_marker))
+        end = next_class if next_class != -1 else len(content)
+        block = content[start:end]
+        for field_name in sorted(fields):
+            pattern = re.compile(rf"(^    {re.escape(field_name)}: )int( \| None)?", re.MULTILINE)
+            block, count = pattern.subn(r"\1StrictInt\2", block, count=1)
+            if count != 1:
+                raise RuntimeError(
+                    "Generated output changed; cannot inject StrictInt for "
+                    f"{model_name}.{field_name}"
+                )
+        content = content[:start] + block + content[end:]
+    content = ensure_pydantic_imports(content, ("StrictInt",))
     generated_file.write_text(content, encoding="utf-8", newline="\n")
 
 
@@ -475,6 +528,65 @@ def inject_deleted_condition(schema_file: Path, generated_file: Path) -> None:
     )
 
 
+def inject_available_time_validator(schema_file: Path, generated_file: Path) -> None:
+    """Inject a schema-declared maximum-time invariant into the generated DTO.
+
+    The extension is intentionally generic: any schema can declare a target
+    field and dotted paths whose maximum must equal that field. This keeps
+    cross-field time semantics in the schema rather than coupling the
+    generator to a particular KOL filename.
+    """
+    schema = json.loads(schema_file.read_text(encoding="utf-8"))
+    metadata = schema.get("x-python-available-time")
+    if not isinstance(metadata, dict):
+        return
+    title = schema.get("title")
+    field = metadata.get("field")
+    maximum_of = metadata.get("maximumOf")
+    if (
+        not isinstance(title, str)
+        or not isinstance(field, str)
+        or not isinstance(maximum_of, list)
+        or not maximum_of
+        or not all(isinstance(item, str) for item in maximum_of)
+    ):
+        raise RuntimeError(f"invalid x-python-available-time metadata in {schema_file}")
+
+    content = generated_file.read_text(encoding="utf-8")
+    class_marker = f"class {title}(BaseModel):\n"
+    if class_marker not in content:
+        raise RuntimeError(
+            f"Generated output changed; cannot inject available-time validator for {title} safely"
+        )
+    method_marker = "def validate_available_time_invariant(self)"
+    if method_marker in content:
+        return
+
+    def attribute_path(path: str) -> str:
+        parts = path.split(".")
+        if any(not part for part in parts):
+            raise RuntimeError(f"invalid available-time path {path!r} in {schema_file}")
+        return "self." + ".".join(_snake_case(part) for part in parts)
+
+    target = f"self.{_snake_case(field)}"
+    expected = "max(" + ", ".join(attribute_path(item) for item in maximum_of) + ")"
+    content = ensure_pydantic_imports(content, ("model_validator",))
+    validator = (
+        class_marker
+        + '    @model_validator(mode="after")\n'
+        + f"    def validate_available_time_invariant(self) -> {title}:\n"
+        + f"        expected_available_time = {expected}\n"
+        + f"        if {target} != expected_available_time:\n"
+        + "            raise ValueError(\n"
+        + '                "availableTime must equal the declared maximum input time"\n'
+        + "            )\n"
+        + "        return self\n\n"
+    )
+    generated_file.write_text(
+        content.replace(class_marker, validator, 1), encoding="utf-8", newline="\n"
+    )
+
+
 def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     """Run datamodel-code-generator on a single schema file.
 
@@ -527,7 +639,9 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     inject_unified_code_identity_validator(schema_file, tmp_file)
     inject_decimal_fields(schema_file, tmp_file)
     inject_strict_bool(schema_file, tmp_file)
+    inject_strict_int(schema_file, tmp_file)
     inject_deleted_condition(schema_file, tmp_file)
+    inject_available_time_validator(schema_file, tmp_file)
     format_result = subprocess.run(
         [sys.executable, "-m", "ruff", "format", "--quiet", str(tmp_file)],
         capture_output=True,

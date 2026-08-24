@@ -16,6 +16,8 @@ export {
   KOL_EVIDENCE_SCHEMA_VERSION,
   KOL_MENTION_SCHEMA_VERSION,
   KOL_POSITION_CLAIM_SCHEMA_VERSION,
+  KOL_MEDIA_TEXT_EVIDENCE_SCHEMA_VERSION,
+  MEDIA_RECOGNITION_CANDIDATE_SCHEMA_VERSION,
   NON_EXECUTABLE_POSITION_CLAIM,
   isKolClaimVisibleAt,
   isKolContentVisibleAt,
@@ -24,5 +26,6 @@ export {
   validateKolEvidencePayload,
   validateKolMentionPayload,
   validateKolPositionClaimPayload,
+  validateKolMediaTextEvidencePayload,
 } from "./validators.js";
 export type { ValidationResult } from "./validators.js";
