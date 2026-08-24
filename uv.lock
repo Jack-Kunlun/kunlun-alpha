@@ -15,6 +15,7 @@ members = [
     "market-core",
     "rotation-core",
     "sample-engine",
+    "seat-core",
 ]
 
 [[package]]
@@ -831,6 +832,17 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "ashare-common", editable = "python/packages/ashare-common" }]
+
+[[package]]
+name = "seat-core"
+version = "0.0.0"
+source = { editable = "python/packages/seat-core" }
+dependencies = [
+    { name = "ashare-contracts" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "ashare-contracts", editable = "python/packages/ashare-contracts" }]
 
 [[package]]
 name = "typeguard"

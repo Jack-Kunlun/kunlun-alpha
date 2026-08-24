@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/seat/alias.json",
+  "title": "SeatAlias",
+  "description": "Immutable source/display name alias with a half-open business-validity interval.",
+  "$comment": "Runtime invariant: previousRevisionId, when present, must differ from revisionId.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/SeatAliasSchemaVersion" },
+    "aliasId": { "type": "string", "minLength": 1 },
+    "seatId": { "type": "string", "pattern": "^seat-[0-9a-f]{64}$" },
+    "name": { "type": "string", "minLength": 1 },
+    "aliasType": { "$ref": "#/definitions/SeatAliasType" },
+    "validFrom": { "type": "string", "format": "date-time" },
+    "validTo": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Exclusive business-validity end; null means open-ended"
+    },
+    "availableTime": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "minLength": 1 },
+    "sourceVersion": { "type": "string", "minLength": 1 },
+    "evidenceId": { "type": "string", "minLength": 1 },
+    "revisionId": { "type": "string", "minLength": 1 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1 }
+  },
+  "required": [
+    "schemaVersion",
+    "aliasId",
+    "seatId",
+    "name",
+    "aliasType",
+    "validFrom",
+    "validTo",
+    "availableTime",
+    "source",
+    "sourceVersion",
+    "evidenceId",
+    "revisionId",
+    "previousRevisionId"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "SeatAliasSchemaVersion": { "type": "string", "enum": ["alias-v1"] },
+    "SeatAliasType": {
+      "type": "string",
+      "enum": ["OFFICIAL", "FORMER", "SOURCE", "ALTERNATE"]
+    }
+  }
+}

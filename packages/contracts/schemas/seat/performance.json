@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/seat/performance.json",
+  "title": "SeatPerformance",
+  "description": "Versioned seat performance snapshot. Calculation is owned by a later node.",
+  "$comment": "Runtime invariant: previousRevisionId, when present, must differ from revisionId.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/SeatPerformanceSchemaVersion" },
+    "performanceId": { "type": "string", "minLength": 1 },
+    "seatId": { "type": "string", "pattern": "^seat-[0-9a-f]{64}$" },
+    "windowStart": { "type": "string", "format": "date" },
+    "windowEnd": { "type": "string", "format": "date" },
+    "calculationVersion": { "type": "string", "minLength": 1 },
+    "sampleCount": { "type": "integer", "minimum": 0 },
+    "tPlus1Return": { "type": ["string", "null"], "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "tPlus3Return": { "type": ["string", "null"], "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "tPlus5Return": { "type": ["string", "null"], "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "winRate": { "type": ["string", "null"], "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "maxDrawdown": { "type": ["string", "null"], "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "source": { "type": "string", "minLength": 1 },
+    "sourceVersion": { "type": "string", "minLength": 1 },
+    "evidenceId": { "type": "string", "minLength": 1 },
+    "revisionId": { "type": "string", "minLength": 1 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1 },
+    "availableTime": { "type": "string", "format": "date-time" }
+  },
+  "required": [
+    "schemaVersion",
+    "performanceId",
+    "seatId",
+    "windowStart",
+    "windowEnd",
+    "calculationVersion",
+    "sampleCount",
+    "tPlus1Return",
+    "tPlus3Return",
+    "tPlus5Return",
+    "winRate",
+    "maxDrawdown",
+    "source",
+    "sourceVersion",
+    "evidenceId",
+    "revisionId",
+    "previousRevisionId",
+    "availableTime"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "SeatPerformanceSchemaVersion": { "type": "string", "enum": ["seat-performance-v1"] }
+  }
+}

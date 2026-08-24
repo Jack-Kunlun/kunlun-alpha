@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/seat/preference.json",
+  "title": "SeatPreference",
+  "description": "Versioned provenance-backed seat style preference snapshot.",
+  "$comment": "Runtime invariant: previousRevisionId, when present, must differ from revisionId.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/SeatPreferenceSchemaVersion" },
+    "preferenceId": { "type": "string", "minLength": 1 },
+    "seatId": { "type": "string", "pattern": "^seat-[0-9a-f]{64}$" },
+    "validFrom": { "type": "string", "format": "date-time" },
+    "validTo": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Exclusive business-validity end; null means open-ended"
+    },
+    "preferenceVersion": { "type": "string", "minLength": 1 },
+    "styleTags": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "source": { "type": "string", "minLength": 1 },
+    "sourceVersion": { "type": "string", "minLength": 1 },
+    "evidenceId": { "type": "string", "minLength": 1 },
+    "revisionId": { "type": "string", "minLength": 1 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1 },
+    "availableTime": { "type": "string", "format": "date-time" }
+  },
+  "required": [
+    "schemaVersion",
+    "preferenceId",
+    "seatId",
+    "validFrom",
+    "validTo",
+    "preferenceVersion",
+    "styleTags",
+    "confidenceBps",
+    "source",
+    "sourceVersion",
+    "evidenceId",
+    "revisionId",
+    "previousRevisionId",
+    "availableTime"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "SeatPreferenceSchemaVersion": { "type": "string", "enum": ["seat-preference-v1"] }
+  }
+}

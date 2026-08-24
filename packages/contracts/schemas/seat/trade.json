@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/seat/trade.json",
+  "title": "SeatTrade",
+  "description": "Immutable public Dragon-Tiger List fact, not a broker order or account transaction.",
+  "$comment": "Runtime invariants: previousRevisionId, when present, differs from revisionId; buyAmount and sellAmount are non-negative exact decimal strings; netAmount equals buyAmount minus sellAmount; currency is CNY.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/SeatTradeSchemaVersion" },
+    "tradeId": { "type": "string", "minLength": 1 },
+    "revisionId": { "type": "string", "minLength": 1 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1 },
+    "seatId": { "type": "string", "pattern": "^seat-[0-9a-f]{64}$" },
+    "rawSeatName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Original source seat spelling preserved as evidence"
+    },
+    "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+    "tradeDate": { "type": "string", "format": "date" },
+    "currency": { "type": "string", "enum": ["CNY"] },
+    "buyAmount": { "type": "string", "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "sellAmount": { "type": "string", "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "netAmount": { "type": "string", "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "source": { "type": "string", "minLength": 1 },
+    "sourceVersion": { "type": "string", "minLength": 1 },
+    "rawRecordId": { "type": "string", "minLength": 1 },
+    "evidenceId": { "type": "string", "minLength": 1 },
+    "availableTime": { "type": "string", "format": "date-time" }
+  },
+  "required": [
+    "schemaVersion",
+    "tradeId",
+    "revisionId",
+    "previousRevisionId",
+    "seatId",
+    "rawSeatName",
+    "instrumentId",
+    "tradeDate",
+    "currency",
+    "buyAmount",
+    "sellAmount",
+    "netAmount",
+    "source",
+    "sourceVersion",
+    "rawRecordId",
+    "evidenceId",
+    "availableTime"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "SeatTradeSchemaVersion": { "type": "string", "enum": ["seat-trade-v1"] }
+  }
+}
