@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/kol/position-claim.json",
+  "title": "KolPositionClaim",
+  "description": "Versioned non-executable position interpretation linked to one exact Claim revision.",
+  "$comment": "This is descriptive public speech only, never an executed position or fact. Runtime invariants: claimId and claimRevisionId identify the source Claim; executionSemantics must remain NON_EXECUTABLE_POSITION_CLAIM; publishTime <= ingestTime <= processingTime <= availableTime and eventTime has no ordering assumption; revision chains are append-only; no Trade/order/fill/account/fill price/executable quantity fields are allowed.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/KolPositionClaimSchemaVersion" },
+    "positionClaimId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "revisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+    "claimId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "claimRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "kolId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "instrumentId": { "type": "string", "minLength": 9, "maxLength": 9, "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+    "position": { "$ref": "#/definitions/KolPositionDirection" },
+    "timeHorizon": { "$ref": "#/definitions/KolPositionTimeHorizon" },
+    "executionSemantics": { "$ref": "#/definitions/KolExecutionSemantics" },
+    "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "reviewStatus": { "$ref": "#/definitions/KolPositionReviewStatus" },
+    "eventTime": { "type": "string", "format": "date-time" },
+    "publishTime": { "type": "string", "format": "date-time" },
+    "ingestTime": { "type": "string", "format": "date-time" },
+    "processingTime": { "type": "string", "format": "date-time" },
+    "availableTime": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "deleted": { "type": "boolean", "x-python-strict": true },
+    "deletedAt": { "type": ["string", "null"], "format": "date-time" },
+    "deletionReason": { "type": ["string", "null"], "minLength": 1, "maxLength": 1000 }
+  },
+  "required": [
+    "schemaVersion",
+    "positionClaimId",
+    "revisionId",
+    "previousRevisionId",
+    "claimId",
+    "claimRevisionId",
+    "kolId",
+    "instrumentId",
+    "position",
+    "timeHorizon",
+    "executionSemantics",
+    "confidenceBps",
+    "reviewStatus",
+    "eventTime",
+    "publishTime",
+    "ingestTime",
+    "processingTime",
+    "availableTime",
+    "source",
+    "sourceVersion",
+    "deleted",
+    "deletedAt",
+    "deletionReason"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "KolPositionClaimSchemaVersion": {
+      "type": "string",
+      "enum": ["kol-position-claim-v1"]
+    },
+    "KolPositionDirection": {
+      "type": "string",
+      "enum": ["LONG", "SHORT", "FLAT"]
+    },
+    "KolPositionTimeHorizon": {
+      "type": "string",
+      "enum": ["INTRADAY", "SWING", "LONG_TERM", "UNSPECIFIED"]
+    },
+    "KolExecutionSemantics": {
+      "type": "string",
+      "enum": ["NON_EXECUTABLE_POSITION_CLAIM"]
+    },
+    "KolPositionReviewStatus": {
+      "type": "string",
+      "enum": ["UNREVIEWED", "IN_REVIEW", "APPROVED", "REJECTED"]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "deleted": { "const": true } } },
+      "then": {
+        "required": ["deletedAt", "deletionReason"],
+        "properties": {
+          "deletedAt": { "type": "string", "format": "date-time" },
+          "deletionReason": { "type": "string", "minLength": 1, "maxLength": 1000 }
+        }
+      },
+      "else": {
+        "properties": {
+          "deletedAt": { "type": "null" },
+          "deletionReason": { "type": "null" }
+        }
+      }
+    }
+  ]
+}

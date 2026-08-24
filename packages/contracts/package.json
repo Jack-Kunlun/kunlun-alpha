@@ -2,12 +2,25 @@
   "name": "@kunlun/contracts",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "Language-agnostic JSON Schema contracts for Kunlun Alpha",
+  "files": ["dist"],
+  "main": "./dist/kol/index.js",
+  "types": "./dist/kol/index.d.ts",
+  "exports": {
+    "./kol": {
+      "types": "./dist/kol/index.d.ts",
+      "import": "./dist/kol/index.js",
+      "default": "./dist/kol/index.js"
+    }
+  },
   "scripts": {
     "gen:typescript": "node scripts/gen-typescript.mjs",
     "gen:python": "uv --no-cache run python scripts/gen-python.py",
     "gen:all": "pnpm gen:typescript && pnpm gen:python",
     "gen:check": "pnpm gen:typescript --check && pnpm gen:python --check",
+    "build": "tsc -p tsconfig.build.json",
+    "smoke:kol": "pnpm build && node scripts/kol-runtime-smoke.mjs",
     "lint": "eslint .",
     "typecheck": "pnpm gen:check && tsc --noEmit",
     "test": "vitest run"

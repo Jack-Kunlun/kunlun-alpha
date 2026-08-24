@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/kol/evidence.json",
+  "title": "KolEvidence",
+  "description": "Immutable evidence locator bound to one exact KOL content version.",
+  "$comment": "Runtime invariants: contentAvailableTime <= availableTime; locator and excerpt are restricted, bounded source locations; revision chains are append-only and previousRevisionId must differ from revisionId; evidenceGrade/evidenceGradeVersion describe provenance strength only, never truth; evidence never asserts a trade, order, fill or broker fact by itself.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/KolEvidenceSchemaVersion" },
+    "evidenceId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "revisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+    "contentId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "contentVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "contentAvailableTime": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "locatorType": { "$ref": "#/definitions/KolEvidenceLocatorType" },
+    "locator": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "excerpt": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "evidenceGrade": { "$ref": "#/definitions/KolEvidenceGrade" },
+    "evidenceGradeVersion": { "$ref": "#/definitions/KolEvidenceGradeVersion" },
+    "availableTime": { "type": "string", "format": "date-time" }
+  },
+  "required": [
+    "schemaVersion",
+    "evidenceId",
+    "revisionId",
+    "previousRevisionId",
+    "contentId",
+    "contentVersion",
+    "contentAvailableTime",
+    "source",
+    "sourceVersion",
+    "locatorType",
+    "locator",
+    "excerpt",
+    "evidenceGrade",
+    "evidenceGradeVersion",
+    "availableTime"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "KolEvidenceSchemaVersion": { "type": "string", "enum": ["kol-evidence-v1"] },
+    "KolEvidenceLocatorType": {
+      "type": "string",
+      "enum": ["URL", "TEXT_RANGE", "TIME_RANGE", "PAGE"]
+    },
+    "KolEvidenceGrade": {
+      "type": "string",
+      "enum": ["PRIMARY_SOURCE", "SECONDARY_SOURCE", "TERTIARY_SOURCE", "UNCLASSIFIED"]
+    },
+    "KolEvidenceGradeVersion": {
+      "type": "string",
+      "enum": ["evidence-grade-v1"]
+    }
+  }
+}

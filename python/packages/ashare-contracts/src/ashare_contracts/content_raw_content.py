@@ -68,7 +68,7 @@ class LicenseMetadata(BaseModel):
 class RawContent(BaseModel):
     @model_validator(mode="after")
     def validate_deleted_condition(self) -> RawContent:
-        if self.deleted and self.deleted_at is None:
+        if self.deleted and (self.deleted_at is None):
             raise ValidationError.from_exception_data(
                 "RawContent",
                 [
@@ -76,11 +76,15 @@ class RawContent(BaseModel):
                         type="value_error",
                         loc=("deletedAt",),
                         input=None,
-                        ctx={"error": ValueError("deleted content must have deletedAt")},
+                        ctx={
+                            "error": ValueError(
+                                "deleted record must have deletedAt and deletionReason"
+                            )
+                        },
                     )
                 ],
             )
-        if not self.deleted and self.deleted_at is not None:
+        if not self.deleted and (self.deleted_at is not None):
             raise ValidationError.from_exception_data(
                 "RawContent",
                 [
@@ -88,7 +92,11 @@ class RawContent(BaseModel):
                         type="value_error",
                         loc=("deletedAt",),
                         input=self.deleted_at,
-                        ctx={"error": ValueError("non-deleted content must not have deletedAt")},
+                        ctx={
+                            "error": ValueError(
+                                "non-deleted record must not have deletion metadata"
+                            )
+                        },
                     )
                 ],
             )

@@ -365,28 +365,29 @@ def inject_strict_bool(schema_file: Path, generated_file: Path) -> None:
 
 
 def inject_deleted_condition(schema_file: Path, generated_file: Path) -> None:
-    """Inject the deleted/deletedAt conditional invariant for RawContent.
+    """Inject schema ``deleted`` conditionals into every applicable DTO.
 
-    Draft-07 ``if``/``then``/``else`` is not translated into a Pydantic
-    cross-field validator by datamodel-code-generator, so the small conditional
-    is injected from the generator (mirroring the identity validators above) to
-    keep the DTO consistent with the Schema conclusion: ``deleted=true``
-    requires a non-null ``deletedAt``, ``deleted=false`` forbids one, and a
-    ``deletedAt`` (when present) must never precede ``availableTime``.
-
-    The error is raised with an explicit ``deletedAt`` location (rather than the
-    model root) via ``ValidationError.from_exception_data`` so callers can rely
-    on a precise field path.
+    datamodel-code-generator does not translate draft-07 ``if``/``then``/``else``
+    into a Pydantic cross-field validator. The schema remains the source of
+    truth; this generic adapter keeps generated DTO validation aligned for any
+    model that declares the deletion tuple, including KOL content, claims and
+    position claims.
     """
-    relative_schema = schema_file.relative_to(SCHEMAS_DIR).as_posix()
-    if relative_schema != "content/raw-content.json":
+    schema = json.loads(schema_file.read_text(encoding="utf-8"))
+    properties = schema.get("properties")
+    title = schema.get("title")
+    if not isinstance(properties, dict) or not isinstance(title, str):
         return
+    if not {"deleted", "deletedAt"}.issubset(properties):
+        return
+    has_reason = "deletionReason" in properties
+    has_available = "availableTime" in properties
 
     content = generated_file.read_text(encoding="utf-8")
-    class_marker = "class RawContent(BaseModel):\n"
+    class_marker = f"class {title}(BaseModel):\n"
     if class_marker not in content:
         raise RuntimeError(
-            "Generated output changed; cannot inject the deleted/deletedAt validator safely"
+            f"Generated output changed; cannot inject deletion validator for {title} safely"
         )
     content = ensure_pydantic_imports(content, ("model_validator", "ValidationError"))
     if "from pydantic_core import InitErrorDetails" not in content:
@@ -395,60 +396,80 @@ def inject_deleted_condition(schema_file: Path, generated_file: Path) -> None:
             "from pydantic_core import InitErrorDetails\nfrom pydantic import ",
             1,
         )
-    validator = (
-        class_marker
-        + '    @model_validator(mode="after")\n'
-        + "    def validate_deleted_condition(self) -> RawContent:\n"
-        + "        if self.deleted and self.deleted_at is None:\n"
-        + "            raise ValidationError.from_exception_data(\n"
-        + '                "RawContent",\n'
-        + "                [\n"
-        + "                    InitErrorDetails(\n"
-        + '                        type="value_error",\n'
-        + '                        loc=("deletedAt",),\n'
-        + "                        input=None,\n"
-        + "                        ctx={\n"
-        + '                            "error": ValueError("deleted content must have deletedAt")\n'
-        + "                        },\n"
-        + "                    )\n"
-        + "                ],\n"
-        + "            )\n"
-        + "        if not self.deleted and self.deleted_at is not None:\n"
-        + "            raise ValidationError.from_exception_data(\n"
-        + '                "RawContent",\n'
-        + "                [\n"
-        + "                    InitErrorDetails(\n"
-        + '                        type="value_error",\n'
-        + '                        loc=("deletedAt",),\n'
-        + "                        input=self.deleted_at,\n"
-        + "                        ctx={\n"
-        + '                            "error": ValueError(\n'
-        + '                                "non-deleted content must not have deletedAt"\n'
-        + "                            )\n"
-        + "                        },\n"
-        + "                    )\n"
-        + "                ],\n"
-        + "            )\n"
-        + "        if (\n"
-        + "            self.deleted\n"
-        + "            and self.deleted_at is not None\n"
-        + "            and self.deleted_at < self.available_time\n"
-        + "        ):\n"
-        + "            raise ValidationError.from_exception_data(\n"
-        + '                "RawContent",\n'
-        + "                [\n"
-        + "                    InitErrorDetails(\n"
-        + '                        type="value_error",\n'
-        + '                        loc=("deletedAt",),\n'
-        + "                        input=self.deleted_at,\n"
-        + "                        ctx={\n"
-        + '                            "error": ValueError("deletedAt must be >= availableTime")\n'
-        + "                        },\n"
-        + "                    )\n"
-        + "                ],\n"
-        + "            )\n"
-        + "        return self\n\n"
+    error_class = title
+    condition = "self.deleted_at is None"
+    if has_reason:
+        condition = "self.deleted_at is None or self.deletion_reason is None"
+    invalid_deleted_message = "deleted record must have deletedAt and deletionReason"
+    invalid_not_deleted = "non-deleted record must not have deletion metadata"
+    lines = [
+        class_marker,
+        '    @model_validator(mode="after")\n',
+        f"    def validate_deleted_condition(self) -> {title}:\n",
+        f"        if self.deleted and ({condition}):\n",
+        "            raise ValidationError.from_exception_data(\n",
+        f'                "{error_class}",\n',
+        "                [\n",
+        "                    InitErrorDetails(\n",
+        '                        type="value_error",\n',
+        f'                        loc=("{"deletionReason" if has_reason else "deletedAt"}",),\n',
+        "                        input=None,\n",
+        "                        ctx={\n",
+        f'                            "error": ValueError("{invalid_deleted_message}")\n',
+        "                        },\n",
+        "                    )\n",
+        "                ],\n",
+        "            )\n",
+        "        if not self.deleted and (\n",
+        "            self.deleted_at is not None\n",
+    ]
+    if has_reason:
+        lines.append("            or self.deletion_reason is not None\n")
+    lines.extend(
+        [
+            "        ):\n",
+            "            raise ValidationError.from_exception_data(\n",
+            f'                "{error_class}",\n',
+            "                [\n",
+            "                    InitErrorDetails(\n",
+            '                        type="value_error",\n',
+            '                        loc=("deletedAt",),\n',
+            "                        input=self.deleted_at,\n",
+            "                        ctx={\n",
+            f'                            "error": ValueError("{invalid_not_deleted}")\n',
+            "                        },\n",
+            "                    )\n",
+            "                ],\n",
+            "            )\n",
+        ]
     )
+    if has_available:
+        lines.extend(
+            [
+                "        if (\n",
+                "            self.deleted\n",
+                "            and self.deleted_at is not None\n",
+                "            and self.deleted_at < self.available_time\n",
+                "        ):\n",
+                "            raise ValidationError.from_exception_data(\n",
+                f'                "{error_class}",\n',
+                "                [\n",
+                "                    InitErrorDetails(\n",
+                '                        type="value_error",\n',
+                '                        loc=("deletedAt",),\n',
+                "                        input=self.deleted_at,\n",
+                "                        ctx={\n",
+                '                            "error": ValueError(\n'
+                '                                "deletedAt must be >= availableTime"\n'
+                "                            )\n",
+                "                        },\n",
+                "                    )\n",
+                "                ],\n",
+                "            )\n",
+            ]
+        )
+    lines.extend(["        return self\n\n"])
+    validator = "".join(lines)
     generated_file.write_text(
         content.replace(class_marker, validator, 1), encoding="utf-8", newline="\n"
     )

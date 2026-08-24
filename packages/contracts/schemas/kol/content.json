@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/kol/content.json",
+  "title": "KolContent",
+  "description": "Immutable, versioned public KOL content. Content is source material, not a trade or execution fact.",
+  "$comment": "Runtime invariants: publishTime <= ingestTime <= processingTime <= availableTime; eventTime has no ordering assumption relative to publishTime; revision chains are append-only and previousRevisionId must differ from revisionId; deleted content retains its body, fingerprint and deletion metadata; contentFingerprint is SHA-256(title UTF-8 + one NUL byte + body UTF-8), lowercase hex; no content field represents Trade, order, fill, account or executable quantity.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/KolContentSchemaVersion" },
+    "contentId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "contentVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "revisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+    "kolId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "contentType": { "$ref": "#/definitions/KolContentType" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 10000 },
+    "body": { "type": "string", "minLength": 1, "maxLength": 1000000 },
+    "contentFingerprint": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+    "contentFingerprintAlgorithmVersion": {
+      "$ref": "#/definitions/KolContentFingerprintAlgorithmVersion"
+    },
+    "eventTime": { "type": ["string", "null"], "format": "date-time" },
+    "publishTime": { "type": "string", "format": "date-time" },
+    "ingestTime": { "type": "string", "format": "date-time" },
+    "processingTime": { "type": "string", "format": "date-time" },
+    "availableTime": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "deleted": { "type": "boolean", "x-python-strict": true },
+    "deletedAt": { "type": ["string", "null"], "format": "date-time" },
+    "deletionReason": { "type": ["string", "null"], "minLength": 1, "maxLength": 1000 }
+  },
+  "required": [
+    "schemaVersion",
+    "contentId",
+    "contentVersion",
+    "revisionId",
+    "previousRevisionId",
+    "kolId",
+    "contentType",
+    "title",
+    "body",
+    "contentFingerprint",
+    "contentFingerprintAlgorithmVersion",
+    "eventTime",
+    "publishTime",
+    "ingestTime",
+    "processingTime",
+    "availableTime",
+    "source",
+    "sourceVersion",
+    "deleted",
+    "deletedAt",
+    "deletionReason"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "KolContentSchemaVersion": { "type": "string", "enum": ["kol-content-v1"] },
+    "KolContentType": {
+      "type": "string",
+      "enum": ["POST", "ARTICLE", "VIDEO", "AUDIO", "COMMENT", "OTHER"]
+    },
+    "KolContentFingerprintAlgorithmVersion": {
+      "type": "string",
+      "enum": ["sha256-kol-content-v1"]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "deleted": { "const": true } } },
+      "then": {
+        "required": ["deletedAt", "deletionReason"],
+        "properties": {
+          "deletedAt": { "type": "string", "format": "date-time" },
+          "deletionReason": { "type": "string", "minLength": 1, "maxLength": 1000 }
+        }
+      },
+      "else": {
+        "properties": {
+          "deletedAt": { "type": "null" },
+          "deletionReason": { "type": "null" }
+        }
+      }
+    }
+  ]
+}

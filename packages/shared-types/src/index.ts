@@ -752,6 +752,175 @@ export interface TradingStatus {
   label: string;
 }
 
+export type KolClaimSchemaVersion = "kol-claim-v1";
+export type KolClaimStatementKind = "DIRECT" | "QUOTE" | "PARAPHRASE" | "AMBIGUOUS";
+export type KolClaimDirection = "BULLISH" | "BEARISH" | "NEUTRAL";
+export type KolClaimAttribution = "SELF" | "QUOTED" | "REPORTED" | "UNKNOWN";
+export type KolClaimUncertainty = "NONE" | "AMBIGUOUS" | "CONDITIONAL" | "UNVERIFIED";
+export type KolClaimReviewStatus = "UNREVIEWED" | "IN_REVIEW" | "APPROVED" | "REJECTED";
+
+/**
+ * Versioned, reviewable KOL statement with evidence. A claim is not a Trade, order, fill, position fact or broker confirmation.
+ */
+export interface KolClaim {
+  schemaVersion: KolClaimSchemaVersion;
+  claimId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  contentId: string;
+  contentVersion: string;
+  contentAvailableTime: string;
+  kolId: string;
+  statement: string;
+  statementKind: KolClaimStatementKind;
+  instrumentId: string;
+  direction: KolClaimDirection;
+  attribution: KolClaimAttribution;
+  uncertainty: KolClaimUncertainty;
+  confidenceBps: number;
+  reviewStatus: KolClaimReviewStatus;
+  eventTime: string;
+  publishTime: string;
+  ingestTime: string;
+  processingTime: string;
+  availableTime: string;
+  source: string;
+  sourceVersion: string;
+  /**
+   * @minItems 1
+   */
+  evidence: [KolClaimEvidenceReference, ...KolClaimEvidenceReference[]];
+  deleted: boolean;
+  deletedAt: string | null;
+  deletionReason: string | null;
+}
+export interface KolClaimEvidenceReference {
+  evidenceId: string;
+  evidenceRevisionId: string;
+  contentId: string;
+  contentVersion: string;
+  contentAvailableTime: string;
+  evidenceAvailableTime: string;
+  source: string;
+  sourceVersion: string;
+}
+
+export type KolContentSchemaVersion = "kol-content-v1";
+export type KolContentType = "POST" | "ARTICLE" | "VIDEO" | "AUDIO" | "COMMENT" | "OTHER";
+export type KolContentFingerprintAlgorithmVersion = "sha256-kol-content-v1";
+
+/**
+ * Immutable, versioned public KOL content. Content is source material, not a trade or execution fact.
+ */
+export interface KolContent {
+  schemaVersion: KolContentSchemaVersion;
+  contentId: string;
+  contentVersion: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  kolId: string;
+  contentType: KolContentType;
+  title: string;
+  body: string;
+  contentFingerprint: string;
+  contentFingerprintAlgorithmVersion: KolContentFingerprintAlgorithmVersion;
+  eventTime: string | null;
+  publishTime: string;
+  ingestTime: string;
+  processingTime: string;
+  availableTime: string;
+  source: string;
+  sourceVersion: string;
+  deleted: boolean;
+  deletedAt: string | null;
+  deletionReason: string | null;
+}
+
+export type KolEvidenceSchemaVersion = "kol-evidence-v1";
+export type KolEvidenceLocatorType = "URL" | "TEXT_RANGE" | "TIME_RANGE" | "PAGE";
+export type KolEvidenceGrade =
+  "PRIMARY_SOURCE" | "SECONDARY_SOURCE" | "TERTIARY_SOURCE" | "UNCLASSIFIED";
+export type KolEvidenceGradeVersion = "evidence-grade-v1";
+
+/**
+ * Immutable evidence locator bound to one exact KOL content version.
+ */
+export interface KolEvidence {
+  schemaVersion: KolEvidenceSchemaVersion;
+  evidenceId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  contentId: string;
+  contentVersion: string;
+  contentAvailableTime: string;
+  source: string;
+  sourceVersion: string;
+  locatorType: KolEvidenceLocatorType;
+  locator: string;
+  excerpt: string;
+  evidenceGrade: KolEvidenceGrade;
+  evidenceGradeVersion: KolEvidenceGradeVersion;
+  availableTime: string;
+}
+
+export type KolMentionSchemaVersion = "kol-mention-v1";
+export type KolMentionType = "INSTRUMENT" | "PERSON" | "ORGANIZATION" | "TOPIC" | "OTHER";
+
+/**
+ * Immutable occurrence/reference inside a KOL content version. A mention is not an assertion or claim.
+ */
+export interface KolMention {
+  schemaVersion: KolMentionSchemaVersion;
+  mentionId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  contentId: string;
+  contentVersion: string;
+  kolId: string;
+  mentionType: KolMentionType;
+  surfaceText: string;
+  startOffset: number;
+  endOffset: number;
+  availableTime: string;
+  source: string;
+  sourceVersion: string;
+}
+
+export type KolPositionClaimSchemaVersion = "kol-position-claim-v1";
+export type KolPositionDirection = "LONG" | "SHORT" | "FLAT";
+export type KolPositionTimeHorizon = "INTRADAY" | "SWING" | "LONG_TERM" | "UNSPECIFIED";
+export type KolExecutionSemantics = "NON_EXECUTABLE_POSITION_CLAIM";
+export type KolPositionReviewStatus = "UNREVIEWED" | "IN_REVIEW" | "APPROVED" | "REJECTED";
+
+/**
+ * Versioned non-executable position interpretation linked to one exact Claim revision.
+ */
+export interface KolPositionClaim {
+  schemaVersion: KolPositionClaimSchemaVersion;
+  positionClaimId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  claimId: string;
+  claimRevisionId: string;
+  kolId: string;
+  instrumentId: string;
+  position: KolPositionDirection;
+  timeHorizon: KolPositionTimeHorizon;
+  executionSemantics: KolExecutionSemantics;
+  confidenceBps: number;
+  reviewStatus: KolPositionReviewStatus;
+  eventTime: string;
+  publishTime: string;
+  ingestTime: string;
+  processingTime: string;
+  availableTime: string;
+  source: string;
+  sourceVersion: string;
+  deleted: boolean;
+  deletedAt: string | null;
+  deletionReason: string | null;
+}
+
 /**
  * Adjustment factor applied on ex-date to derive adjusted research prices
  */

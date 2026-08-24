@@ -79,6 +79,36 @@ from ashare_contracts.instrument_instrument import TradingStatus as TradingStatu
 from ashare_contracts.instrument_instrument import Type as Type
 from ashare_contracts.instrument_trading_status import TradingStatus as TradingStatus_1
 from ashare_contracts.instrument_trading_status import Value as Value
+from ashare_contracts.kol_claim import KolClaim as KolClaim
+from ashare_contracts.kol_claim import KolClaimAttribution as KolClaimAttribution
+from ashare_contracts.kol_claim import KolClaimDirection as KolClaimDirection
+from ashare_contracts.kol_claim import KolClaimEvidenceReference as KolClaimEvidenceReference
+from ashare_contracts.kol_claim import KolClaimReviewStatus as KolClaimReviewStatus
+from ashare_contracts.kol_claim import KolClaimSchemaVersion as KolClaimSchemaVersion
+from ashare_contracts.kol_claim import KolClaimStatementKind as KolClaimStatementKind
+from ashare_contracts.kol_claim import KolClaimUncertainty as KolClaimUncertainty
+from ashare_contracts.kol_content import KolContent as KolContent
+from ashare_contracts.kol_content import (
+    KolContentFingerprintAlgorithmVersion as KolContentFingerprintAlgorithmVersion,
+)
+from ashare_contracts.kol_content import KolContentSchemaVersion as KolContentSchemaVersion
+from ashare_contracts.kol_content import KolContentType as KolContentType
+from ashare_contracts.kol_evidence import KolEvidence as KolEvidence
+from ashare_contracts.kol_evidence import KolEvidenceGrade as KolEvidenceGrade
+from ashare_contracts.kol_evidence import KolEvidenceGradeVersion as KolEvidenceGradeVersion
+from ashare_contracts.kol_evidence import KolEvidenceLocatorType as KolEvidenceLocatorType
+from ashare_contracts.kol_evidence import KolEvidenceSchemaVersion as KolEvidenceSchemaVersion
+from ashare_contracts.kol_mention import KolMention as KolMention
+from ashare_contracts.kol_mention import KolMentionSchemaVersion as KolMentionSchemaVersion
+from ashare_contracts.kol_mention import KolMentionType as KolMentionType
+from ashare_contracts.kol_position_claim import KolExecutionSemantics as KolExecutionSemantics
+from ashare_contracts.kol_position_claim import KolPositionClaim as KolPositionClaim
+from ashare_contracts.kol_position_claim import (
+    KolPositionClaimSchemaVersion as KolPositionClaimSchemaVersion,
+)
+from ashare_contracts.kol_position_claim import KolPositionDirection as KolPositionDirection
+from ashare_contracts.kol_position_claim import KolPositionReviewStatus as KolPositionReviewStatus
+from ashare_contracts.kol_position_claim import KolPositionTimeHorizon as KolPositionTimeHorizon
 from ashare_contracts.market_data_adjustment_factor import AdjustmentFactor as AdjustmentFactor
 from ashare_contracts.market_data_adjustment_factor import Exchange as Exchange_8
 from ashare_contracts.market_data_adjustment_factor import FactorType as FactorType
@@ -206,6 +236,32 @@ __all__ = [
     "Type",
     "TradingStatus_1",
     "Value",
+    "KolClaim",
+    "KolClaimAttribution",
+    "KolClaimDirection",
+    "KolClaimEvidenceReference",
+    "KolClaimReviewStatus",
+    "KolClaimSchemaVersion",
+    "KolClaimStatementKind",
+    "KolClaimUncertainty",
+    "KolContent",
+    "KolContentFingerprintAlgorithmVersion",
+    "KolContentSchemaVersion",
+    "KolContentType",
+    "KolEvidence",
+    "KolEvidenceGrade",
+    "KolEvidenceGradeVersion",
+    "KolEvidenceLocatorType",
+    "KolEvidenceSchemaVersion",
+    "KolMention",
+    "KolMentionSchemaVersion",
+    "KolMentionType",
+    "KolExecutionSemantics",
+    "KolPositionClaim",
+    "KolPositionClaimSchemaVersion",
+    "KolPositionDirection",
+    "KolPositionReviewStatus",
+    "KolPositionTimeHorizon",
     "AdjustmentFactor",
     "Exchange_8",
     "FactorType",
