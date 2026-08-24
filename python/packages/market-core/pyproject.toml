@@ -5,6 +5,7 @@ description = "A-share market domain core (instruments, calendar, providers)"
 requires-python = "==3.12.13"
 dependencies = [
     "ashare-contracts",
+    "event-core",
     "pydantic==2.12.5",
     "tzdata==2025.2",
 ]
@@ -15,3 +16,4 @@ build-backend = "hatchling.build"
 
 [tool.uv.sources]
 ashare-contracts = { workspace = true }
+event-core = { workspace = true }

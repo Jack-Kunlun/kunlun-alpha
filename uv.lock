@@ -372,6 +372,7 @@ version = "0.0.0"
 source = { editable = "python/packages/market-core" }
 dependencies = [
     { name = "ashare-contracts" },
+    { name = "event-core" },
     { name = "pydantic" },
     { name = "tzdata" },
 ]
@@ -379,6 +380,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "ashare-contracts", editable = "python/packages/ashare-contracts" },
+    { name = "event-core", editable = "python/packages/event-core" },
     { name = "pydantic", specifier = "==2.12.5" },
     { name = "tzdata", specifier = "==2025.2" },
 ]
