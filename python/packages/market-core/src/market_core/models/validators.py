@@ -264,9 +264,7 @@ def action_from_dict(raw: dict[str, object]) -> CorporateAction:
         action_type=cast(ActionType, raw["actionType"]),
         description=str(raw["description"]),
         per_share_cash=(
-            None
-            if raw.get("perShareCash") is None
-            else _decimal_from_external(raw["perShareCash"])
+            None if raw.get("perShareCash") is None else _decimal_from_external(raw["perShareCash"])
         ),
         per_share_stock=(
             None

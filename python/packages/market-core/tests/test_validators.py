@@ -205,21 +205,25 @@ def test_price_sensitive_market_fields_use_decimal_without_float_round_trip() ->
     assert validate_bar(bar).valid is True
 
     with pytest.raises(TypeError, match="float is not an accepted decimal boundary value"):
-        bar_from_dict({**{
-            "unifiedCode": "600000.SH",
-            "exchange": "SH",
-            "date": "2026-08-13",
-            "interval": "DAILY",
-            "session": "CONTINUOUS",
-            "timestamp": "2026-08-13T07:00:00.000Z",
-            "open": 0.1 + 0.2,
-            "high": Decimal("0.4"),
-            "low": Decimal("0.1"),
-            "close": Decimal("0.3"),
-            "volume": 1,
-            "amount": Decimal("0.3"),
-            "priceType": "RAW",
-        }})
+        bar_from_dict(
+            {
+                **{
+                    "unifiedCode": "600000.SH",
+                    "exchange": "SH",
+                    "date": "2026-08-13",
+                    "interval": "DAILY",
+                    "session": "CONTINUOUS",
+                    "timestamp": "2026-08-13T07:00:00.000Z",
+                    "open": 0.1 + 0.2,
+                    "high": Decimal("0.4"),
+                    "low": Decimal("0.1"),
+                    "close": Decimal("0.3"),
+                    "volume": 1,
+                    "amount": Decimal("0.3"),
+                    "priceType": "RAW",
+                }
+            }
+        )
 
 
 def test_direct_market_models_reject_float_price_values() -> None:
@@ -231,7 +235,7 @@ def test_direct_market_models_reject_float_price_values() -> None:
             interval="DAILY",
             session="CONTINUOUS",
             timestamp="2026-08-13T07:00:00.000Z",
-            open=0.1 + 0.2,
+            open=cast(Decimal, 0.1 + 0.2),
             high=Decimal("0.4"),
             low=Decimal("0.1"),
             close=Decimal("0.3"),
@@ -245,7 +249,7 @@ def test_direct_market_models_reject_float_price_values() -> None:
             exchange="SH",
             date="2026-08-13",
             timestamp="2026-08-13T07:00:00.000Z",
-            price=0.1 + 0.2,
+            price=cast(Decimal, 0.1 + 0.2),
             volume=1,
             amount=Decimal("0.3"),
             direction="BUY",
@@ -256,7 +260,7 @@ def test_direct_market_models_reject_float_price_values() -> None:
             unified_code="600000.SH",
             exchange="SH",
             date="2026-08-13",
-            factor=0.1 + 0.2,
+            factor=cast(Decimal, 0.1 + 0.2),
             factor_type="FORWARD",
         )
     with pytest.raises(TypeError, match="float is not an accepted decimal boundary value"):
@@ -266,7 +270,7 @@ def test_direct_market_models_reject_float_price_values() -> None:
             ex_date="2026-08-13",
             action_type="DIVIDEND",
             description="cash dividend",
-            per_share_cash=0.1 + 0.2,
+            per_share_cash=cast(Decimal, 0.1 + 0.2),
         )
 
 

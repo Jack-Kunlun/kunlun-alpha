@@ -106,7 +106,7 @@ def test_precious_metals_metadata_requires_explicit_classification_and_provenanc
 
 
 def test_metadata_rejects_evidence_unavailable_at_decision_time() -> None:
-    raw = cast(dict[str, object], cast(list[NamedFund], _FIXTURES["valid"])[0]["fund"]).copy()
+    raw = cast(list[NamedFund], _FIXTURES["valid"])[0]["fund"].copy()
     raw.update(
         {
             "publishTime": "2026-08-14T09:00:00Z",
@@ -126,7 +126,7 @@ def test_metadata_rejects_evidence_unavailable_at_decision_time() -> None:
 
 
 def test_metadata_rejects_suffix_exchange_mismatch() -> None:
-    raw = cast(dict[str, object], cast(list[NamedFund], _FIXTURES["valid"])[0]["fund"]).copy()
+    raw = cast(list[NamedFund], _FIXTURES["valid"])[0]["fund"].copy()
     raw["exchange"] = "SZ"
     result = validate_precious_metal_fund(fund_from_dict(raw))
     assert result.valid is False
@@ -136,7 +136,7 @@ def test_direct_fund_models_reject_float_rates() -> None:
     with pytest.raises(TypeError, match="float is not an accepted decimal boundary value"):
         RecurringFee(
             kind="custody",
-            rate=0.1 + 0.2,
+            rate=cast(Decimal, 0.1 + 0.2),
             valid_from="2020-01-01",
             valid_to=None,
             source="provider-x",
@@ -152,7 +152,7 @@ def test_direct_fund_models_reject_float_rates() -> None:
             trading_currency="CNY",
             nav_currency="CNY",
             benchmark_or_tracking_index="Au99.99",
-            management_fee_rate=0.1 + 0.2,
+            management_fee_rate=cast(Decimal, 0.1 + 0.2),
             valid_from="2020-01-01",
             valid_to=None,
             source="provider-x",
