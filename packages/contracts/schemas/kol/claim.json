@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/kol/claim.json",
+  "title": "KolClaim",
+  "description": "Versioned, reviewable KOL statement with evidence. A claim is not a Trade, order, fill, position fact or broker confirmation.",
+  "$comment": "Runtime invariants: publishTime <= ingestTime <= processingTime <= availableTime, with no eventTime/publishTime ordering assumption; availableTime is not earlier than contentAvailableTime or any evidence reference availability; every evidence reference must match contentId/contentVersion; confidenceBps is an integer in [0,10000]; QUOTE requires QUOTED or REPORTED attribution; AMBIGUOUS requires non-NONE uncertainty; APPROVED means only that the public wording was reviewed, never that it is true or executed; revision chains are append-only; this contract intentionally has no Trade/order/fill/account/executable quantity fields.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/KolClaimSchemaVersion" },
+    "claimId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "revisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+    "contentId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "contentVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "contentAvailableTime": { "type": "string", "format": "date-time" },
+    "kolId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "statement": { "type": "string", "minLength": 1, "maxLength": 10000 },
+    "statementKind": { "$ref": "#/definitions/KolClaimStatementKind" },
+    "instrumentId": { "type": "string", "minLength": 9, "maxLength": 9, "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+    "direction": { "$ref": "#/definitions/KolClaimDirection" },
+    "attribution": { "$ref": "#/definitions/KolClaimAttribution" },
+    "uncertainty": { "$ref": "#/definitions/KolClaimUncertainty" },
+    "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "reviewStatus": { "$ref": "#/definitions/KolClaimReviewStatus" },
+    "eventTime": { "type": "string", "format": "date-time" },
+    "publishTime": { "type": "string", "format": "date-time" },
+    "ingestTime": { "type": "string", "format": "date-time" },
+    "processingTime": { "type": "string", "format": "date-time" },
+    "availableTime": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/KolClaimEvidenceReference" }
+    },
+    "deleted": { "type": "boolean", "x-python-strict": true },
+    "deletedAt": { "type": ["string", "null"], "format": "date-time" },
+    "deletionReason": { "type": ["string", "null"], "minLength": 1, "maxLength": 1000 }
+  },
+  "required": [
+    "schemaVersion",
+    "claimId",
+    "revisionId",
+    "previousRevisionId",
+    "contentId",
+    "contentVersion",
+    "contentAvailableTime",
+    "kolId",
+    "statement",
+    "statementKind",
+    "instrumentId",
+    "direction",
+    "attribution",
+    "uncertainty",
+    "confidenceBps",
+    "reviewStatus",
+    "eventTime",
+    "publishTime",
+    "ingestTime",
+    "processingTime",
+    "availableTime",
+    "source",
+    "sourceVersion",
+    "evidence",
+    "deleted",
+    "deletedAt",
+    "deletionReason"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "KolClaimSchemaVersion": { "type": "string", "enum": ["kol-claim-v1"] },
+    "KolClaimStatementKind": {
+      "type": "string",
+      "enum": ["DIRECT", "QUOTE", "PARAPHRASE", "AMBIGUOUS"]
+    },
+    "KolClaimDirection": {
+      "type": "string",
+      "enum": ["BULLISH", "BEARISH", "NEUTRAL"]
+    },
+    "KolClaimAttribution": {
+      "type": "string",
+      "enum": ["SELF", "QUOTED", "REPORTED", "UNKNOWN"]
+    },
+    "KolClaimUncertainty": {
+      "type": "string",
+      "enum": ["NONE", "AMBIGUOUS", "CONDITIONAL", "UNVERIFIED"]
+    },
+    "KolClaimReviewStatus": {
+      "type": "string",
+      "enum": ["UNREVIEWED", "IN_REVIEW", "APPROVED", "REJECTED"]
+    },
+    "KolClaimEvidenceReference": {
+      "type": "object",
+      "properties": {
+        "evidenceId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "evidenceRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "contentId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "contentVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "contentAvailableTime": { "type": "string", "format": "date-time" },
+        "evidenceAvailableTime": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 }
+      },
+      "required": [
+        "evidenceId",
+        "evidenceRevisionId",
+        "contentId",
+        "contentVersion",
+        "contentAvailableTime",
+        "evidenceAvailableTime",
+        "source",
+        "sourceVersion"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "statementKind": { "const": "QUOTE" } } },
+      "then": { "properties": { "attribution": { "enum": ["QUOTED", "REPORTED"] } } }
+    },
+    {
+      "if": { "properties": { "statementKind": { "const": "AMBIGUOUS" } } },
+      "then": { "properties": { "uncertainty": { "enum": ["AMBIGUOUS", "CONDITIONAL", "UNVERIFIED"] } } }
+    },
+    {
+      "if": { "properties": { "deleted": { "const": true } } },
+      "then": {
+        "required": ["deletedAt", "deletionReason"],
+        "properties": {
+          "deletedAt": { "type": "string", "format": "date-time" },
+          "deletionReason": { "type": "string", "minLength": 1, "maxLength": 1000 }
+        }
+      },
+      "else": {
+        "properties": {
+          "deletedAt": { "type": "null" },
+          "deletionReason": { "type": "null" }
+        }
+      }
+    }
+  ]
+}

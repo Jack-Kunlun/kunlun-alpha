@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/kol/mention.json",
+  "title": "KolMention",
+  "description": "Immutable occurrence/reference inside a KOL content version. A mention is not an assertion or claim.",
+  "$comment": "Runtime invariants: endOffset must be greater than startOffset; the mention is bound to exactly one contentId/contentVersion; revision chains are append-only and previousRevisionId must differ from revisionId. No mention field is evidence of a trade or execution.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "$ref": "#/definitions/KolMentionSchemaVersion" },
+    "mentionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "revisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "previousRevisionId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+    "contentId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "contentVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "kolId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "mentionType": { "$ref": "#/definitions/KolMentionType" },
+    "surfaceText": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "startOffset": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+    "endOffset": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+    "availableTime": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 }
+  },
+  "required": [
+    "schemaVersion",
+    "mentionId",
+    "revisionId",
+    "previousRevisionId",
+    "contentId",
+    "contentVersion",
+    "kolId",
+    "mentionType",
+    "surfaceText",
+    "startOffset",
+    "endOffset",
+    "availableTime",
+    "source",
+    "sourceVersion"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "KolMentionSchemaVersion": { "type": "string", "enum": ["kol-mention-v1"] },
+    "KolMentionType": {
+      "type": "string",
+      "enum": ["INSTRUMENT", "PERSON", "ORGANIZATION", "TOPIC", "OTHER"]
+    }
+  }
+}

@@ -7,7 +7,7 @@
  * source of truth shared with the Python parser in market-core.
  */
 
-import codePrefixRules from "../../instrument/code-prefix-rules.json";
+import codePrefixRules from "../../instrument/code-prefix-rules.json" with { type: "json" };
 
 export type ExchangeCode = "SH" | "SZ" | "BJ";
 export type BoardId = "MAIN" | "CHINEXT" | "STAR" | "BSE";
