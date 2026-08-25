@@ -1,0 +1,19 @@
+[project]
+name = "quant-engine"
+version = "0.0.0"
+description = "Reproducible backtest regression artifacts and reports"
+requires-python = "==3.12.13"
+dependencies = [
+    "ashare-contracts",
+    "backtest-core",
+    "quant-core",
+]
+
+[tool.uv.sources]
+ashare-contracts = { workspace = true }
+backtest-core = { workspace = true }
+quant-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"

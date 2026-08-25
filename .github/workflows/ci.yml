@@ -17,6 +17,7 @@ env:
   NODE_VERSION: "24.19.0"
   PNPM_VERSION: "11.21.0"
   PYTHON_VERSION: "3.12.13"
+  UV_VERSION: "0.12.3"
 
 jobs:
   # Three-OS matrix. All checks are read-only commands routed through
@@ -49,6 +50,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v6
         with:
+          version: ${{ env.UV_VERSION }}
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
@@ -65,6 +67,12 @@ jobs:
       # (single cross-platform entry, see root package.json)
       - name: Quality gates
         run: pnpm check
+
+      - name: Backtest regression and zero-write snapshot
+        run: pnpm backtest:regression
+
+      - name: Clean tree after backtest regression
+        run: node scripts/ci/check-clean-tree.mjs
 
       - name: Build (all packages)
         if: runner.os == 'Linux'

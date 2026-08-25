@@ -1,0 +1,64 @@
+{
+  "baselineSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "candidateSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "status": "DRIFTED",
+  "categoryCounts": {
+    "SCHEMA": 2,
+    "MANIFEST_INPUT": 1,
+    "ALGORITHM_CONFIG": 1,
+    "DEPENDENCY_TOOLCHAIN": 1,
+    "RESULT": 1
+  },
+  "diffs": [
+    {
+      "category": "SCHEMA",
+      "pointer": "/Z",
+      "status": "REPLACED",
+      "baselineValue": 1,
+      "candidateValue": 2
+    },
+    {
+      "category": "SCHEMA",
+      "pointer": "/a",
+      "status": "REPLACED",
+      "baselineValue": 1,
+      "candidateValue": 2
+    },
+    {
+      "category": "MANIFEST_INPUT",
+      "pointer": "/manifest/items/0",
+      "status": "ADDED",
+      "baselineValue": null,
+      "candidateValue": ["/", "~"]
+    },
+    {
+      "category": "ALGORITHM_CONFIG",
+      "pointer": "/config/tilde~0slash~1",
+      "status": "REPLACED",
+      "baselineValue": "~",
+      "candidateValue": "/"
+    },
+    {
+      "category": "DEPENDENCY_TOOLCHAIN",
+      "pointer": "/deps/items/0",
+      "status": "REMOVED",
+      "baselineValue": true,
+      "candidateValue": null
+    },
+    {
+      "category": "RESULT",
+      "pointer": "/result/z",
+      "status": "REPLACED",
+      "baselineValue": "a",
+      "candidateValue": "Z"
+    }
+  ],
+  "diffLines": [
+    "SCHEMA REPLACED /Z",
+    "SCHEMA REPLACED /a",
+    "MANIFEST_INPUT ADDED /manifest/items/0",
+    "ALGORITHM_CONFIG REPLACED /config/tilde~0slash~1",
+    "DEPENDENCY_TOOLCHAIN REMOVED /deps/items/0",
+    "RESULT REPLACED /result/z"
+  ]
+}

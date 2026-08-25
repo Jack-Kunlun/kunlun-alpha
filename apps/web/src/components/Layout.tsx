@@ -7,6 +7,7 @@ const navigation = [
   { to: "/market-regime", label: "情绪与轮动" },
   { to: "/event-workbench", label: "事件观势" },
   { to: "/seat-kol", label: "席位与 KOL" },
+  { to: "/backtest/regressions", label: "回测回归" },
 ];
 
 export function Layout() {

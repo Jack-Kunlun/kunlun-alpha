@@ -7,6 +7,7 @@ import { EventFeedbackModule } from "./modules/event-feedback/event-feedback.mod
 import { EventIntelligenceModule } from "./modules/event-intelligence/event-intelligence.module";
 import { ClaimReviewModule } from "./modules/claim-review/claim-review.module";
 import { SeatKolWorkbenchModule } from "./modules/seat-kol/seat-kol.module";
+import { BacktestRegressionModule } from "./modules/backtest-regression/backtest-regression.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SeatKolWorkbenchModule } from "./modules/seat-kol/seat-kol.module";
     EventIntelligenceModule,
     ClaimReviewModule,
     SeatKolWorkbenchModule,
+    BacktestRegressionModule,
   ],
   controllers: [AppController, MetricsController],
 })

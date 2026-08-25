@@ -1,5 +1,73 @@
 # Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND.
 
+from ashare_contracts.backtest_regression import (
+    BacktestRegressionArtifact as BacktestRegressionArtifact,
+)
+from ashare_contracts.backtest_regression import (
+    BacktestRegressionBaseline as BacktestRegressionBaseline,
+)
+from ashare_contracts.backtest_regression import (
+    BacktestRegressionComparison as BacktestRegressionComparison,
+)
+from ashare_contracts.backtest_regression import (
+    BacktestRegressionComparison1 as BacktestRegressionComparison1,
+)
+from ashare_contracts.backtest_regression import (
+    BacktestRegressionComparison2 as BacktestRegressionComparison2,
+)
+from ashare_contracts.backtest_regression import (
+    BacktestRegressionComparison3 as BacktestRegressionComparison3,
+)
+from ashare_contracts.backtest_regression import (
+    BacktestRegressionComparison4 as BacktestRegressionComparison4,
+)
+from ashare_contracts.backtest_regression import (
+    BacktestRegressionComparison5 as BacktestRegressionComparison5,
+)
+from ashare_contracts.backtest_regression import BacktestRegressionDiff as BacktestRegressionDiff
+from ashare_contracts.backtest_regression import (
+    BacktestRegressionRunSummary as BacktestRegressionRunSummary,
+)
+from ashare_contracts.backtest_regression import BaselineApproval as BaselineApproval
+from ashare_contracts.backtest_regression import Category as Category
+from ashare_contracts.backtest_regression import CategoryCounts as CategoryCounts
+from ashare_contracts.backtest_regression import CodeDigestEntry as CodeDigestEntry
+from ashare_contracts.backtest_regression import CodeProvenance as CodeProvenance
+from ashare_contracts.backtest_regression import ContentDigestReference as ContentDigestReference
+from ashare_contracts.backtest_regression import Counts as Counts
+from ashare_contracts.backtest_regression import DigestEntry as DigestEntry
+from ashare_contracts.backtest_regression import (
+    EvidenceIntegrityConfidence as EvidenceIntegrityConfidence,
+)
+from ashare_contracts.backtest_regression import FinalValuation as FinalValuation
+from ashare_contracts.backtest_regression import MetricValue as MetricValue
+from ashare_contracts.backtest_regression import Metrics as Metrics
+from ashare_contracts.backtest_regression import Mode as Mode
+from ashare_contracts.backtest_regression import Observation as Observation
+from ashare_contracts.backtest_regression import (
+    OpaqueExternalDigestReference as OpaqueExternalDigestReference,
+)
+from ashare_contracts.backtest_regression import Pnl as Pnl
+from ashare_contracts.backtest_regression import PortfolioHistoryRef as PortfolioHistoryRef
+from ashare_contracts.backtest_regression import RegressionInputs as RegressionInputs
+from ashare_contracts.backtest_regression import RegressionManifest as RegressionManifest
+from ashare_contracts.backtest_regression import RegressionProvenance as RegressionProvenance
+from ashare_contracts.backtest_regression import RegressionResults as RegressionResults
+from ashare_contracts.backtest_regression import RegressionTrust as RegressionTrust
+from ashare_contracts.backtest_regression import RegressionVersions as RegressionVersions
+from ashare_contracts.backtest_regression import RiskFreeObservation as RiskFreeObservation
+from ashare_contracts.backtest_regression import Sha256 as Sha256
+from ashare_contracts.backtest_regression import Status as Status
+from ashare_contracts.backtest_regression import Status1 as Status1
+from ashare_contracts.backtest_regression import Status2 as Status2
+from ashare_contracts.backtest_regression import Status5 as Status5
+from ashare_contracts.backtest_regression import TPlusOneInputs as TPlusOneInputs
+from ashare_contracts.backtest_regression import TPlusOneObservation as TPlusOneObservation
+from ashare_contracts.backtest_regression import TPlusOneResults as TPlusOneResults
+from ashare_contracts.backtest_regression import ToolchainEvidence as ToolchainEvidence
+from ashare_contracts.backtest_regression import ValuationLineage as ValuationLineage
+from ashare_contracts.backtest_regression import ValuationLineageItem as ValuationLineageItem
+from ashare_contracts.backtest_regression import ZeroCategoryCounts as ZeroCategoryCounts
 from ashare_contracts.calendar_holiday import Exchange as Exchange
 from ashare_contracts.calendar_holiday import Holiday as Holiday
 from ashare_contracts.calendar_holiday import Reason as Reason
@@ -70,7 +138,7 @@ from ashare_contracts.funds_precious_metal_fund import RecurringFee as Recurring
 from ashare_contracts.funds_precious_metal_fund import ReviewStatus as ReviewStatus
 from ashare_contracts.funds_precious_metal_fund import UnderlyingCommodity as UnderlyingCommodity
 from ashare_contracts.health_status_v1 import HealthStatus as HealthStatus
-from ashare_contracts.health_status_v1 import Status as Status
+from ashare_contracts.health_status_v1 import Status as Status_1
 from ashare_contracts.instrument_board import Board as Board
 from ashare_contracts.instrument_board import Exchange as Exchange_5
 from ashare_contracts.instrument_board import Id as Id
@@ -190,7 +258,7 @@ from ashare_contracts.seat_kol_workbench_snapshot import KolProfile as KolProfil
 from ashare_contracts.seat_kol_workbench_snapshot import LeftEntityType as LeftEntityType
 from ashare_contracts.seat_kol_workbench_snapshot import Metric as Metric
 from ashare_contracts.seat_kol_workbench_snapshot import MetricName as MetricName
-from ashare_contracts.seat_kol_workbench_snapshot import Mode as Mode
+from ashare_contracts.seat_kol_workbench_snapshot import Mode as Mode_1
 from ashare_contracts.seat_kol_workbench_snapshot import ReviewQueueItem as ReviewQueueItem
 from ashare_contracts.seat_kol_workbench_snapshot import ReviewStatus as ReviewStatus_2
 from ashare_contracts.seat_kol_workbench_snapshot import RightEntityType as RightEntityType
@@ -248,7 +316,55 @@ from ashare_contracts.strategy_strategy_descriptor import RequiredFeature as Req
 from ashare_contracts.strategy_strategy_descriptor import StrategyDescriptor as StrategyDescriptor
 from ashare_contracts.strategy_strategy_descriptor import StringParameterSpec as StringParameterSpec
 
+from ashare_contracts.backtest_regression_semantics import validate_backtest_regression_comparison
+
 __all__ = [
+    "BacktestRegressionArtifact",
+    "BacktestRegressionBaseline",
+    "BacktestRegressionComparison",
+    "BacktestRegressionComparison1",
+    "BacktestRegressionComparison2",
+    "BacktestRegressionComparison3",
+    "BacktestRegressionComparison4",
+    "BacktestRegressionComparison5",
+    "BacktestRegressionDiff",
+    "BacktestRegressionRunSummary",
+    "BaselineApproval",
+    "Category",
+    "CategoryCounts",
+    "CodeDigestEntry",
+    "CodeProvenance",
+    "ContentDigestReference",
+    "Counts",
+    "DigestEntry",
+    "EvidenceIntegrityConfidence",
+    "FinalValuation",
+    "MetricValue",
+    "Metrics",
+    "Mode",
+    "Observation",
+    "OpaqueExternalDigestReference",
+    "Pnl",
+    "PortfolioHistoryRef",
+    "RegressionInputs",
+    "RegressionManifest",
+    "RegressionProvenance",
+    "RegressionResults",
+    "RegressionTrust",
+    "RegressionVersions",
+    "RiskFreeObservation",
+    "Sha256",
+    "Status",
+    "Status1",
+    "Status2",
+    "Status5",
+    "TPlusOneInputs",
+    "TPlusOneObservation",
+    "TPlusOneResults",
+    "ToolchainEvidence",
+    "ValuationLineage",
+    "ValuationLineageItem",
+    "ZeroCategoryCounts",
     "Exchange",
     "Holiday",
     "Reason",
@@ -315,7 +431,7 @@ __all__ = [
     "ReviewStatus",
     "UnderlyingCommodity",
     "HealthStatus",
-    "Status",
+    "Status_1",
     "Board",
     "Exchange_5",
     "Id",
@@ -419,7 +535,7 @@ __all__ = [
     "LeftEntityType",
     "Metric",
     "MetricName",
-    "Mode",
+    "Mode_1",
     "ReviewQueueItem",
     "ReviewStatus_2",
     "RightEntityType",
@@ -461,3 +577,5 @@ __all__ = [
     "StrategyDescriptor",
     "StringParameterSpec",
 ]
+
+__all__.append("validate_backtest_regression_comparison")

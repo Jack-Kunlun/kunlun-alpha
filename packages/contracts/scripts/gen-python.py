@@ -19,6 +19,7 @@ from typing import cast
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMAS_DIR = ROOT / "schemas"
+SEMANTIC_SUPPORT_SOURCE = ROOT / "scripts" / "backtest_regression_semantics.py"
 OUTPUT_DIR = (
     ROOT.parent.parent / "python" / "packages" / "ashare-contracts" / "src" / "ashare_contracts"
 )
@@ -49,6 +50,68 @@ def ensure_pydantic_imports(content: str, symbols: tuple[str, ...]) -> str:
             imports.append(symbol)
     replacement = f"from pydantic import {', '.join(imports)}"
     return content[: match.start()] + replacement + content[match.end() :]
+
+
+def inject_semantic_validators(schema_file: Path, generated_file: Path) -> None:
+    """Inject validators declared by schema extensions, without model-name rules."""
+    schema = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
+    candidates: list[tuple[str, str, str]] = []
+    definitions = schema.get("$defs", {})
+    if isinstance(definitions, dict):
+        model_schemas: list[JsonObject] = [
+            value for value in definitions.values() if isinstance(value, dict)
+        ]
+    else:
+        model_schemas = []
+    if isinstance(schema, dict):
+        model_schemas.append(schema)
+    for model_schema in model_schemas:
+        extension = model_schema.get("x-python-semantic-validator")
+        model_name = model_schema.get("title")
+        if not isinstance(extension, dict) or not isinstance(model_name, str):
+            continue
+        module = extension.get("module")
+        function = extension.get("function")
+        if not isinstance(module, str) or not isinstance(function, str):
+            raise RuntimeError(
+                f"invalid x-python-semantic-validator metadata in {schema_file}"
+            )
+        candidates.append((model_name, module, function))
+    if not candidates:
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    content = ensure_pydantic_imports(content, ("model_validator",))
+    for model_name, module, function in candidates:
+        import_line = f"from {module} import {function}\n"
+        if import_line not in content:
+            future_import = "from __future__ import annotations\n"
+            if future_import in content:
+                content = content.replace(
+                    future_import, future_import + import_line, 1
+                )
+            else:
+                content = import_line + content
+        class_marker = f"class {model_name}("
+        class_index = content.find(class_marker)
+        if class_index < 0:
+            raise RuntimeError(
+                f"semantic validator target {model_name} was not generated from {schema_file}"
+            )
+        validator_name = f"_validate_{function}"
+        if validator_name in content[class_index:]:
+            continue
+        class_end = content.find("):\n", class_index)
+        if class_end < 0:
+            raise RuntimeError(f"invalid generated class {model_name}")
+        validator = (
+            f'    @model_validator(mode="after")\n'
+            f"    def {validator_name}(self):\n"
+            f'        {function}(self.model_dump(by_alias=True, mode="json"))\n'
+            f"        return self\n\n"
+        )
+        content = content[: class_end + 3] + validator + content[class_end + 3 :]
+    generated_file.write_text(content, encoding="utf-8", newline="\n")
 
 
 def load_code_prefix_rules() -> tuple[tuple[str, str, str, str], ...]:
@@ -900,12 +963,13 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     """
     tmp_dir = Path(tempfile.mkdtemp(prefix="gen-python-"))
     tmp_file = tmp_dir / f"{output_file.stem}.py"
+    input_schema = schema_file
     cmd = [
         sys.executable,
         "-m",
         "datamodel_code_generator",
         "--input",
-        str(schema_file),
+        str(input_schema),
         "--input-file-type",
         "jsonschema",
         "--output",
@@ -947,6 +1011,7 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     inject_deleted_condition(schema_file, tmp_file)
     inject_available_time_validator(schema_file, tmp_file)
     inject_schema_validation(schema_file, tmp_file)
+    inject_semantic_validators(schema_file, tmp_file)
     inject_strategy_contract_validators(schema_file, tmp_file)
     format_result = subprocess.run(
         [sys.executable, "-m", "ruff", "format", "--quiet", str(tmp_file)],
@@ -1002,6 +1067,11 @@ def generate(output_dir: Path = OUTPUT_DIR) -> None:
         generated_files.append(output_file)
         print(f"  {output_file}")
 
+    semantic_support_output = output_dir / "backtest_regression_semantics.py"
+    if not SEMANTIC_SUPPORT_SOURCE.exists():
+        raise RuntimeError(f"missing semantic support source: {SEMANTIC_SUPPORT_SOURCE}")
+    shutil.copyfile(SEMANTIC_SUPPORT_SOURCE, semantic_support_output)
+
     # Write __init__.py that re-exports all generated models
     init_path = output_dir / "__init__.py"
     module_imports: dict[str, set[str]] = {}
@@ -1043,11 +1113,18 @@ def generate(output_dir: Path = OUTPUT_DIR) -> None:
         import_lines.append(import_line)
 
     all_content = header + "\n".join(import_lines) + "\n"
+    all_content += (
+        "\nfrom ashare_contracts.backtest_regression_semantics import "
+        "validate_backtest_regression_comparison\n"
+    )
     if import_lines:
         all_content += "\n__all__ = [\n"
         for _, _, export_name in exports:
             all_content += f'    "{export_name}",\n'
         all_content += "]\n"
+        all_content += (
+            "\n__all__.append(\"validate_backtest_regression_comparison\")\n"
+        )
     init_path.write_text(all_content, encoding="utf-8", newline="\n")
     (output_dir / "py.typed").write_text("", encoding="utf-8", newline="\n")
 
