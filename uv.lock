@@ -9,6 +9,7 @@ members = [
     "data-worker",
     "emotion-core",
     "event-core",
+    "feature-core",
     "hotspot-core",
     "intelligence-engine",
     "kol-core",
@@ -261,6 +262,17 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "ashare-contracts", editable = "python/packages/ashare-contracts" }]
+
+[[package]]
+name = "feature-core"
+version = "0.0.0"
+source = { editable = "python/packages/feature-core" }
+dependencies = [
+    { name = "kol-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "kol-core", editable = "python/packages/kol-core" }]
 
 [[package]]
 name = "genson"

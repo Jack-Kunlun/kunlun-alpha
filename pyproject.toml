@@ -58,6 +58,7 @@ extraPaths = [
     "python/packages/hotspot-core/src",
     "python/packages/seat-core/src",
     "python/packages/kol-core/src",
+    "python/packages/feature-core/src",
     "services/sample-engine/src",
     "services/data-worker/src",
     "services/intelligence-engine/src",

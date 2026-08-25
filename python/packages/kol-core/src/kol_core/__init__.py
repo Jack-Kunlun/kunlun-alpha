@@ -82,6 +82,23 @@ from kol_core.models import (
     validate_evidence_binding,
     validate_position_claim_link,
 )
+from kol_core.performance import (
+    KOL_PERFORMANCE_ALGORITHM_VERSION,
+    KOL_PERFORMANCE_POLICY_VERSION,
+    KOL_PERFORMANCE_SCHEMA_VERSION,
+    ClaimHorizonReturn,
+    ClaimPerformanceExclusionReason,
+    ClaimPerformanceInputError,
+    ClaimPerformancePolicy,
+    ClaimPerformanceResult,
+    ClaimPerformanceSample,
+    ClaimPerformanceStatus,
+    TradingCalendarSnapshot,
+    TradingSession,
+    TradablePriceObservation,
+    compute_claim_performance,
+    select_active_claims,
+)
 
 __all__ = [
     "KOL_ALGORITHM_VERSION",
@@ -156,4 +173,19 @@ __all__ = [
     "parse_claim_review_payload",
     "parse_claim_review_submission_payload",
     "to_claim_extraction_candidate_contract",
+    "KOL_PERFORMANCE_ALGORITHM_VERSION",
+    "KOL_PERFORMANCE_POLICY_VERSION",
+    "KOL_PERFORMANCE_SCHEMA_VERSION",
+    "ClaimHorizonReturn",
+    "ClaimPerformanceExclusionReason",
+    "ClaimPerformanceInputError",
+    "ClaimPerformancePolicy",
+    "ClaimPerformanceResult",
+    "ClaimPerformanceSample",
+    "ClaimPerformanceStatus",
+    "TradingCalendarSnapshot",
+    "TradingSession",
+    "TradablePriceObservation",
+    "compute_claim_performance",
+    "select_active_claims",
 ]
