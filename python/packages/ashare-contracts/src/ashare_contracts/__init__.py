@@ -172,6 +172,27 @@ from ashare_contracts.market_data_tick import TradeType as TradeType
 from ashare_contracts.seat_alias import SeatAlias as SeatAlias
 from ashare_contracts.seat_alias import SeatAliasSchemaVersion as SeatAliasSchemaVersion
 from ashare_contracts.seat_alias import SeatAliasType as SeatAliasType
+from ashare_contracts.seat_kol_workbench_snapshot import Alias as Alias
+from ashare_contracts.seat_kol_workbench_snapshot import Claim as Claim
+from ashare_contracts.seat_kol_workbench_snapshot import Cooccurrence as Cooccurrence
+from ashare_contracts.seat_kol_workbench_snapshot import Direction as Direction_1
+from ashare_contracts.seat_kol_workbench_snapshot import Evidence as Evidence
+from ashare_contracts.seat_kol_workbench_snapshot import EvidenceId as EvidenceId_3
+from ashare_contracts.seat_kol_workbench_snapshot import Kind as Kind_1
+from ashare_contracts.seat_kol_workbench_snapshot import KolProfile as KolProfile
+from ashare_contracts.seat_kol_workbench_snapshot import LeftEntityType as LeftEntityType
+from ashare_contracts.seat_kol_workbench_snapshot import Metric as Metric
+from ashare_contracts.seat_kol_workbench_snapshot import MetricName as MetricName
+from ashare_contracts.seat_kol_workbench_snapshot import Mode as Mode
+from ashare_contracts.seat_kol_workbench_snapshot import ReviewQueueItem as ReviewQueueItem
+from ashare_contracts.seat_kol_workbench_snapshot import ReviewStatus as ReviewStatus_2
+from ashare_contracts.seat_kol_workbench_snapshot import RightEntityType as RightEntityType
+from ashare_contracts.seat_kol_workbench_snapshot import SeatKind as SeatKind
+from ashare_contracts.seat_kol_workbench_snapshot import (
+    SeatKolWorkbenchSnapshot as SeatKolWorkbenchSnapshot,
+)
+from ashare_contracts.seat_kol_workbench_snapshot import SeatProfile as SeatProfile
+from ashare_contracts.seat_kol_workbench_snapshot import TimelineEntry as TimelineEntry
 from ashare_contracts.seat_performance import SeatPerformance as SeatPerformance
 from ashare_contracts.seat_performance import (
     SeatPerformanceSchemaVersion as SeatPerformanceSchemaVersion,
@@ -183,7 +204,7 @@ from ashare_contracts.seat_preference import (
 from ashare_contracts.seat_preference import StyleTag as StyleTag
 from ashare_contracts.seat_seat_profile import PredecessorSeatId as PredecessorSeatId
 from ashare_contracts.seat_seat_profile import SeatLineage as SeatLineage
-from ashare_contracts.seat_seat_profile import SeatProfile as SeatProfile
+from ashare_contracts.seat_seat_profile import SeatProfile as SeatProfile_1
 from ashare_contracts.seat_seat_profile import (
     SeatProfileLineageRelation as SeatProfileLineageRelation,
 )
@@ -196,12 +217,12 @@ from ashare_contracts.seat_seat_profile import SuccessorSeatId as SuccessorSeatI
 from ashare_contracts.seat_trade import Currency as Currency_2
 from ashare_contracts.seat_trade import SeatTrade as SeatTrade
 from ashare_contracts.seat_trade import SeatTradeSchemaVersion as SeatTradeSchemaVersion
-from ashare_contracts.sector_sector import Alias as Alias
-from ashare_contracts.sector_sector import Kind as Kind_1
+from ashare_contracts.sector_sector import Alias as Alias_1
+from ashare_contracts.sector_sector import Kind as Kind_2
 from ashare_contracts.sector_sector import Sector as Sector
 from ashare_contracts.sector_sector_membership import SectorMembership as SectorMembership
 from ashare_contracts.sector_sector_rotation_event import EventType as EventType_3
-from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_3
+from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_4
 from ashare_contracts.sector_sector_rotation_event import SectorRotationEvent as SectorRotationEvent
 from ashare_contracts.sector_sector_rotation_event import SourceVersion as SourceVersion_1
 
@@ -358,6 +379,25 @@ __all__ = [
     "SeatAlias",
     "SeatAliasSchemaVersion",
     "SeatAliasType",
+    "Alias",
+    "Claim",
+    "Cooccurrence",
+    "Direction_1",
+    "Evidence",
+    "EvidenceId_3",
+    "Kind_1",
+    "KolProfile",
+    "LeftEntityType",
+    "Metric",
+    "MetricName",
+    "Mode",
+    "ReviewQueueItem",
+    "ReviewStatus_2",
+    "RightEntityType",
+    "SeatKind",
+    "SeatKolWorkbenchSnapshot",
+    "SeatProfile",
+    "TimelineEntry",
     "SeatPerformance",
     "SeatPerformanceSchemaVersion",
     "SeatPreference",
@@ -365,7 +405,7 @@ __all__ = [
     "StyleTag",
     "PredecessorSeatId",
     "SeatLineage",
-    "SeatProfile",
+    "SeatProfile_1",
     "SeatProfileLineageRelation",
     "SeatProfileSchemaVersion",
     "SeatProfileSeatIdAlgorithm",
@@ -374,12 +414,12 @@ __all__ = [
     "Currency_2",
     "SeatTrade",
     "SeatTradeSchemaVersion",
-    "Alias",
-    "Kind_1",
+    "Alias_1",
+    "Kind_2",
     "Sector",
     "SectorMembership",
     "EventType_3",
-    "EvidenceId_3",
+    "EvidenceId_4",
     "SectorRotationEvent",
     "SourceVersion_1",
 ]

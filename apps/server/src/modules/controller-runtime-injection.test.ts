@@ -8,10 +8,13 @@ import { EventFeedbackController } from "./event-feedback/event-feedback.control
 import { EventFeedbackService } from "./event-feedback/event-feedback.service";
 import { EventIntelligenceController } from "./event-intelligence/event-intelligence.controller";
 import { EventIntelligenceService } from "./event-intelligence/event-intelligence.service";
+import { SeatKolWorkbenchController } from "./seat-kol/seat-kol.controller";
+import { SeatKolWorkbenchService } from "./seat-kol/seat-kol.service";
 
 const emotionService = {};
 const eventFeedbackService = {};
 const eventIntelligenceService = {};
+const seatKolWorkbenchService = {};
 
 @Module({
   controllers: [EmotionController],
@@ -30,6 +33,12 @@ class EventFeedbackControllerRuntimeTestModule {}
   providers: [{ provide: EventIntelligenceService, useValue: eventIntelligenceService }],
 })
 class EventIntelligenceControllerRuntimeTestModule {}
+
+@Module({
+  controllers: [SeatKolWorkbenchController],
+  providers: [{ provide: SeatKolWorkbenchService, useValue: seatKolWorkbenchService }],
+})
+class SeatKolWorkbenchControllerRuntimeTestModule {}
 
 async function expectRuntimeInjection(
   moduleType: Type<unknown>,
@@ -67,6 +76,14 @@ describe("controller runtime injection", () => {
       EventIntelligenceControllerRuntimeTestModule,
       EventIntelligenceController,
       eventIntelligenceService,
+    );
+  });
+
+  it("injects SeatKolWorkbenchService", async () => {
+    await expectRuntimeInjection(
+      SeatKolWorkbenchControllerRuntimeTestModule,
+      SeatKolWorkbenchController,
+      seatKolWorkbenchService,
     );
   });
 });

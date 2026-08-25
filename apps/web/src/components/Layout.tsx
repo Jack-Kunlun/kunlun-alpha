@@ -6,6 +6,7 @@ const navigation = [
   { to: "/data-quality", label: "数据质量" },
   { to: "/market-regime", label: "情绪与轮动" },
   { to: "/event-workbench", label: "事件观势" },
+  { to: "/seat-kol", label: "席位与 KOL" },
 ];
 
 export function Layout() {
