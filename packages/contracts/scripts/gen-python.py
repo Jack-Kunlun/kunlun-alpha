@@ -711,6 +711,185 @@ def inject_schema_validation(schema_file: Path, generated_file: Path) -> None:
     )
 
 
+def inject_strategy_contract_validators(schema_file: Path, generated_file: Path) -> None:
+    """Keep generated strategy DTOs immutable and enforce cross-field semantics."""
+    relative_schema = schema_file.relative_to(SCHEMAS_DIR).as_posix()
+    if relative_schema not in {
+        "strategy/signal.json",
+        "strategy/strategy-descriptor.json",
+    }:
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    content = content.replace(
+        '        extra="forbid",\n',
+        '        extra="forbid",\n        frozen=True,\n',
+    )
+    content = ensure_pydantic_imports(content, ("ConfigDict", "model_validator"))
+    content = re.sub(
+        r"(class [A-Za-z_][A-Za-z0-9_]*\(RootModel\[[^\n]+\]\):\n)",
+        r"\1    model_config = ConfigDict(frozen=True)\n\n",
+        content,
+    )
+
+    if relative_schema == "strategy/signal.json":
+        class_marker = "class Signal(BaseModel):\n"
+        if class_marker not in content:
+            raise RuntimeError("Generated Signal output changed; validator injection aborted")
+        content, replaced = re.subn(
+            r"    evidence_ids: list\[([^\n]+)\]",
+            r"    evidence_ids: tuple[\1, ...]",
+            content,
+            count=1,
+        )
+        if replaced != 1:
+            raise RuntimeError("Generated Signal evidenceIds annotation changed")
+        validator = (
+            class_marker
+            + '    @model_validator(mode="after")\n'
+            + "    def validate_strategy_signal(self) -> Signal:\n"
+            + "        if self.data_cutoff_time > self.decision_time:\n"
+            + '            raise ValueError("dataCutoffTime must not exceed decisionTime")\n'
+            + "        evidence_values = tuple(\n"
+            + '            getattr(item, "root", item)\n'
+            + "            for item in self.evidence_ids\n"
+            + "        )\n"
+            + "        if evidence_values != tuple(sorted(evidence_values)):\n"
+            + '            raise ValueError("evidenceIds must be deterministically sorted")\n'
+            + "        if len(set(evidence_values)) != len(evidence_values):\n"
+            + '            raise ValueError("evidenceIds must not contain duplicates")\n'
+            + '        score = Decimal(getattr(self.score, "root", self.score))\n'
+            + '        confidence = Decimal(getattr(self.confidence, "root", self.confidence))\n'
+            + '        if not score.is_finite() or score < Decimal("-1") or score > Decimal("1"):\n'
+            + '            raise ValueError("score must be finite and between -1 and 1")\n'
+            + "        if (\n"
+            + "            not confidence.is_finite()\n"
+            + '            or confidence < Decimal("0")\n'
+            + '            or confidence > Decimal("1")\n'
+            + "        ):\n"
+            + '            raise ValueError("confidence must be finite and between 0 and 1")\n'
+            + '        object.__setattr__(self, "evidence_ids", tuple(self.evidence_ids))\n'
+            + "        return self\n\n"
+        )
+        if "from decimal import Decimal\n" not in content:
+            content = content.replace(
+                "from __future__ import annotations\n",
+                "from __future__ import annotations\n\nfrom decimal import Decimal\n",
+                1,
+            )
+        content = content.replace(class_marker, validator, 1)
+    else:
+        class_marker = "class StrategyDescriptor(BaseModel):\n"
+        if class_marker not in content:
+            raise RuntimeError(
+                "Generated StrategyDescriptor output changed; validator injection aborted"
+            )
+        if "from decimal import Decimal\n" not in content:
+            content = content.replace(
+                "from __future__ import annotations\n",
+                "from __future__ import annotations\n\nfrom decimal import Decimal\n",
+                1,
+            )
+        for field_name in ("required_features", "lifecycle_hooks"):
+            content, replaced = re.subn(
+                rf"    {field_name}: (?:list|set)\[([^\n]+)\]",
+                rf"    {field_name}: tuple[\1, ...]",
+                content,
+                count=1,
+            )
+            if replaced != 1:
+                raise RuntimeError(f"Generated StrategyDescriptor {field_name} annotation changed")
+        content, replaced = re.subn(
+            r"(    parameter_specs: )list\[(.*?)\]( = Field\()",
+            r"\1tuple[\2, ...]\3",
+            content,
+            count=1,
+            flags=re.DOTALL,
+        )
+        if replaced != 1:
+            raise RuntimeError("Generated StrategyDescriptor parameter_specs annotation changed")
+        validator = (
+            class_marker
+            + '    @model_validator(mode="after")\n'
+            + "    def validate_strategy_descriptor(self) -> StrategyDescriptor:\n"
+            + "        required_features = tuple(self.required_features)\n"
+            + "        required_feature_values = tuple(\n"
+            + '            getattr(item, "root", item) for item in required_features\n'
+            + "        )\n"
+            + "        if required_feature_values != tuple(sorted(required_feature_values)):\n"
+            + '            raise ValueError("requiredFeatures must be deterministically sorted")\n'
+            + "        if len(set(required_feature_values)) != len(required_feature_values):\n"
+            + '            raise ValueError("requiredFeatures must not contain duplicates")\n'
+            + "        parameter_specs = tuple(self.parameter_specs)\n"
+            + "        names = tuple(spec.name for spec in parameter_specs)\n"
+            + "        if names != tuple(sorted(names)):\n"
+            + '            raise ValueError("parameterSpecs must be deterministically sorted")\n'
+            + "        if len(set(names)) != len(names):\n"
+            + '            raise ValueError("parameterSpecs must not contain duplicate names")\n'
+            + "        hooks = tuple(\n"
+            + '            getattr(item, "root", getattr(item, "value", item))\n'
+            + "            for item in self.lifecycle_hooks\n"
+            + "        )\n"
+            + '        if hooks != ("initialize", "onDecision", "finalize"):\n'
+            + "            raise ValueError(\n"
+            + '                "lifecycleHooks must be initialize/onDecision/finalize"\n'
+            + "            )\n"
+            + "        for spec in parameter_specs:\n"
+            + '            value_type = getattr(spec.value_type, "value", spec.value_type)\n'
+            + '            default_raw = getattr(spec, "default_value", None)\n'
+            + '            minimum_raw = getattr(spec, "minimum", None)\n'
+            + '            maximum_raw = getattr(spec, "maximum", None)\n'
+            + '            default = getattr(default_raw, "root", default_raw)\n'
+            + '            minimum = getattr(minimum_raw, "root", minimum_raw)\n'
+            + '            maximum = getattr(maximum_raw, "root", maximum_raw)\n'
+            + '            if value_type == "INTEGER":\n'
+            + "                values = (default, minimum, maximum)\n"
+            + "                if any(\n"
+            + "                    value is not None and type(value) is not int\n"
+            + "                    for value in values\n"
+            + "                ):\n"
+            + "                    raise ValueError(\n"
+            + '                        f"{spec.name} INTEGER values must be exact integers"\n'
+            + "                    )\n"
+            + '            elif value_type == "DECIMAL":\n'
+            + "                values = tuple(\n"
+            + "                    Decimal(value)\n"
+            + "                    for value in (default, minimum, maximum)\n"
+            + "                    if value is not None\n"
+            + "                )\n"
+            + "                if any(not value.is_finite() for value in values):\n"
+            + '                    raise ValueError(f"{spec.name} DECIMAL values must be finite")\n'
+            + "                default = Decimal(default) if default is not None else None\n"
+            + "                minimum = Decimal(minimum) if minimum is not None else None\n"
+            + "                maximum = Decimal(maximum) if maximum is not None else None\n"
+            + "            elif (\n"
+            + '                value_type == "BOOLEAN"\n'
+            + "                and default is not None\n"
+            + "                and type(default) is not bool\n"
+            + "            ):\n"
+            + '                raise ValueError(f"{spec.name} BOOLEAN default must be boolean")\n'
+            + "            elif (\n"
+            + '                value_type == "STRING"\n'
+            + "                and default is not None\n"
+            + "                and not isinstance(default, str)\n"
+            + "            ):\n"
+            + '                raise ValueError(f"{spec.name} STRING default must be string")\n'
+            + "            if minimum is not None and maximum is not None and minimum > maximum:\n"
+            + '                raise ValueError(f"{spec.name} minimum must not exceed maximum")\n'
+            + "            if default is not None and minimum is not None and default < minimum:\n"
+            + '                raise ValueError(f"{spec.name} default is below minimum")\n'
+            + "            if default is not None and maximum is not None and default > maximum:\n"
+            + '                raise ValueError(f"{spec.name} default exceeds maximum")\n'
+            + '        object.__setattr__(self, "required_features", required_features)\n'
+            + '        object.__setattr__(self, "parameter_specs", parameter_specs)\n'
+            + '        object.__setattr__(self, "lifecycle_hooks", hooks)\n'
+            + "        return self\n\n"
+        )
+        content = content.replace(class_marker, validator, 1)
+
+    generated_file.write_text(content, encoding="utf-8", newline="\n")
+
+
 def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     """Run datamodel-code-generator on a single schema file.
 
@@ -768,6 +947,7 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     inject_deleted_condition(schema_file, tmp_file)
     inject_available_time_validator(schema_file, tmp_file)
     inject_schema_validation(schema_file, tmp_file)
+    inject_strategy_contract_validators(schema_file, tmp_file)
     format_result = subprocess.run(
         [sys.executable, "-m", "ruff", "format", "--quiet", str(tmp_file)],
         capture_output=True,

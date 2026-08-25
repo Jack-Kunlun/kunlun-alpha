@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha.local/contracts/strategy/strategy-descriptor-v1.json",
+  "title": "StrategyDescriptor",
+  "description": "Research-only strategy metadata, lifecycle and typed parameter contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "strategyId",
+    "strategyVersion",
+    "algorithmVersion",
+    "sdkVersion",
+    "lifecycleVersion",
+    "description",
+    "requiredFeatures",
+    "parameterSpecs",
+    "lifecycleHooks",
+    "signalSchemaVersion",
+    "executionCapability"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "strategy-descriptor-v1" },
+    "strategyId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "strategyVersion": { "$ref": "#/definitions/Version" },
+    "algorithmVersion": { "$ref": "#/definitions/Version" },
+    "sdkVersion": { "$ref": "#/definitions/Version" },
+    "lifecycleVersion": { "$ref": "#/definitions/Version" },
+    "description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "requiredFeatures": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+      }
+    },
+    "parameterSpecs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/definitions/IntegerParameterSpec" },
+          { "$ref": "#/definitions/DecimalParameterSpec" },
+          { "$ref": "#/definitions/BooleanParameterSpec" },
+          { "$ref": "#/definitions/StringParameterSpec" }
+        ]
+      }
+    },
+    "lifecycleHooks": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": [{ "const": "initialize" }, { "const": "onDecision" }, { "const": "finalize" }],
+      "additionalItems": false
+    },
+    "signalSchemaVersion": { "const": "signal-v1" },
+    "executionCapability": { "const": "NONE" }
+  },
+  "definitions": {
+    "Version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "IntegerParameterSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "valueType", "required", "description"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "valueType": { "const": "INTEGER" },
+        "required": { "type": "boolean", "x-python-strict": true },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "defaultValue": { "type": ["integer", "null"], "x-python-strict": true },
+        "minimum": { "type": ["integer", "null"], "x-python-strict": true },
+        "maximum": { "type": ["integer", "null"], "x-python-strict": true }
+      }
+    },
+    "DecimalParameterSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "valueType", "required", "description"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "valueType": { "const": "DECIMAL" },
+        "required": { "type": "boolean", "x-python-strict": true },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "defaultValue": {
+          "type": ["string", "null"],
+          "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+        },
+        "minimum": { "type": ["string", "null"], "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$" },
+        "maximum": { "type": ["string", "null"], "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$" }
+      }
+    },
+    "BooleanParameterSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "valueType", "required", "description"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "valueType": { "const": "BOOLEAN" },
+        "required": { "type": "boolean", "x-python-strict": true },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "defaultValue": { "type": ["boolean", "null"], "x-python-strict": true }
+      }
+    },
+    "StringParameterSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "valueType", "required", "description"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "valueType": { "const": "STRING" },
+        "required": { "type": "boolean", "x-python-strict": true },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "defaultValue": { "type": ["string", "null"] }
+      }
+    }
+  }
+}
