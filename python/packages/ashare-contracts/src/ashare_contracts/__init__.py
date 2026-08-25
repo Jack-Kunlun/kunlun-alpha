@@ -87,6 +87,39 @@ from ashare_contracts.kol_claim import KolClaimReviewStatus as KolClaimReviewSta
 from ashare_contracts.kol_claim import KolClaimSchemaVersion as KolClaimSchemaVersion
 from ashare_contracts.kol_claim import KolClaimStatementKind as KolClaimStatementKind
 from ashare_contracts.kol_claim import KolClaimUncertainty as KolClaimUncertainty
+from ashare_contracts.kol_claim_extraction_candidate import AlgorithmVersion as AlgorithmVersion
+from ashare_contracts.kol_claim_extraction_candidate import AnchorBase as AnchorBase
+from ashare_contracts.kol_claim_extraction_candidate import AnchorType as AnchorType
+from ashare_contracts.kol_claim_extraction_candidate import ClaimAction as ClaimAction
+from ashare_contracts.kol_claim_extraction_candidate import ClaimAttribution as ClaimAttribution
+from ashare_contracts.kol_claim_extraction_candidate import (
+    ClaimConditionality as ClaimConditionality,
+)
+from ashare_contracts.kol_claim_extraction_candidate import ClaimPolarity as ClaimPolarity
+from ashare_contracts.kol_claim_extraction_candidate import ClaimStatementKind as ClaimStatementKind
+from ashare_contracts.kol_claim_extraction_candidate import ContentExactAnchor as ContentExactAnchor
+from ashare_contracts.kol_claim_extraction_candidate import EventTimeStatus as EventTimeStatus
+from ashare_contracts.kol_claim_extraction_candidate import EvidenceGrade as EvidenceGrade
+from ashare_contracts.kol_claim_extraction_candidate import (
+    EvidenceGradeVersion as EvidenceGradeVersion,
+)
+from ashare_contracts.kol_claim_extraction_candidate import (
+    KolClaimExtractionCandidate as KolClaimExtractionCandidate,
+)
+from ashare_contracts.kol_claim_extraction_candidate import MediaExactAnchor as MediaExactAnchor
+from ashare_contracts.kol_claim_extraction_candidate import ReviewStatus as ReviewStatus_1
+from ashare_contracts.kol_claim_extraction_candidate import SchemaVersion as SchemaVersion_1
+from ashare_contracts.kol_claim_extraction_candidate import SegmentIndex as SegmentIndex
+from ashare_contracts.kol_claim_extraction_candidate import SemanticLabel as SemanticLabel
+from ashare_contracts.kol_claim_review import Decision as Decision
+from ashare_contracts.kol_claim_review import KolClaimReview as KolClaimReview
+from ashare_contracts.kol_claim_review import ReviewMeaning as ReviewMeaning
+from ashare_contracts.kol_claim_review import SchemaVersion as SchemaVersion_2
+from ashare_contracts.kol_claim_review_submission import Decision as Decision_1
+from ashare_contracts.kol_claim_review_submission import (
+    KolClaimReviewSubmission as KolClaimReviewSubmission,
+)
+from ashare_contracts.kol_claim_review_submission import SchemaVersion as SchemaVersion_3
 from ashare_contracts.kol_content import KolContent as KolContent
 from ashare_contracts.kol_content import (
     KolContentFingerprintAlgorithmVersion as KolContentFingerprintAlgorithmVersion,
@@ -256,6 +289,31 @@ __all__ = [
     "KolClaimSchemaVersion",
     "KolClaimStatementKind",
     "KolClaimUncertainty",
+    "AlgorithmVersion",
+    "AnchorBase",
+    "AnchorType",
+    "ClaimAction",
+    "ClaimAttribution",
+    "ClaimConditionality",
+    "ClaimPolarity",
+    "ClaimStatementKind",
+    "ContentExactAnchor",
+    "EventTimeStatus",
+    "EvidenceGrade",
+    "EvidenceGradeVersion",
+    "KolClaimExtractionCandidate",
+    "MediaExactAnchor",
+    "ReviewStatus_1",
+    "SchemaVersion_1",
+    "SegmentIndex",
+    "SemanticLabel",
+    "Decision",
+    "KolClaimReview",
+    "ReviewMeaning",
+    "SchemaVersion_2",
+    "Decision_1",
+    "KolClaimReviewSubmission",
+    "SchemaVersion_3",
     "KolContent",
     "KolContentFingerprintAlgorithmVersion",
     "KolContentSchemaVersion",

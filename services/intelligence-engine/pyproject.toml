@@ -6,11 +6,13 @@ requires-python = "==3.12.13"
 dependencies = [
     "ashare-contracts",
     "event-core",
+    "kol-core",
 ]
 
 [tool.uv.sources]
 ashare-contracts = { workspace = true }
 event-core = { workspace = true }
+kol-core = { workspace = true }
 
 [build-system]
 requires = ["hatchling==1.27.0"]

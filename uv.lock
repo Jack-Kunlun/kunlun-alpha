@@ -332,12 +332,14 @@ source = { editable = "services/intelligence-engine" }
 dependencies = [
     { name = "ashare-contracts" },
     { name = "event-core" },
+    { name = "kol-core" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "ashare-contracts", editable = "python/packages/ashare-contracts" },
     { name = "event-core", editable = "python/packages/event-core" },
+    { name = "kol-core", editable = "python/packages/kol-core" },
 ]
 
 [[package]]

@@ -752,6 +752,135 @@ export interface TradingStatus {
   label: string;
 }
 
+export type ClaimAction = "BUY" | "SELL" | "HOLDING" | "WATCH";
+export type ClaimPolarity = "AFFIRMED" | "NEGATED";
+export type ClaimConditionality = "UNCONDITIONAL" | "CONDITIONAL";
+export type ClaimStatementKind = "DIRECT" | "QUOTE" | "PARAPHRASE" | "AMBIGUOUS";
+export type ClaimAttribution = "SELF" | "QUOTED" | "REPORTED" | "UNKNOWN";
+export type EventTimeStatus = "EXACT" | "DATE_ONLY" | "UNKNOWN";
+export type EvidenceGrade =
+  "PRIMARY_SOURCE" | "SECONDARY_SOURCE" | "TERTIARY_SOURCE" | "UNCLASSIFIED";
+
+/**
+ * An unreviewed public-speech extraction candidate. It is not a fact, Trade, order, fill, account or executable position.
+ */
+export interface KolClaimExtractionCandidate {
+  schemaVersion: "claim-extraction-candidate-v1";
+  candidateId: string;
+  revisionId: string;
+  previousRevisionId: string | null;
+  semanticLabel: "PUBLIC_SPEECH_CANDIDATE_NOT_FACT_OR_EXECUTION";
+  statement: string;
+  action: ClaimAction;
+  polarity: ClaimPolarity;
+  conditionality: ClaimConditionality;
+  statementKind: ClaimStatementKind;
+  attribution: ClaimAttribution;
+  eventTimeStatus: EventTimeStatus;
+  eventTime: string | null;
+  eventDate: string | null;
+  instrumentId: string;
+  /**
+   * @minItems 1
+   * @maxItems 32
+   */
+  anchors: [ContentExactAnchor | MediaExactAnchor, ...(ContentExactAnchor | MediaExactAnchor)[]];
+  evidenceGrade: EvidenceGrade;
+  evidenceGradeVersion: "evidence-grade-v1";
+  confidenceBps: number;
+  source: string;
+  sourceVersion: string;
+  algorithmVersion: "kol-claim-extraction-v1";
+  promptVersion: string;
+  modelProvider: string;
+  modelVersion: string;
+  configurationFingerprint: string;
+  policyFingerprint: string;
+  recognitionRunId: string;
+  publishTime: string;
+  ingestTime: string;
+  processingTime: string;
+  availableTime: string;
+  reviewStatus: "UNREVIEWED";
+  deleted: boolean;
+  deletedAt: string | null;
+  deletionReason: string | null;
+}
+export interface ContentExactAnchor {
+  anchorType: "CONTENT";
+  sourceIndex: number;
+  contentId: string;
+  contentVersion: string;
+  contentRevisionId: string;
+  contentAvailableTime: string;
+  source: string;
+  sourceVersion: string;
+  startOffset: number;
+  endOffset: number;
+  excerpt: string;
+  evidenceGrade: EvidenceGrade;
+  evidenceGradeVersion: "evidence-grade-v1";
+}
+export interface MediaExactAnchor {
+  anchorType: "MEDIA";
+  sourceIndex: number;
+  contentId: string;
+  contentVersion: string;
+  contentRevisionId: string;
+  contentAvailableTime: string;
+  source: string;
+  sourceVersion: string;
+  startOffset: number;
+  endOffset: number;
+  excerpt: string;
+  evidenceGrade: EvidenceGrade;
+  evidenceGradeVersion: "evidence-grade-v1";
+  evidenceId: string;
+  evidenceRevisionId: string;
+  evidenceAvailableTime: string;
+  mediaId: string;
+  mediaVersion: string;
+  mediaManifestRevisionId: string;
+  /**
+   * @minItems 1
+   * @maxItems 1000
+   */
+  segmentIndexes: [number, ...number[]];
+}
+
+/**
+ * Client request for a server-owned append-only human review of an exact candidate revision.
+ */
+export interface KolClaimReviewSubmission {
+  schemaVersion: "claim-review-submission-v1";
+  clientRequestId: string;
+  candidateId: string;
+  candidateRevisionId: string;
+  decision: "IN_REVIEW" | "APPROVED" | "REJECTED";
+  reason: string;
+  comment?: string | null;
+  expectedPreviousReviewId?: string | null;
+}
+
+/**
+ * Immutable server-owned human review of an exact unreviewed public-speech candidate. Approval is not fact verification or execution confirmation.
+ */
+export interface KolClaimReview {
+  schemaVersion: "claim-review-v1";
+  reviewId: string;
+  candidateId: string;
+  candidateRevisionId: string;
+  decision: "IN_REVIEW" | "APPROVED" | "REJECTED";
+  reason: string;
+  comment: string | null;
+  reviewerRef: string;
+  createdAt: string;
+  availableAt: string;
+  submissionFingerprint: string;
+  previousReviewId: string | null;
+  reviewMeaning: "PUBLIC_WORDING_REVIEWED_NOT_FACT_OR_EXECUTION";
+}
+
 export type KolClaimSchemaVersion = "kol-claim-v1";
 export type KolClaimStatementKind = "DIRECT" | "QUOTE" | "PARAPHRASE" | "AMBIGUOUS";
 export type KolClaimDirection = "BULLISH" | "BEARISH" | "NEUTRAL";

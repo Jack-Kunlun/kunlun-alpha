@@ -417,6 +417,64 @@ def inject_strict_int(schema_file: Path, generated_file: Path) -> None:
     generated_file.write_text(content, encoding="utf-8", newline="\n")
 
 
+def inject_strict_rfc3339(schema_file: Path, generated_file: Path) -> None:
+    """Reject coercive datetime input before Pydantic can truncate or normalize it."""
+    schema = json.loads(schema_file.read_text(encoding="utf-8"))
+    if schema.get("x-python-strict-rfc3339") is not True:
+        return
+    fields_by_model: dict[str, set[str]] = {}
+
+    def add_model(model_name: str, props: JsonObject) -> None:
+        for name, prop in props.items():
+            if isinstance(prop, dict) and prop.get("format") == "date-time":
+                fields_by_model.setdefault(model_name, set()).add(_snake_case(name))
+
+    title = schema.get("title")
+    properties = schema.get("properties")
+    if isinstance(title, str) and isinstance(properties, dict):
+        add_model(title, properties)
+    definitions = schema.get("definitions")
+    if isinstance(definitions, dict):
+        for model_name, definition in definitions.items():
+            if isinstance(definition, dict) and isinstance(definition.get("properties"), dict):
+                add_model(model_name, definition["properties"])
+    if not fields_by_model:
+        raise RuntimeError(f"x-python-strict-rfc3339 has no date-time fields in {schema_file}")
+
+    content = generated_file.read_text(encoding="utf-8")
+    if "import re\n" not in content:
+        content = content.replace(
+            "from __future__ import annotations\n",
+            "from __future__ import annotations\n\nimport re\n",
+            1,
+        )
+    content = ensure_pydantic_imports(content, ("field_validator",))
+    pattern = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})"
+    for model_name, fields in sorted(fields_by_model.items()):
+        class_marker = f"class {model_name}(BaseModel):\n"
+        if class_marker not in content:
+            raise RuntimeError(
+                f"Generated output changed; cannot inject strict RFC3339 validator for {model_name}"
+            )
+        field_arguments = ", ".join(f'"{field}"' for field in sorted(fields))
+        validator = (
+            class_marker
+            + f'    @field_validator({field_arguments}, mode="before")\n'
+            + "    @classmethod\n"
+            + "    def validate_strict_rfc3339(cls, value: object) -> object:\n"
+            + "        if value is None:\n"
+            + "            return value\n"
+            + f"        if type(value) is not str or re.fullmatch({pattern!r}, value) is None:\n"
+            + "            raise ValueError(\n"
+            + '                "datetime must be a strict RFC3339 string with at most six "\n'
+            + '                "fractional digits"\n'
+            + "            )\n"
+            + "        return value\n\n"
+        )
+        content = content.replace(class_marker, validator, 1)
+    generated_file.write_text(content, encoding="utf-8", newline="\n")
+
+
 def inject_deleted_condition(schema_file: Path, generated_file: Path) -> None:
     """Inject schema ``deleted`` conditionals into every applicable DTO.
 
@@ -587,6 +645,72 @@ def inject_available_time_validator(schema_file: Path, generated_file: Path) -> 
     )
 
 
+def inject_schema_validation(schema_file: Path, generated_file: Path) -> None:
+    """Inject generic schema-declared equality/forbidden-value validators."""
+    schema = json.loads(schema_file.read_text(encoding="utf-8"))
+    rules = schema.get("x-python-validation")
+    title = schema.get("title")
+    if not isinstance(rules, list) or not isinstance(title, str) or not rules:
+        return
+    parsed: list[tuple[str, str, object, str, str, object, str]] = []
+    for rule in rules:
+        if not isinstance(rule, dict):
+            raise RuntimeError(f"invalid x-python-validation rule in {schema_file}")
+        when = rule.get("when")
+        forbid = rule.get("forbid")
+        message = rule.get("message", "schema validation failed")
+        if (
+            not isinstance(when, dict)
+            or not isinstance(forbid, dict)
+            or not isinstance(when.get("field"), str)
+            or not isinstance(forbid.get("field"), str)
+            or "equals" not in when
+            or "equals" not in forbid
+            or not isinstance(message, str)
+        ):
+            raise RuntimeError(f"invalid x-python-validation rule in {schema_file}")
+        parsed.append(
+            (
+                _snake_case(when["field"]),
+                _snake_case(forbid["field"]),
+                when["equals"],
+                message,
+                title,
+                forbid["equals"],
+                schema_file.name,
+            )
+        )
+    content = generated_file.read_text(encoding="utf-8")
+    class_marker = f"class {title}(BaseModel):\n"
+    if class_marker not in content:
+        raise RuntimeError(f"Generated output changed; cannot inject schema validation for {title}")
+    method_marker = "def validate_schema_declared_rules(self)"
+    if method_marker in content:
+        return
+    lines = [
+        class_marker,
+        '    @model_validator(mode="after")\n',
+        f"    def validate_schema_declared_rules(self) -> {title}:\n",
+    ]
+    for when_field, forbid_field, when_value, message, _, forbid_value, _ in parsed:
+        lines.extend(
+            [
+                "        if (\n",
+                f'            getattr(self.{when_field}, "value", self.{when_field}) == '
+                f"{when_value!r}\n",
+                f'            and getattr(self.{forbid_field}, "value", self.{forbid_field}) == '
+                f"{forbid_value!r}\n",
+                "        ):\n",
+                f"            raise ValueError({message!r})\n",
+            ]
+        )
+    lines.append("        return self\n\n")
+    content = ensure_pydantic_imports(content, ("model_validator",))
+    generated_file.write_text(
+        content.replace(class_marker, "".join(lines), 1), encoding="utf-8", newline="\n"
+    )
+
+
 def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     """Run datamodel-code-generator on a single schema file.
 
@@ -640,8 +764,10 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     inject_decimal_fields(schema_file, tmp_file)
     inject_strict_bool(schema_file, tmp_file)
     inject_strict_int(schema_file, tmp_file)
+    inject_strict_rfc3339(schema_file, tmp_file)
     inject_deleted_condition(schema_file, tmp_file)
     inject_available_time_validator(schema_file, tmp_file)
+    inject_schema_validation(schema_file, tmp_file)
     format_result = subprocess.run(
         [sys.executable, "-m", "ruff", "format", "--quiet", str(tmp_file)],
         capture_output=True,

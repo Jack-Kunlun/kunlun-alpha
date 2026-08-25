@@ -18,6 +18,16 @@ export interface ColumnDefinition {
 export interface TableDefinition {
   name: string;
   columns: ColumnDefinition[];
+  /** Migration-owned SQL constraints, kept declarative for every driver. */
+  constraints?: string[];
+  indexes?: IndexDefinition[];
+}
+
+export interface IndexDefinition {
+  name: string;
+  columns: string[];
+  unique?: boolean;
+  predicate?: string;
 }
 
 export interface Migration {

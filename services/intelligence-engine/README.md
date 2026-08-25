@@ -255,3 +255,6 @@ canonical JSON（`sort_keys=True`、`separators=(",",":")`、`ensure_ascii=False
 连同 `normalization_policy_id`，完整保留使用限制与审计关联：`license`、`original_source`、
 `deleted`/`deleted_at`、`fingerprint_algorithm_version`、`content_type`、`url` 等在结果中始终可回溯，
 不因规范化而丢失。
+## P4-N08 claim extraction
+
+The claims pipeline consumes only authorized, visible KOL content or media-text evidence snapshots through fake `ClaimExtractor` ports. It produces unreviewed `ClaimExtractionCandidate` objects, never facts, trades, orders, fills, positions, or broker confirmations. Model output is a closed response containing source indexes and offsets only; provenance is rebuilt from trusted input snapshots. Idempotency and revision append operations are guarded by the policy/configuration fingerprint and the candidate store CAS boundary. Production adapters must provide an append-only revision store with unique logical identity, predecessor CAS, and point-in-time lookup; the repository implementation in this node is intentionally in-memory/fake only.
