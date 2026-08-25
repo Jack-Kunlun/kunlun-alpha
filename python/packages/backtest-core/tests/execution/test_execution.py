@@ -866,6 +866,24 @@ def test_t_plus_one_blocks_same_day_but_explicit_t_plus_zero_allows_it() -> None
     assert allowed.results[0].status is MatchStatus.FILLED
 
 
+def test_t_plus_one_classification_uses_held_quantity_when_exported_lot_is_not_sellable() -> None:
+    same_day_lot = _lot(
+        acquisition_trade_date="2026-06-01",
+        sellable_from_trade_date="2026-06-02",
+        quantity=100,
+        sellable_quantity=0,
+    )
+    order = _order("exported-same-day", side=IntentSide.SELL, quantity=100, limit_price="9")
+    result = _match(
+        (order,),
+        snapshot=_snapshot(bid_levels=(_level("bid-1", IntentSide.BUY, "9", 100),)),
+        rules=_rules(same_day_policy=SameDaySellPolicy.T_PLUS_1),
+        sellability=_sellability((same_day_lot,)),
+    )
+
+    assert result.results[0].reject_reason is RejectReason.T_PLUS_ONE_NOT_SELLABLE
+
+
 def test_insufficient_sellable_quantity_rejects_whole_order() -> None:
     order = _order("too-large-sell", side=IntentSide.SELL, quantity=200, limit_price="9")
     result = _match(

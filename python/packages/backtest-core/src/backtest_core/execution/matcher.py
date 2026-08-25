@@ -166,7 +166,9 @@ def _sell_reason(
     eligible_quantity = sum(remaining_lots.get(lot_id, 0) for lot_id in eligible_ids)
     if eligible_quantity == 0:
         same_day_lot = any(
-            lot.acquisition_trade_date == trading_date and lot.sellable_quantity > 0
+            rules.same_day_sell_policy is SameDaySellPolicy.T_PLUS_1
+            and lot.acquisition_trade_date == trading_date
+            and lot.quantity > 0
             for lot in sellability.lots
         )
         if rules.same_day_sell_policy is SameDaySellPolicy.T_PLUS_1 and same_day_lot:
