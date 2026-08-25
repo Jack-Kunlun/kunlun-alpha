@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "feature-spec-v1",
+  "name": "market.return_5d",
+  "version": "v2",
+  "entity": "INSTRUMENT",
+  "frequency": "DAILY",
+  "valueType": "DECIMAL",
+  "owner": "quant-research",
+  "description": "五个交易日收盘收益率",
+  "algorithmVersion": "v2",
+  "calculationDefinition": "(close_t / close_t_minus_5) - 1",
+  "windowDefinition": "TRADING_SESSIONS:5",
+  "filterPolicyVersion": "v1",
+  "pitPolicyVersion": "v1",
+  "eventTimeField": "trade_date",
+  "availableTimeField": "available_time",
+  "availabilityPolicy": "MAX_INPUT_AVAILABLE_TIME",
+  "dependencies": {
+    "market.a_b": "v1",
+    "market.a.b": "v2"
+  },
+  "sourceContracts": {
+    "market.z_source": "v3",
+    "market.a.source": "v1"
+  },
+  "semanticFingerprint": "sha256:a3a282e5c64d4ffc708d252869be56fed9a33fa2845391bb980f18d772a0d4c4"
+}

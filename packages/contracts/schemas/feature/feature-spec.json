@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha.local/contracts/feature/feature-spec.json",
+  "title": "FeatureSpec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "name",
+    "version",
+    "entity",
+    "frequency",
+    "valueType",
+    "owner",
+    "description",
+    "algorithmVersion",
+    "calculationDefinition",
+    "windowDefinition",
+    "filterPolicyVersion",
+    "pitPolicyVersion",
+    "eventTimeField",
+    "availableTimeField",
+    "availabilityPolicy",
+    "dependencies",
+    "sourceContracts",
+    "semanticFingerprint"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "feature-spec-v1" },
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+$"
+    },
+    "version": {
+      "type": "string",
+      "maxLength": 16,
+      "pattern": "^v[1-9][0-9]*$"
+    },
+    "entity": {
+      "enum": ["INSTRUMENT", "SECTOR", "MARKET", "EVENT", "SEAT", "KOL", "PRECIOUS_METALS_FUND"]
+    },
+    "frequency": {
+      "enum": ["TICK", "MINUTE", "DAILY", "EVENT", "SNAPSHOT"]
+    },
+    "valueType": {
+      "enum": ["BOOLEAN", "INTEGER", "DECIMAL", "STRING", "CATEGORY", "VECTOR"]
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^(?:\\S|\\S(?:[\\s\\S]*\\S))$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "pattern": "^(?:\\S|\\S(?:[\\s\\S]*\\S))$"
+    },
+    "algorithmVersion": {
+      "type": "string",
+      "maxLength": 16,
+      "pattern": "^v[1-9][0-9]*$"
+    },
+    "calculationDefinition": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "pattern": "^(?:\\S|\\S(?:[\\s\\S]*\\S))$"
+    },
+    "windowDefinition": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(?:\\S|\\S(?:[\\s\\S]*\\S))$"
+    },
+    "filterPolicyVersion": {
+      "type": "string",
+      "maxLength": 16,
+      "pattern": "^v[1-9][0-9]*$"
+    },
+    "pitPolicyVersion": {
+      "type": "string",
+      "maxLength": 16,
+      "pattern": "^v[1-9][0-9]*$"
+    },
+    "eventTimeField": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "availableTimeField": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "availabilityPolicy": {
+      "enum": ["SOURCE_AVAILABLE_TIME", "MAX_INPUT_AVAILABLE_TIME", "MATERIALIZATION_TIME"]
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 16,
+        "pattern": "^v[1-9][0-9]*$"
+      }
+    },
+    "sourceContracts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 16,
+        "pattern": "^v[1-9][0-9]*$"
+      }
+    },
+    "semanticFingerprint": {
+      "type": "string",
+      "maxLength": 71,
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

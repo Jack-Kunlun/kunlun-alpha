@@ -471,6 +471,32 @@ export interface ModelProvenance {
   processingTime: string;
 }
 
+export interface FeatureSpec {
+  schemaVersion: "feature-spec-v1";
+  name: string;
+  version: string;
+  entity: "INSTRUMENT" | "SECTOR" | "MARKET" | "EVENT" | "SEAT" | "KOL" | "PRECIOUS_METALS_FUND";
+  frequency: "TICK" | "MINUTE" | "DAILY" | "EVENT" | "SNAPSHOT";
+  valueType: "BOOLEAN" | "INTEGER" | "DECIMAL" | "STRING" | "CATEGORY" | "VECTOR";
+  owner: string;
+  description: string;
+  algorithmVersion: string;
+  calculationDefinition: string;
+  windowDefinition: string;
+  filterPolicyVersion: string;
+  pitPolicyVersion: string;
+  eventTimeField: string;
+  availableTimeField: string;
+  availabilityPolicy: "SOURCE_AVAILABLE_TIME" | "MAX_INPUT_AVAILABLE_TIME" | "MATERIALIZATION_TIME";
+  dependencies: {
+    [k: string]: string;
+  };
+  sourceContracts: {
+    [k: string]: string;
+  };
+  semanticFingerprint: string;
+}
+
 /**
  * Point-in-time fund NAV/iNAV reference observation; values are not executable prices
  */
