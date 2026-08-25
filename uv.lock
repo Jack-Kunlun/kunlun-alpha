@@ -6,6 +6,7 @@ requires-python = "==3.12.13"
 members = [
     "ashare-common",
     "ashare-contracts",
+    "backtest-core",
     "data-worker",
     "emotion-core",
     "event-core",
@@ -70,6 +71,17 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "pydantic", specifier = "==2.12.5" }]
+
+[[package]]
+name = "backtest-core"
+version = "0.0.0"
+source = { editable = "python/packages/backtest-core" }
+dependencies = [
+    { name = "quant-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "quant-core", editable = "python/packages/quant-core" }]
 
 [[package]]
 name = "basedpyright"

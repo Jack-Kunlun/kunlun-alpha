@@ -1,0 +1,15 @@
+[project]
+name = "backtest-core"
+version = "0.0.0"
+description = "Deterministic event-driven backtest runtime"
+requires-python = "==3.12.13"
+dependencies = [
+    "quant-core",
+]
+
+[tool.uv.sources]
+quant-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
