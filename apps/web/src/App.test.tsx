@@ -24,6 +24,9 @@ vi.mock("./features/market-regime/market-regime-page", () => ({
 vi.mock("./features/event-workbench/event-workbench-page", () => ({
   EventWorkbenchPage: () => <div>EVENT_WORKBENCH_PAGE_MARKER</div>,
 }));
+vi.mock("./features/seat-kol/seat-kol-workbench-page", () => ({
+  SeatKolWorkbenchPage: () => <div>SEAT_KOL_WORKBENCH_MARKER</div>,
+}));
 vi.mock("./components/ui/sonner", () => ({ Toaster: () => null }));
 
 import { App } from "./App";
@@ -42,5 +45,10 @@ describe("App routing", () => {
   it("serves the Phase 3 event workbench", () => {
     route = "/event-workbench";
     expect(renderToStaticMarkup(<App />)).toContain("EVENT_WORKBENCH_PAGE_MARKER");
+  });
+
+  it("serves the Phase 4 Seat and KOL workbench", () => {
+    route = "/seat-kol";
+    expect(renderToStaticMarkup(<App />)).toContain("SEAT_KOL_WORKBENCH_MARKER");
   });
 });

@@ -6,6 +6,7 @@ import { NotFound } from "./pages/NotFound";
 import { DataQualityPage } from "./features/data-quality/data-quality-page";
 import { MarketRegimePage } from "./features/market-regime/market-regime-page";
 import { EventWorkbenchPage } from "./features/event-workbench/event-workbench-page";
+import { SeatKolWorkbenchPage } from "./features/seat-kol/seat-kol-workbench-page";
 
 export function App() {
   return (
@@ -16,6 +17,7 @@ export function App() {
           <Route path="data-quality" element={<DataQualityPage />} />
           <Route path="market-regime" element={<MarketRegimePage />} />
           <Route path="event-workbench" element={<EventWorkbenchPage />} />
+          <Route path="seat-kol" element={<SeatKolWorkbenchPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

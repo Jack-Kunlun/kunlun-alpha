@@ -1308,6 +1308,133 @@ export interface Tick {
   tradeType: "MATCH" | "AUCTION" | "BLOCK";
 }
 
+export interface SeatKolWorkbenchSnapshot {
+  schemaVersion: "seat-kol-workbench-v1";
+  snapshotId: string;
+  decisionTime: string;
+  dataCutoffTime: string;
+  sourceVersion: string;
+  mode: "PERSISTED" | "LOCAL_PREVIEW";
+  dataMeaning: "RESEARCH_ONLY_PUBLIC_DATA_NOT_BROKER_EXECUTION";
+  seats: SeatWorkbenchProfile[];
+  kols: KolWorkbenchProfile[];
+  cooccurrences: SeatKolCooccurrence[];
+  reviewQueue: KolReviewQueueItem[];
+}
+export interface SeatWorkbenchProfile {
+  seatId: string;
+  displayName: string;
+  seatKind: "BROKER_BRANCH" | "INSTITUTION" | "UNKNOWN" | "OTHER";
+  aliases: string[];
+  /**
+   * @minItems 1
+   */
+  metrics: [SeatKolWorkbenchMetric, ...SeatKolWorkbenchMetric[]];
+  /**
+   * @minItems 1
+   */
+  evidence: [SeatKolWorkbenchEvidence, ...SeatKolWorkbenchEvidence[]];
+  timeline: SeatKolWorkbenchTimelineEntry[];
+}
+export interface SeatKolWorkbenchMetric {
+  metricName:
+    | "seat_t_plus_1_return_bps"
+    | "seat_t_plus_3_return_bps"
+    | "seat_win_rate_bps"
+    | "kol_attention_score"
+    | "consensus_score"
+    | "claim_score";
+  label: string;
+  valueBps: number | null;
+  sampleCount: number;
+  confidenceBps: number;
+  algorithmVersion: string;
+  policyVersion: string;
+  dataCutoffTime: string;
+}
+export interface SeatKolWorkbenchEvidence {
+  evidenceId: string;
+  source: string;
+  sourceVersion: string;
+  availableTime: string;
+  excerpt: string;
+  locator: string;
+}
+export interface SeatKolWorkbenchTimelineEntry {
+  entryId: string;
+  kind: "PROFILE" | "PUBLIC_TRADE" | "CLAIM" | "REVIEW" | "METRIC";
+  occurTime: string;
+  availableTime: string;
+  title: string;
+  /**
+   * @minItems 1
+   */
+  evidenceIds: [string, ...string[]];
+}
+export interface KolWorkbenchProfile {
+  kolId: string;
+  displayName: string;
+  /**
+   * @minItems 1
+   */
+  metrics: [SeatKolWorkbenchMetric, ...SeatKolWorkbenchMetric[]];
+  claims: KolWorkbenchClaim[];
+  /**
+   * @minItems 1
+   */
+  evidence: [SeatKolWorkbenchEvidence, ...SeatKolWorkbenchEvidence[]];
+  timeline: SeatKolWorkbenchTimelineEntry[];
+}
+export interface KolWorkbenchClaim {
+  claimId: string;
+  revisionId: string;
+  statement: string;
+  instrumentId: string;
+  direction: "BULLISH" | "BEARISH" | "NEUTRAL";
+  reviewStatus: "UNREVIEWED" | "IN_REVIEW" | "APPROVED" | "REJECTED";
+  confidenceBps: number;
+  publishTime: string;
+  availableTime: string;
+  deleted: boolean;
+  claimMeaning: "PUBLIC_WORDING_CLAIM_NOT_BROKER_TRADE";
+  /**
+   * @minItems 1
+   */
+  evidence: [SeatKolWorkbenchEvidence, ...SeatKolWorkbenchEvidence[]];
+}
+export interface SeatKolCooccurrence {
+  cooccurrenceId: string;
+  leftEntityType: "SEAT" | "KOL";
+  leftEntityId: string;
+  leftDisplayName: string;
+  rightEntityType: "SEAT" | "KOL";
+  rightEntityId: string;
+  rightDisplayName: string;
+  scoreBps: number;
+  sampleCount: number;
+  algorithmVersion: string;
+  policyVersion: string;
+  dataCutoffTime: string;
+  /**
+   * @minItems 1
+   */
+  evidenceIds: [string, ...string[]];
+}
+export interface KolReviewQueueItem {
+  candidateId: string;
+  revisionId: string;
+  statement: string;
+  instrumentId: string;
+  confidenceBps: number;
+  reviewStatus: "UNREVIEWED" | "IN_REVIEW" | "APPROVED" | "REJECTED";
+  availableTime: string;
+  reviewMeaning: "PUBLIC_WORDING_REVIEW_NOT_FACT_OR_EXECUTION";
+  /**
+   * @minItems 1
+   */
+  evidence: [SeatKolWorkbenchEvidence, ...SeatKolWorkbenchEvidence[]];
+}
+
 export type SeatAliasSchemaVersion = "alias-v1";
 export type SeatAliasType = "OFFICIAL" | "FORMER" | "SOURCE" | "ALTERNATE";
 
