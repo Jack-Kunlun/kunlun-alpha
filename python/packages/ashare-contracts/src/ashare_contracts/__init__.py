@@ -55,6 +55,13 @@ from ashare_contracts.event_market_event import OutputSchemaVersion as OutputSch
 from ashare_contracts.event_market_event import ProducerType as ProducerType
 from ashare_contracts.event_market_event import SchemaVersion as SchemaVersion
 from ashare_contracts.event_market_event import SectorId as SectorId_2
+from ashare_contracts.feature_feature_spec import AvailabilityPolicy as AvailabilityPolicy
+from ashare_contracts.feature_feature_spec import Dependencies as Dependencies
+from ashare_contracts.feature_feature_spec import Entity as Entity
+from ashare_contracts.feature_feature_spec import FeatureSpec as FeatureSpec
+from ashare_contracts.feature_feature_spec import Frequency as Frequency
+from ashare_contracts.feature_feature_spec import SourceContracts as SourceContracts
+from ashare_contracts.feature_feature_spec import ValueType as ValueType
 from ashare_contracts.funds_fund_nav import FundNav as FundNav
 from ashare_contracts.funds_precious_metal_fund import AssetType as AssetType
 from ashare_contracts.funds_precious_metal_fund import Exchange as Exchange_4
@@ -278,6 +285,13 @@ __all__ = [
     "ProducerType",
     "SchemaVersion",
     "SectorId_2",
+    "AvailabilityPolicy",
+    "Dependencies",
+    "Entity",
+    "FeatureSpec",
+    "Frequency",
+    "SourceContracts",
+    "ValueType",
     "FundNav",
     "AssetType",
     "Exchange_4",
