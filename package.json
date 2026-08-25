@@ -23,6 +23,7 @@
     "python:format": "uv --no-cache run ruff format --no-cache python/ services/",
     "python:typecheck": "uv --no-cache run basedpyright python/ services/",
     "python:test": "uv --no-cache run pytest",
+    "backtest:regression": "node scripts/ci/backtest-regression-no-write.mjs",
     "infra:up": "docker compose -f infra/docker/docker-compose.yml --env-file infra/docker/.env up -d",
     "infra:down": "docker compose -f infra/docker/docker-compose.yml --env-file infra/docker/.env down",
     "infra:ps": "docker compose -f infra/docker/docker-compose.yml ps",

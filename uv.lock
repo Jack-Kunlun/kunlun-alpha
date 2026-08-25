@@ -17,6 +17,7 @@ members = [
     "kunlun-alpha",
     "market-core",
     "quant-core",
+    "quant-engine",
     "rotation-core",
     "sample-engine",
     "seat-core",
@@ -411,6 +412,9 @@ requires-dist = [
 name = "kunlun-alpha"
 version = "0.0.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "quant-engine" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -422,6 +426,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "quant-engine", editable = "services/quant-engine" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -838,6 +843,23 @@ wheels = [
 name = "quant-core"
 version = "0.0.0"
 source = { editable = "python/packages/quant-core" }
+
+[[package]]
+name = "quant-engine"
+version = "0.0.0"
+source = { editable = "services/quant-engine" }
+dependencies = [
+    { name = "ashare-contracts" },
+    { name = "backtest-core" },
+    { name = "quant-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ashare-contracts", editable = "python/packages/ashare-contracts" },
+    { name = "backtest-core", editable = "python/packages/backtest-core" },
+    { name = "quant-core", editable = "python/packages/quant-core" },
+]
 
 [[package]]
 name = "requests"

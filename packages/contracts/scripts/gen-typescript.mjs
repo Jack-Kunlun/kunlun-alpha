@@ -55,6 +55,30 @@ export function stripConditionalAllOf(schema) {
 }
 
 /**
+ * Keep schema-level semantic branches authoritative while generating a stable
+ * structural TypeScript type. The runtime contracts parser applies the
+ * cross-field branch semantics explicitly.
+ */
+export function stripSemanticBranches(schema) {
+  if (!schema || typeof schema !== "object") {
+    return schema;
+  }
+  const copy = { ...schema };
+  if (copy["x-typescript-strip-semantic-branches"] === true && Array.isArray(copy.allOf)) {
+    delete copy.allOf;
+  }
+  if (copy.$defs && typeof copy.$defs === "object" && !Array.isArray(copy.$defs)) {
+    copy.$defs = Object.fromEntries(
+      Object.entries(copy.$defs).map(([name, definition]) => [
+        name,
+        stripSemanticBranches(definition),
+      ]),
+    );
+  }
+  return copy;
+}
+
+/**
  * Normalize the generated output with Prettier so it matches the repo's
  * `format:check` gate. Without this the raw json-schema-to-typescript output
  * (extra blank lines between interfaces) would fail the Prettier check.
@@ -101,10 +125,11 @@ async function main() {
     const schemaPath = resolve(SCHEMAS_DIR, file);
     const schema = JSON.parse(readFileSync(schemaPath, "utf-8"));
     const ts = await compile(
-      stripConditionalAllOf(schema),
+      stripSemanticBranches(stripConditionalAllOf(schema)),
       schema.title || file.replace(".json", ""),
       {
         bannerComment: "",
+        unreachableDefinitions: true,
         style: { singleQuote: false, semi: true, tabWidth: 2, printWidth: 100 },
       },
     );

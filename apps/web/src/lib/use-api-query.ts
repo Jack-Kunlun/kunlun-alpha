@@ -15,6 +15,12 @@ export interface QueryResult<T> {
   error: Error | null;
 }
 
+export interface ObjectQueryResult<T> {
+  status: QueryStatus;
+  data: T | null;
+  error: Error | null;
+}
+
 type Action<T> =
   | { type: "start" }
   | { type: "success"; data: T[] }
@@ -30,6 +36,33 @@ function reducer<T>(state: QueryResult<T>, action: Action<T>): QueryResult<T> {
       return { status: "success", data: action.data, error: null };
     case "empty":
       return { status: "empty", data: action.data, error: null };
+    case "error":
+      return { status: "error", data: null, error: action.error };
+    case "forbidden":
+      return { status: "forbidden", data: null, error: action.error };
+    default:
+      return state;
+  }
+}
+
+type ObjectAction<T> =
+  | { type: "start" }
+  | { type: "success"; data: T }
+  | { type: "empty" }
+  | { type: "error"; error: Error }
+  | { type: "forbidden"; error: Error };
+
+function objectReducer<T>(
+  state: ObjectQueryResult<T>,
+  action: ObjectAction<T>,
+): ObjectQueryResult<T> {
+  switch (action.type) {
+    case "start":
+      return { status: "loading", data: null, error: null };
+    case "success":
+      return { status: "success", data: action.data, error: null };
+    case "empty":
+      return { status: "empty", data: null, error: null };
     case "error":
       return { status: "error", data: null, error: action.error };
     case "forbidden":
@@ -71,6 +104,51 @@ export function useApiQuery<T>(
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
+
+  return result;
+}
+
+/** Object variant; the existing list-query data shape remains unchanged. */
+export function useApiObjectQuery<T>(
+  fetcher: () => Promise<T>,
+  deps: readonly unknown[],
+  enabled = true,
+): ObjectQueryResult<T> {
+  const [result, dispatch] = useReducer(objectReducer<T>, {
+    status: enabled ? "loading" : "empty",
+    data: null,
+    error: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!enabled) {
+      dispatch({ type: "empty" });
+      return () => {
+        cancelled = true;
+      };
+    }
+    dispatch({ type: "start" });
+
+    fetcher()
+      .then((data) => {
+        if (!cancelled) dispatch({ type: "success", data });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const normalized = error instanceof Error ? error : new Error(String(error));
+        if (error instanceof ApiError && error.status === 403) {
+          dispatch({ type: "forbidden", error: normalized });
+        } else {
+          dispatch({ type: "error", error: normalized });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...deps, enabled]);
 
   return result;
 }

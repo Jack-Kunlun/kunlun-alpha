@@ -1,5 +1,402 @@
 /** Shared domain types. Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND. */
 /**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "SafeId".
+ */
+export type SafeId = string;
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "DigestReference".
+ */
+export type DigestReference = ContentDigestReference | OpaqueExternalDigestReference;
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "Sha256".
+ */
+export type Sha256 = string;
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "Timestamp".
+ */
+export type Timestamp = string;
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "Decimal".
+ */
+export type Decimal = string;
+
+export interface BacktestRegressionArtifact {
+  schemaVersion: "backtest-regression-run-v1";
+  canonicalizationVersion: "backtest-regression-c14n-v1";
+  suiteId: SafeId;
+  runId: SafeId;
+  fixtureId: SafeId;
+  trust: RegressionTrust;
+  manifest: RegressionManifest;
+  inputs: RegressionInputs;
+  provenance: RegressionProvenance;
+  versions: RegressionVersions;
+  results: RegressionResults;
+  artifactSha256: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "RegressionTrust".
+ */
+export interface RegressionTrust {
+  mode: "FIXTURE_SELF_CONTAINED" | "VERIFIED";
+  evidenceIntegrityConfidence: "LOW" | "MEDIUM" | "HIGH";
+  evidenceRefs: DigestReference[];
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "ContentDigestReference".
+ */
+export interface ContentDigestReference {
+  kind: "CONTENT_SHA256";
+  sha256: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "OpaqueExternalDigestReference".
+ */
+export interface OpaqueExternalDigestReference {
+  kind: "OPAQUE_EXTERNAL";
+  namespace: string;
+  value: string;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "RegressionManifest".
+ */
+export interface RegressionManifest {
+  json: {
+    [k: string]: unknown;
+  };
+  sha256: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "RegressionInputs".
+ */
+export interface RegressionInputs {
+  fixtureSha256: Sha256;
+  executionInputDigests: Sha256[];
+  portfolioHistoryRef: PortfolioHistoryRef;
+  valuationLineage: ValuationLineage;
+  /**
+   * @minItems 4
+   */
+  navObservations: [Observation, Observation, Observation, Observation, ...Observation[]];
+  /**
+   * @minItems 4
+   */
+  riskFreeObservations: [
+    RiskFreeObservation,
+    RiskFreeObservation,
+    RiskFreeObservation,
+    RiskFreeObservation,
+    ...RiskFreeObservation[],
+  ];
+  tPlusOne: TPlusOneInputs;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "PortfolioHistoryRef".
+ */
+export interface PortfolioHistoryRef {
+  tapeId: SafeId;
+  eventTapeDigest: Sha256;
+  eventCount: number;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "ValuationLineage".
+ */
+export interface ValuationLineage {
+  valuationPolicyId: string;
+  valuationPolicyVersion: string;
+  valuationPolicyDigest: Sha256;
+  valuations: ValuationLineageItem[];
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "ValuationLineageItem".
+ */
+export interface ValuationLineageItem {
+  observationTime: Timestamp;
+  inputDigest: Sha256;
+  markDigest: Sha256;
+  stateDigest: Sha256;
+  nav: Decimal;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "Observation".
+ */
+export interface Observation {
+  observationTime: Timestamp;
+  nav: Decimal;
+  provenanceDigest: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "RiskFreeObservation".
+ */
+export interface RiskFreeObservation {
+  observationTime: Timestamp;
+  rate: Decimal;
+  provenanceDigest: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "TPlusOneInputs".
+ */
+export interface TPlusOneInputs {
+  buyOrderId: SafeId;
+  sellOrderId: SafeId;
+  buyExecutionInputDigest: Sha256;
+  sameDaySellabilityDigest: Sha256;
+  nextDaySellabilityDigest: Sha256;
+  sameDayBatchDigest: Sha256;
+  nextDayBatchDigest: Sha256;
+  sameDaySellExecutionInputDigest: Sha256;
+  nextDaySellExecutionInputDigest: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "RegressionProvenance".
+ */
+export interface RegressionProvenance {
+  code: CodeProvenance;
+  config: DigestEntry[];
+  dependencies: DigestEntry[];
+  toolchain: ToolchainEvidence;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "CodeProvenance".
+ */
+export interface CodeProvenance {
+  allowlist: CodeDigestEntry[];
+  treeSha256: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "CodeDigestEntry".
+ */
+export interface CodeDigestEntry {
+  path: string;
+  sha256: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "DigestEntry".
+ */
+export interface DigestEntry {
+  name: string;
+  version: string;
+  sha256: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "ToolchainEvidence".
+ */
+export interface ToolchainEvidence {
+  python: "3.12.13";
+  uv: "0.12.3";
+  evidenceSha256: Sha256;
+  hatchling: string;
+  rootPyprojectSha256: Sha256;
+  servicePyprojectSha256: Sha256;
+  uvLockSha256: Sha256;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "RegressionVersions".
+ */
+export interface RegressionVersions {
+  engine: string;
+  manifest: string;
+  eventOrder: string;
+  execution: string;
+  matching: string;
+  portfolio: string;
+  valuation: string;
+  metrics: string;
+  strategy: string;
+  policy: string;
+  fixture: string;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "RegressionResults".
+ */
+export interface RegressionResults {
+  counts: {
+    events: number;
+    intents: number;
+    orders: number;
+    fills: number;
+    navObservations: number;
+    tPlusOneRejected: number;
+    nextDaySellFills: number;
+  };
+  pnl: {
+    realized: Decimal;
+    unrealized: Decimal;
+    total: Decimal;
+    fees: Decimal;
+  };
+  finalNav: Decimal;
+  finalValuation: FinalValuation;
+  metrics: {
+    cumulativeChainedReturn: MetricValue;
+    annualizedReturn: MetricValue;
+    annualizedVolatility: MetricValue;
+    maximumDrawdown: MetricValue;
+    sharpe: MetricValue;
+    sortino: MetricValue;
+    calmar: MetricValue;
+  };
+  /**
+   * @minItems 4
+   */
+  observations: [Observation, Observation, Observation, Observation, ...Observation[]];
+  tPlusOne: TPlusOneResults;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "FinalValuation".
+ */
+export interface FinalValuation {
+  cutoffTime: Timestamp;
+  nav: Decimal;
+  totalPnl: Decimal;
+  stateDigest: Sha256;
+  inputDigest: Sha256;
+  sampleCount: number;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "MetricValue".
+ */
+export interface MetricValue {
+  status: string;
+  value: string | null;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "TPlusOneResults".
+ */
+export interface TPlusOneResults {
+  sameDay: TPlusOneObservation;
+  nextDay: TPlusOneObservation;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "TPlusOneObservation".
+ */
+export interface TPlusOneObservation {
+  orderId: SafeId;
+  status: "REJECTED" | "FILLED";
+  rejectReason: string | null;
+  fillCount: number;
+  batchDigest: Sha256;
+  resultDigest: Sha256;
+  tradingDate: string;
+  sellabilityDigest: Sha256 | null;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "CategoryCounts".
+ */
+export interface CategoryCounts {
+  SCHEMA: number;
+  MANIFEST_INPUT: number;
+  ALGORITHM_CONFIG: number;
+  DEPENDENCY_TOOLCHAIN: number;
+  RESULT: number;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "ZeroCategoryCounts".
+ */
+export interface ZeroCategoryCounts {
+  SCHEMA: 0;
+  MANIFEST_INPUT: 0;
+  ALGORITHM_CONFIG: 0;
+  DEPENDENCY_TOOLCHAIN: 0;
+  RESULT: 0;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "BaselineApproval".
+ */
+export interface BaselineApproval {
+  approvalId: SafeId;
+  reviewedBy: string;
+  reviewedAt: Timestamp;
+  reviewedArtifactSha256: Sha256;
+  changeReference: DigestReference;
+  reason: string;
+  evidenceRefs: DigestReference[];
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "BacktestRegressionBaseline".
+ */
+export interface BacktestRegressionBaseline {
+  schemaVersion: "backtest-regression-baseline-v1";
+  baselineId: SafeId;
+  suiteId: SafeId;
+  expectedArtifact: BacktestRegressionArtifact;
+  expectedArtifactSha256: Sha256;
+  approval: BaselineApproval;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "BacktestRegressionRunSummary".
+ */
+export interface BacktestRegressionRunSummary {
+  schemaVersion: "backtest-regression-summary-v1";
+  suiteId: SafeId;
+  runId: SafeId;
+  fixtureId: SafeId;
+  status: "MATCHED" | "DRIFTED";
+  candidateSha256: Sha256;
+  baselineSha256: Sha256;
+  dataStart: Timestamp;
+  dataEnd: Timestamp;
+  availability: string;
+  evidenceIntegrityConfidence: "LOW" | "MEDIUM" | "HIGH";
+  preview: boolean;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "BacktestRegressionDiff".
+ */
+export interface BacktestRegressionDiff {
+  category: "SCHEMA" | "MANIFEST_INPUT" | "ALGORITHM_CONFIG" | "DEPENDENCY_TOOLCHAIN" | "RESULT";
+  pointer: string;
+  status: "ADDED" | "REMOVED" | "REPLACED";
+  baselineValue: unknown;
+  candidateValue: unknown;
+}
+/**
+ * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
+ * via the `definition` "BacktestRegressionComparison".
+ */
+export interface BacktestRegressionComparison {
+  baselineSha256: Sha256;
+  candidateSha256: Sha256;
+  status: "MATCHED" | "DRIFTED";
+  categoryCounts: CategoryCounts;
+  diffs: BacktestRegressionDiff[];
+  diffLines: string[];
+}
+
+/**
  * A scheduled exchange closure: a public holiday or an ad-hoc (temporary) closure. Weekends are derived by the calendar code and never stored as holidays
  */
 export interface Holiday {
@@ -76,6 +473,14 @@ export interface TradingSession {
    */
   crossesMidnight?: boolean;
 }
+
+/**
+ * Fingerprint algorithm version
+ *
+ * This interface was referenced by `RawContent`'s JSON-Schema
+ * via the `definition` "FingerprintVersion".
+ */
+export type FingerprintVersion = "sha256-v1";
 
 /**
  * Immutable, versioned raw content record for news, announcements, research, interactive and social content. publishTime <= ingestTime <= availableTime (all timezone-aware). recordId identifies the content lineage; versionId identifies the current immutable version; previousVersionId links the direct predecessor. The content fingerprint is a deterministic 64-hex SHA-256 that the domain recomputes (never trusted from the wire). Updates and deletions never overwrite history.
@@ -191,6 +596,46 @@ export interface ContentSource1 {
    * Immutable identifier of the raw evidence this content derives from
    */
   evidenceId: string;
+}
+/**
+ * Attribution of content to its source (id / version / evidence)
+ *
+ * This interface was referenced by `RawContent`'s JSON-Schema
+ * via the `definition` "ContentSource".
+ */
+export interface ContentSource2 {
+  /**
+   * Source provider or platform identifier
+   */
+  sourceId: string;
+  /**
+   * Provider data/API version
+   */
+  sourceVersion: string;
+  /**
+   * Immutable identifier of the raw evidence this content derives from
+   */
+  evidenceId: string;
+}
+/**
+ * License and usage-restriction metadata; authorized must be explicit
+ *
+ * This interface was referenced by `RawContent`'s JSON-Schema
+ * via the `definition` "LicenseMetadata".
+ */
+export interface LicenseMetadata1 {
+  /**
+   * License or right-grant identifier
+   */
+  licenseId: string;
+  /**
+   * Usage restriction; a non-restricting license states it explicitly
+   */
+  usageRestriction: string;
+  /**
+   * Explicit authorization; usable only when true
+   */
+  authorized: boolean;
 }
 
 /**
@@ -309,6 +754,10 @@ export interface EventFeedbackSubmission {
   correction?: Correction;
   comment?: string;
 }
+/**
+ * This interface was referenced by `EventFeedbackSubmission`'s JSON-Schema
+ * via the `definition` "correction".
+ */
 export interface Correction {
   eventType?:
     | "CORPORATE"
@@ -350,6 +799,10 @@ export interface EventFeedback {
   createdAt: string;
   availableAt: string;
 }
+/**
+ * This interface was referenced by `EventFeedback`'s JSON-Schema
+ * via the `definition` "correction".
+ */
 export interface Correction {
   eventType?:
     | "CORPORATE"
@@ -399,6 +852,10 @@ export interface HotTopicSnapshot {
   algorithmVersion: "hot-score-v1";
 }
 
+/**
+ * This interface was referenced by `MarketEvent`'s JSON-Schema
+ * via the `definition` "MarketEventType".
+ */
 export type MarketEventType =
   | "CORPORATE"
   | "EARNINGS"
@@ -410,6 +867,10 @@ export type MarketEventType =
   | "MARKET"
   | "RISK"
   | "OTHER";
+/**
+ * This interface was referenced by `MarketEvent`'s JSON-Schema
+ * via the `definition` "ProducerType".
+ */
 export type ProducerType = "MODEL" | "RULE";
 
 /**
@@ -448,6 +909,10 @@ export interface MarketEvent {
    */
   confidenceBps: number;
 }
+/**
+ * This interface was referenced by `MarketEvent`'s JSON-Schema
+ * via the `definition` "EvidenceReference".
+ */
 export interface EvidenceReference {
   evidenceId: string;
   contentRecordId: string;
@@ -459,6 +924,10 @@ export interface EvidenceReference {
   endOffset: number;
   excerpt: string;
 }
+/**
+ * This interface was referenced by `MarketEvent`'s JSON-Schema
+ * via the `definition` "ModelProvenance".
+ */
 export interface ModelProvenance {
   producerType: ProducerType;
   provider: string;
@@ -778,12 +1247,40 @@ export interface TradingStatus {
   label: string;
 }
 
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "ClaimAction".
+ */
 export type ClaimAction = "BUY" | "SELL" | "HOLDING" | "WATCH";
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "ClaimPolarity".
+ */
 export type ClaimPolarity = "AFFIRMED" | "NEGATED";
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "ClaimConditionality".
+ */
 export type ClaimConditionality = "UNCONDITIONAL" | "CONDITIONAL";
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "ClaimStatementKind".
+ */
 export type ClaimStatementKind = "DIRECT" | "QUOTE" | "PARAPHRASE" | "AMBIGUOUS";
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "ClaimAttribution".
+ */
 export type ClaimAttribution = "SELF" | "QUOTED" | "REPORTED" | "UNKNOWN";
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "EventTimeStatus".
+ */
 export type EventTimeStatus = "EXACT" | "DATE_ONLY" | "UNKNOWN";
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "EvidenceGrade".
+ */
 export type EvidenceGrade =
   "PRIMARY_SOURCE" | "SECONDARY_SOURCE" | "TERTIARY_SOURCE" | "UNCLASSIFIED";
 
@@ -832,6 +1329,10 @@ export interface KolClaimExtractionCandidate {
   deletedAt: string | null;
   deletionReason: string | null;
 }
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "ContentExactAnchor".
+ */
 export interface ContentExactAnchor {
   anchorType: "CONTENT";
   sourceIndex: number;
@@ -847,6 +1348,10 @@ export interface ContentExactAnchor {
   evidenceGrade: EvidenceGrade;
   evidenceGradeVersion: "evidence-grade-v1";
 }
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "MediaExactAnchor".
+ */
 export interface MediaExactAnchor {
   anchorType: "MEDIA";
   sourceIndex: number;
@@ -872,6 +1377,36 @@ export interface MediaExactAnchor {
    * @maxItems 1000
    */
   segmentIndexes: [number, ...number[]];
+}
+/**
+ * This interface was referenced by `KolClaimExtractionCandidate`'s JSON-Schema
+ * via the `definition` "AnchorBase".
+ */
+export interface AnchorBase {
+  anchorType?: "CONTENT" | "MEDIA";
+  sourceIndex: number;
+  contentId: string;
+  contentVersion: string;
+  contentRevisionId: string;
+  contentAvailableTime: string;
+  source: string;
+  sourceVersion: string;
+  startOffset: number;
+  endOffset: number;
+  excerpt: string;
+  evidenceGrade: EvidenceGrade;
+  evidenceGradeVersion: "evidence-grade-v1";
+  evidenceId?: string;
+  evidenceRevisionId?: string;
+  evidenceAvailableTime?: string;
+  mediaId?: string;
+  mediaVersion?: string;
+  mediaManifestRevisionId?: string;
+  /**
+   * @minItems 1
+   * @maxItems 1000
+   */
+  segmentIndexes?: [number, ...number[]];
 }
 
 /**
@@ -907,11 +1442,35 @@ export interface KolClaimReview {
   reviewMeaning: "PUBLIC_WORDING_REVIEWED_NOT_FACT_OR_EXECUTION";
 }
 
+/**
+ * This interface was referenced by `KolClaim`'s JSON-Schema
+ * via the `definition` "KolClaimSchemaVersion".
+ */
 export type KolClaimSchemaVersion = "kol-claim-v1";
+/**
+ * This interface was referenced by `KolClaim`'s JSON-Schema
+ * via the `definition` "KolClaimStatementKind".
+ */
 export type KolClaimStatementKind = "DIRECT" | "QUOTE" | "PARAPHRASE" | "AMBIGUOUS";
+/**
+ * This interface was referenced by `KolClaim`'s JSON-Schema
+ * via the `definition` "KolClaimDirection".
+ */
 export type KolClaimDirection = "BULLISH" | "BEARISH" | "NEUTRAL";
+/**
+ * This interface was referenced by `KolClaim`'s JSON-Schema
+ * via the `definition` "KolClaimAttribution".
+ */
 export type KolClaimAttribution = "SELF" | "QUOTED" | "REPORTED" | "UNKNOWN";
+/**
+ * This interface was referenced by `KolClaim`'s JSON-Schema
+ * via the `definition` "KolClaimUncertainty".
+ */
 export type KolClaimUncertainty = "NONE" | "AMBIGUOUS" | "CONDITIONAL" | "UNVERIFIED";
+/**
+ * This interface was referenced by `KolClaim`'s JSON-Schema
+ * via the `definition` "KolClaimReviewStatus".
+ */
 export type KolClaimReviewStatus = "UNREVIEWED" | "IN_REVIEW" | "APPROVED" | "REJECTED";
 
 /**
@@ -949,6 +1508,10 @@ export interface KolClaim {
   deletedAt: string | null;
   deletionReason: string | null;
 }
+/**
+ * This interface was referenced by `KolClaim`'s JSON-Schema
+ * via the `definition` "KolClaimEvidenceReference".
+ */
 export interface KolClaimEvidenceReference {
   evidenceId: string;
   evidenceRevisionId: string;
@@ -960,8 +1523,20 @@ export interface KolClaimEvidenceReference {
   sourceVersion: string;
 }
 
+/**
+ * This interface was referenced by `KolContent`'s JSON-Schema
+ * via the `definition` "KolContentSchemaVersion".
+ */
 export type KolContentSchemaVersion = "kol-content-v1";
+/**
+ * This interface was referenced by `KolContent`'s JSON-Schema
+ * via the `definition` "KolContentType".
+ */
 export type KolContentType = "POST" | "ARTICLE" | "VIDEO" | "AUDIO" | "COMMENT" | "OTHER";
+/**
+ * This interface was referenced by `KolContent`'s JSON-Schema
+ * via the `definition` "KolContentFingerprintAlgorithmVersion".
+ */
 export type KolContentFingerprintAlgorithmVersion = "sha256-kol-content-v1";
 
 /**
@@ -991,10 +1566,26 @@ export interface KolContent {
   deletionReason: string | null;
 }
 
+/**
+ * This interface was referenced by `KolEvidence`'s JSON-Schema
+ * via the `definition` "KolEvidenceSchemaVersion".
+ */
 export type KolEvidenceSchemaVersion = "kol-evidence-v1";
+/**
+ * This interface was referenced by `KolEvidence`'s JSON-Schema
+ * via the `definition` "KolEvidenceLocatorType".
+ */
 export type KolEvidenceLocatorType = "URL" | "TEXT_RANGE" | "TIME_RANGE" | "PAGE";
+/**
+ * This interface was referenced by `KolEvidence`'s JSON-Schema
+ * via the `definition` "KolEvidenceGrade".
+ */
 export type KolEvidenceGrade =
   "PRIMARY_SOURCE" | "SECONDARY_SOURCE" | "TERTIARY_SOURCE" | "UNCLASSIFIED";
+/**
+ * This interface was referenced by `KolEvidence`'s JSON-Schema
+ * via the `definition` "KolEvidenceGradeVersion".
+ */
 export type KolEvidenceGradeVersion = "evidence-grade-v1";
 
 /**
@@ -1018,8 +1609,20 @@ export interface KolEvidence {
   availableTime: string;
 }
 
+/**
+ * This interface was referenced by `KolMediaTextEvidence`'s JSON-Schema
+ * via the `definition` "MediaTextEvidenceSchemaVersion".
+ */
 export type MediaTextEvidenceSchemaVersion = "kol-media-text-evidence-v1";
+/**
+ * This interface was referenced by `KolMediaTextEvidence`'s JSON-Schema
+ * via the `definition` "MediaKind".
+ */
 export type MediaKind = "AUDIO" | "VIDEO" | "IMAGE";
+/**
+ * This interface was referenced by `KolMediaTextEvidence`'s JSON-Schema
+ * via the `definition` "MediaProcessorKind".
+ */
 export type MediaProcessorKind = "ASR" | "OCR";
 
 /**
@@ -1051,6 +1654,10 @@ export interface KolMediaTextEvidence {
   deletedAt: string | null;
   deletionReason: string | null;
 }
+/**
+ * This interface was referenced by `KolMediaTextEvidence`'s JSON-Schema
+ * via the `definition` "MediaManifest".
+ */
 export interface MediaManifest {
   contentId: string;
   contentVersion: string;
@@ -1075,6 +1682,10 @@ export interface MediaManifest {
   deletedAt: string | null;
   deletionReason: string | null;
 }
+/**
+ * This interface was referenced by `KolMediaTextEvidence`'s JSON-Schema
+ * via the `definition` "MediaTextSegment".
+ */
 export interface MediaTextSegment {
   text: string;
   startOffset: number;
@@ -1086,12 +1697,20 @@ export interface MediaTextSegment {
   confidenceBps: number;
   qualityBps: number;
 }
+/**
+ * This interface was referenced by `KolMediaTextEvidence`'s JSON-Schema
+ * via the `definition` "MediaBoundingBox".
+ */
 export interface MediaBoundingBox {
   x: number;
   y: number;
   width: number;
   height: number;
 }
+/**
+ * This interface was referenced by `KolMediaTextEvidence`'s JSON-Schema
+ * via the `definition` "MediaEvidenceProvenance".
+ */
 export interface MediaEvidenceProvenance {
   pipelineVersion: string;
   processorKind: MediaProcessorKind;
@@ -1104,7 +1723,15 @@ export interface MediaEvidenceProvenance {
   recognitionRunId: string;
 }
 
+/**
+ * This interface was referenced by `KolMention`'s JSON-Schema
+ * via the `definition` "KolMentionSchemaVersion".
+ */
 export type KolMentionSchemaVersion = "kol-mention-v1";
+/**
+ * This interface was referenced by `KolMention`'s JSON-Schema
+ * via the `definition` "KolMentionType".
+ */
 export type KolMentionType = "INSTRUMENT" | "PERSON" | "ORGANIZATION" | "TOPIC" | "OTHER";
 
 /**
@@ -1127,10 +1754,30 @@ export interface KolMention {
   sourceVersion: string;
 }
 
+/**
+ * This interface was referenced by `KolPositionClaim`'s JSON-Schema
+ * via the `definition` "KolPositionClaimSchemaVersion".
+ */
 export type KolPositionClaimSchemaVersion = "kol-position-claim-v1";
+/**
+ * This interface was referenced by `KolPositionClaim`'s JSON-Schema
+ * via the `definition` "KolPositionDirection".
+ */
 export type KolPositionDirection = "LONG" | "SHORT" | "FLAT";
+/**
+ * This interface was referenced by `KolPositionClaim`'s JSON-Schema
+ * via the `definition` "KolPositionTimeHorizon".
+ */
 export type KolPositionTimeHorizon = "INTRADAY" | "SWING" | "LONG_TERM" | "UNSPECIFIED";
+/**
+ * This interface was referenced by `KolPositionClaim`'s JSON-Schema
+ * via the `definition` "KolExecutionSemantics".
+ */
 export type KolExecutionSemantics = "NON_EXECUTABLE_POSITION_CLAIM";
+/**
+ * This interface was referenced by `KolPositionClaim`'s JSON-Schema
+ * via the `definition` "KolPositionReviewStatus".
+ */
 export type KolPositionReviewStatus = "UNREVIEWED" | "IN_REVIEW" | "APPROVED" | "REJECTED";
 
 /**
@@ -1347,6 +1994,10 @@ export interface SeatKolWorkbenchSnapshot {
   cooccurrences: SeatKolCooccurrence[];
   reviewQueue: KolReviewQueueItem[];
 }
+/**
+ * This interface was referenced by `SeatKolWorkbenchSnapshot`'s JSON-Schema
+ * via the `definition` "seatProfile".
+ */
 export interface SeatWorkbenchProfile {
   seatId: string;
   displayName: string;
@@ -1362,6 +2013,10 @@ export interface SeatWorkbenchProfile {
   evidence: [SeatKolWorkbenchEvidence, ...SeatKolWorkbenchEvidence[]];
   timeline: SeatKolWorkbenchTimelineEntry[];
 }
+/**
+ * This interface was referenced by `SeatKolWorkbenchSnapshot`'s JSON-Schema
+ * via the `definition` "metric".
+ */
 export interface SeatKolWorkbenchMetric {
   metricName:
     | "seat_t_plus_1_return_bps"
@@ -1378,6 +2033,10 @@ export interface SeatKolWorkbenchMetric {
   policyVersion: string;
   dataCutoffTime: string;
 }
+/**
+ * This interface was referenced by `SeatKolWorkbenchSnapshot`'s JSON-Schema
+ * via the `definition` "evidence".
+ */
 export interface SeatKolWorkbenchEvidence {
   evidenceId: string;
   source: string;
@@ -1386,6 +2045,10 @@ export interface SeatKolWorkbenchEvidence {
   excerpt: string;
   locator: string;
 }
+/**
+ * This interface was referenced by `SeatKolWorkbenchSnapshot`'s JSON-Schema
+ * via the `definition` "timelineEntry".
+ */
 export interface SeatKolWorkbenchTimelineEntry {
   entryId: string;
   kind: "PROFILE" | "PUBLIC_TRADE" | "CLAIM" | "REVIEW" | "METRIC";
@@ -1397,6 +2060,10 @@ export interface SeatKolWorkbenchTimelineEntry {
    */
   evidenceIds: [string, ...string[]];
 }
+/**
+ * This interface was referenced by `SeatKolWorkbenchSnapshot`'s JSON-Schema
+ * via the `definition` "kolProfile".
+ */
 export interface KolWorkbenchProfile {
   kolId: string;
   displayName: string;
@@ -1411,6 +2078,10 @@ export interface KolWorkbenchProfile {
   evidence: [SeatKolWorkbenchEvidence, ...SeatKolWorkbenchEvidence[]];
   timeline: SeatKolWorkbenchTimelineEntry[];
 }
+/**
+ * This interface was referenced by `SeatKolWorkbenchSnapshot`'s JSON-Schema
+ * via the `definition` "claim".
+ */
 export interface KolWorkbenchClaim {
   claimId: string;
   revisionId: string;
@@ -1428,6 +2099,10 @@ export interface KolWorkbenchClaim {
    */
   evidence: [SeatKolWorkbenchEvidence, ...SeatKolWorkbenchEvidence[]];
 }
+/**
+ * This interface was referenced by `SeatKolWorkbenchSnapshot`'s JSON-Schema
+ * via the `definition` "cooccurrence".
+ */
 export interface SeatKolCooccurrence {
   cooccurrenceId: string;
   leftEntityType: "SEAT" | "KOL";
@@ -1446,6 +2121,10 @@ export interface SeatKolCooccurrence {
    */
   evidenceIds: [string, ...string[]];
 }
+/**
+ * This interface was referenced by `SeatKolWorkbenchSnapshot`'s JSON-Schema
+ * via the `definition` "reviewQueueItem".
+ */
 export interface KolReviewQueueItem {
   candidateId: string;
   revisionId: string;
@@ -1461,7 +2140,15 @@ export interface KolReviewQueueItem {
   evidence: [SeatKolWorkbenchEvidence, ...SeatKolWorkbenchEvidence[]];
 }
 
+/**
+ * This interface was referenced by `SeatAlias`'s JSON-Schema
+ * via the `definition` "SeatAliasSchemaVersion".
+ */
 export type SeatAliasSchemaVersion = "alias-v1";
+/**
+ * This interface was referenced by `SeatAlias`'s JSON-Schema
+ * via the `definition` "SeatAliasType".
+ */
 export type SeatAliasType = "OFFICIAL" | "FORMER" | "SOURCE" | "ALTERNATE";
 
 /**
@@ -1486,6 +2173,10 @@ export interface SeatAlias {
   previousRevisionId: string | null;
 }
 
+/**
+ * This interface was referenced by `SeatPerformance`'s JSON-Schema
+ * via the `definition` "SeatPerformanceSchemaVersion".
+ */
 export type SeatPerformanceSchemaVersion = "seat-performance-v1";
 
 /**
@@ -1512,6 +2203,10 @@ export interface SeatPerformance {
   availableTime: string;
 }
 
+/**
+ * This interface was referenced by `SeatPreference`'s JSON-Schema
+ * via the `definition` "SeatPreferenceSchemaVersion".
+ */
 export type SeatPreferenceSchemaVersion = "seat-preference-v1";
 
 /**
@@ -1540,9 +2235,26 @@ export interface SeatPreference {
   availableTime: string;
 }
 
+/**
+ * This interface was referenced by `SeatProfile`'s JSON-Schema
+ * via the `definition` "SeatProfileSchemaVersion".
+ */
 export type SeatProfileSchemaVersion = "seat-profile-v1";
+/**
+ * This interface was referenced by `SeatProfile`'s JSON-Schema
+ * via the `definition` "SeatProfileSeatKind".
+ */
 export type SeatProfileSeatKind = "BROKER_BRANCH" | "INSTITUTION" | "UNKNOWN" | "OTHER";
+/**
+ * This interface was referenced by `SeatProfile`'s JSON-Schema
+ * via the `definition` "SeatProfileLineageRelation".
+ */
 export type SeatProfileLineageRelation = "MERGE" | "SPLIT";
+/**
+ * This interface was referenced by `SeatProfile`'s JSON-Schema
+ * via the `definition` "SeatProfileSeatIdAlgorithm".
+ */
+export type SeatProfileSeatIdAlgorithm = "seat-id-v1";
 
 /**
  * Versioned stable seat identity profile. Display names are mutable evidence, not identity.
@@ -1576,6 +2288,10 @@ export interface SeatProfile {
   evidenceId: string;
   lineage: SeatLineage[];
 }
+/**
+ * This interface was referenced by `SeatProfile`'s JSON-Schema
+ * via the `definition` "SeatLineage".
+ */
 export interface SeatLineage {
   lineageId: string;
   relation: SeatProfileLineageRelation;
@@ -1594,6 +2310,10 @@ export interface SeatLineage {
   revisionId: string;
 }
 
+/**
+ * This interface was referenced by `SeatTrade`'s JSON-Schema
+ * via the `definition` "SeatTradeSchemaVersion".
+ */
 export type SeatTradeSchemaVersion = "seat-trade-v1";
 
 /**
@@ -1756,6 +2476,10 @@ export interface Signal {
   executionCapability: "NONE";
 }
 
+/**
+ * This interface was referenced by `StrategyDescriptor`'s JSON-Schema
+ * via the `definition` "Version".
+ */
 export type Version = string;
 
 /**
@@ -1788,6 +2512,10 @@ export interface StrategyDescriptor {
   signalSchemaVersion: "signal-v1";
   executionCapability: "NONE";
 }
+/**
+ * This interface was referenced by `StrategyDescriptor`'s JSON-Schema
+ * via the `definition` "IntegerParameterSpec".
+ */
 export interface IntegerParameterSpec {
   name: string;
   valueType: "INTEGER";
@@ -1797,6 +2525,10 @@ export interface IntegerParameterSpec {
   minimum?: number | null;
   maximum?: number | null;
 }
+/**
+ * This interface was referenced by `StrategyDescriptor`'s JSON-Schema
+ * via the `definition` "DecimalParameterSpec".
+ */
 export interface DecimalParameterSpec {
   name: string;
   valueType: "DECIMAL";
@@ -1806,6 +2538,10 @@ export interface DecimalParameterSpec {
   minimum?: string | null;
   maximum?: string | null;
 }
+/**
+ * This interface was referenced by `StrategyDescriptor`'s JSON-Schema
+ * via the `definition` "BooleanParameterSpec".
+ */
 export interface BooleanParameterSpec {
   name: string;
   valueType: "BOOLEAN";
@@ -1813,6 +2549,10 @@ export interface BooleanParameterSpec {
   description: string;
   defaultValue?: boolean | null;
 }
+/**
+ * This interface was referenced by `StrategyDescriptor`'s JSON-Schema
+ * via the `definition` "StringParameterSpec".
+ */
 export interface StringParameterSpec {
   name: string;
   valueType: "STRING";

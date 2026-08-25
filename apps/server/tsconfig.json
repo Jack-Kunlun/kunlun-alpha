@@ -4,7 +4,10 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "paths": {
-      "@kunlun/contracts/kol": ["../../packages/contracts/dist/kol/index.d.ts"]
+      "@kunlun/contracts/kol": ["../../packages/contracts/dist/kol/index.d.ts"],
+      "@kunlun/contracts/backtest-regression": [
+        "../../packages/contracts/dist/backtest-regression/index.d.ts"
+      ]
     }
   },
   "references": [{ "path": "../../packages/shared-types" }],

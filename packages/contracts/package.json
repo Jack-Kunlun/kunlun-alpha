@@ -19,6 +19,11 @@
       "types": "./dist/strategy/index.d.ts",
       "import": "./dist/strategy/index.js",
       "default": "./dist/strategy/index.js"
+    },
+    "./backtest-regression": {
+      "types": "./dist/backtest-regression/index.d.ts",
+      "import": "./dist/backtest-regression/index.js",
+      "default": "./dist/backtest-regression/index.js"
     }
   },
   "scripts": {
