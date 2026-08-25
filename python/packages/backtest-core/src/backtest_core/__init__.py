@@ -1,5 +1,6 @@
 """Deterministic event-driven backtest runtime."""
 
+from . import execution
 from .engine import (
     BACKTEST_ENGINE_VERSION,
     DECISION_PHASE,
@@ -72,4 +73,5 @@ __all__ = [
     "revalidate_strategy_state",
     "require_hex_digest",
     "validate_strategy_result_binding",
+    "execution",
 ]
