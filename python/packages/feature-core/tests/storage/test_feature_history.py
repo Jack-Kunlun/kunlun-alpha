@@ -143,14 +143,16 @@ def test_as_of_query_selects_latest_visible_revision_without_future_leakage() ->
     assert after_revision.records == (revised,)
 
 
-def test_available_time_equal_to_as_of_is_visible() -> None:
+def test_processing_time_controls_point_in_time_visibility() -> None:
     record = _record()
     repository = FeatureHistoryRepository(InMemoryFeatureHistoryBackend())
     repository.append((record,))
 
-    result = repository.query_as_of(_query(as_of=record.available_time))
+    before_processing = repository.query_as_of(_query(as_of=record.available_time))
+    at_processing = repository.query_as_of(_query(as_of=record.processing_time))
 
-    assert result.records == (record,)
+    assert before_processing.records == ()
+    assert at_processing.records == (record,)
 
 
 def test_event_range_is_half_open_and_batch_results_are_sorted() -> None:
@@ -230,6 +232,15 @@ def test_repository_rejects_backend_future_data() -> None:
     with pytest.raises(FeatureHistoryIntegrityError, match="future-visible"):
         repository.query_as_of(_query(as_of=BASE + timedelta(hours=1)))
 
+    future_processed = _record(
+        available_time=BASE + timedelta(minutes=30),
+        processing_time=BASE + timedelta(hours=2),
+        revision_salt="future-processed",
+    )
+    processing_repository = FeatureHistoryRepository(_LeakingBackend(future_processed))
+    with pytest.raises(FeatureHistoryIntegrityError, match="future-processed"):
+        processing_repository.query_as_of(_query(as_of=BASE + timedelta(hours=1)))
+
 
 class _FakeClickHouseClient:
     def __init__(self) -> None:
@@ -273,6 +284,7 @@ def test_clickhouse_adapter_uses_bound_as_of_and_entity_parameters() -> None:
     sql, parameters = client.queries[-1]
     assert sql == FETCH_CANDIDATES_SQL
     assert "available_time <= {as_of:" in sql
+    assert "processing_time <= {as_of:" in sql
     assert "600519.SH" not in sql
     assert parameters["entity_ids"] == ("600519.SH",)
     assert parameters["as_of"] == query.as_of
