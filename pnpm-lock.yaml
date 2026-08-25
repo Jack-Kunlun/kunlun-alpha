@@ -32,6 +32,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@kunlun/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@kunlun/db':
         specifier: workspace:*
         version: link:../../packages/db

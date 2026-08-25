@@ -98,6 +98,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3002
+      CLAIM_REVIEW_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
       DATA_QUALITY_POSTGRES_DSN: >-
         postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
       EVENT_FEEDBACK_POSTGRES_DSN: >-

@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@kunlun/contracts": "workspace:*",
     "@kunlun/shared-types": "workspace:*",
     "@kunlun/observability": "workspace:*",
     "@kunlun/db": "workspace:*",

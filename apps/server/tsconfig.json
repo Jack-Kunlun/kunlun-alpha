@@ -2,7 +2,10 @@
   "extends": "@kunlun/config/tsconfig.nest.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "paths": {
+      "@kunlun/contracts/kol": ["../../packages/contracts/dist/kol/index.d.ts"]
+    }
   },
   "references": [{ "path": "../../packages/shared-types" }],
   "include": ["src"]

@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/kol/claim-review-submission-v1.json",
+  "title": "KolClaimReviewSubmission",
+  "description": "Client request for a server-owned append-only human review of an exact candidate revision.",
+  "$comment": "The client cannot provide reviewer identity, timestamps, review status provenance, candidate payload, or source evidence. The server resolves those from authentication, its clock, and the authoritative candidate projection.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "type": "string", "enum": ["claim-review-submission-v1"] },
+    "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "candidateId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "candidateRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "decision": { "type": "string", "enum": ["IN_REVIEW", "APPROVED", "REJECTED"] },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "comment": { "type": ["string", "null"], "minLength": 1, "maxLength": 4000 },
+    "expectedPreviousReviewId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 }
+  },
+  "required": ["schemaVersion", "clientRequestId", "candidateId", "candidateRevisionId", "decision", "reason"],
+  "additionalProperties": false
+}

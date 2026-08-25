@@ -1,5 +1,6 @@
 export {
   type ColumnDefinition,
+  type IndexDefinition,
   type Migration,
   MigrationRunner,
   type SqlDriver,

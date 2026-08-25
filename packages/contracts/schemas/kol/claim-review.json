@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/kol/claim-review-v1.json",
+  "title": "KolClaimReview",
+  "x-python-strict-rfc3339": true,
+  "description": "Immutable server-owned human review of an exact unreviewed public-speech candidate. Approval is not fact verification or execution confirmation.",
+  "$comment": "Review identity and reviewer/timestamps are server-owned. previousReviewId is a linear append-only predecessor and availableTime cannot precede the candidate availableTime.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "type": "string", "enum": ["claim-review-v1"] },
+    "reviewId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "candidateId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "candidateRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "decision": { "type": "string", "enum": ["IN_REVIEW", "APPROVED", "REJECTED"] },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "comment": { "type": ["string", "null"], "minLength": 1, "maxLength": 4000 },
+    "reviewerRef": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "availableAt": { "type": "string", "format": "date-time" },
+    "submissionFingerprint": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+    "previousReviewId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+    "reviewMeaning": { "type": "string", "enum": ["PUBLIC_WORDING_REVIEWED_NOT_FACT_OR_EXECUTION"] }
+  },
+  "required": ["schemaVersion", "reviewId", "candidateId", "candidateRevisionId", "decision", "reason", "comment", "reviewerRef", "createdAt", "availableAt", "submissionFingerprint", "previousReviewId", "reviewMeaning"],
+  "additionalProperties": false
+}

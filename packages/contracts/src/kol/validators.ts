@@ -276,8 +276,8 @@ export function validateKolMediaTextEvidencePayload(input: unknown): ValidationR
   const text = requiredString(payload, "text", errors, 2_000_000);
   const language = requiredString(payload, "language", errors, 35);
   if (language !== undefined && !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(language)) errors.push("language must be BCP-47");
-  const confidence = strictInteger(payload.confidenceBps, "confidenceBps", errors, 0, 10000);
-  const quality = strictInteger(payload.qualityBps, "qualityBps", errors, 0, 10000);
+  strictInteger(payload.confidenceBps, "confidenceBps", errors, 0, 10000);
+  strictInteger(payload.qualityBps, "qualityBps", errors, 0, 10000);
   optionalInstant(payload, "eventTime", errors);
   const chain = timeChain(payload, errors);
   if (manifest !== null && chain.available !== undefined && chain.processing !== undefined) {

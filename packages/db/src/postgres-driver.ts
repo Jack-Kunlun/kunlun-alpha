@@ -1,6 +1,6 @@
 import { Pool, type PoolClient, type PoolConfig } from "pg";
 
-import type { ColumnDefinition, SqlDriver, TableDefinition } from "./migrations";
+import type { ColumnDefinition, IndexDefinition, SqlDriver, TableDefinition } from "./migrations";
 
 type QueryExecutor = Pick<Pool, "query"> | Pick<PoolClient, "query">;
 type DisposalState = { error?: unknown };
@@ -128,7 +128,24 @@ export class PostgresSqlDriver implements SqlDriver {
     if (definitions.length === 0) {
       throw new Error(`table ${table.name} must define at least one column`);
     }
-    await this.executor.query(`CREATE TABLE ${tableName} (${definitions.join(", ")})`);
+    const constraints = (table.constraints ?? []).map((constraint) => {
+      if (!/^[A-Za-z0-9_ ()',.=<>-]+$/.test(constraint)) {
+        throw new Error(`unsafe migration constraint: ${constraint}`);
+      }
+      return constraint;
+    });
+    await this.executor.query(`CREATE TABLE ${tableName} (${[...definitions, ...constraints].join(", ")})`);
+    for (const index of table.indexes ?? []) await this.createIndex(table.name, index);
+  }
+
+  private async createIndex(tableName: string, index: IndexDefinition): Promise<void> {
+    if (!IDENTIFIER_PATTERN.test(index.name) || index.columns.length === 0 || index.columns.some((column) => !IDENTIFIER_PATTERN.test(column))) {
+      throw new Error(`unsafe migration index: ${index.name}`);
+    }
+    if (index.predicate !== undefined && !/^[A-Za-z0-9_ ()',.=<>-]+$/.test(index.predicate)) throw new Error(`unsafe migration predicate: ${index.predicate}`);
+    const unique = index.unique ? "UNIQUE " : "";
+    const predicate = index.predicate === undefined ? "" : ` WHERE ${index.predicate}`;
+    await this.executor.query(`CREATE ${unique}INDEX ${quoteIdentifier(index.name)} ON ${quoteIdentifier(tableName)} (${index.columns.map(quoteIdentifier).join(", ")})${predicate}`);
   }
 
   async dropTable(name: string): Promise<void> {
