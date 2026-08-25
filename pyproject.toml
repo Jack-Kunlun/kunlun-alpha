@@ -60,6 +60,7 @@ extraPaths = [
     "python/packages/kol-core/src",
     "python/packages/feature-core/src",
     "python/packages/quant-core/src",
+    "python/packages/backtest-core/src",
     "services/sample-engine/src",
     "services/data-worker/src",
     "services/intelligence-engine/src",
