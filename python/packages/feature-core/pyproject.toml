@@ -5,6 +5,7 @@ description = "Versioned point-in-time feature calculations for Kunlun Alpha"
 requires-python = "==3.12.13"
 dependencies = [
     "kol-core",
+    "pyarrow==25.0.1",
 ]
 
 [tool.uv.sources]
