@@ -53,6 +53,7 @@ class InMemoryFeatureHistoryBackend:
             and record.entity_id in query.entity_ids
             and query.event_start <= record.event_time < query.event_end
             and record.available_time <= query.as_of
+            and record.processing_time <= query.as_of
         ]
         matching.sort(
             key=lambda record: (

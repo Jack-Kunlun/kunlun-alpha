@@ -31,6 +31,8 @@ def _validate_candidate(
         )
     if record.available_time > query.as_of:
         raise FeatureHistoryIntegrityError("history backend returned a future-visible record")
+    if record.processing_time > query.as_of:
+        raise FeatureHistoryIntegrityError("history backend returned a future-processed record")
     if record.value_checksum != canonical_checksum(record.value):
         raise FeatureHistoryIntegrityError("history record value checksum is invalid")
     return record

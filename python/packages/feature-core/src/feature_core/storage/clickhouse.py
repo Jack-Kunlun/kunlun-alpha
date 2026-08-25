@@ -60,6 +60,7 @@ WHERE registry_namespace_id = {{namespace_id:String}}
   AND event_time >= {{event_start:DateTime64(6, 'UTC')}}
   AND event_time < {{event_end:DateTime64(6, 'UTC')}}
   AND available_time <= {{as_of:DateTime64(6, 'UTC')}}
+  AND processing_time <= {{as_of:DateTime64(6, 'UTC')}}
 ORDER BY entity_id, event_time, available_time, processing_time, revision_id
 LIMIT {{candidate_limit:UInt32}}
 """.strip()
