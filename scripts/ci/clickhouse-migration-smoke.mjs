@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const composeFile = join(repoRoot, "infra", "docker", "docker-compose.yml");
+const appsComposeFile = join(repoRoot, "infra", "docker", "docker-compose.apps.yml");
 const legacyComposeFile = join(repoRoot, "infra", "docker", "docker-compose.clickhouse-bind.yml");
 const migrationDir = join(repoRoot, "infra", "clickhouse", "migrations");
 const initDir = join(repoRoot, "infra", "docker", "init", "clickhouse");
@@ -16,6 +17,7 @@ const migrationFiles = [
   "001_bars.sql",
   "002_corporate_actions.sql",
   "003_emotion_rotation_replay.sql",
+  "004_feature_history.sql",
 ];
 const migrationNamespace = "v2";
 const canonicalTableNames = [
@@ -24,6 +26,7 @@ const canonicalTableNames = [
   "corporate_actions_v2",
   "emotion_snapshots_v1",
   "sector_rotation_events_v1",
+  "feature_history_v1",
 ];
 const barsColumns = {
   unified_code: "String",
@@ -162,6 +165,37 @@ const schemaExpectations = {
         "trading_date,event_time,algorithm_version,event_id,available_time,payload_digest",
     },
   },
+  "004_feature_history.sql": {
+    feature_history_v1: {
+      columns: toColumnMetadata({
+        registry_namespace_id: "LowCardinality(String)",
+        registry_head_fingerprint: "FixedString(71)",
+        feature_name: "LowCardinality(String)",
+        feature_version: "LowCardinality(String)",
+        feature_fingerprint: "FixedString(71)",
+        algorithm_version: "LowCardinality(String)",
+        entity_id: "String",
+        event_time: "DateTime64(6,'UTC')",
+        available_time: "DateTime64(6,'UTC')",
+        processing_time: "DateTime64(6,'UTC')",
+        value_type: "LowCardinality(String)",
+        value_json: "String",
+        value_checksum: "FixedString(71)",
+        materialization_id: "String",
+        revision_nonce: "String",
+        revision_id: "FixedString(71)",
+        input_checksum: "FixedString(71)",
+        calculator_implementation_fingerprint: "FixedString(71)",
+        input_manifest_checksum: "FixedString(71)",
+        lineage_checksum: "FixedString(71)",
+        source_kind: "LowCardinality(String)",
+        source_snapshot_version: "String",
+        record_checksum: "FixedString(71)",
+      }),
+      sortingKey:
+        "registry_namespace_id,feature_name,feature_version,feature_fingerprint,entity_id,event_time,available_time,processing_time,revision_id",
+    },
+  },
 };
 
 function fail(message) {
@@ -197,8 +231,35 @@ function runDockerCompose(args, input = "") {
   return result.stdout.trim();
 }
 
+function runDockerComposeApps(args, input = "") {
+  const result = spawnSync(
+    "docker",
+    ["compose", "-f", composeFile, "-f", appsComposeFile, ...args],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      input,
+    },
+  );
+  if (result.error) {
+    fail(`docker compose apps failed to start: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    fail(
+      `docker compose apps ${args.join(" ")} failed (${result.status}):\n${
+        result.stderr || result.stdout
+      }`,
+    );
+  }
+  return result.stdout.trim();
+}
+
 function assertComposeWiring() {
   const compose = read(composeFile);
+  if (!existsSync(appsComposeFile)) {
+    fail("application Compose overlay is missing");
+  }
+  const appsCompose = read(appsComposeFile);
   if (!existsSync(legacyComposeFile)) {
     fail("explicit legacy ClickHouse bind override is missing");
   }
@@ -229,6 +290,19 @@ function assertComposeWiring() {
   }
   if (!initEntries.includes("/opt/kunlun/clickhouse/migrations")) {
     fail("fresh-init wrapper must execute canonical migrations");
+  }
+  const initMigrationLoop = initEntries.match(/for migration in ([^;]+); do/);
+  const initMigrationFiles = initMigrationLoop?.[1]?.trim().split(/\s+/) || [];
+  if (initMigrationFiles.join("\0") !== migrationFiles.join("\0")) {
+    fail(
+      `fresh-init migration list drift: expected [${migrationFiles.join(", ")}] got [${initMigrationFiles.join(", ")}]`,
+    );
+  }
+  if (!appsCompose.includes("../clickhouse/migrations:/migrations:ro")) {
+    fail("existing-volume migrator must mount canonical ClickHouse migrations");
+  }
+  if (!appsCompose.includes("for file in /migrations/*.sql")) {
+    fail("existing-volume migrator must execute every canonical SQL migration");
   }
 
   for (const filename of migrationFiles) {
@@ -511,7 +585,11 @@ function verifyMigrationSchema(database, filename) {
     );
     if (!tableRow) fail(`schema verification found no table ${table} for ${filename}`);
     let [engine, engineFull, sortingKey, partitionKey] = tableRow.split("\t");
-    if (
+    if (table === "feature_history_v1") {
+      if (engine !== "MergeTree") {
+        fail(`${table} engine is ${engineFull}, expected append-only MergeTree`);
+      }
+    } else if (
       engine !== "ReplacingMergeTree" ||
       extractReplacingMergeTreeVersion(engineFull) !== "replacement_version"
     ) {
@@ -550,6 +628,21 @@ function verifyMigrationSchema(database, filename) {
     const columnError = validateColumnMetadata(expectation.columns, columns);
     if (columnError) {
       fail(`${table} schema drift: ${columnError}`);
+    }
+    if (table === "feature_history_v1") {
+      const createTable = query(database, `SHOW CREATE TABLE \`${table}\``);
+      for (const requiredToken of [
+        "chk_feature_history_registry_head",
+        "chk_feature_history_feature_fingerprint",
+        "chk_feature_history_revision_nonce",
+        "chk_feature_history_lineage_checksum",
+        "idx_feature_history_available_time",
+        "idx_feature_history_revision_id",
+      ]) {
+        if (!createTable.includes(requiredToken)) {
+          fail(`${table} is missing ${requiredToken}`);
+        }
+      }
     }
   }
 }
@@ -672,6 +765,43 @@ function waitForClickHouse() {
   fail("ClickHouse did not become ready within 30 attempts");
 }
 
+function assertFeatureHistoryTable(database, phase) {
+  const table = query(
+    database,
+    "SELECT name FROM system.tables WHERE database = currentDatabase() AND name = 'feature_history_v1' LIMIT 1",
+  );
+  if (table !== "feature_history_v1") {
+    fail(`${phase} did not create feature_history_v1`);
+  }
+}
+
+function freshInitWrapperSmoke() {
+  const database = `kunlun_p5_n04_fresh_${randomUUID().replaceAll("-", "")}`;
+  assertDatabaseIdentifier(database);
+  try {
+    runDockerCompose([
+      "exec",
+      "-T",
+      "-e",
+      `CLICKHOUSE_DB=${database}`,
+      "clickhouse",
+      "/bin/sh",
+      "/docker-entrypoint-initdb.d/01-init.sh",
+    ]);
+    assertFeatureHistoryTable(database, "fresh-volume init wrapper");
+  } finally {
+    query("default", `DROP DATABASE IF EXISTS \`${database}\``);
+  }
+}
+
+function existingVolumeMigratorSmoke() {
+  const database = `kunlun_p5_n04_existing_${randomUUID().replaceAll("-", "")}`;
+  return withOwnedDatabase(database, () => {
+    runDockerComposeApps(["run", "--rm", "-e", `CLICKHOUSE_DB=${database}`, "clickhouse-migrate"]);
+    assertFeatureHistoryTable(database, "existing-volume migrator");
+  });
+}
+
 const legacyTableDefinitions = [
   ["bars_minute", "legacy-bars-minute"],
   ["bars_daily", "legacy-bars-daily"],
@@ -727,6 +857,8 @@ function smoke() {
   assertComposeWiring();
   runDockerCompose(["up", "-d", "clickhouse"]);
   waitForClickHouse();
+  freshInitWrapperSmoke();
+  existingVolumeMigratorSmoke();
   const database = `kunlun_p1_r06_${randomUUID().replaceAll("-", "")}`;
   return withOwnedDatabase(database, () => {
     createLegacyTables(database);
@@ -736,10 +868,44 @@ function smoke() {
     assertLegacyTableState(database, legacyBeforeMigration, "initial and replay migrations");
     const schema = query(
       database,
-      "SELECT name FROM system.tables WHERE database = currentDatabase() AND name IN ('bars_minute_v2', 'bars_daily_v2', 'corporate_actions_v2') ORDER BY name",
+      "SELECT name FROM system.tables WHERE database = currentDatabase() AND name IN ('bars_minute_v2', 'bars_daily_v2', 'corporate_actions_v2', 'feature_history_v1') ORDER BY name",
     );
-    if (schema.split(/\r?\n/).filter(Boolean).length !== 3) {
+    if (schema.split(/\r?\n/).filter(Boolean).length !== 4) {
       fail(`unexpected schema after migration: ${schema}`);
+    }
+    const fingerprintA = `sha256:${"a".repeat(64)}`;
+    const fingerprintB = `sha256:${"b".repeat(64)}`;
+    const fingerprintC = `sha256:${"c".repeat(64)}`;
+    query(
+      database,
+      `INSERT INTO feature_history_v1 (registry_namespace_id, registry_head_fingerprint, feature_name, feature_version, feature_fingerprint, algorithm_version, entity_id, event_time, available_time, processing_time, value_type, value_json, value_checksum, materialization_id, revision_nonce, revision_id, input_checksum, calculator_implementation_fingerprint, input_manifest_checksum, lineage_checksum, source_kind, source_snapshot_version, record_checksum) VALUES
+      ('cn_equity', '${fingerprintA}', 'close_return_1d', '1.0.0', '${fingerprintB}', 'close-return-v1', '600000.SH', toDateTime64('2026-08-13 01:30:00.000000', 6, 'UTC'), toDateTime64('2026-08-13 02:00:00.000000', 6, 'UTC'), toDateTime64('2026-08-13 02:00:01.000000', 6, 'UTC'), 'DECIMAL', '"0.01"', '${fingerprintC}', 'run-1', 'first', '${fingerprintA}', '${fingerprintB}', '${fingerprintC}', '${fingerprintA}', '${fingerprintB}', 'CLICKHOUSE', 'bars-v1', '${fingerprintC}'),
+      ('cn_equity', '${fingerprintA}', 'close_return_1d', '1.0.0', '${fingerprintB}', 'close-return-v1', '600000.SH', toDateTime64('2026-08-13 01:30:00.000000', 6, 'UTC'), toDateTime64('2026-08-13 04:00:00.000000', 6, 'UTC'), toDateTime64('2026-08-13 04:00:01.000000', 6, 'UTC'), 'DECIMAL', '"0.02"', '${fingerprintA}', 'run-2', 'second', '${fingerprintB}', '${fingerprintC}', '${fingerprintA}', '${fingerprintB}', '${fingerprintC}', 'CLICKHOUSE', 'bars-v2', '${fingerprintA}')`,
+    );
+    const featureAtThree = query(
+      database,
+      "SELECT argMax(value_json, tuple(available_time, processing_time, revision_id)) FROM feature_history_v1 WHERE entity_id = '600000.SH' AND available_time <= toDateTime64('2026-08-13 03:00:00.000000', 6, 'UTC')",
+    );
+    const featureAtFive = query(
+      database,
+      "SELECT argMax(value_json, tuple(available_time, processing_time, revision_id)) FROM feature_history_v1 WHERE entity_id = '600000.SH' AND available_time <= toDateTime64('2026-08-13 05:00:00.000000', 6, 'UTC')",
+    );
+    if (featureAtThree !== '"0.01"' || featureAtFive !== '"0.02"') {
+      fail(
+        `historical feature PIT selection leaked or lost a revision: ${featureAtThree}/${featureAtFive}`,
+      );
+    }
+    let invalidFingerprintRejected = false;
+    try {
+      query(
+        database,
+        `INSERT INTO feature_history_v1 (registry_namespace_id, registry_head_fingerprint, feature_name, feature_version, feature_fingerprint, algorithm_version, entity_id, event_time, available_time, processing_time, value_type, value_json, value_checksum, materialization_id, revision_nonce, revision_id, input_checksum, calculator_implementation_fingerprint, input_manifest_checksum, lineage_checksum, source_kind, source_snapshot_version, record_checksum) VALUES ('cn_equity', '${"x".repeat(71)}', 'invalid', '1.0.0', '${fingerprintB}', 'invalid-v1', '600000.SH', now64(6), now64(6), now64(6), 'DECIMAL', '"0"', '${fingerprintA}', 'invalid-run', 'invalid', '${fingerprintA}', '${fingerprintA}', '${fingerprintA}', '${fingerprintA}', '${fingerprintA}', 'CLICKHOUSE', 'invalid', '${fingerprintA}')`,
+      );
+    } catch (error) {
+      invalidFingerprintRejected = String(error).includes("chk_feature_history_registry_head");
+    }
+    if (!invalidFingerprintRejected) {
+      fail("feature history accepted a non-sha256 registry fingerprint");
     }
     query(
       database,
