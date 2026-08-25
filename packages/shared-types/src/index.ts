@@ -1728,3 +1728,95 @@ export interface Sector {
    */
   aliases: string[];
 }
+
+/**
+ * Versioned point-in-time research signal with no execution capability.
+ */
+export interface Signal {
+  schemaVersion: "signal-v1";
+  signalId: string;
+  strategyId: string;
+  strategyVersion: string;
+  algorithmVersion: string;
+  entityId: string;
+  decisionTime: string;
+  dataCutoffTime: string;
+  direction: "LONG" | "SHORT" | "NEUTRAL";
+  score: string;
+  confidence: string;
+  horizonSessions: number;
+  rationale: string;
+  inputSnapshotId: string;
+  inputSnapshotVersion: string;
+  /**
+   * @minItems 1
+   */
+  evidenceIds: [string, ...string[]];
+  isExecutable: false;
+  executionCapability: "NONE";
+}
+
+export type Version = string;
+
+/**
+ * Research-only strategy metadata, lifecycle and typed parameter contract.
+ */
+export interface StrategyDescriptor {
+  schemaVersion: "strategy-descriptor-v1";
+  strategyId: string;
+  strategyVersion: Version;
+  algorithmVersion: Version;
+  sdkVersion: Version;
+  lifecycleVersion: Version;
+  description: string;
+  /**
+   * @minItems 1
+   */
+  requiredFeatures: [string, ...string[]];
+  /**
+   * @minItems 1
+   */
+  parameterSpecs: [
+    IntegerParameterSpec | DecimalParameterSpec | BooleanParameterSpec | StringParameterSpec,
+    ...(IntegerParameterSpec | DecimalParameterSpec | BooleanParameterSpec | StringParameterSpec)[],
+  ];
+  /**
+   * @minItems 3
+   * @maxItems 3
+   */
+  lifecycleHooks: ["initialize", "onDecision", "finalize"];
+  signalSchemaVersion: "signal-v1";
+  executionCapability: "NONE";
+}
+export interface IntegerParameterSpec {
+  name: string;
+  valueType: "INTEGER";
+  required: boolean;
+  description: string;
+  defaultValue?: number | null;
+  minimum?: number | null;
+  maximum?: number | null;
+}
+export interface DecimalParameterSpec {
+  name: string;
+  valueType: "DECIMAL";
+  required: boolean;
+  description: string;
+  defaultValue?: string | null;
+  minimum?: string | null;
+  maximum?: string | null;
+}
+export interface BooleanParameterSpec {
+  name: string;
+  valueType: "BOOLEAN";
+  required: boolean;
+  description: string;
+  defaultValue?: boolean | null;
+}
+export interface StringParameterSpec {
+  name: string;
+  valueType: "STRING";
+  required: boolean;
+  description: string;
+  defaultValue?: string | null;
+}

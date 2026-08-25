@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Language-agnostic JSON Schema contracts for Kunlun Alpha",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/kol/index.js",
   "types": "./dist/kol/index.d.ts",
   "exports": {
@@ -12,6 +14,11 @@
       "types": "./dist/kol/index.d.ts",
       "import": "./dist/kol/index.js",
       "default": "./dist/kol/index.js"
+    },
+    "./strategy": {
+      "types": "./dist/strategy/index.d.ts",
+      "import": "./dist/strategy/index.js",
+      "default": "./dist/strategy/index.js"
     }
   },
   "scripts": {

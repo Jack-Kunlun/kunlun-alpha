@@ -232,6 +232,21 @@ from ashare_contracts.sector_sector_rotation_event import EventType as EventType
 from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_4
 from ashare_contracts.sector_sector_rotation_event import SectorRotationEvent as SectorRotationEvent
 from ashare_contracts.sector_sector_rotation_event import SourceVersion as SourceVersion_1
+from ashare_contracts.strategy_signal import Direction as Direction_2
+from ashare_contracts.strategy_signal import EvidenceId as EvidenceId_5
+from ashare_contracts.strategy_signal import Signal as Signal
+from ashare_contracts.strategy_strategy_descriptor import (
+    BooleanParameterSpec as BooleanParameterSpec,
+)
+from ashare_contracts.strategy_strategy_descriptor import (
+    DecimalParameterSpec as DecimalParameterSpec,
+)
+from ashare_contracts.strategy_strategy_descriptor import (
+    IntegerParameterSpec as IntegerParameterSpec,
+)
+from ashare_contracts.strategy_strategy_descriptor import RequiredFeature as RequiredFeature
+from ashare_contracts.strategy_strategy_descriptor import StrategyDescriptor as StrategyDescriptor
+from ashare_contracts.strategy_strategy_descriptor import StringParameterSpec as StringParameterSpec
 
 __all__ = [
     "Exchange",
@@ -436,4 +451,13 @@ __all__ = [
     "EvidenceId_4",
     "SectorRotationEvent",
     "SourceVersion_1",
+    "Direction_2",
+    "EvidenceId_5",
+    "Signal",
+    "BooleanParameterSpec",
+    "DecimalParameterSpec",
+    "IntegerParameterSpec",
+    "RequiredFeature",
+    "StrategyDescriptor",
+    "StringParameterSpec",
 ]
