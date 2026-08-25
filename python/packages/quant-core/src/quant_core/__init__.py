@@ -24,6 +24,8 @@ from quant_core.research.factors import (
     analyze_factor_correlation,
 )
 
+from . import metrics
+
 __all__ = [
     "FACTOR_RESEARCH_ALGORITHM_VERSION",
     "CorrelationPoint",
@@ -46,4 +48,5 @@ __all__ = [
     "WinsorizationPolicy",
     "analyze_factor",
     "analyze_factor_correlation",
+    "metrics",
 ]
