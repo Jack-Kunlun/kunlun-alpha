@@ -5,11 +5,16 @@ import { ErrorBoundary } from "../components/ErrorBoundary";
 import { Home } from "./Home";
 import { NotFound } from "./NotFound";
 
-describe("Phase 0 page states", () => {
-  it("renders the home loading-independent shell", () => {
-    const html = renderToStaticMarkup(<Home />);
-    expect(html).toContain("昆仑智策");
-    expect(html).toContain("工程基础设施");
+describe("terminal page states", () => {
+  it("renders the Phase 6 information architecture shell", () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
+    expect(html).toContain("从证据到决策");
+    expect(html).toContain("P6-N01");
+    expect(html).toContain("研究与模拟");
   });
 
   it("renders a navigable 404 state", () => {
