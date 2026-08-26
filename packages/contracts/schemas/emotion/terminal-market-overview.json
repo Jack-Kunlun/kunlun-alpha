@@ -1,0 +1,198 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/emotion/terminal-market-overview.json",
+  "title": "MarketOverviewSnapshot",
+  "description": "Versioned point-in-time market dashboard projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "mode",
+    "requestedAsOf",
+    "dataCutoffTime",
+    "completeness",
+    "freshness",
+    "indices",
+    "breadth",
+    "turnover",
+    "emotion",
+    "risk",
+    "sourceVersions",
+    "evidenceIds",
+    "dataMeaning"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "market-overview-v1" },
+    "mode": { "enum": ["CURRENT", "HISTORICAL"] },
+    "requestedAsOf": { "type": "string", "format": "date-time" },
+    "dataCutoffTime": {
+      "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "completeness": { "enum": ["COMPLETE", "PARTIAL", "EMPTY"] },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "ageSeconds", "delayedAfterSeconds", "staleAfterSeconds"],
+      "properties": {
+        "status": { "$ref": "#/$defs/MarketOverviewFreshnessStatus" },
+        "ageSeconds": {
+          "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
+        },
+        "delayedAfterSeconds": { "type": "integer", "minimum": 0 },
+        "staleAfterSeconds": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "indices": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/MarketOverviewIndexMetric" }
+    },
+    "breadth": {
+      "oneOf": [{ "$ref": "#/$defs/MarketOverviewBreadthMetric" }, { "type": "null" }]
+    },
+    "turnover": {
+      "oneOf": [{ "$ref": "#/$defs/MarketOverviewTurnoverMetric" }, { "type": "null" }]
+    },
+    "emotion": {
+      "oneOf": [{ "$ref": "#/$defs/MarketOverviewEmotionMetric" }, { "type": "null" }]
+    },
+    "risk": { "$ref": "#/$defs/MarketOverviewRiskMetric" },
+    "sourceVersions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "evidenceIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "dataMeaning": { "const": "RESEARCH_ONLY_NO_REAL_ORDER_PATH" }
+  },
+  "$defs": {
+    "MarketOverviewFreshnessStatus": {
+      "type": "string",
+      "enum": ["FRESH", "DELAYED", "STALE", "HISTORICAL", "NO_DATA"]
+    },
+    "MarketOverviewIndexMetric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrumentId",
+        "name",
+        "dataTime",
+        "value",
+        "previousClose",
+        "changeBps",
+        "sourceVersion",
+        "evidenceId"
+      ],
+      "properties": {
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "name": { "type": "string", "minLength": 1 },
+        "dataTime": { "type": "string", "format": "date-time" },
+        "value": { "type": "string", "minLength": 1 },
+        "previousClose": { "type": "string", "minLength": 1 },
+        "changeBps": { "type": "number" },
+        "sourceVersion": { "type": "string", "minLength": 1 },
+        "evidenceId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "MarketOverviewBreadthMetric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataTime",
+        "advancingCount",
+        "decliningCount",
+        "unchangedCount",
+        "suspendedCount",
+        "sampleSize",
+        "advancingRatioBps",
+        "universeVersion",
+        "sourceVersions",
+        "evidenceIds"
+      ],
+      "properties": {
+        "dataTime": { "type": "string", "format": "date-time" },
+        "advancingCount": { "type": "integer", "minimum": 0 },
+        "decliningCount": { "type": "integer", "minimum": 0 },
+        "unchangedCount": { "type": "integer", "minimum": 0 },
+        "suspendedCount": { "type": "integer", "minimum": 0 },
+        "sampleSize": { "type": "integer", "minimum": 0 },
+        "advancingRatioBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "universeVersion": { "const": "ashare-code-pattern-v1" },
+        "sourceVersions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "MarketOverviewTurnoverMetric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataTime", "amountCny", "sampleSize", "sourceVersions", "evidenceIds"],
+      "properties": {
+        "dataTime": { "type": "string", "format": "date-time" },
+        "amountCny": { "type": "string", "minLength": 1 },
+        "sampleSize": { "type": "integer", "minimum": 0 },
+        "sourceVersions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "MarketOverviewEmotionMetric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataTime",
+        "scoreBps",
+        "confidenceBps",
+        "sampleSize",
+        "algorithmVersion",
+        "sourceVersions",
+        "evidenceIds"
+      ],
+      "properties": {
+        "dataTime": { "type": "string", "format": "date-time" },
+        "scoreBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "sampleSize": { "type": "integer", "minimum": 0 },
+        "algorithmVersion": { "type": "string", "minLength": 1 },
+        "sourceVersions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "MarketOverviewRiskMetric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "basisVersion", "explanation", "dataMeaning"],
+      "properties": {
+        "state": { "enum": ["CALM", "WATCH", "STRESSED", "UNKNOWN"] },
+        "basisVersion": { "const": "market-risk-temperature-v1" },
+        "explanation": { "type": "string", "minLength": 1 },
+        "dataMeaning": { "const": "RESEARCH_CONTEXT_NOT_ORDER_RISK" }
+      }
+    }
+  }
+}

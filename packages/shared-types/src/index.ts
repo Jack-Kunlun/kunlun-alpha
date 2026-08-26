@@ -737,63 +737,137 @@ export interface MarketEmotionSnapshot {
   evidenceIds: string[];
 }
 
-export type MarketOverviewFreshnessStatus =
-  | "FRESH"
-  | "DELAYED"
-  | "STALE"
-  | "HISTORICAL"
-  | "NO_DATA";
+/**
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "NullableTimestamp".
+ */
+export type NullableTimestamp = string | null;
+/**
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "LimitPoolTerminalCompleteness".
+ */
+export type LimitPoolTerminalCompleteness = "COMPLETE" | "PARTIAL" | "EMPTY";
+/**
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "LimitPoolTerminalFreshnessStatus".
+ */
+export type LimitPoolTerminalFreshnessStatus =
+  "FRESH" | "DELAYED" | "STALE" | "HISTORICAL" | "NO_DATA";
+/**
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "NullableVersion".
+ */
+export type NullableVersion = string | null;
+/**
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "LimitPoolListingBoard".
+ */
+export type LimitPoolListingBoard = "MAIN" | "CHINEXT" | "STAR" | "BSE";
+/**
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "LimitPoolSide".
+ */
+export type LimitPoolSide = "LIMIT_UP" | "LIMIT_DOWN";
+/**
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "LimitPoolState".
+ */
+export type LimitPoolState = "SEALED" | "OPENED" | "LIMIT_DOWN";
+/**
+ * Canonical finite decimal string strictly greater than zero
+ *
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "PositiveDecimalString".
+ */
+export type PositiveDecimalString = string;
 
-export interface MarketOverviewIndexMetric {
+/**
+ * Versioned point-in-time projection consumed by the Phase 6 limit-pool terminal
+ */
+export interface LimitPoolTerminalSnapshot {
+  schemaVersion: "limit-pool-terminal-v1";
+  mode: "CURRENT" | "HISTORICAL";
+  requestedAsOf: string;
+  tradingDate: string | null;
+  previousTradingDate: string | null;
+  dataCutoffTime: NullableTimestamp;
+  availableTime: NullableTimestamp;
+  completeness: LimitPoolTerminalCompleteness;
+  missingReasons: string[];
+  freshness: {
+    status: LimitPoolTerminalFreshnessStatus;
+    ageSeconds: number | null;
+  };
+  algorithmVersion: NullableVersion;
+  ladderAlgorithmVersion: NullableVersion;
+  limitRuleVersion: NullableVersion;
+  materializerVersion: NullableVersion;
+  revision: number | null;
+  limitUpCount: number;
+  limitDownCount: number;
+  sealedCount: number;
+  totalOpenCount: number;
+  ladder: LimitPoolLadderLevel[];
+  entries: LimitPoolTerminalEntry[];
+  sourceVersions: string[];
+  evidenceIds: string[];
+  dataMeaning: "RESEARCH_ONLY_NO_REAL_ORDER_PATH";
+}
+/**
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "LimitPoolLadderLevel".
+ */
+export interface LimitPoolLadderLevel {
+  streakDays: number;
+  count: number;
+  previousDayEligibleCount: number;
+  promotedCount: number;
+  promotionRateBps: number | null;
+  algorithmVersion: string;
+}
+/**
+ * One auditable instrument row emitted by the versioned limit-pool algorithm
+ *
+ * This interface was referenced by `LimitPoolTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "LimitPoolTerminalEntry".
+ */
+export interface LimitPoolTerminalEntry {
   instrumentId: string;
   name: string;
-  dataTime: string;
-  value: string;
-  previousClose: string;
-  changeBps: number;
+  exchange: "SH" | "SZ" | "BJ";
+  listingBoard: LimitPoolListingBoard;
+  isSt: boolean;
+  side: LimitPoolSide;
+  state: LimitPoolState;
+  streakDays: number;
+  previousStreakDays: number;
+  openCount: number;
+  priceCny: PositiveDecimalString;
+  previousCloseCny: PositiveDecimalString;
+  firstSealTime: NullableTimestamp;
+  lastSealTime: NullableTimestamp;
+  eventTime: string;
+  availableTime: string;
+  revision: number;
   sourceVersion: string;
   evidenceId: string;
-}
-
-export interface MarketOverviewBreadthMetric {
-  dataTime: string;
-  advancingCount: number;
-  decliningCount: number;
-  unchangedCount: number;
-  suspendedCount: number;
-  sampleSize: number;
-  advancingRatioBps: number;
-  universeVersion: "ashare-code-pattern-v1";
-  sourceVersions: string[];
-  evidenceIds: string[];
-}
-
-export interface MarketOverviewTurnoverMetric {
-  dataTime: string;
-  amountCny: string;
-  sampleSize: number;
-  sourceVersions: string[];
-  evidenceIds: string[];
-}
-
-export interface MarketOverviewEmotionMetric {
-  dataTime: string;
-  scoreBps: number;
-  confidenceBps: number;
-  sampleSize: number;
   algorithmVersion: string;
-  sourceVersions: string[];
-  evidenceIds: string[];
+  ladderAlgorithmVersion: string;
+  limitRuleVersion: string;
+  materializerVersion: string;
+  dataMeaning: "LIMIT_POOL_ALGORITHM_OUTPUT";
 }
 
-export interface MarketOverviewRiskMetric {
-  state: "CALM" | "WATCH" | "STRESSED" | "UNKNOWN";
-  basisVersion: "market-risk-temperature-v1";
-  explanation: string;
-  dataMeaning: "RESEARCH_CONTEXT_NOT_ORDER_RISK";
-}
+/**
+ * This interface was referenced by `MarketOverviewSnapshot`'s JSON-Schema
+ * via the `definition` "MarketOverviewFreshnessStatus".
+ */
+export type MarketOverviewFreshnessStatus =
+  "FRESH" | "DELAYED" | "STALE" | "HISTORICAL" | "NO_DATA";
 
-/** Versioned point-in-time market dashboard projection. */
+/**
+ * Versioned point-in-time market dashboard projection
+ */
 export interface MarketOverviewSnapshot {
   schemaVersion: "market-overview-v1";
   mode: "CURRENT" | "HISTORICAL";
@@ -814,6 +888,70 @@ export interface MarketOverviewSnapshot {
   sourceVersions: string[];
   evidenceIds: string[];
   dataMeaning: "RESEARCH_ONLY_NO_REAL_ORDER_PATH";
+}
+/**
+ * This interface was referenced by `MarketOverviewSnapshot`'s JSON-Schema
+ * via the `definition` "MarketOverviewIndexMetric".
+ */
+export interface MarketOverviewIndexMetric {
+  instrumentId: string;
+  name: string;
+  dataTime: string;
+  value: string;
+  previousClose: string;
+  changeBps: number;
+  sourceVersion: string;
+  evidenceId: string;
+}
+/**
+ * This interface was referenced by `MarketOverviewSnapshot`'s JSON-Schema
+ * via the `definition` "MarketOverviewBreadthMetric".
+ */
+export interface MarketOverviewBreadthMetric {
+  dataTime: string;
+  advancingCount: number;
+  decliningCount: number;
+  unchangedCount: number;
+  suspendedCount: number;
+  sampleSize: number;
+  advancingRatioBps: number;
+  universeVersion: "ashare-code-pattern-v1";
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+/**
+ * This interface was referenced by `MarketOverviewSnapshot`'s JSON-Schema
+ * via the `definition` "MarketOverviewTurnoverMetric".
+ */
+export interface MarketOverviewTurnoverMetric {
+  dataTime: string;
+  amountCny: string;
+  sampleSize: number;
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+/**
+ * This interface was referenced by `MarketOverviewSnapshot`'s JSON-Schema
+ * via the `definition` "MarketOverviewEmotionMetric".
+ */
+export interface MarketOverviewEmotionMetric {
+  dataTime: string;
+  scoreBps: number;
+  confidenceBps: number;
+  sampleSize: number;
+  algorithmVersion: string;
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+/**
+ * This interface was referenced by `MarketOverviewSnapshot`'s JSON-Schema
+ * via the `definition` "MarketOverviewRiskMetric".
+ */
+export interface MarketOverviewRiskMetric {
+  state: "CALM" | "WATCH" | "STRESSED" | "UNKNOWN";
+  basisVersion: "market-risk-temperature-v1";
+  explanation: string;
+  dataMeaning: "RESEARCH_CONTEXT_NOT_ORDER_RISK";
 }
 
 export interface EventFeedbackSubmission {

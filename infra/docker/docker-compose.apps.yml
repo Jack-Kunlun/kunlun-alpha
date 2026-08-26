@@ -79,6 +79,29 @@ services:
       - "kunlun.service=data-worker-migrate"
       - "kunlun.description=Verified data-worker schema migrations"
 
+  limit-pool-terminal-materialize:
+    image: kunlun-data-worker:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: data-worker
+    container_name: kunlun-limit-pool-terminal-materialize
+    restart: "no"
+    depends_on:
+      clickhouse-migrate:
+        condition: service_completed_successfully
+    environment:
+      LIMIT_POOL_TERMINAL_REQUEST_FILE: /workspace/data/fixtures/limit-pool-terminal-local.json
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-kunlun}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-kunlun}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-kunlun-local-dev}
+      CLICKHOUSE_TIMEOUT_SECONDS: "5"
+    command: ["limit-pool-terminal-materialize"]
+    labels:
+      - "kunlun.service=limit-pool-terminal-materialize"
+      - "kunlun.description=Canonical local limit-pool terminal materialization"
+
   server:
     image: kunlun-server:local
     build:
@@ -94,6 +117,8 @@ services:
       data-worker-migrate:
         condition: service_completed_successfully
       clickhouse-migrate:
+        condition: service_completed_successfully
+      limit-pool-terminal-materialize:
         condition: service_completed_successfully
     environment:
       NODE_ENV: production

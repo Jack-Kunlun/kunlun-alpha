@@ -53,7 +53,10 @@ logs/
 work/
 tmp/
 temp/
-data/
+data/*
+!data/fixtures/
+data/fixtures/*
+!data/fixtures/limit-pool-terminal-local.json
 
 # Infrastructure volumes
 infra/docker/data/

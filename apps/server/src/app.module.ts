@@ -9,6 +9,7 @@ import { ClaimReviewModule } from "./modules/claim-review/claim-review.module";
 import { SeatKolWorkbenchModule } from "./modules/seat-kol/seat-kol.module";
 import { BacktestRegressionModule } from "./modules/backtest-regression/backtest-regression.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { LimitPoolModule } from "./modules/limit-pool/limit-pool.module";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
     SeatKolWorkbenchModule,
     BacktestRegressionModule,
     DashboardModule,
+    LimitPoolModule,
   ],
   controllers: [AppController, MetricsController],
 })

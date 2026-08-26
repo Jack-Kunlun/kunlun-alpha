@@ -219,6 +219,7 @@ version = "0.0.0"
 source = { editable = "services/data-worker" }
 dependencies = [
     { name = "ashare-contracts" },
+    { name = "emotion-core" },
     { name = "market-core" },
     { name = "psycopg", extra = ["binary"] },
     { name = "seat-core" },
@@ -227,6 +228,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "ashare-contracts", editable = "python/packages/ashare-contracts" },
+    { name = "emotion-core", editable = "python/packages/emotion-core" },
     { name = "market-core", editable = "python/packages/market-core" },
     { name = "psycopg", extras = ["binary"], specifier = "==3.3.4" },
     { name = "seat-core", editable = "python/packages/seat-core" },

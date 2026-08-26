@@ -27,7 +27,7 @@ fi
 # IF NOT EXISTS guard also keeps the wrapper safe if that ordering changes.
 clickhouse-client "$@" --query "CREATE DATABASE IF NOT EXISTS \`${database}\`"
 
-for migration in 001_bars.sql 002_corporate_actions.sql 003_emotion_rotation_replay.sql 004_feature_history.sql; do
+for migration in 001_bars.sql 002_corporate_actions.sql 003_emotion_rotation_replay.sql 004_feature_history.sql 005_limit_pool_terminal.sql; do
   path="${migration_dir}/${migration}"
   if [ ! -f "${path}" ]; then
     echo "missing canonical ClickHouse migration: ${path}" >&2

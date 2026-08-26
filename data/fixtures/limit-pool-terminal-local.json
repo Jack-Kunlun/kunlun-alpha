@@ -1,0 +1,70 @@
+{
+  "poolSnapshot": {
+    "date": "2026-08-25",
+    "timestamp": "2026-08-25T06:42:00Z",
+    "limitUpCount": 1,
+    "limitDownCount": 0,
+    "sealedCount": 1,
+    "limitUpInstruments": ["600000.SH"],
+    "limitDownInstruments": [],
+    "firstSealTime": "2026-08-25T01:31:00Z",
+    "lastSealTime": "2026-08-25T01:31:00Z",
+    "totalOpenCount": 0,
+    "provenance": [
+      {
+        "unifiedCode": "600000.SH",
+        "eventTime": "2026-08-25T01:31:00Z",
+        "availableTime": "2026-08-25T01:31:01Z",
+        "revision": 1,
+        "source": "sanitized-local-fixture",
+        "sourceVersion": "sanitized-local-fixture:v1",
+        "evidenceId": "fixture-limit-600000-1"
+      }
+    ],
+    "algorithmVersion": "limit_pool_v2",
+    "limitRuleVersion": "cn-equity-limit-rules-v1"
+  },
+  "ladderSnapshot": {
+    "date": "2026-08-25",
+    "boards": { "2": ["600000.SH"] },
+    "advancement": { "1": 0.5 },
+    "provenance": {
+      "algorithmVersion": "board_ladder_v2",
+      "asOf": "2026-08-25T06:42:00Z",
+      "included": ["600000.SH"],
+      "sourceVersions": ["sanitized-local-fixture:v1"],
+      "evidenceIds": ["fixture-limit-600000-1"]
+    },
+    "version": "board_ladder_v2"
+  },
+  "entries": [
+    {
+      "instrumentId": "600000.SH",
+      "name": "脱敏样例证券",
+      "exchange": "SH",
+      "listingBoard": "MAIN",
+      "isSt": false,
+      "side": "LIMIT_UP",
+      "state": "SEALED",
+      "streakDays": 2,
+      "previousStreakDays": 1,
+      "openCount": 0,
+      "priceCny": "11.00",
+      "previousCloseCny": "10.00",
+      "firstSealTime": "2026-08-25T01:31:00Z",
+      "lastSealTime": "2026-08-25T01:31:00Z",
+      "eventTime": "2026-08-25T01:31:00Z",
+      "availableTime": "2026-08-25T01:31:01Z",
+      "revision": 1,
+      "sourceVersion": "sanitized-local-fixture:v1",
+      "evidenceId": "fixture-limit-600000-1"
+    }
+  ],
+  "previousDayEligibleCounts": { "1": 2 },
+  "availableTime": "2026-08-25T06:42:00Z",
+  "processingTime": "2026-08-25T06:42:01Z",
+  "revision": 1,
+  "previousTradingDate": "2026-08-24",
+  "completeness": "COMPLETE",
+  "missingReasons": []
+}
