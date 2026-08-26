@@ -14,6 +14,8 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Literal, cast
 
+from ashare_contracts import BenchmarkSeriesPoint, is_canonical_benchmark_id
+
 AssetType = Literal["ETF", "LOF", "FUND"]
 FundAssetClass = Literal["PRECIOUS_METALS"]
 # Public compatibility alias for callers that imported the old type name; the
@@ -66,6 +68,7 @@ class PreciousMetalFund:
     review_status: ReviewStatus | str
     recurring_fees: tuple[RecurringFee, ...] = ()
     event_time: datetime | None = None
+    benchmark_series_id: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -87,6 +90,9 @@ class ValidationResult:
 def fund_from_dict(raw: dict[str, object]) -> PreciousMetalFund:
     """Build a :class:`PreciousMetalFund` from a camelCase JSON mapping."""
     raw_valid_to = raw.get("validTo")
+    raw_benchmark_series_id = raw.get("benchmarkSeriesId")
+    if raw_benchmark_series_id is not None and type(raw_benchmark_series_id) is not str:
+        raise TypeError("benchmarkSeriesId must be a string or null")
     return PreciousMetalFund(
         unified_code=str(raw["unifiedCode"]),
         exchange=str(raw["exchange"]),  # type: ignore[arg-type]
@@ -109,7 +115,30 @@ def fund_from_dict(raw: dict[str, object]) -> PreciousMetalFund:
         review_status=str(raw["reviewStatus"]),
         recurring_fees=_recurring_fees_from_dict(raw.get("recurringFees")),
         event_time=(None if raw.get("eventTime") is None else _parse_datetime(raw["eventTime"])),
+        benchmark_series_id=(
+            None if raw_benchmark_series_id is None else str(raw_benchmark_series_id)
+        ),
     )
+
+
+def benchmark_series_matches(
+    fund: PreciousMetalFund,
+    point: BenchmarkSeriesPoint,
+) -> bool:
+    """Match only validated, explicit canonical identities using exact equality."""
+    if not is_canonical_benchmark_id(fund.benchmark_series_id):
+        return False
+    if type(point) is not BenchmarkSeriesPoint:
+        return False
+    try:
+        if not validate_precious_metal_fund(fund).valid:
+            return False
+        validated_point = BenchmarkSeriesPoint.model_validate(
+            point.model_dump(by_alias=True, mode="json")
+        )
+    except (AttributeError, TypeError, ValueError):
+        return False
+    return fund.benchmark_series_id == validated_point.benchmark_id
 
 
 def validate_precious_metal_fund(
@@ -134,6 +163,10 @@ def validate_precious_metal_fund(
         errors.append("navCurrency must be an ISO 4217 currency code")
     if not fund.benchmark_or_tracking_index.strip():
         errors.append("benchmarkOrTrackingIndex must be non-empty")
+    if fund.benchmark_series_id is not None and not is_canonical_benchmark_id(
+        fund.benchmark_series_id
+    ):
+        errors.append("benchmarkSeriesId must use canonical benchmark:v1 identity")
     if not fund.management_fee_rate.is_finite() or fund.management_fee_rate < 0:
         errors.append("managementFeeRate must be >= 0")
     elif fund.management_fee_rate > 1:

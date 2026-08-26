@@ -40,8 +40,8 @@ from ashare_contracts.backtest_regression import (
     EvidenceIntegrityConfidence as EvidenceIntegrityConfidence,
 )
 from ashare_contracts.backtest_regression import FinalValuation as FinalValuation
-from ashare_contracts.backtest_regression import MetricValue as MetricValue
 from ashare_contracts.backtest_regression import Metrics as Metrics
+from ashare_contracts.backtest_regression import MetricValue as MetricValue
 from ashare_contracts.backtest_regression import Mode as Mode
 from ashare_contracts.backtest_regression import Observation as Observation
 from ashare_contracts.backtest_regression import (
@@ -61,13 +61,15 @@ from ashare_contracts.backtest_regression import Status as Status
 from ashare_contracts.backtest_regression import Status1 as Status1
 from ashare_contracts.backtest_regression import Status2 as Status2
 from ashare_contracts.backtest_regression import Status5 as Status5
+from ashare_contracts.backtest_regression import ToolchainEvidence as ToolchainEvidence
 from ashare_contracts.backtest_regression import TPlusOneInputs as TPlusOneInputs
 from ashare_contracts.backtest_regression import TPlusOneObservation as TPlusOneObservation
 from ashare_contracts.backtest_regression import TPlusOneResults as TPlusOneResults
-from ashare_contracts.backtest_regression import ToolchainEvidence as ToolchainEvidence
 from ashare_contracts.backtest_regression import ValuationLineage as ValuationLineage
 from ashare_contracts.backtest_regression import ValuationLineageItem as ValuationLineageItem
 from ashare_contracts.backtest_regression import ZeroCategoryCounts as ZeroCategoryCounts
+from ashare_contracts.backtest_regression_semantics import validate_backtest_regression_comparison
+from ashare_contracts.benchmark_series_semantics import is_canonical_benchmark_id
 from ashare_contracts.calendar_holiday import Exchange as Exchange
 from ashare_contracts.calendar_holiday import Holiday as Holiday
 from ashare_contracts.calendar_holiday import Reason as Reason
@@ -130,6 +132,9 @@ from ashare_contracts.feature_feature_spec import FeatureSpec as FeatureSpec
 from ashare_contracts.feature_feature_spec import Frequency as Frequency
 from ashare_contracts.feature_feature_spec import SourceContracts as SourceContracts
 from ashare_contracts.feature_feature_spec import ValueType as ValueType
+from ashare_contracts.funds_benchmark_series_point import (
+    BenchmarkSeriesPoint as BenchmarkSeriesPoint,
+)
 from ashare_contracts.funds_fund_nav import FundNav as FundNav
 from ashare_contracts.funds_precious_metal_fund import AssetType as AssetType
 from ashare_contracts.funds_precious_metal_fund import Exchange as Exchange_4
@@ -316,8 +321,6 @@ from ashare_contracts.strategy_strategy_descriptor import RequiredFeature as Req
 from ashare_contracts.strategy_strategy_descriptor import StrategyDescriptor as StrategyDescriptor
 from ashare_contracts.strategy_strategy_descriptor import StringParameterSpec as StringParameterSpec
 
-from ashare_contracts.backtest_regression_semantics import validate_backtest_regression_comparison
-
 __all__ = [
     "BacktestRegressionArtifact",
     "BacktestRegressionBaseline",
@@ -423,6 +426,7 @@ __all__ = [
     "Frequency",
     "SourceContracts",
     "ValueType",
+    "BenchmarkSeriesPoint",
     "FundNav",
     "AssetType",
     "Exchange_4",
@@ -576,6 +580,6 @@ __all__ = [
     "RequiredFeature",
     "StrategyDescriptor",
     "StringParameterSpec",
+    "is_canonical_benchmark_id",
+    "validate_backtest_regression_comparison",
 ]
-
-__all__.append("validate_backtest_regression_comparison")

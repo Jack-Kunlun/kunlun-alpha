@@ -1,5 +1,7 @@
 """Precious-metal fund contracts."""
 
+from ashare_contracts import BenchmarkSeriesPoint
+
 from market_core.funds.validator import (
     AssetClass,
     AssetType,
@@ -9,6 +11,7 @@ from market_core.funds.validator import (
     ReviewStatus,
     UnderlyingCommodity,
     ValidationResult,
+    benchmark_series_matches,
     fund_from_dict,
     validate_precious_metal_fund,
 )
@@ -16,12 +19,14 @@ from market_core.funds.validator import (
 __all__ = [
     "AssetClass",
     "AssetType",
+    "BenchmarkSeriesPoint",
     "FundAssetClass",
     "PreciousMetalFund",
     "RecurringFee",
     "ReviewStatus",
     "UnderlyingCommodity",
     "ValidationResult",
+    "benchmark_series_matches",
     "fund_from_dict",
     "validate_precious_metal_fund",
 ]

@@ -166,6 +166,15 @@ class PreciousMetalFund(BaseModel):
     """
     Benchmark or tracking index identifier
     """
+    benchmark_series_id: str | None = Field(
+        None,
+        alias="benchmarkSeriesId",
+        max_length=174,
+        pattern="^benchmark:v1:[a-z0-9][a-z0-9._-]{0,31}:[a-z0-9][a-z0-9._-]{0,127}$",
+    )
+    """
+    Optional canonical benchmark:v1:<namespace>:<key> identity; null means unavailable
+    """
     management_fee_rate: Decimal = Field(
         ..., alias="managementFeeRate", ge=Decimal("0"), le=Decimal("1")
     )

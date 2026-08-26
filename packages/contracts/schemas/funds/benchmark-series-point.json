@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/funds/benchmark-series-point-v1.json",
+  "title": "BenchmarkSeriesPoint",
+  "description": "Version 1 point-in-time benchmark reference observation; it is never an executable price",
+  "$comment": "Runtime invariants: eventTime <= ingestTime <= availableTime <= processingTime; referenceOnly is always true; benchmarkId is a canonical versioned series identity and must never be inferred from fund display text.",
+  "x-python-strict-rfc3339": true,
+  "x-python-strict-rfc3339-calendar": true,
+  "x-python-strict-strings": true,
+  "x-python-import-known-first-party": true,
+  "x-python-semantic-validator": {
+    "module": "ashare_contracts.benchmark_series_semantics",
+    "function": "validate_benchmark_series_point"
+  },
+  "x-python-public-exports": [
+    {
+      "module": "ashare_contracts.benchmark_series_semantics",
+      "symbol": "is_canonical_benchmark_id"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": "benchmark-series-point-v1",
+      "description": "Stable version of the benchmark-series point contract"
+    },
+    "benchmarkId": {
+      "type": "string",
+      "pattern": "^benchmark:v1:[a-z0-9][a-z0-9._-]{0,31}:[a-z0-9][a-z0-9._-]{0,127}$",
+      "maxLength": 174,
+      "description": "Canonical benchmark:v1:<namespace>:<key> identity; lowercase ASCII, not a label"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "ISO 4217 currency of the reference value"
+    },
+    "priceBasis": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Explicit benchmark valuation/return basis"
+    },
+    "referenceValue": {
+      "type": "string",
+      "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)$",
+      "maxLength": 64,
+      "x-python-decimal": true,
+      "description": "Positive fixed-point decimal wire string; Python domain type is Decimal"
+    },
+    "eventTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Economic observation/event time (timezone required)"
+    },
+    "ingestTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Kunlun ingest time (timezone required)"
+    },
+    "availableTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Earliest research availability time (timezone required)"
+    },
+    "processingTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Normalization/processing time (timezone required)"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Data source provenance identifier"
+    },
+    "sourceRevision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Source revision or vendor version for this observation"
+    },
+    "rawObjectId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Immutable raw evidence/object identifier"
+    },
+    "payloadDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest of the canonical source payload"
+    },
+    "referenceOnly": {
+      "type": "boolean",
+      "const": true,
+      "x-python-strict": true,
+      "description": "Reference-only marker; true is mandatory and cannot imply execution"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "benchmarkId",
+    "currency",
+    "priceBasis",
+    "referenceValue",
+    "eventTime",
+    "ingestTime",
+    "availableTime",
+    "processingTime",
+    "source",
+    "sourceRevision",
+    "rawObjectId",
+    "payloadDigest",
+    "referenceOnly"
+  ],
+  "additionalProperties": false
+}
