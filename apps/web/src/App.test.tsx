@@ -74,7 +74,9 @@ describe("App routing", () => {
 
   it("supports dynamic instrument deep links", () => {
     route = "/instruments/600519.SH";
-    expect(renderToStaticMarkup(<App />)).toContain("ROUTE_PLACEHOLDER:instrument-detail");
+    const html = renderToStaticMarkup(<App />);
+    expect(html).toContain("正在装配个股 Intelligence");
+    expect(html).not.toContain("ROUTE_PLACEHOLDER:instrument-detail");
   });
 
   it("renders a controlled forbidden state for direct unauthorized access", () => {
