@@ -1,0 +1,10 @@
+[project]
+name = "paper-core"
+version = "0.0.0"
+description = "Simulation-only account ledger and point-in-time portfolio state"
+requires-python = "==3.12.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"

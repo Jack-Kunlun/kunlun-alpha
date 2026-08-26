@@ -2626,6 +2626,78 @@ export interface Tick {
   tradeType: "MATCH" | "AUCTION" | "BLOCK";
 }
 
+/**
+ * This interface was referenced by `PaperAccountSnapshot`'s JSON-Schema
+ * via the `definition` "NonNegativeDecimal".
+ */
+export type NonNegativeDecimal = string;
+/**
+ * This interface was referenced by `PaperAccountSnapshot`'s JSON-Schema
+ * via the `definition` "PositiveDecimal".
+ */
+export type PositiveDecimal = string;
+
+/**
+ * Point-in-time projection of a simulation-only account ledger
+ */
+export interface PaperAccountSnapshot {
+  schemaVersion: "paper-account-snapshot-v1";
+  accountId: string;
+  name: string;
+  status: "ACTIVE" | "SUSPENDED" | "CLOSED";
+  baseCurrency: "CNY";
+  initialCapital: NonNegativeDecimal;
+  cash: NonNegativeDecimal;
+  positions: PaperPosition[];
+  latestValuation: PaperValuation | null;
+  requestedAsOf: string;
+  dataCutoffTime: string;
+  eventCount: number;
+  eventChainDigest: string;
+  stateDigest: string;
+  executionCapability: "PAPER_ONLY";
+  dataMeaning: "SIMULATION_ONLY_NO_BROKER_PATH";
+}
+/**
+ * This interface was referenced by `PaperAccountSnapshot`'s JSON-Schema
+ * via the `definition` "PaperPosition".
+ */
+export interface PaperPosition {
+  instrumentId: string;
+  quantity: number;
+  availableQuantity: number;
+  costAmount: NonNegativeDecimal;
+  averageCost: NonNegativeDecimal;
+}
+/**
+ * This interface was referenced by `PaperAccountSnapshot`'s JSON-Schema
+ * via the `definition` "PaperValuation".
+ */
+export interface PaperValuation {
+  valuationId: string;
+  valuationTime: string;
+  availableTime: string;
+  cash: NonNegativeDecimal;
+  positionMarketValue: NonNegativeDecimal;
+  nav: NonNegativeDecimal;
+  marks: PaperValuationMark[];
+}
+/**
+ * This interface was referenced by `PaperAccountSnapshot`'s JSON-Schema
+ * via the `definition` "PaperValuationMark".
+ */
+export interface PaperValuationMark {
+  instrumentId: string;
+  price: PositiveDecimal;
+  quantity: number;
+  marketValue: NonNegativeDecimal;
+  markTime: string;
+  availableTime: string;
+  source: "EXECUTABLE_QUOTE" | "MARKET_CLOSE" | "STALE_FALLBACK";
+  sourceVersion: string;
+  evidenceId: string;
+}
+
 export interface SeatKolWorkbenchSnapshot {
   schemaVersion: "seat-kol-workbench-v1";
   snapshotId: string;

@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/paper/paper-account-snapshot.json",
+  "title": "PaperAccountSnapshot",
+  "description": "Point-in-time projection of a simulation-only account ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "accountId",
+    "name",
+    "status",
+    "baseCurrency",
+    "initialCapital",
+    "cash",
+    "positions",
+    "latestValuation",
+    "requestedAsOf",
+    "dataCutoffTime",
+    "eventCount",
+    "eventChainDigest",
+    "stateDigest",
+    "executionCapability",
+    "dataMeaning"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "paper-account-snapshot-v1" },
+    "accountId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "status": { "enum": ["ACTIVE", "SUSPENDED", "CLOSED"] },
+    "baseCurrency": { "const": "CNY" },
+    "initialCapital": { "$ref": "#/$defs/NonNegativeDecimal" },
+    "cash": { "$ref": "#/$defs/NonNegativeDecimal" },
+    "positions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PaperPosition" }
+    },
+    "latestValuation": {
+      "oneOf": [{ "$ref": "#/$defs/PaperValuation" }, { "type": "null" }]
+    },
+    "requestedAsOf": { "type": "string", "format": "date-time" },
+    "dataCutoffTime": { "type": "string", "format": "date-time" },
+    "eventCount": { "type": "integer", "minimum": 1 },
+    "eventChainDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "stateDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "executionCapability": { "const": "PAPER_ONLY" },
+    "dataMeaning": { "const": "SIMULATION_ONLY_NO_BROKER_PATH" }
+  },
+  "$defs": {
+    "NonNegativeDecimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "PositiveDecimal": {
+      "type": "string",
+      "pattern": "^(0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(\\.[0-9]+)?)$"
+    },
+    "PaperPosition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrumentId",
+        "quantity",
+        "availableQuantity",
+        "costAmount",
+        "averageCost"
+      ],
+      "properties": {
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "quantity": { "type": "integer", "minimum": 1 },
+        "availableQuantity": { "type": "integer", "minimum": 0 },
+        "costAmount": { "$ref": "#/$defs/NonNegativeDecimal" },
+        "averageCost": { "$ref": "#/$defs/NonNegativeDecimal" }
+      }
+    },
+    "PaperValuationMark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrumentId",
+        "price",
+        "quantity",
+        "marketValue",
+        "markTime",
+        "availableTime",
+        "source",
+        "sourceVersion",
+        "evidenceId"
+      ],
+      "properties": {
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "price": { "$ref": "#/$defs/PositiveDecimal" },
+        "quantity": { "type": "integer", "minimum": 1 },
+        "marketValue": { "$ref": "#/$defs/NonNegativeDecimal" },
+        "markTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "source": { "enum": ["EXECUTABLE_QUOTE", "MARKET_CLOSE", "STALE_FALLBACK"] },
+        "sourceVersion": { "type": "string", "minLength": 1 },
+        "evidenceId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "PaperValuation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valuationId",
+        "valuationTime",
+        "availableTime",
+        "cash",
+        "positionMarketValue",
+        "nav",
+        "marks"
+      ],
+      "properties": {
+        "valuationId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "valuationTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "cash": { "$ref": "#/$defs/NonNegativeDecimal" },
+        "positionMarketValue": { "$ref": "#/$defs/NonNegativeDecimal" },
+        "nav": { "$ref": "#/$defs/NonNegativeDecimal" },
+        "marks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PaperValuationMark" }
+        }
+      }
+    }
+  }
+}

@@ -375,6 +375,14 @@ from ashare_contracts.market_data_tick import Direction as Direction
 from ashare_contracts.market_data_tick import Exchange as Exchange_13
 from ashare_contracts.market_data_tick import Tick as Tick
 from ashare_contracts.market_data_tick import TradeType as TradeType
+from ashare_contracts.paper_paper_account_snapshot import (
+    PaperAccountSnapshot as PaperAccountSnapshot,
+)
+from ashare_contracts.paper_paper_account_snapshot import PaperPosition as PaperPosition
+from ashare_contracts.paper_paper_account_snapshot import PaperValuation as PaperValuation
+from ashare_contracts.paper_paper_account_snapshot import PaperValuationMark as PaperValuationMark
+from ashare_contracts.paper_paper_account_snapshot import Source as Source
+from ashare_contracts.paper_paper_account_snapshot import Status as Status_3
 from ashare_contracts.seat_alias import SeatAlias as SeatAlias
 from ashare_contracts.seat_alias import SeatAliasSchemaVersion as SeatAliasSchemaVersion
 from ashare_contracts.seat_alias import SeatAliasType as SeatAliasType
@@ -737,6 +745,12 @@ __all__ = [
     "Exchange_13",
     "Tick",
     "TradeType",
+    "PaperAccountSnapshot",
+    "PaperPosition",
+    "PaperValuation",
+    "PaperValuationMark",
+    "Source",
+    "Status_3",
     "SeatAlias",
     "SeatAliasSchemaVersion",
     "SeatAliasType",
