@@ -383,6 +383,19 @@ from ashare_contracts.paper_paper_account_snapshot import PaperValuation as Pape
 from ashare_contracts.paper_paper_account_snapshot import PaperValuationMark as PaperValuationMark
 from ashare_contracts.paper_paper_account_snapshot import Source as Source
 from ashare_contracts.paper_paper_account_snapshot import Status as Status_3
+from ashare_contracts.paper_paper_allocation_decision import (
+    PaperAllocationDecision as PaperAllocationDecision,
+)
+from ashare_contracts.paper_paper_allocation_decision import (
+    PaperAllocationRejection as PaperAllocationRejection,
+)
+from ashare_contracts.paper_paper_allocation_decision import PaperOrderIntent as PaperOrderIntent
+from ashare_contracts.paper_paper_allocation_decision import (
+    PaperTargetPosition as PaperTargetPosition,
+)
+from ashare_contracts.paper_paper_allocation_decision import Reason as Reason_2
+from ashare_contracts.paper_paper_allocation_decision import Side as Side
+from ashare_contracts.paper_paper_allocation_decision import SourceSignalId as SourceSignalId
 from ashare_contracts.seat_alias import SeatAlias as SeatAlias
 from ashare_contracts.seat_alias import SeatAliasSchemaVersion as SeatAliasSchemaVersion
 from ashare_contracts.seat_alias import SeatAliasType as SeatAliasType
@@ -751,6 +764,13 @@ __all__ = [
     "PaperValuationMark",
     "Source",
     "Status_3",
+    "PaperAllocationDecision",
+    "PaperAllocationRejection",
+    "PaperOrderIntent",
+    "PaperTargetPosition",
+    "Reason_2",
+    "Side",
+    "SourceSignalId",
     "SeatAlias",
     "SeatAliasSchemaVersion",
     "SeatAliasType",

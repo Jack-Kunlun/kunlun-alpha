@@ -608,6 +608,12 @@ wheels = [
 name = "paper-core"
 version = "0.0.0"
 source = { editable = "python/packages/paper-core" }
+dependencies = [
+    { name = "quant-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "quant-core", editable = "python/packages/quant-core" }]
 
 [[package]]
 name = "pathspec"
