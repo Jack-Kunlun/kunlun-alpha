@@ -2,6 +2,10 @@ import type { HotTopicSnapshot, MarketEvent } from "@kunlun/shared-types";
 import type { EventIntelligenceRepository } from "./event-intelligence-repository";
 import type { EventQuery, HotTopicQuery } from "./event-intelligence-validation";
 
+function shanghaiDate(value: string): string {
+  return new Date(Date.parse(value) + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 export class InMemoryEventIntelligenceRepository implements EventIntelligenceRepository {
   constructor(
     private readonly events: MarketEvent[] = [],
@@ -9,12 +13,16 @@ export class InMemoryEventIntelligenceRepository implements EventIntelligenceRep
   ) {}
 
   async queryEvents(query: EventQuery): Promise<MarketEvent[]> {
+    const eventIds = query.eventIds === undefined ? null : new Set(query.eventIds);
+    const asOf = query.asOf === undefined ? null : Date.parse(query.asOf);
     return [...this.events]
       .filter((event) => {
-        const date = event.availableTime.slice(0, 10);
+        const date = shanghaiDate(event.availableTime);
         return (
           (query.dateFrom === undefined || date >= query.dateFrom) &&
           (query.dateTo === undefined || date <= query.dateTo) &&
+          (eventIds === null || eventIds.has(event.eventId)) &&
+          (asOf === null || Date.parse(event.availableTime) <= asOf) &&
           (query.eventType === undefined || event.eventType === query.eventType) &&
           (query.instrumentId === undefined || event.instrumentIds.includes(query.instrumentId)) &&
           (query.minimumConfidenceBps === undefined ||
@@ -31,10 +39,18 @@ export class InMemoryEventIntelligenceRepository implements EventIntelligenceRep
 
   async queryHotTopics(query: HotTopicQuery): Promise<HotTopicSnapshot[]> {
     const latest = new Map<string, HotTopicSnapshot>();
+    const asOf = Date.parse(query.asOf);
     for (const topic of this.topics) {
-      if (topic.decisionTime > query.asOf) continue;
+      const decisionTime = Date.parse(topic.decisionTime);
+      if (decisionTime > asOf) continue;
       const current = latest.get(topic.topicId);
-      if (!current || topic.decisionTime > current.decisionTime) latest.set(topic.topicId, topic);
+      if (
+        !current ||
+        decisionTime > Date.parse(current.decisionTime) ||
+        (decisionTime === Date.parse(current.decisionTime) && topic.snapshotId < current.snapshotId)
+      ) {
+        latest.set(topic.topicId, topic);
+      }
     }
     return [...latest.values()]
       .filter(

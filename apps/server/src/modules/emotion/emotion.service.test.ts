@@ -79,6 +79,43 @@ describe("EmotionService persisted replay", () => {
     expect(rotation).toHaveLength(1);
   });
 
+  it("fails closed when event time precedes asOf but available_time does not", async () => {
+    const delayedSnapshot = {
+      ...snapshots[0],
+      availableTime: "2026-08-13T02:30:00.000Z",
+    } as MarketEmotionSnapshot & { availableTime: string };
+    const delayedRotation = {
+      ...events[0],
+      availableTime: "2026-08-13T02:30:00.000Z",
+    } as SectorRotationEvent & { availableTime: string };
+    const delayedService = new EmotionService(
+      new InMemoryEmotionRepository([delayedSnapshot], [delayedRotation]),
+    );
+    await expect(
+      delayedService.snapshots({ date: "2026-08-13", asOf: "2026-08-13T02:00:00.000Z" }),
+    ).resolves.toEqual([]);
+    await expect(
+      delayedService.rotationEvents({
+        date: "2026-08-13",
+        asOf: "2026-08-13T02:00:00.000Z",
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  it("defaults legacy full-day replay to the selected Shanghai day end", async () => {
+    let receivedAsOf = "";
+    const repository = {
+      querySnapshots: async (query: { asOf: string }) => {
+        receivedAsOf = query.asOf;
+        return [];
+      },
+      queryRotationEvents: async () => [],
+      listVersions: async () => [],
+    };
+    await new EmotionService(repository).snapshots({ date: "2026-08-13" });
+    expect(receivedAsOf).toBe("2026-08-13T15:59:59.999Z");
+  });
+
   it("validates date and rejects unknown filters", async () => {
     await expect(service().snapshots({ date: "2026-13-40" })).rejects.toThrow(
       EmotionValidationError,
@@ -86,6 +123,15 @@ describe("EmotionService persisted replay", () => {
     await expect(service().snapshots({ date: "2026-08-13", rawSql: "DROP" })).rejects.toThrow(
       EmotionValidationError,
     );
+    await expect(service().snapshots({ date: "2026-08-13", asOf: "not-a-time" })).rejects.toThrow(
+      "asOf must be an ISO-8601 timestamp",
+    );
+    await expect(
+      service().snapshots({ date: "2026-08-13", asOf: "2026-08-13T15:00:00" }),
+    ).rejects.toThrow("asOf must be an ISO-8601 timestamp");
+    await expect(
+      service().snapshots({ date: "2026-08-13", asOf: "2026-02-30T00:00:00Z" }),
+    ).rejects.toThrow("asOf must be an ISO-8601 timestamp");
   });
 
   it("lists all persisted algorithm versions", async () => {

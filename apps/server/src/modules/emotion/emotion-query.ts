@@ -1,9 +1,10 @@
 import type { EmotionReplayQuery } from "./emotion-repository";
+import { isRfc3339Instant } from "../../common/rfc3339";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const VERSION_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
 const SECTOR_PATTERN = /^[A-Za-z0-9._:-]{1,96}$/;
-const ALLOWED_KEYS = new Set(["date", "algorithmVersion", "sectorId"]);
+const ALLOWED_KEYS = new Set(["date", "algorithmVersion", "sectorId", "asOf"]);
 
 export class EmotionValidationError extends Error {
   constructor(message: string) {
@@ -47,14 +48,21 @@ export function validateEmotionQuery(input: unknown): EmotionReplayQuery {
   if (typeof record.date !== "string" || !legalDate(record.date)) {
     throw new EmotionValidationError("date must be a valid YYYY-MM-DD trading date");
   }
-  const query: EmotionReplayQuery = { date: record.date };
+  const query: EmotionReplayQuery = {
+    date: record.date,
+    asOf: `${record.date}T15:59:59.999Z`,
+  };
   const algorithmVersion = optionalString(
     record.algorithmVersion,
     "algorithmVersion",
     VERSION_PATTERN,
   );
   const sectorId = optionalString(record.sectorId, "sectorId", SECTOR_PATTERN);
+  if (record.asOf !== undefined && !isRfc3339Instant(record.asOf)) {
+    throw new EmotionValidationError("asOf must be an ISO-8601 timestamp");
+  }
   if (algorithmVersion !== undefined) query.algorithmVersion = algorithmVersion;
   if (sectorId !== undefined) query.sectorId = sectorId;
+  if (typeof record.asOf === "string") query.asOf = new Date(record.asOf).toISOString();
   return query;
 }

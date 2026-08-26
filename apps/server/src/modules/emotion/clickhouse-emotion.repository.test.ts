@@ -29,6 +29,7 @@ describe("ClickHouseEmotionRepository", () => {
     );
     const rows = await repository.querySnapshots({
       date: "2026-08-13",
+      asOf: "2026-08-13T15:59:59.999Z",
       algorithmVersion: "emotion_score_v1",
     });
     expect(rows[0]?.algorithmVersion).toBe("emotion_score_v1");
@@ -37,14 +38,37 @@ describe("ClickHouseEmotionRepository", () => {
     expect(url.searchParams.get("param_version")).toBe("emotion_score_v1");
   });
 
+  it("applies the persisted available_time cutoff to both replay sources", async () => {
+    const fetcher = vi.fn(async () => response(""));
+    const repository = new ClickHouseEmotionRepository(
+      { url: "http://localhost:8123", database: "kunlun", user: "reader" },
+      fetcher,
+    );
+    const query = { date: "2026-08-13", asOf: "2026-08-13T02:00:00.000Z" };
+    await repository.querySnapshots(query);
+    await repository.queryRotationEvents(query);
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    for (const [url, init] of fetcher.mock.calls as unknown as [
+      [URL, RequestInit],
+      [URL, RequestInit],
+    ]) {
+      expect(url.searchParams.get("param_asOf")).toBe(query.asOf);
+      expect(init.body).toContain("available_time <= parseDateTime64BestEffort");
+    }
+  });
+
   it("fails closed on invalid provider output", async () => {
     const repository = new ClickHouseEmotionRepository(
       { url: "http://localhost:8123", database: "kunlun", user: "reader" },
       async () => response('{"score":"not-a-number"}'),
     );
-    await expect(repository.querySnapshots({ date: "2026-08-13" })).rejects.toThrow(
-      "invalid ClickHouse replay field",
-    );
+    await expect(
+      repository.querySnapshots({
+        date: "2026-08-13",
+        asOf: "2026-08-13T15:59:59.999Z",
+      }),
+    ).rejects.toThrow("invalid ClickHouse replay field");
   });
 
   it("reports only controlled status on ClickHouse failure", async () => {

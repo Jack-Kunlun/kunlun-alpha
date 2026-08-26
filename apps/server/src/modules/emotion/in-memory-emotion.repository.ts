@@ -1,6 +1,12 @@
 import type { MarketEmotionSnapshot, SectorRotationEvent } from "./emotion-snapshot";
 import type { EmotionReplayQuery, EmotionRepository } from "./emotion-repository";
 
+function visibleAt(value: object, fallback: string, asOf: string): boolean {
+  const availableTime = (value as { availableTime?: unknown }).availableTime;
+  const candidate = typeof availableTime === "string" ? availableTime : fallback;
+  return Date.parse(candidate) <= Date.parse(asOf);
+}
+
 export class InMemoryEmotionRepository implements EmotionRepository {
   constructor(
     private readonly snapshots: MarketEmotionSnapshot[] = [],
@@ -12,6 +18,7 @@ export class InMemoryEmotionRepository implements EmotionRepository {
       .filter(
         (snapshot) =>
           snapshot.date === query.date &&
+          visibleAt(snapshot, snapshot.timestamp, query.asOf) &&
           (query.algorithmVersion === undefined ||
             snapshot.algorithmVersion === query.algorithmVersion),
       )
@@ -27,6 +34,7 @@ export class InMemoryEmotionRepository implements EmotionRepository {
       .filter(
         (event) =>
           event.date === query.date &&
+          visibleAt(event, event.evidenceEnd, query.asOf) &&
           (query.algorithmVersion === undefined ||
             event.algorithmVersion === query.algorithmVersion) &&
           (query.sectorId === undefined ||
