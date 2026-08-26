@@ -1517,6 +1517,279 @@ export interface Instrument {
 }
 
 /**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "IdentitySection".
+ */
+export type IdentitySection = SectionMetadata & {
+  data: Identity | null;
+  [k: string]: unknown;
+};
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "MarketSection".
+ */
+export type MarketSection = SectionMetadata & {
+  data: MarketBar | null;
+  [k: string]: unknown;
+};
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "EmotionSection".
+ */
+export type EmotionSection = SectionMetadata & {
+  data: Emotion | null;
+  [k: string]: unknown;
+};
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "SectorSection".
+ */
+export type SectorSection = SectionMetadata & {
+  data: SectorItem[];
+  [k: string]: unknown;
+};
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "EventSection".
+ */
+export type EventSection = SectionMetadata & {
+  data: EventItem[];
+  [k: string]: unknown;
+};
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "SeatSection".
+ */
+export type SeatSection = SectionMetadata & {
+  data: SeatItem[];
+  [k: string]: unknown;
+};
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "KolClaimSection".
+ */
+export type KolClaimSection = SectionMetadata & {
+  data: KolClaimItem[];
+  [k: string]: unknown;
+};
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "FeatureSection".
+ */
+export type FeatureSection = SectionMetadata & {
+  data: FeatureItem[];
+  [k: string]: unknown;
+};
+
+/**
+ * Research-only point-in-time instrument intelligence assembled across PostgreSQL and ClickHouse without any execution capability.
+ */
+export interface InstrumentIntelligenceDetail {
+  schemaVersion: "instrument-intelligence-detail-v1";
+  dataMeaning: "RESEARCH_ONLY_NO_REAL_ORDER_PATH";
+  instrumentId: string;
+  mode: "CURRENT" | "HISTORICAL";
+  requestedAsOf: string;
+  effectiveAsOf: string;
+  generatedAt: string;
+  snapshotBoundary: SnapshotBoundary;
+  sections: Sections;
+  evidence: EvidenceLink[];
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "SnapshotBoundary".
+ */
+export interface SnapshotBoundary {
+  consistency: "BEST_EFFORT_CROSS_STORE";
+  postgresIsolation: "REPEATABLE_READ";
+  effectiveAsOf: string;
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  stores: ["POSTGRESQL" | "CLICKHOUSE", "POSTGRESQL" | "CLICKHOUSE"];
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "Sections".
+ */
+export interface Sections {
+  identity: IdentitySection;
+  market: MarketSection;
+  emotion: EmotionSection;
+  sector: SectorSection;
+  events: EventSection;
+  seats: SeatSection;
+  kolClaims: KolClaimSection;
+  features: FeatureSection;
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "SectionMetadata".
+ */
+export interface SectionMetadata {
+  status: "AVAILABLE" | "EMPTY" | "UNAVAILABLE";
+  requestedAsOf: string;
+  effectiveAsOf: string;
+  dataCutoffTime: string | null;
+  availableTime: string | null;
+  processingTime: string | null;
+  freshnessSeconds: number | null;
+  unavailableReason: string | null;
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "Identity".
+ */
+export interface Identity {
+  unifiedCode: string;
+  code: string;
+  exchange: "SH" | "SZ" | "BJ";
+  board: "MAIN" | "CHINEXT" | "STAR" | "BSE";
+  type: "STOCK" | "ETF" | "LOF" | "FUND";
+  name: string;
+  tradingStatus: "LISTED" | "SUSPENDED" | "ST" | "DELISTED";
+  currency: "CNY";
+  listDate: string | null;
+  delistDate: string | null;
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "MarketBar".
+ */
+export interface MarketBar {
+  date: string;
+  eventTime: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  amount: string;
+  suspended: boolean;
+  dataVersion: string;
+  source: string;
+  sourceVersion: string;
+  evidenceId: string;
+  availableTime: string;
+  processingTime: string;
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "Emotion".
+ */
+export interface Emotion {
+  eventTime: string;
+  score: string;
+  confidenceBps: number;
+  sampleSize: number;
+  algorithmVersion: string;
+  availableTime: string;
+  processingTime: string;
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "SectorItem".
+ */
+export interface SectorItem {
+  sectorId: string;
+  name: string;
+  kind: "INDUSTRY" | "CONCEPT" | "THEME";
+  validFrom: string;
+  validTo: string | null;
+  source: string;
+  sourceVersion: string;
+  availableTime: string;
+  evidenceId: string;
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "EventItem".
+ */
+export interface EventItem {
+  eventId: string;
+  eventType: string;
+  headline: string;
+  summary: string;
+  occurTime: string;
+  publishTime: string;
+  availableTime: string;
+  confidenceBps: number;
+  modelVersion: string;
+  evidenceIds: string[];
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "SeatItem".
+ */
+export interface SeatItem {
+  tradeId: string;
+  revisionId: string;
+  seatId: string;
+  rawSeatName: string;
+  tradeDate: string;
+  currency: "CNY";
+  buyAmount: string;
+  sellAmount: string;
+  netAmount: string;
+  availableTime: string;
+  evidenceId: string;
+  dataMeaning: "PUBLIC_DRAGON_TIGER_FACT_NOT_BROKER_ORDER";
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "KolClaimItem".
+ */
+export interface KolClaimItem {
+  claimId: string;
+  revisionId: string;
+  kolId: string;
+  statement: string;
+  direction: string;
+  reviewStatus: "UNREVIEWED" | "IN_REVIEW" | "APPROVED" | "REJECTED";
+  confidenceBps: number;
+  publishTime: string;
+  availableTime: string;
+  evidenceIds: string[];
+  claimMeaning: "PUBLIC_WORDING_CLAIM_NOT_BROKER_TRADE";
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "FeatureItem".
+ */
+export interface FeatureItem {
+  featureName: string;
+  featureVersion: string;
+  featureFingerprint: string;
+  algorithmVersion: string;
+  valueType: string;
+  value: unknown;
+  eventTime: string;
+  availableTime: string;
+  processingTime: string;
+  lineageChecksum: string;
+  sourceKind: string;
+  sourceSnapshotVersion: string;
+  revisionId: string;
+}
+/**
+ * This interface was referenced by `InstrumentIntelligenceDetail`'s JSON-Schema
+ * via the `definition` "EvidenceLink".
+ */
+export interface EvidenceLink {
+  evidenceId: string;
+  source: string | null;
+  sourceVersion: string | null;
+  availableTime: string | null;
+  excerpt: string | null;
+  locator: string | null;
+  access: "DIRECT_URL" | "REFERENCE_ONLY";
+}
+
+/**
  * Trading status of an instrument. ST and delisting are statuses, never code changes
  */
 export interface TradingStatus {
