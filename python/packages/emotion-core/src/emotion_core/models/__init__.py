@@ -1,6 +1,8 @@
 """Limit fact model."""
 
 from emotion_core.models.limit import (
+    LIMIT_POOL_ALGORITHM_VERSION,
+    LIMIT_RULE_VERSION,
     BoardId,
     EventType,
     LimitEvent,
@@ -16,6 +18,8 @@ from emotion_core.models.limit import (
 __all__ = [
     "BoardId",
     "EventType",
+    "LIMIT_POOL_ALGORITHM_VERSION",
+    "LIMIT_RULE_VERSION",
     "LimitEvent",
     "LimitPoolSnapshot",
     "SnapshotObservationProvenance",

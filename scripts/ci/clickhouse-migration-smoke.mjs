@@ -18,6 +18,7 @@ const migrationFiles = [
   "002_corporate_actions.sql",
   "003_emotion_rotation_replay.sql",
   "004_feature_history.sql",
+  "005_limit_pool_terminal.sql",
 ];
 const migrationNamespace = "v2";
 const canonicalTableNames = [
@@ -27,6 +28,7 @@ const canonicalTableNames = [
   "emotion_snapshots_v1",
   "sector_rotation_events_v1",
   "feature_history_v1",
+  "limit_pool_terminal_snapshots_v2",
 ];
 const barsColumns = {
   unified_code: "String",
@@ -194,6 +196,29 @@ const schemaExpectations = {
       }),
       sortingKey:
         "registry_namespace_id,feature_name,feature_version,feature_fingerprint,entity_id,event_time,available_time,processing_time,revision_id",
+    },
+  },
+  "005_limit_pool_terminal.sql": {
+    limit_pool_terminal_snapshots_v2: {
+      columns: toColumnMetadata({
+        snapshot_id: "String",
+        trading_date: "Date",
+        event_time: "DateTime64(3,'UTC')",
+        available_time: "DateTime64(3,'UTC')",
+        revision: "UInt32",
+        algorithm_version: "LowCardinality(String)",
+        ladder_algorithm_version: "LowCardinality(String)",
+        limit_rule_version: "LowCardinality(String)",
+        materializer_version: "LowCardinality(String)",
+        source_versions: "Array(String)",
+        evidence_ids: "Array(String)",
+        payload_json: "String",
+        payload_digest: "FixedString(64)",
+        processing_time: "DateTime64(3,'UTC')",
+        replacement_version: "UInt64",
+      }),
+      sortingKey:
+        "trading_date,event_time,algorithm_version,ladder_algorithm_version,limit_rule_version,materializer_version,revision,available_time,payload_digest",
     },
   },
 };
@@ -599,7 +624,8 @@ function verifyMigrationSchema(database, filename) {
     }
     if (
       normalizeSchemaValue(partitionKey) !== "toYYYYMM(event_time)" &&
-      table !== "corporate_actions_v2"
+      table !== "corporate_actions_v2" &&
+      table !== "limit_pool_terminal_snapshots_v2"
     ) {
       fail(`${table} partition key is ${partitionKey}, expected toYYYYMM(event_time)`);
     }
@@ -608,6 +634,12 @@ function verifyMigrationSchema(database, filename) {
       normalizeSchemaValue(partitionKey) !== "toYYYYMM(ex_date)"
     ) {
       fail(`${table} partition key is ${partitionKey}, expected toYYYYMM(ex_date)`);
+    }
+    if (
+      table === "limit_pool_terminal_snapshots_v2" &&
+      normalizeSchemaValue(partitionKey) !== "toYYYYMM(trading_date)"
+    ) {
+      fail(`${table} partition key is ${partitionKey}, expected toYYYYMM(trading_date)`);
     }
     const normalizedSortingKey = normalizeSchemaValue(sortingKey);
     const normalizedExpectedSortingKey = normalizeSchemaValue(expectation.sortingKey);

@@ -1,0 +1,206 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/emotion/terminal-limit-pool-snapshot.json",
+  "title": "LimitPoolTerminalSnapshot",
+  "description": "Versioned point-in-time projection consumed by the Phase 6 limit-pool terminal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "mode",
+    "requestedAsOf",
+    "tradingDate",
+    "previousTradingDate",
+    "dataCutoffTime",
+    "availableTime",
+    "completeness",
+    "missingReasons",
+    "freshness",
+    "algorithmVersion",
+    "ladderAlgorithmVersion",
+    "limitRuleVersion",
+    "materializerVersion",
+    "revision",
+    "limitUpCount",
+    "limitDownCount",
+    "sealedCount",
+    "totalOpenCount",
+    "ladder",
+    "entries",
+    "sourceVersions",
+    "evidenceIds",
+    "dataMeaning"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "limit-pool-terminal-v1" },
+    "mode": { "enum": ["CURRENT", "HISTORICAL"] },
+    "requestedAsOf": { "type": "string", "format": "date-time" },
+    "tradingDate": {
+      "oneOf": [{ "type": "string", "format": "date" }, { "type": "null" }]
+    },
+    "previousTradingDate": {
+      "oneOf": [{ "type": "string", "format": "date" }, { "type": "null" }]
+    },
+    "dataCutoffTime": { "$ref": "#/$defs/NullableTimestamp" },
+    "availableTime": { "$ref": "#/$defs/NullableTimestamp" },
+    "completeness": { "$ref": "#/$defs/LimitPoolTerminalCompleteness" },
+    "missingReasons": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "ageSeconds"],
+      "properties": {
+        "status": { "$ref": "#/$defs/LimitPoolTerminalFreshnessStatus" },
+        "ageSeconds": {
+          "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
+        }
+      }
+    },
+    "algorithmVersion": { "$ref": "#/$defs/NullableVersion" },
+    "ladderAlgorithmVersion": { "$ref": "#/$defs/NullableVersion" },
+    "limitRuleVersion": { "$ref": "#/$defs/NullableVersion" },
+    "materializerVersion": { "$ref": "#/$defs/NullableVersion" },
+    "revision": {
+      "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
+    },
+    "limitUpCount": { "type": "integer", "minimum": 0 },
+    "limitDownCount": { "type": "integer", "minimum": 0 },
+    "sealedCount": { "type": "integer", "minimum": 0 },
+    "totalOpenCount": { "type": "integer", "minimum": 0 },
+    "ladder": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/LimitPoolLadderLevel" }
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/LimitPoolTerminalEntry" }
+    },
+    "sourceVersions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "evidenceIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "dataMeaning": { "const": "RESEARCH_ONLY_NO_REAL_ORDER_PATH" }
+  },
+  "$defs": {
+    "NullableTimestamp": {
+      "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "NullableVersion": {
+      "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+    },
+    "LimitPoolTerminalFreshnessStatus": {
+      "type": "string",
+      "enum": ["FRESH", "DELAYED", "STALE", "HISTORICAL", "NO_DATA"]
+    },
+    "LimitPoolTerminalCompleteness": {
+      "type": "string",
+      "enum": ["COMPLETE", "PARTIAL", "EMPTY"]
+    },
+    "LimitPoolSide": {
+      "type": "string",
+      "enum": ["LIMIT_UP", "LIMIT_DOWN"]
+    },
+    "LimitPoolState": {
+      "type": "string",
+      "enum": ["SEALED", "OPENED", "LIMIT_DOWN"]
+    },
+    "LimitPoolListingBoard": {
+      "type": "string",
+      "enum": ["MAIN", "CHINEXT", "STAR", "BSE"]
+    },
+    "PositiveDecimalString": {
+      "description": "Canonical finite decimal string strictly greater than zero",
+      "type": "string",
+      "pattern": "^(?:0\\.\\d*[1-9]\\d*|[1-9]\\d*(?:\\.\\d+)?)$"
+    },
+    "LimitPoolTerminalEntry": {
+      "description": "One auditable instrument row emitted by the versioned limit-pool algorithm",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrumentId",
+        "name",
+        "exchange",
+        "listingBoard",
+        "isSt",
+        "side",
+        "state",
+        "streakDays",
+        "previousStreakDays",
+        "openCount",
+        "priceCny",
+        "previousCloseCny",
+        "firstSealTime",
+        "lastSealTime",
+        "eventTime",
+        "availableTime",
+        "revision",
+        "sourceVersion",
+        "evidenceId",
+        "algorithmVersion",
+        "ladderAlgorithmVersion",
+        "limitRuleVersion",
+        "materializerVersion",
+        "dataMeaning"
+      ],
+      "properties": {
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "name": { "type": "string", "minLength": 1 },
+        "exchange": { "enum": ["SH", "SZ", "BJ"] },
+        "listingBoard": { "$ref": "#/$defs/LimitPoolListingBoard" },
+        "isSt": { "type": "boolean" },
+        "side": { "$ref": "#/$defs/LimitPoolSide" },
+        "state": { "$ref": "#/$defs/LimitPoolState" },
+        "streakDays": { "type": "integer", "minimum": 0 },
+        "previousStreakDays": { "type": "integer", "minimum": 0 },
+        "openCount": { "type": "integer", "minimum": 0 },
+        "priceCny": { "$ref": "#/$defs/PositiveDecimalString" },
+        "previousCloseCny": { "$ref": "#/$defs/PositiveDecimalString" },
+        "firstSealTime": { "$ref": "#/$defs/NullableTimestamp" },
+        "lastSealTime": { "$ref": "#/$defs/NullableTimestamp" },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "revision": { "type": "integer", "minimum": 0 },
+        "sourceVersion": { "type": "string", "minLength": 1 },
+        "evidenceId": { "type": "string", "minLength": 1 },
+        "algorithmVersion": { "type": "string", "minLength": 1 },
+        "ladderAlgorithmVersion": { "type": "string", "minLength": 1 },
+        "limitRuleVersion": { "type": "string", "minLength": 1 },
+        "materializerVersion": { "type": "string", "minLength": 1 },
+        "dataMeaning": { "const": "LIMIT_POOL_ALGORITHM_OUTPUT" }
+      }
+    },
+    "LimitPoolLadderLevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "streakDays",
+        "count",
+        "previousDayEligibleCount",
+        "promotedCount",
+        "promotionRateBps",
+        "algorithmVersion"
+      ],
+      "properties": {
+        "streakDays": { "type": "integer", "minimum": 1 },
+        "count": { "type": "integer", "minimum": 0 },
+        "previousDayEligibleCount": { "type": "integer", "minimum": 0 },
+        "promotedCount": { "type": "integer", "minimum": 0 },
+        "promotionRateBps": {
+          "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 10000 }, { "type": "null" }]
+        },
+        "algorithmVersion": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

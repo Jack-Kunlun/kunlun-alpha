@@ -83,3 +83,7 @@ RUN groupadd --gid 10001 kunlun \
 ENV PATH="/workspace/.venv/bin:${PATH}"
 
 USER kunlun
+
+FROM data-worker-migrate AS data-worker
+
+CMD ["limit-pool-terminal-materialize"]

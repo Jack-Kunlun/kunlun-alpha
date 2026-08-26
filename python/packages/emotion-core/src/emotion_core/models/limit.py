@@ -26,6 +26,20 @@ _RULES_PATH = (
     Path(__file__).resolve().parents[6] / "packages" / "contracts" / "emotion" / "limit-rules.json"
 )
 
+LIMIT_POOL_ALGORITHM_VERSION = "limit_pool_v2"
+
+
+def _load_limit_rule_version() -> str:
+    with _RULES_PATH.open(encoding="utf-8") as f:
+        data = json.load(f)
+    version = data.get("version")
+    if not isinstance(version, str) or not version.strip():
+        raise ValueError("limit-rules.json version must be non-empty")
+    return version
+
+
+LIMIT_RULE_VERSION = _load_limit_rule_version()
+
 
 @dataclass(frozen=True)
 class _TickRule:
@@ -210,3 +224,13 @@ class LimitPoolSnapshot:
     last_seal_time: str | None = None
     total_open_count: int = 0
     provenance: tuple[SnapshotObservationProvenance, ...] = ()
+    algorithm_version: str = LIMIT_POOL_ALGORITHM_VERSION
+    limit_rule_version: str = LIMIT_RULE_VERSION
+
+    def __post_init__(self) -> None:
+        for field, value in (
+            ("algorithm_version", self.algorithm_version),
+            ("limit_rule_version", self.limit_rule_version),
+        ):
+            if not value.strip():
+                raise ValueError(f"{field} must be non-empty")

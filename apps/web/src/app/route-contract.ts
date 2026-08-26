@@ -1,8 +1,5 @@
 export type TerminalPermission =
-  | "terminal:read"
-  | "research:read"
-  | "paper:read"
-  | "operations:read";
+  "terminal:read" | "research:read" | "paper:read" | "operations:read";
 
 export type TerminalRole = "viewer" | "researcher" | "paper_operator" | "platform_admin";
 
@@ -49,7 +46,9 @@ export const terminalNavigationGroups: ReadonlyArray<{
   { id: "research", label: "研究与审计", description: "历史证据与回归验证" },
 ];
 
-export const terminalRolePermissions: Readonly<Record<TerminalRole, readonly TerminalPermission[]>> = {
+export const terminalRolePermissions: Readonly<
+  Record<TerminalRole, readonly TerminalPermission[]>
+> = {
   viewer: ["terminal:read"],
   researcher: ["terminal:read", "research:read"],
   paper_operator: ["terminal:read", "paper:read"],
@@ -92,7 +91,7 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "池、梯队、晋级率与个股证据",
     group: "decision",
     permission: "terminal:read",
-    status: "planned",
+    status: "ready",
     node: "P6-N03",
     navigation: true,
   },
@@ -268,7 +267,5 @@ export function canAccessTerminalRoute(
 }
 
 export function visibleTerminalRoutes(roles: readonly TerminalRole[]): TerminalRouteContract[] {
-  return terminalRoutes.filter(
-    (route) => route.navigation && canAccessTerminalRoute(route, roles),
-  );
+  return terminalRoutes.filter((route) => route.navigation && canAccessTerminalRoute(route, roles));
 }

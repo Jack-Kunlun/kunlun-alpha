@@ -94,11 +94,73 @@ from ashare_contracts.emotion_market_emotion_snapshot import (
     MarketEmotionSnapshot as MarketEmotionSnapshot,
 )
 from ashare_contracts.emotion_market_emotion_snapshot import SourceVersion as SourceVersion
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import AgeSeconds as AgeSeconds
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import EvidenceId as EvidenceId_1
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import Exchange as Exchange_4
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import Freshness as Freshness
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import (
+    LimitPoolLadderLevel as LimitPoolLadderLevel,
+)
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import (
+    LimitPoolListingBoard as LimitPoolListingBoard,
+)
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import LimitPoolSide as LimitPoolSide
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import LimitPoolState as LimitPoolState
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import (
+    LimitPoolTerminalCompleteness as LimitPoolTerminalCompleteness,
+)
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import (
+    LimitPoolTerminalEntry as LimitPoolTerminalEntry,
+)
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import (
+    LimitPoolTerminalFreshnessStatus as LimitPoolTerminalFreshnessStatus,
+)
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import (
+    LimitPoolTerminalSnapshot as LimitPoolTerminalSnapshot,
+)
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import MissingReason as MissingReason
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import Mode as Mode_1
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import (
+    NullableVersion1 as NullableVersion1,
+)
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import (
+    PromotionRateBps as PromotionRateBps,
+)
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import Revision as Revision
+from ashare_contracts.emotion_terminal_limit_pool_snapshot import SourceVersion as SourceVersion_1
+from ashare_contracts.emotion_terminal_market_overview import AgeSeconds as AgeSeconds_1
+from ashare_contracts.emotion_terminal_market_overview import Completeness as Completeness
+from ashare_contracts.emotion_terminal_market_overview import EvidenceId as EvidenceId_2
+from ashare_contracts.emotion_terminal_market_overview import Freshness as Freshness_1
+from ashare_contracts.emotion_terminal_market_overview import (
+    MarketOverviewBreadthMetric as MarketOverviewBreadthMetric,
+)
+from ashare_contracts.emotion_terminal_market_overview import (
+    MarketOverviewEmotionMetric as MarketOverviewEmotionMetric,
+)
+from ashare_contracts.emotion_terminal_market_overview import (
+    MarketOverviewFreshnessStatus as MarketOverviewFreshnessStatus,
+)
+from ashare_contracts.emotion_terminal_market_overview import (
+    MarketOverviewIndexMetric as MarketOverviewIndexMetric,
+)
+from ashare_contracts.emotion_terminal_market_overview import (
+    MarketOverviewRiskMetric as MarketOverviewRiskMetric,
+)
+from ashare_contracts.emotion_terminal_market_overview import (
+    MarketOverviewSnapshot as MarketOverviewSnapshot,
+)
+from ashare_contracts.emotion_terminal_market_overview import (
+    MarketOverviewTurnoverMetric as MarketOverviewTurnoverMetric,
+)
+from ashare_contracts.emotion_terminal_market_overview import Mode as Mode_2
+from ashare_contracts.emotion_terminal_market_overview import SourceVersion as SourceVersion_2
+from ashare_contracts.emotion_terminal_market_overview import State as State
 from ashare_contracts.event_event_feedback import Action as Action
 from ashare_contracts.event_event_feedback import Correction as Correction
 from ashare_contracts.event_event_feedback import EventFeedback as EventFeedback
 from ashare_contracts.event_event_feedback import EventType as EventType_1
-from ashare_contracts.event_event_feedback import EvidenceId as EvidenceId_1
+from ashare_contracts.event_event_feedback import EvidenceId as EvidenceId_3
 from ashare_contracts.event_event_feedback import InstrumentId as InstrumentId
 from ashare_contracts.event_event_feedback import ReasonCode as ReasonCode
 from ashare_contracts.event_event_feedback import SectorId as SectorId
@@ -108,7 +170,7 @@ from ashare_contracts.event_event_feedback_submission import (
     EventFeedbackSubmission as EventFeedbackSubmission,
 )
 from ashare_contracts.event_event_feedback_submission import EventType as EventType_2
-from ashare_contracts.event_event_feedback_submission import EvidenceId as EvidenceId_2
+from ashare_contracts.event_event_feedback_submission import EvidenceId as EvidenceId_4
 from ashare_contracts.event_event_feedback_submission import InstrumentId as InstrumentId_1
 from ashare_contracts.event_event_feedback_submission import ReasonCode as ReasonCode_1
 from ashare_contracts.event_event_feedback_submission import SectorId as SectorId_1
@@ -137,7 +199,7 @@ from ashare_contracts.funds_benchmark_series_point import (
 )
 from ashare_contracts.funds_fund_nav import FundNav as FundNav
 from ashare_contracts.funds_precious_metal_fund import AssetType as AssetType
-from ashare_contracts.funds_precious_metal_fund import Exchange as Exchange_4
+from ashare_contracts.funds_precious_metal_fund import Exchange as Exchange_5
 from ashare_contracts.funds_precious_metal_fund import PreciousMetalFund as PreciousMetalFund
 from ashare_contracts.funds_precious_metal_fund import RecurringFee as RecurringFee
 from ashare_contracts.funds_precious_metal_fund import ReviewStatus as ReviewStatus
@@ -145,15 +207,15 @@ from ashare_contracts.funds_precious_metal_fund import UnderlyingCommodity as Un
 from ashare_contracts.health_status_v1 import HealthStatus as HealthStatus
 from ashare_contracts.health_status_v1 import Status as Status_1
 from ashare_contracts.instrument_board import Board as Board
-from ashare_contracts.instrument_board import Exchange as Exchange_5
+from ashare_contracts.instrument_board import Exchange as Exchange_6
 from ashare_contracts.instrument_board import Id as Id
 from ashare_contracts.instrument_exchange import Code as Code
 from ashare_contracts.instrument_exchange import Country as Country
 from ashare_contracts.instrument_exchange import Currency as Currency
-from ashare_contracts.instrument_exchange import Exchange as Exchange_6
+from ashare_contracts.instrument_exchange import Exchange as Exchange_7
 from ashare_contracts.instrument_instrument import Board as Board_1
 from ashare_contracts.instrument_instrument import Currency as Currency_1
-from ashare_contracts.instrument_instrument import Exchange as Exchange_7
+from ashare_contracts.instrument_instrument import Exchange as Exchange_8
 from ashare_contracts.instrument_instrument import Instrument as Instrument
 from ashare_contracts.instrument_instrument import TradingStatus as TradingStatus
 from ashare_contracts.instrument_instrument import Type as Type
@@ -235,18 +297,18 @@ from ashare_contracts.kol_position_claim import KolPositionDirection as KolPosit
 from ashare_contracts.kol_position_claim import KolPositionReviewStatus as KolPositionReviewStatus
 from ashare_contracts.kol_position_claim import KolPositionTimeHorizon as KolPositionTimeHorizon
 from ashare_contracts.market_data_adjustment_factor import AdjustmentFactor as AdjustmentFactor
-from ashare_contracts.market_data_adjustment_factor import Exchange as Exchange_8
+from ashare_contracts.market_data_adjustment_factor import Exchange as Exchange_9
 from ashare_contracts.market_data_adjustment_factor import FactorType as FactorType
 from ashare_contracts.market_data_bar import Bar as Bar
-from ashare_contracts.market_data_bar import Exchange as Exchange_9
+from ashare_contracts.market_data_bar import Exchange as Exchange_10
 from ashare_contracts.market_data_bar import Interval as Interval
 from ashare_contracts.market_data_bar import PriceType as PriceType
 from ashare_contracts.market_data_bar import Session as Session
 from ashare_contracts.market_data_corporate_action import ActionType as ActionType
 from ashare_contracts.market_data_corporate_action import CorporateAction as CorporateAction
-from ashare_contracts.market_data_corporate_action import Exchange as Exchange_10
+from ashare_contracts.market_data_corporate_action import Exchange as Exchange_11
 from ashare_contracts.market_data_tick import Direction as Direction
-from ashare_contracts.market_data_tick import Exchange as Exchange_11
+from ashare_contracts.market_data_tick import Exchange as Exchange_12
 from ashare_contracts.market_data_tick import Tick as Tick
 from ashare_contracts.market_data_tick import TradeType as TradeType
 from ashare_contracts.seat_alias import SeatAlias as SeatAlias
@@ -257,13 +319,13 @@ from ashare_contracts.seat_kol_workbench_snapshot import Claim as Claim
 from ashare_contracts.seat_kol_workbench_snapshot import Cooccurrence as Cooccurrence
 from ashare_contracts.seat_kol_workbench_snapshot import Direction as Direction_1
 from ashare_contracts.seat_kol_workbench_snapshot import Evidence as Evidence
-from ashare_contracts.seat_kol_workbench_snapshot import EvidenceId as EvidenceId_3
+from ashare_contracts.seat_kol_workbench_snapshot import EvidenceId as EvidenceId_5
 from ashare_contracts.seat_kol_workbench_snapshot import Kind as Kind_1
 from ashare_contracts.seat_kol_workbench_snapshot import KolProfile as KolProfile
 from ashare_contracts.seat_kol_workbench_snapshot import LeftEntityType as LeftEntityType
 from ashare_contracts.seat_kol_workbench_snapshot import Metric as Metric
 from ashare_contracts.seat_kol_workbench_snapshot import MetricName as MetricName
-from ashare_contracts.seat_kol_workbench_snapshot import Mode as Mode_1
+from ashare_contracts.seat_kol_workbench_snapshot import Mode as Mode_3
 from ashare_contracts.seat_kol_workbench_snapshot import ReviewQueueItem as ReviewQueueItem
 from ashare_contracts.seat_kol_workbench_snapshot import ReviewStatus as ReviewStatus_2
 from ashare_contracts.seat_kol_workbench_snapshot import RightEntityType as RightEntityType
@@ -302,11 +364,11 @@ from ashare_contracts.sector_sector import Kind as Kind_2
 from ashare_contracts.sector_sector import Sector as Sector
 from ashare_contracts.sector_sector_membership import SectorMembership as SectorMembership
 from ashare_contracts.sector_sector_rotation_event import EventType as EventType_3
-from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_4
+from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_6
 from ashare_contracts.sector_sector_rotation_event import SectorRotationEvent as SectorRotationEvent
-from ashare_contracts.sector_sector_rotation_event import SourceVersion as SourceVersion_1
+from ashare_contracts.sector_sector_rotation_event import SourceVersion as SourceVersion_3
 from ashare_contracts.strategy_signal import Direction as Direction_2
-from ashare_contracts.strategy_signal import EvidenceId as EvidenceId_5
+from ashare_contracts.strategy_signal import EvidenceId as EvidenceId_7
 from ashare_contracts.strategy_signal import Signal as Signal
 from ashare_contracts.strategy_strategy_descriptor import (
     BooleanParameterSpec as BooleanParameterSpec,
@@ -390,11 +452,43 @@ __all__ = [
     "LadderItem",
     "MarketEmotionSnapshot",
     "SourceVersion",
+    "AgeSeconds",
+    "EvidenceId_1",
+    "Exchange_4",
+    "Freshness",
+    "LimitPoolLadderLevel",
+    "LimitPoolListingBoard",
+    "LimitPoolSide",
+    "LimitPoolState",
+    "LimitPoolTerminalCompleteness",
+    "LimitPoolTerminalEntry",
+    "LimitPoolTerminalFreshnessStatus",
+    "LimitPoolTerminalSnapshot",
+    "MissingReason",
+    "Mode_1",
+    "NullableVersion1",
+    "PromotionRateBps",
+    "Revision",
+    "SourceVersion_1",
+    "AgeSeconds_1",
+    "Completeness",
+    "EvidenceId_2",
+    "Freshness_1",
+    "MarketOverviewBreadthMetric",
+    "MarketOverviewEmotionMetric",
+    "MarketOverviewFreshnessStatus",
+    "MarketOverviewIndexMetric",
+    "MarketOverviewRiskMetric",
+    "MarketOverviewSnapshot",
+    "MarketOverviewTurnoverMetric",
+    "Mode_2",
+    "SourceVersion_2",
+    "State",
     "Action",
     "Correction",
     "EventFeedback",
     "EventType_1",
-    "EvidenceId_1",
+    "EvidenceId_3",
     "InstrumentId",
     "ReasonCode",
     "SectorId",
@@ -402,7 +496,7 @@ __all__ = [
     "Correction_1",
     "EventFeedbackSubmission",
     "EventType_2",
-    "EvidenceId_2",
+    "EvidenceId_4",
     "InstrumentId_1",
     "ReasonCode_1",
     "SectorId_1",
@@ -429,7 +523,7 @@ __all__ = [
     "BenchmarkSeriesPoint",
     "FundNav",
     "AssetType",
-    "Exchange_4",
+    "Exchange_5",
     "PreciousMetalFund",
     "RecurringFee",
     "ReviewStatus",
@@ -437,15 +531,15 @@ __all__ = [
     "HealthStatus",
     "Status_1",
     "Board",
-    "Exchange_5",
+    "Exchange_6",
     "Id",
     "Code",
     "Country",
     "Currency",
-    "Exchange_6",
+    "Exchange_7",
     "Board_1",
     "Currency_1",
-    "Exchange_7",
+    "Exchange_8",
     "Instrument",
     "TradingStatus",
     "Type",
@@ -511,18 +605,18 @@ __all__ = [
     "KolPositionReviewStatus",
     "KolPositionTimeHorizon",
     "AdjustmentFactor",
-    "Exchange_8",
+    "Exchange_9",
     "FactorType",
     "Bar",
-    "Exchange_9",
+    "Exchange_10",
     "Interval",
     "PriceType",
     "Session",
     "ActionType",
     "CorporateAction",
-    "Exchange_10",
-    "Direction",
     "Exchange_11",
+    "Direction",
+    "Exchange_12",
     "Tick",
     "TradeType",
     "SeatAlias",
@@ -533,13 +627,13 @@ __all__ = [
     "Cooccurrence",
     "Direction_1",
     "Evidence",
-    "EvidenceId_3",
+    "EvidenceId_5",
     "Kind_1",
     "KolProfile",
     "LeftEntityType",
     "Metric",
     "MetricName",
-    "Mode_1",
+    "Mode_3",
     "ReviewQueueItem",
     "ReviewStatus_2",
     "RightEntityType",
@@ -568,11 +662,11 @@ __all__ = [
     "Sector",
     "SectorMembership",
     "EventType_3",
-    "EvidenceId_4",
+    "EvidenceId_6",
     "SectorRotationEvent",
-    "SourceVersion_1",
+    "SourceVersion_3",
     "Direction_2",
-    "EvidenceId_5",
+    "EvidenceId_7",
     "Signal",
     "BooleanParameterSpec",
     "DecimalParameterSpec",
