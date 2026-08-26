@@ -117,7 +117,7 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "版本化特征贡献与可解释排行",
     group: "decision",
     permission: "terminal:read",
-    status: "planned",
+    status: "ready",
     node: "P6-N05",
     navigation: true,
   },

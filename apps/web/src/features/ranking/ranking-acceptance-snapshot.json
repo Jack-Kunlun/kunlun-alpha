@@ -1,0 +1,366 @@
+{
+  "snapshotId": "f138c8080c76c0f72a5cf322716e794e8bd4584095aee36a333933696b111845",
+  "inputFingerprint": "176986831b9d3d5ef2b55440ca407f77b370d3af8c7f34f33cdc686507832792",
+  "asOf": "2026-08-26T07:00:00Z",
+  "generatedAt": "2026-08-26T07:01:00Z",
+  "sourceMode": "SANITIZED_ACCEPTANCE_FIXTURE",
+  "spec": {
+    "specId": "cn-equity-intelligence",
+    "version": "1.0.0",
+    "algorithmVersion": "intelligence-ranking-v1",
+    "fingerprint": "da7d91a8a9c3b03988ac1fb4395c39fb2ce24a93282470700427e99e99cb5834",
+    "minimumCoverageBps": 5000,
+    "features": [
+      {
+        "key": "momentum",
+        "label": "趋势强度",
+        "weightBps": 4000,
+        "direction": "HIGHER_IS_BETTER",
+        "missingPolicy": "RENORMALIZE"
+      },
+      {
+        "key": "sentiment",
+        "label": "市场情绪",
+        "weightBps": 2500,
+        "direction": "HIGHER_IS_BETTER",
+        "missingPolicy": "RENORMALIZE"
+      },
+      {
+        "key": "quality",
+        "label": "质量因子",
+        "weightBps": 2000,
+        "direction": "HIGHER_IS_BETTER",
+        "missingPolicy": "RENORMALIZE"
+      },
+      {
+        "key": "risk",
+        "label": "风险韧性",
+        "weightBps": 1500,
+        "direction": "LOWER_IS_BETTER",
+        "missingPolicy": "ZERO"
+      }
+    ]
+  },
+  "rows": [
+    {
+      "instrumentId": "600519.SH",
+      "instrumentName": "贵州茅台",
+      "sector": "食品饮料",
+      "status": "INCLUDED",
+      "rank": 1,
+      "scoreBps": 8833,
+      "coverageBps": 10000,
+      "contributions": [
+        {
+          "featureKey": "momentum",
+          "label": "趋势强度",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.82",
+          "normalizedScoreBps": 10000,
+          "configuredWeightBps": 4000,
+          "effectiveWeightBps": 4000,
+          "contributionBps": 4000,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "sentiment",
+          "label": "市场情绪",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.78",
+          "normalizedScoreBps": 10000,
+          "configuredWeightBps": 2500,
+          "effectiveWeightBps": 2500,
+          "contributionBps": 2500,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "quality",
+          "label": "质量因子",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.74",
+          "normalizedScoreBps": 4167,
+          "configuredWeightBps": 2000,
+          "effectiveWeightBps": 2000,
+          "contributionBps": 833,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "risk",
+          "label": "风险韧性",
+          "direction": "LOWER_IS_BETTER",
+          "rawValue": "0.31",
+          "normalizedScoreBps": 10000,
+          "configuredWeightBps": 1500,
+          "effectiveWeightBps": 1500,
+          "contributionBps": 1500,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        }
+      ],
+      "exclusionReasons": []
+    },
+    {
+      "instrumentId": "300750.SZ",
+      "instrumentName": "宁德时代",
+      "sector": "电力设备",
+      "status": "INCLUDED",
+      "rank": 2,
+      "scoreBps": 5503,
+      "coverageBps": 8000,
+      "contributions": [
+        {
+          "featureKey": "momentum",
+          "label": "趋势强度",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.76",
+          "normalizedScoreBps": 8065,
+          "configuredWeightBps": 4000,
+          "effectiveWeightBps": 5000,
+          "contributionBps": 4032,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "sentiment",
+          "label": "市场情绪",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.69",
+          "normalizedScoreBps": 4706,
+          "configuredWeightBps": 2500,
+          "effectiveWeightBps": 3125,
+          "contributionBps": 1471,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "quality",
+          "label": "质量因子",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": null,
+          "normalizedScoreBps": null,
+          "configuredWeightBps": 2000,
+          "effectiveWeightBps": 0,
+          "contributionBps": 0,
+          "missingReason": "UPSTREAM_VALUE_MISSING",
+          "availableTime": null,
+          "source": null
+        },
+        {
+          "featureKey": "risk",
+          "label": "风险韧性",
+          "direction": "LOWER_IS_BETTER",
+          "rawValue": "0.38",
+          "normalizedScoreBps": 0,
+          "configuredWeightBps": 1500,
+          "effectiveWeightBps": 1875,
+          "contributionBps": 0,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        }
+      ],
+      "exclusionReasons": []
+    },
+    {
+      "instrumentId": "601318.SH",
+      "instrumentName": "中国平安",
+      "sector": "非银金融",
+      "status": "INCLUDED",
+      "rank": 3,
+      "scoreBps": 3678,
+      "coverageBps": 8500,
+      "contributions": [
+        {
+          "featureKey": "momentum",
+          "label": "趋势强度",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.64",
+          "normalizedScoreBps": 4194,
+          "configuredWeightBps": 4000,
+          "effectiveWeightBps": 4000,
+          "contributionBps": 1678,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "sentiment",
+          "label": "市场情绪",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.61",
+          "normalizedScoreBps": 0,
+          "configuredWeightBps": 2500,
+          "effectiveWeightBps": 2500,
+          "contributionBps": 0,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "quality",
+          "label": "质量因子",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.81",
+          "normalizedScoreBps": 10000,
+          "configuredWeightBps": 2000,
+          "effectiveWeightBps": 2000,
+          "contributionBps": 2000,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "risk",
+          "label": "风险韧性",
+          "direction": "LOWER_IS_BETTER",
+          "rawValue": null,
+          "normalizedScoreBps": null,
+          "configuredWeightBps": 1500,
+          "effectiveWeightBps": 1500,
+          "contributionBps": 0,
+          "missingReason": "UPSTREAM_VALUE_MISSING",
+          "availableTime": null,
+          "source": null
+        }
+      ],
+      "exclusionReasons": []
+    },
+    {
+      "instrumentId": "000001.SZ",
+      "instrumentName": "平安银行",
+      "sector": "银行",
+      "status": "INCLUDED",
+      "rank": 4,
+      "scoreBps": 857,
+      "coverageBps": 7500,
+      "contributions": [
+        {
+          "featureKey": "momentum",
+          "label": "趋势强度",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.51",
+          "normalizedScoreBps": 0,
+          "configuredWeightBps": 4000,
+          "effectiveWeightBps": 5333,
+          "contributionBps": 0,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "sentiment",
+          "label": "市场情绪",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": null,
+          "normalizedScoreBps": null,
+          "configuredWeightBps": 2500,
+          "effectiveWeightBps": 0,
+          "contributionBps": 0,
+          "missingReason": "NOT_AVAILABLE_AT_SNAPSHOT",
+          "availableTime": null,
+          "source": null
+        },
+        {
+          "featureKey": "quality",
+          "label": "质量因子",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.69",
+          "normalizedScoreBps": 0,
+          "configuredWeightBps": 2000,
+          "effectiveWeightBps": 2667,
+          "contributionBps": 0,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "risk",
+          "label": "风险韧性",
+          "direction": "LOWER_IS_BETTER",
+          "rawValue": "0.35",
+          "normalizedScoreBps": 4286,
+          "configuredWeightBps": 1500,
+          "effectiveWeightBps": 2000,
+          "contributionBps": 857,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        }
+      ],
+      "exclusionReasons": []
+    },
+    {
+      "instrumentId": "688981.SH",
+      "instrumentName": "中芯国际",
+      "sector": "电子",
+      "status": "EXCLUDED",
+      "rank": null,
+      "scoreBps": null,
+      "coverageBps": 4000,
+      "contributions": [
+        {
+          "featureKey": "momentum",
+          "label": "趋势强度",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": "0.58",
+          "normalizedScoreBps": 2258,
+          "configuredWeightBps": 4000,
+          "effectiveWeightBps": 0,
+          "contributionBps": 0,
+          "missingReason": null,
+          "availableTime": "2026-08-26T06:55:00Z",
+          "source": "feature-store:acceptance-v1"
+        },
+        {
+          "featureKey": "sentiment",
+          "label": "市场情绪",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": null,
+          "normalizedScoreBps": null,
+          "configuredWeightBps": 2500,
+          "effectiveWeightBps": 0,
+          "contributionBps": 0,
+          "missingReason": "UPSTREAM_VALUE_MISSING",
+          "availableTime": null,
+          "source": null
+        },
+        {
+          "featureKey": "quality",
+          "label": "质量因子",
+          "direction": "HIGHER_IS_BETTER",
+          "rawValue": null,
+          "normalizedScoreBps": null,
+          "configuredWeightBps": 2000,
+          "effectiveWeightBps": 0,
+          "contributionBps": 0,
+          "missingReason": "UPSTREAM_VALUE_MISSING",
+          "availableTime": null,
+          "source": null
+        },
+        {
+          "featureKey": "risk",
+          "label": "风险韧性",
+          "direction": "LOWER_IS_BETTER",
+          "rawValue": null,
+          "normalizedScoreBps": null,
+          "configuredWeightBps": 1500,
+          "effectiveWeightBps": 0,
+          "contributionBps": 0,
+          "missingReason": "UPSTREAM_VALUE_MISSING",
+          "availableTime": null,
+          "source": null
+        }
+      ],
+      "exclusionReasons": ["COVERAGE_BELOW_MINIMUM"]
+    }
+  ]
+}

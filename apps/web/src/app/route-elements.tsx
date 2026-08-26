@@ -1,3 +1,4 @@
+import { RankingTerminalPage } from "../features/ranking/ranking-terminal-page";
 import type { ReactNode } from "react";
 import type { TerminalRouteId } from "./route-contract";
 import { BacktestRegressionPage } from "../features/backtest/backtest-regression-page";
@@ -16,7 +17,7 @@ export const terminalRouteElements: Readonly<Record<TerminalRouteId, ReactNode>>
   "market-overview": <MarketOverviewPage />,
   "limit-pool": <LimitPoolTerminalPage />,
   rotation: <RotationTerminalPage />,
-  ranking: <TerminalModulePlaceholder routeId="ranking" />,
+  ranking: <RankingTerminalPage />,
   instruments: <TerminalModulePlaceholder routeId="instruments" />,
   "instrument-detail": <TerminalModulePlaceholder routeId="instrument-detail" />,
   "precious-metals": <TerminalModulePlaceholder routeId="precious-metals" />,
