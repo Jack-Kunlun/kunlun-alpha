@@ -4,13 +4,14 @@ import { BacktestRegressionPage } from "../features/backtest/backtest-regression
 import { DataQualityPage } from "../features/data-quality/data-quality-page";
 import { EventWorkbenchPage } from "../features/event-workbench/event-workbench-page";
 import { MarketRegimePage } from "../features/market-regime/market-regime-page";
+import { MarketOverviewPage } from "../features/market-overview/market-overview-page";
 import { SeatKolWorkbenchPage } from "../features/seat-kol/seat-kol-workbench-page";
 import { Home } from "../pages/Home";
 import { TerminalModulePlaceholder } from "../pages/TerminalModulePlaceholder";
 
 export const terminalRouteElements: Readonly<Record<TerminalRouteId, ReactNode>> = {
   home: <Home />,
-  "market-overview": <TerminalModulePlaceholder routeId="market-overview" />,
+  "market-overview": <MarketOverviewPage />,
   "limit-pool": <TerminalModulePlaceholder routeId="limit-pool" />,
   rotation: <TerminalModulePlaceholder routeId="rotation" />,
   ranking: <TerminalModulePlaceholder routeId="ranking" />,

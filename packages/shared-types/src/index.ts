@@ -737,6 +737,85 @@ export interface MarketEmotionSnapshot {
   evidenceIds: string[];
 }
 
+export type MarketOverviewFreshnessStatus =
+  | "FRESH"
+  | "DELAYED"
+  | "STALE"
+  | "HISTORICAL"
+  | "NO_DATA";
+
+export interface MarketOverviewIndexMetric {
+  instrumentId: string;
+  name: string;
+  dataTime: string;
+  value: string;
+  previousClose: string;
+  changeBps: number;
+  sourceVersion: string;
+  evidenceId: string;
+}
+
+export interface MarketOverviewBreadthMetric {
+  dataTime: string;
+  advancingCount: number;
+  decliningCount: number;
+  unchangedCount: number;
+  suspendedCount: number;
+  sampleSize: number;
+  advancingRatioBps: number;
+  universeVersion: "ashare-code-pattern-v1";
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+
+export interface MarketOverviewTurnoverMetric {
+  dataTime: string;
+  amountCny: string;
+  sampleSize: number;
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+
+export interface MarketOverviewEmotionMetric {
+  dataTime: string;
+  scoreBps: number;
+  confidenceBps: number;
+  sampleSize: number;
+  algorithmVersion: string;
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+
+export interface MarketOverviewRiskMetric {
+  state: "CALM" | "WATCH" | "STRESSED" | "UNKNOWN";
+  basisVersion: "market-risk-temperature-v1";
+  explanation: string;
+  dataMeaning: "RESEARCH_CONTEXT_NOT_ORDER_RISK";
+}
+
+/** Versioned point-in-time market dashboard projection. */
+export interface MarketOverviewSnapshot {
+  schemaVersion: "market-overview-v1";
+  mode: "CURRENT" | "HISTORICAL";
+  requestedAsOf: string;
+  dataCutoffTime: string | null;
+  completeness: "COMPLETE" | "PARTIAL" | "EMPTY";
+  freshness: {
+    status: MarketOverviewFreshnessStatus;
+    ageSeconds: number | null;
+    delayedAfterSeconds: number;
+    staleAfterSeconds: number;
+  };
+  indices: MarketOverviewIndexMetric[];
+  breadth: MarketOverviewBreadthMetric | null;
+  turnover: MarketOverviewTurnoverMetric | null;
+  emotion: MarketOverviewEmotionMetric | null;
+  risk: MarketOverviewRiskMetric;
+  sourceVersions: string[];
+  evidenceIds: string[];
+  dataMeaning: "RESEARCH_ONLY_NO_REAL_ORDER_PATH";
+}
+
 export interface EventFeedbackSubmission {
   schemaVersion: "event-feedback-submission-v1";
   clientRequestId: string;
