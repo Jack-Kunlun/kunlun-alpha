@@ -7,9 +7,9 @@ import type {
 const SQL = [
   "SELECT feature_name, feature_version, feature_fingerprint, algorithm_version,",
   "       value_type, value_json,",
-  "       formatDateTime(event_time, '%Y-%m-%dT%H:%i:%S.%6fZ', 'UTC') AS event_time,",
-  "       formatDateTime(available_time, '%Y-%m-%dT%H:%i:%S.%6fZ', 'UTC') AS available_time,",
-  "       formatDateTime(processing_time, '%Y-%m-%dT%H:%i:%S.%6fZ', 'UTC') AS processing_time,",
+  "       formatDateTime(event_time, '%Y-%m-%dT%H:%i:%S.%fZ', 'UTC') AS event_time,",
+  "       formatDateTime(available_time, '%Y-%m-%dT%H:%i:%S.%fZ', 'UTC') AS available_time,",
+  "       formatDateTime(processing_time, '%Y-%m-%dT%H:%i:%S.%fZ', 'UTC') AS processing_time,",
   "       lineage_checksum, source_kind, source_snapshot_version, revision_id",
   "FROM (",
   "  SELECT *, row_number() OVER (",
