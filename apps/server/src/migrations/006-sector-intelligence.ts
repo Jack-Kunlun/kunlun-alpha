@@ -27,7 +27,7 @@ export const migrations: Migration[] = [
           "CONSTRAINT sector_master_visibility_ck CHECK (available_time <= processing_time)",
           "CONSTRAINT sector_master_previous_ck CHECK (previous_revision_id IS NULL OR previous_revision_id <> revision_id)",
           "CONSTRAINT sector_master_payload_ck CHECK (jsonb_typeof(payload) = 'object')",
-          "CONSTRAINT sector_master_fingerprint_ck CHECK (payload_fingerprint ~ '^sha256:[0-9a-f]{64}$')",
+          "CONSTRAINT sector_master_fingerprint_ck CHECK (char_length(payload_fingerprint) = 71 AND substring(payload_fingerprint, 1, 6) = 'sha256' AND ascii(substring(payload_fingerprint, 7, 1)) = 58 AND translate(substring(payload_fingerprint, 8, 64), '0123456789abcdef', '') = '')",
         ],
         indexes: [
           {
@@ -61,12 +61,12 @@ export const migrations: Migration[] = [
           { name: "created_at", type: "TIMESTAMPTZ", notNull: true },
         ],
         constraints: [
-          "CONSTRAINT sector_membership_code_ck CHECK (instrument_id ~ '^[0-9]{6}\\.(SH|SZ|BJ)$')",
+          "CONSTRAINT sector_membership_code_ck CHECK (char_length(instrument_id) = 9 AND translate(substring(instrument_id, 1, 6), '0123456789', '') = '' AND substring(instrument_id, 7, 1) = '.' AND substring(instrument_id, 8, 2) IN ('SH', 'SZ', 'BJ'))",
           "CONSTRAINT sector_membership_validity_ck CHECK (effective_to IS NULL OR effective_from < effective_to)",
           "CONSTRAINT sector_membership_visibility_ck CHECK (available_time <= processing_time)",
           "CONSTRAINT sector_membership_previous_ck CHECK (previous_revision_id IS NULL OR previous_revision_id <> revision_id)",
           "CONSTRAINT sector_membership_payload_ck CHECK (jsonb_typeof(payload) = 'object')",
-          "CONSTRAINT sector_membership_fingerprint_ck CHECK (payload_fingerprint ~ '^sha256:[0-9a-f]{64}$')",
+          "CONSTRAINT sector_membership_fingerprint_ck CHECK (char_length(payload_fingerprint) = 71 AND substring(payload_fingerprint, 1, 6) = 'sha256' AND ascii(substring(payload_fingerprint, 7, 1)) = 58 AND translate(substring(payload_fingerprint, 8, 64), '0123456789abcdef', '') = '')",
         ],
         indexes: [
           {

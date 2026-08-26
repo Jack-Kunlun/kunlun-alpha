@@ -22,11 +22,11 @@ export const migrations: Migration[] = [
           { name: "created_at", type: "TIMESTAMPTZ", notNull: true },
         ],
         constraints: [
-          "CONSTRAINT seat_trade_code_ck CHECK (instrument_id ~ '^[0-9]{6}\\.(SH|SZ|BJ)$')",
+          "CONSTRAINT seat_trade_code_ck CHECK (char_length(instrument_id) = 9 AND translate(substring(instrument_id, 1, 6), '0123456789', '') = '' AND substring(instrument_id, 7, 1) = '.' AND substring(instrument_id, 8, 2) IN ('SH', 'SZ', 'BJ'))",
           "CONSTRAINT seat_trade_visibility_ck CHECK (event_time <= available_time AND available_time <= processing_time)",
           "CONSTRAINT seat_trade_previous_ck CHECK (previous_revision_id IS NULL OR previous_revision_id <> revision_id)",
           "CONSTRAINT seat_trade_payload_ck CHECK (jsonb_typeof(payload) = 'object')",
-          "CONSTRAINT seat_trade_fingerprint_ck CHECK (payload_fingerprint ~ '^sha256:[0-9a-f]{64}$')",
+          "CONSTRAINT seat_trade_fingerprint_ck CHECK (char_length(payload_fingerprint) = 71 AND substring(payload_fingerprint, 1, 6) = 'sha256' AND ascii(substring(payload_fingerprint, 7, 1)) = 58 AND translate(substring(payload_fingerprint, 8, 64), '0123456789abcdef', '') = '')",
         ],
         indexes: [
           {
@@ -58,11 +58,11 @@ export const migrations: Migration[] = [
           { name: "created_at", type: "TIMESTAMPTZ", notNull: true },
         ],
         constraints: [
-          "CONSTRAINT kol_claim_code_ck CHECK (instrument_id ~ '^[0-9]{6}\\.(SH|SZ|BJ)$')",
+          "CONSTRAINT kol_claim_code_ck CHECK (char_length(instrument_id) = 9 AND translate(substring(instrument_id, 1, 6), '0123456789', '') = '' AND substring(instrument_id, 7, 1) = '.' AND substring(instrument_id, 8, 2) IN ('SH', 'SZ', 'BJ'))",
           "CONSTRAINT kol_claim_visibility_ck CHECK (processing_time <= available_time)",
           "CONSTRAINT kol_claim_previous_ck CHECK (previous_revision_id IS NULL OR previous_revision_id <> revision_id)",
           "CONSTRAINT kol_claim_payload_ck CHECK (jsonb_typeof(payload) = 'object')",
-          "CONSTRAINT kol_claim_fingerprint_ck CHECK (payload_fingerprint ~ '^sha256:[0-9a-f]{64}$')",
+          "CONSTRAINT kol_claim_fingerprint_ck CHECK (char_length(payload_fingerprint) = 71 AND substring(payload_fingerprint, 1, 6) = 'sha256' AND ascii(substring(payload_fingerprint, 7, 1)) = 58 AND translate(substring(payload_fingerprint, 8, 64), '0123456789abcdef', '') = '')",
         ],
         indexes: [
           {
@@ -95,7 +95,7 @@ export const migrations: Migration[] = [
           "CONSTRAINT intelligence_evidence_visibility_ck CHECK (available_time <= processing_time)",
           "CONSTRAINT intelligence_evidence_previous_ck CHECK (previous_revision_id IS NULL OR previous_revision_id <> revision_id)",
           "CONSTRAINT intelligence_evidence_payload_ck CHECK (jsonb_typeof(payload) = 'object')",
-          "CONSTRAINT intelligence_evidence_fingerprint_ck CHECK (payload_fingerprint ~ '^sha256:[0-9a-f]{64}$')",
+          "CONSTRAINT intelligence_evidence_fingerprint_ck CHECK (char_length(payload_fingerprint) = 71 AND substring(payload_fingerprint, 1, 6) = 'sha256' AND ascii(substring(payload_fingerprint, 7, 1)) = 58 AND translate(substring(payload_fingerprint, 8, 64), '0123456789abcdef', '') = '')",
         ],
         indexes: [
           {
