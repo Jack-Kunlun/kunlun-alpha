@@ -169,7 +169,7 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "组合条件、静默期、通知历史与预览",
     group: "workspace",
     permission: "terminal:read",
-    status: "planned",
+    status: "ready",
     node: "P6-N07",
     navigation: true,
   },

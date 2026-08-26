@@ -9,6 +9,7 @@ import { MarketOverviewPage } from "../features/market-overview/market-overview-
 import { LimitPoolTerminalPage } from "../features/limit-pool/limit-pool-terminal-page";
 import { RotationTerminalPage } from "../features/rotation/rotation-terminal-page";
 import { SeatKolWorkbenchPage } from "../features/seat-kol/seat-kol-workbench-page";
+import { AlertsPage } from "../features/alerts/alerts-page";
 import {
   InstrumentDirectoryPage,
   InstrumentIntelligencePage,
@@ -25,7 +26,7 @@ export const terminalRouteElements: Readonly<Record<TerminalRouteId, ReactNode>>
   instruments: <InstrumentDirectoryPage />,
   "instrument-detail": <InstrumentIntelligencePage />,
   "precious-metals": <TerminalModulePlaceholder routeId="precious-metals" />,
-  watchlists: <TerminalModulePlaceholder routeId="watchlists" />,
+  watchlists: <AlertsPage />,
   paper: <TerminalModulePlaceholder routeId="paper" />,
   "market-regime": <MarketRegimePage />,
   "event-workbench": <EventWorkbenchPage />,

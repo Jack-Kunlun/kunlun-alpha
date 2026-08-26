@@ -1,0 +1,172 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/alerts/watchlist-alerts.json",
+  "title": "WatchlistAlertsWorkspace",
+  "description": "Versioned watchlist rules and durable in-app alert history",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "ruleLanguage",
+    "generatedAt",
+    "rules",
+    "history",
+    "supportedFields",
+    "supportedOperators",
+    "dataMeaning"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "watchlist-alerts-workspace-v1" },
+    "ruleLanguage": { "const": "BOUNDED_COMPARISON_V1" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/WatchlistAlertRule" }
+    },
+    "history": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/WatchlistAlertHistory" }
+    },
+    "supportedFields": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/WatchlistAlertField" },
+      "uniqueItems": true
+    },
+    "supportedOperators": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/WatchlistAlertOperator" },
+      "uniqueItems": true
+    },
+    "dataMeaning": { "const": "RESEARCH_ALERTS_ONLY_NO_ORDER_PATH" }
+  },
+  "$defs": {
+    "WatchlistAlertField": {
+      "type": "string",
+      "enum": ["LAST_PRICE", "CHANGE_BPS", "EMOTION_SCORE_BPS", "FEATURE_VALUE"]
+    },
+    "WatchlistAlertOperator": {
+      "type": "string",
+      "enum": ["GT", "GTE", "LT", "LTE", "EQ"]
+    },
+    "WatchlistAlertCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "operator", "threshold", "featureName"],
+      "properties": {
+        "field": { "$ref": "#/$defs/WatchlistAlertField" },
+        "operator": { "$ref": "#/$defs/WatchlistAlertOperator" },
+        "threshold": {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{1,8})?$"
+        },
+        "featureName": {
+          "oneOf": [{ "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$" }, { "type": "null" }]
+        }
+      }
+    },
+    "WatchlistAlertQuietPeriod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timezone", "startMinute", "endMinute"],
+      "properties": {
+        "timezone": { "const": "Asia/Shanghai" },
+        "startMinute": { "type": "integer", "minimum": 0, "maximum": 1439 },
+        "endMinute": { "type": "integer", "minimum": 0, "maximum": 1439 }
+      }
+    },
+    "WatchlistAlertRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "ruleId",
+        "revisionId",
+        "revision",
+        "name",
+        "enabled",
+        "instrumentIds",
+        "condition",
+        "quietPeriod",
+        "throttleSeconds",
+        "notificationChannel",
+        "createdAt",
+        "availableAt",
+        "previousRevisionId"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "watchlist-alert-rule-v1" },
+        "ruleId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "revisionId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "enabled": { "type": "boolean" },
+        "instrumentIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" }
+        },
+        "condition": { "$ref": "#/$defs/WatchlistAlertCondition" },
+        "quietPeriod": {
+          "oneOf": [{ "$ref": "#/$defs/WatchlistAlertQuietPeriod" }, { "type": "null" }]
+        },
+        "throttleSeconds": { "type": "integer", "minimum": 0, "maximum": 86400 },
+        "notificationChannel": { "const": "IN_APP" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "availableAt": { "type": "string", "format": "date-time" },
+        "previousRevisionId": {
+          "oneOf": [{ "type": "string", "pattern": "^[0-9a-f]{64}$" }, { "type": "null" }]
+        }
+      }
+    },
+    "WatchlistAlertHistory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "historyId",
+        "ruleId",
+        "revisionId",
+        "eventId",
+        "instrumentId",
+        "eventTime",
+        "availableTime",
+        "outcome",
+        "observedValue",
+        "notificationId",
+        "notificationStatus",
+        "detail",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "watchlist-alert-history-v1" },
+        "historyId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "ruleId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "revisionId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "eventId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "outcome": {
+          "enum": ["TRIGGERED", "CONDITION_NOT_MET", "THROTTLED", "QUIET_PERIOD", "RULE_DISABLED"]
+        },
+        "observedValue": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{1,8})?$"
+            },
+            { "type": "null" }
+          ]
+        },
+        "notificationId": {
+          "oneOf": [{ "type": "string", "pattern": "^[0-9a-f]{64}$" }, { "type": "null" }]
+        },
+        "notificationStatus": { "enum": ["NONE", "PENDING", "DELIVERED", "FAILED"] },
+        "detail": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
