@@ -294,6 +294,32 @@ def test_ttl_read_has_future_fresh_degraded_and_expired_states() -> None:
     assert expired.value is None
 
 
+def test_read_hides_available_value_until_its_computed_at() -> None:
+    engine, _ = _engine()
+    event = _event("delayed-materialization", 5)
+    computed_at = event.available_time + timedelta(minutes=5)
+    result = _process(engine, event, processing_time=computed_at)
+    assert result.value is not None
+    assert result.value.available_time == event.available_time
+    assert result.value.computed_at == computed_at
+
+    before_materialization = engine.read(
+        _feature(),
+        event.entity_id,
+        as_of=computed_at - timedelta(microseconds=1),
+    )
+    at_materialization = engine.read(
+        _feature(),
+        event.entity_id,
+        as_of=computed_at,
+    )
+
+    assert before_materialization.freshness is OnlineFreshness.MISSING
+    assert before_materialization.value is None
+    assert at_materialization.freshness is OnlineFreshness.FRESH
+    assert at_materialization.value == result.value
+
+
 def test_expired_on_arrival_is_rejected_without_calculation() -> None:
     engine, _ = _engine()
     event = _event("expired", 5)

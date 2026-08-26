@@ -38,7 +38,7 @@ HMAC 用于发现外部状态损坏或越权改写；普通 checksum 仅用于 l
 
 stale_at 和 expires_at 以 FeatureSpec availability policy 得出的 available_time 为锚：
 
-- as_of 早于 available_time：MISSING；
+- as_of 早于 available_time 或 computed_at：MISSING，历史读取不得提前看到尚未完成物化的值；
 - as_of 早于 stale_at：FRESH；
 - stale_at 不晚于 as_of 且早于 expires_at：DEGRADED_STALE，返回最后值；
 - as_of 不早于 expires_at：EXPIRED，不返回值；

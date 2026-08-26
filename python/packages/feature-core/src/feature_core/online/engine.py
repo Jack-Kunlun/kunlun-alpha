@@ -515,7 +515,11 @@ def _latest_value(
     *,
     as_of: datetime,
 ) -> OnlineFeatureValue | None:
-    visible = [value for value in state.values if value.available_time <= as_of]
+    visible = [
+        value
+        for value in state.values
+        if value.available_time <= as_of and value.computed_at <= as_of
+    ]
     if not visible:
         return None
     return max(visible, key=lambda value: (value.window.end, value.state_revision))
