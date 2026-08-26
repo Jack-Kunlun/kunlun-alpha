@@ -2795,6 +2795,101 @@ export interface PaperAllocationRejection {
   explanation: string;
 }
 
+/**
+ * This interface was referenced by `PaperExecutionWorkspace`'s JSON-Schema
+ * via the `definition` "PaperExecutionDecimalValue".
+ */
+export type PaperExecutionDecimalValue = string;
+
+/**
+ * Replayed simulation-only order lifecycle with audit and alerts
+ */
+export interface PaperExecutionWorkspace {
+  schemaVersion: "paper-execution-workspace-v1";
+  accountId: string;
+  orders: PaperOrder[];
+  audits: PaperOrderAudit[];
+  alerts: PaperOrderAlert[];
+  eventCount: number;
+  eventChainDigest: string;
+  stateDigest: string;
+  executionCapability: "PAPER_ONLY";
+  dataMeaning: "SIMULATED_EXECUTION_NO_BROKER_PATH";
+}
+/**
+ * This interface was referenced by `PaperExecutionWorkspace`'s JSON-Schema
+ * via the `definition` "PaperOrder".
+ */
+export interface PaperOrder {
+  schemaVersion: "paper-order-v1";
+  orderId: string;
+  clientOrderId: string;
+  intentId: string;
+  instrumentId: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  filledQuantity: number;
+  remainingQuantity: number;
+  averageFillPrice: PaperExecutionDecimalValue | null;
+  totalFees: PaperExecutionDecimalValue;
+  status:
+    | "CREATED"
+    | "CHECKED"
+    | "SUBMITTED"
+    | "PARTIALLY_FILLED"
+    | "CANCEL_PENDING"
+    | "FILLED"
+    | "CANCELLED"
+    | "REJECTED";
+  fills: PaperFill[];
+  createdAt: string;
+  submittedAt: string | null;
+  updatedAt: string;
+  executionCapability: "PAPER_ONLY";
+}
+/**
+ * This interface was referenced by `PaperExecutionWorkspace`'s JSON-Schema
+ * via the `definition` "PaperFill".
+ */
+export interface PaperFill {
+  fillId: string;
+  quantity: number;
+  price: PaperExecutionDecimalValue;
+  fee: PaperExecutionDecimalValue;
+  eventTime: string;
+  availableTime: string;
+  liquidityEvidenceId: string;
+}
+/**
+ * This interface was referenced by `PaperExecutionWorkspace`'s JSON-Schema
+ * via the `definition` "PaperOrderAudit".
+ */
+export interface PaperOrderAudit {
+  eventId: string;
+  orderId: string;
+  eventType: string;
+  outcome: "APPLIED" | "DUPLICATE" | "REJECTED";
+  detail: string;
+  availableTime: string;
+}
+/**
+ * This interface was referenced by `PaperExecutionWorkspace`'s JSON-Schema
+ * via the `definition` "PaperOrderAlert".
+ */
+export interface PaperOrderAlert {
+  alertId: string;
+  eventId: string;
+  orderId: string;
+  code:
+    | "ILLEGAL_ORDER_TRANSITION"
+    | "IDEMPOTENCY_CONFLICT"
+    | "UNKNOWN_ORDER"
+    | "FILL_CONFLICT"
+    | "OVERFILL_REJECTED";
+  detail: string;
+  availableTime: string;
+}
+
 export interface SeatKolWorkbenchSnapshot {
   schemaVersion: "seat-kol-workbench-v1";
   snapshotId: string;

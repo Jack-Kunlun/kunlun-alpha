@@ -396,6 +396,20 @@ from ashare_contracts.paper_paper_allocation_decision import (
 from ashare_contracts.paper_paper_allocation_decision import Reason as Reason_2
 from ashare_contracts.paper_paper_allocation_decision import Side as Side
 from ashare_contracts.paper_paper_allocation_decision import SourceSignalId as SourceSignalId
+from ashare_contracts.paper_paper_execution_workspace import Code as Code_1
+from ashare_contracts.paper_paper_execution_workspace import Outcome as Outcome_1
+from ashare_contracts.paper_paper_execution_workspace import (
+    PaperExecutionDecimalValue as PaperExecutionDecimalValue,
+)
+from ashare_contracts.paper_paper_execution_workspace import (
+    PaperExecutionWorkspace as PaperExecutionWorkspace,
+)
+from ashare_contracts.paper_paper_execution_workspace import PaperFill as PaperFill
+from ashare_contracts.paper_paper_execution_workspace import PaperOrder as PaperOrder
+from ashare_contracts.paper_paper_execution_workspace import PaperOrderAlert as PaperOrderAlert
+from ashare_contracts.paper_paper_execution_workspace import PaperOrderAudit as PaperOrderAudit
+from ashare_contracts.paper_paper_execution_workspace import Side as Side_1
+from ashare_contracts.paper_paper_execution_workspace import Status as Status_4
 from ashare_contracts.seat_alias import SeatAlias as SeatAlias
 from ashare_contracts.seat_alias import SeatAliasSchemaVersion as SeatAliasSchemaVersion
 from ashare_contracts.seat_alias import SeatAliasType as SeatAliasType
@@ -771,6 +785,16 @@ __all__ = [
     "Reason_2",
     "Side",
     "SourceSignalId",
+    "Code_1",
+    "Outcome_1",
+    "PaperExecutionDecimalValue",
+    "PaperExecutionWorkspace",
+    "PaperFill",
+    "PaperOrder",
+    "PaperOrderAlert",
+    "PaperOrderAudit",
+    "Side_1",
+    "Status_4",
     "SeatAlias",
     "SeatAliasSchemaVersion",
     "SeatAliasType",

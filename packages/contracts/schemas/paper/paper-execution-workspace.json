@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/paper/paper-execution-workspace.json",
+  "title": "PaperExecutionWorkspace",
+  "description": "Replayed simulation-only order lifecycle with audit and alerts",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "accountId",
+    "orders",
+    "audits",
+    "alerts",
+    "eventCount",
+    "eventChainDigest",
+    "stateDigest",
+    "executionCapability",
+    "dataMeaning"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "paper-execution-workspace-v1" },
+    "accountId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "orders": { "type": "array", "items": { "$ref": "#/$defs/PaperOrder" } },
+    "audits": { "type": "array", "items": { "$ref": "#/$defs/PaperOrderAudit" } },
+    "alerts": { "type": "array", "items": { "$ref": "#/$defs/PaperOrderAlert" } },
+    "eventCount": { "type": "integer", "minimum": 0 },
+    "eventChainDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "stateDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "executionCapability": { "const": "PAPER_ONLY" },
+    "dataMeaning": { "const": "SIMULATED_EXECUTION_NO_BROKER_PATH" }
+  },
+  "$defs": {
+    "PaperExecutionDecimalValue": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "PaperFill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fillId",
+        "quantity",
+        "price",
+        "fee",
+        "eventTime",
+        "availableTime",
+        "liquidityEvidenceId"
+      ],
+      "properties": {
+        "fillId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "quantity": { "type": "integer", "minimum": 1 },
+        "price": { "$ref": "#/$defs/PaperExecutionDecimalValue" },
+        "fee": { "$ref": "#/$defs/PaperExecutionDecimalValue" },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "liquidityEvidenceId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "PaperOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "orderId",
+        "clientOrderId",
+        "intentId",
+        "instrumentId",
+        "side",
+        "quantity",
+        "filledQuantity",
+        "remainingQuantity",
+        "averageFillPrice",
+        "totalFees",
+        "status",
+        "fills",
+        "createdAt",
+        "submittedAt",
+        "updatedAt",
+        "executionCapability"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "paper-order-v1" },
+        "orderId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "clientOrderId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "intentId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "side": { "enum": ["BUY", "SELL"] },
+        "quantity": { "type": "integer", "minimum": 1 },
+        "filledQuantity": { "type": "integer", "minimum": 0 },
+        "remainingQuantity": { "type": "integer", "minimum": 0 },
+        "averageFillPrice": {
+          "oneOf": [
+            { "$ref": "#/$defs/PaperExecutionDecimalValue" },
+            { "type": "null" }
+          ]
+        },
+        "totalFees": { "$ref": "#/$defs/PaperExecutionDecimalValue" },
+        "status": {
+          "enum": [
+            "CREATED",
+            "CHECKED",
+            "SUBMITTED",
+            "PARTIALLY_FILLED",
+            "CANCEL_PENDING",
+            "FILLED",
+            "CANCELLED",
+            "REJECTED"
+          ]
+        },
+        "fills": { "type": "array", "items": { "$ref": "#/$defs/PaperFill" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "submittedAt": {
+          "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+        },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "executionCapability": { "const": "PAPER_ONLY" }
+      }
+    },
+    "PaperOrderAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventId", "orderId", "eventType", "outcome", "detail", "availableTime"],
+      "properties": {
+        "eventId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "orderId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "eventType": { "type": "string", "minLength": 1 },
+        "outcome": { "enum": ["APPLIED", "DUPLICATE", "REJECTED"] },
+        "detail": { "type": "string", "minLength": 1 },
+        "availableTime": { "type": "string", "format": "date-time" }
+      }
+    },
+    "PaperOrderAlert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alertId", "eventId", "orderId", "code", "detail", "availableTime"],
+      "properties": {
+        "alertId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "eventId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "orderId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "code": {
+          "enum": [
+            "ILLEGAL_ORDER_TRANSITION",
+            "IDEMPOTENCY_CONFLICT",
+            "UNKNOWN_ORDER",
+            "FILL_CONFLICT",
+            "OVERFILL_REJECTED"
+          ]
+        },
+        "detail": { "type": "string", "minLength": 1 },
+        "availableTime": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
