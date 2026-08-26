@@ -43,4 +43,9 @@ describe("terminal route contract", () => {
       terminalRoutes.every((route) => canAccessTerminalRoute(route, ["platform_admin"])),
     ).toBe(true);
   });
+
+  it("marks both P6-N06 entry and deep-link routes ready", () => {
+    expect(getTerminalRoute("instruments").status).toBe("ready");
+    expect(getTerminalRoute("instrument-detail").status).toBe("ready");
+  });
 });
