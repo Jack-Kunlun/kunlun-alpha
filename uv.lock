@@ -283,12 +283,14 @@ version = "0.0.0"
 source = { editable = "python/packages/feature-core" }
 dependencies = [
     { name = "kol-core" },
+    { name = "market-core" },
     { name = "pyarrow" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "kol-core", editable = "python/packages/kol-core" },
+    { name = "market-core", editable = "python/packages/market-core" },
     { name = "pyarrow", specifier = "==25.0.1" },
 ]
 

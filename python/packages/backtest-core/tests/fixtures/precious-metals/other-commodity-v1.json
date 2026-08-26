@@ -1,0 +1,134 @@
+{
+  "datasetManifest": "dataset/dataset-manifest.json",
+  "executionSnapshot": {
+    "askLevels": [],
+    "availableTime": "2026-08-24T14:59:40+08:00",
+    "bidLevels": [],
+    "calendarDigest": "006b7bc3055aee7d6fbc35e31908f17475ffabea65911e852effd00659517d5e",
+    "calendarId": "fixture.calendar",
+    "calendarVersion": "v1",
+    "instrumentCode": "518881.SH",
+    "isTradingDay": true,
+    "lockState": "NONE",
+    "matchTime": "2026-08-24T15:00:00+08:00",
+    "observedTime": "2026-08-24T14:59:30+08:00",
+    "priceBand": {
+      "dailyLower": "0.01",
+      "dailyUpper": "20",
+      "dynamicValidLower": "0.01",
+      "dynamicValidUpper": "20"
+    },
+    "processingTime": "2026-08-24T14:59:50+08:00",
+    "schemaVersion": "execution-v1",
+    "session": "CONTINUOUS",
+    "snapshotId": "other-execution-v1",
+    "source": {
+      "availableTime": "2026-08-24T14:58:00+08:00",
+      "digest": "6501c113b62ca4249ccf00a4a638662fada383f30a1bfc2587007af74698bfb3",
+      "recordId": "other-execution-v1",
+      "sourceId": "fixture.synthetic.execution",
+      "sourceVersion": "v1"
+    },
+    "tradeStatus": "OPEN",
+    "tradingDate": "2026-08-24"
+  },
+  "referenceEvidence": {
+    "bars": [
+      {
+        "availableTime": "2026-08-23T15:05:00+08:00",
+        "bar": {
+          "amount": "50000.00",
+          "close": "10.00",
+          "date": "2026-08-23",
+          "exchange": "SH",
+          "high": "10.00",
+          "interval": "DAILY",
+          "low": "10.00",
+          "open": "10.00",
+          "priceType": "RAW",
+          "session": "CONTINUOUS",
+          "suspended": false,
+          "timestamp": "2026-08-23T15:00:00+08:00",
+          "unifiedCode": "518881.SH",
+          "volume": 100000
+        },
+        "eventTime": "2026-08-23T15:00:00+08:00",
+        "ingestTime": "2026-08-23T15:01:00+08:00",
+        "payloadDigest": "sha256:7ebde7c568521bfb664411d368229d42a86cfa0982618c9e8889c1b1793efbd6",
+        "processingTime": "2026-08-23T15:06:00+08:00",
+        "rawObjectId": "bar-other-20260823",
+        "source": "fixture.synthetic.bar",
+        "sourceRevision": "bar-other-20260823-revision"
+      }
+    ],
+    "benchmarkSeries": [
+      {
+        "benchmarkId": "benchmark:v1:sge:other-close-cny",
+        "currency": "CNY",
+        "priceBasis": "CLOSE",
+        "referenceOnly": true,
+        "referenceValue": "10.00"
+      }
+    ],
+    "benchmarkSeriesId": "benchmark:v1:sge:other-close-cny",
+    "benchmarks": [
+      {
+        "availableTime": "2026-08-23T15:05:00+08:00",
+        "benchmarkId": "benchmark:v1:sge:other-close-cny",
+        "currency": "CNY",
+        "eventTime": "2026-08-23T15:00:00+08:00",
+        "ingestTime": "2026-08-23T15:01:00+08:00",
+        "payloadDigest": "sha256:57fedab7f2a2a9939075372c7eee48077562c4fe906f83b574fc560db96f8c3a",
+        "priceBasis": "CLOSE",
+        "processingTime": "2026-08-23T15:06:00+08:00",
+        "rawObjectId": "benchmark-other-20260823",
+        "referenceOnly": true,
+        "referenceValue": "10.00",
+        "schemaVersion": "benchmark-series-point-v1",
+        "source": "fixture.synthetic.benchmark",
+        "sourceRevision": "benchmark-other-20260823-revision"
+      }
+    ],
+    "classificationPayloadDigest": "sha256:c79859a32a6b82b267af0365208c3da98b84460de5f79a90ea17295d2546cf86",
+    "fund": {
+      "assetType": "ETF",
+      "availableTime": "2026-08-24T14:45:00+08:00",
+      "benchmarkOrTrackingIndex": "other fixture benchmark",
+      "benchmarkSeriesId": "benchmark:v1:sge:other-close-cny",
+      "confidence": "0.99",
+      "eventTime": "2026-08-24T14:40:00+08:00",
+      "exchange": "SH",
+      "fundAssetClass": "PRECIOUS_METALS",
+      "ingestTime": "2026-08-24T14:42:00+08:00",
+      "managementFeeRate": "0.005",
+      "navCurrency": "CNY",
+      "processingTime": "2026-08-24T14:46:00+08:00",
+      "publishTime": "2026-08-24T14:40:00+08:00",
+      "rawObjectId": "fund-other-v1",
+      "recurringFees": [],
+      "reviewStatus": "REVIEWED",
+      "source": "fixture.synthetic.fund",
+      "tradingCurrency": "CNY",
+      "underlyingCommodity": "OTHER",
+      "unifiedCode": "518881.SH",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    "fundAssetClass": "PRECIOUS_METALS",
+    "inavObservations": [],
+    "navRevisions": [],
+    "navs": [],
+    "rawBars": [
+      {
+        "amount": "50000.00",
+        "close": "10.00",
+        "date": "2026-08-23",
+        "priceType": "RAW",
+        "suspended": false
+      }
+    ],
+    "underlyingCommodity": "OTHER"
+  },
+  "schemaVersion": "precious-metals-backtest-fixture-v1",
+  "unifiedCode": "518881.SH"
+}

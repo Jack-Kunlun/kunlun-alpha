@@ -20,12 +20,17 @@ type OnlineCalculator = Callable[
     [FeatureSpec, EventTimeWindow, tuple[OnlineFeatureEvent, ...]],
     object,
 ]
+type OnlineContextualCalculator = Callable[
+    [FeatureSpec, EventTimeWindow, tuple[OnlineFeatureEvent, ...], datetime],
+    object,
+]
 
 
 @dataclass(frozen=True, slots=True)
 class OnlineCalculatorArtifact:
     identity: CalculatorIdentity
     calculator: OnlineCalculator
+    contextual_calculator: OnlineContextualCalculator | None = None
 
 
 class OnlineStateStore(Protocol):

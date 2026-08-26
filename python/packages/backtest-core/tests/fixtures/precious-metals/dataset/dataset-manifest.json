@@ -1,0 +1,92 @@
+{
+  "build_spec_checksum": "sha256:0d8a73b5291f7b2814118dfa37bfb7cf356ba0ee791ff56c162f3cb7ef67319a",
+  "created_at": "2026-08-06T01:00:00Z",
+  "dataset_name": "precious-metals-fixture",
+  "dataset_version": "1.0.0",
+  "manifest_checksum": "sha256:5ba724f121c24b47e940e626447681078b7c4d15af74716a5e33b70a71bb6890",
+  "partitions": [
+    {
+      "content_checksum": "sha256:6a3b03ca92e0e04089783cec0ddbf5b0f5c700e354ccb49be16ed2c1cb9bcb74",
+      "file_checksum": "sha256:123700e0ebb80f30d2c6a19331817aaa5185c94b05d0dce2f0e2ee8d174ab7a6",
+      "partition": {
+        "partition_id": "evaluation",
+        "role": "EVALUATION",
+        "sources": [
+          {
+            "as_of": "2026-08-06T01:00:00Z",
+            "entity_ids": [
+              "518880.SH"
+            ],
+            "event_end": "2026-08-05T01:00:00Z",
+            "event_start": "2026-08-02T01:00:00Z",
+            "feature_fingerprint": "sha256:2ad562319767157087dda0dec6391f4479f8a04869ab0cc8d3a9c3637dae73b5",
+            "feature_name": "precious_metals_fund.premium_discount_bps",
+            "feature_version": "v1",
+            "max_rows": 100000,
+            "namespace_id": "precious_metals.funds",
+            "source_checksum": "sha256:c3043f2d23dc7b15b1756dcc0c15bef00ea83e14507a59ac3e8ab365d71936e9"
+          }
+        ]
+      },
+      "relative_path": "partitions/evaluation/evaluation.parquet",
+      "row_count": 1,
+      "schema_fingerprint": "sha256:f347e765b8f7708660bf4c4550b6d5409733d1c927cbb3e56cdd670304e747e5",
+      "source_lineage_checksums": [
+        "sha256:5594aef2902b3fec5750026485abff245bda1139e147c83c9a8a6c6c554a1132"
+      ],
+      "source_snapshot_versions": [
+        "precious-metals-fixture-v1"
+      ]
+    },
+    {
+      "content_checksum": "sha256:5649a00ebc1dce34de1eefcfd617819ce5b322eb05edc52514f161179e310982",
+      "file_checksum": "sha256:5b275e657d017afff014d8f0cc201ab1149e732e75617a14426f50f1b2a3457a",
+      "partition": {
+        "partition_id": "train",
+        "role": "TRAIN",
+        "sources": [
+          {
+            "as_of": "2026-08-06T01:00:00Z",
+            "entity_ids": [
+              "518880.SH"
+            ],
+            "event_end": "2026-08-02T01:00:00Z",
+            "event_start": "2026-07-31T01:00:00Z",
+            "feature_fingerprint": "sha256:2ad562319767157087dda0dec6391f4479f8a04869ab0cc8d3a9c3637dae73b5",
+            "feature_name": "precious_metals_fund.premium_discount_bps",
+            "feature_version": "v1",
+            "max_rows": 100000,
+            "namespace_id": "precious_metals.funds",
+            "source_checksum": "sha256:99a5eb5dbaeb2aecea7f16226e236ece5518483199e8285ce15722b88e74c8b6"
+          }
+        ]
+      },
+      "relative_path": "partitions/train/train.parquet",
+      "row_count": 1,
+      "schema_fingerprint": "sha256:f347e765b8f7708660bf4c4550b6d5409733d1c927cbb3e56cdd670304e747e5",
+      "source_lineage_checksums": [
+        "sha256:04797ed30ba619a26db8df4cc1e1229d0434803eb48d4849ccc5760c9d18a61d"
+      ],
+      "source_snapshot_versions": [
+        "precious-metals-fixture-v1"
+      ]
+    }
+  ],
+  "rebuild_command": [
+    "uv",
+    "run",
+    "--package",
+    "feature-core",
+    "python",
+    "research/datasets/rebuild.py",
+    "--manifest",
+    "dataset-manifest.json",
+    "--output",
+    "research/datasets/rebuilt",
+    "--repository-profile",
+    "feature-history"
+  ],
+  "schema_version": "1.0.0",
+  "writer_name": "pyarrow",
+  "writer_version": "25.0.1-kunlun-v2"
+}

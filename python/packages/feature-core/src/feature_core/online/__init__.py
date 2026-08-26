@@ -1,6 +1,8 @@
 from .engine import OnlineFeatureEngine
 from .models import (
     EventTimeWindow,
+    OnlineCalculationDisposition,
+    OnlineCalculationResult,
     OnlineCasResult,
     OnlineCasStatus,
     OnlineConflictError,
@@ -18,6 +20,7 @@ from .models import (
     OnlineRejection,
     OnlineStateEnvelope,
     OnlineStreamState,
+    OnlineTerminalOutcome,
     OnlineValidationError,
     OnlineWindowPolicy,
 )
@@ -25,6 +28,7 @@ from .ports import (
     OnlineCalculator,
     OnlineCalculatorArtifact,
     OnlineCalculatorTrust,
+    OnlineContextualCalculator,
     OnlineStateIntegrity,
     OnlineStateStore,
 )
@@ -41,8 +45,11 @@ __all__ = [
     "OnlineCalculator",
     "OnlineCalculatorArtifact",
     "OnlineCalculatorTrust",
+    "OnlineContextualCalculator",
     "OnlineCasResult",
     "OnlineCasStatus",
+    "OnlineCalculationDisposition",
+    "OnlineCalculationResult",
     "OnlineConflictError",
     "OnlineEventDisposition",
     "OnlineEventReceipt",
@@ -61,6 +68,7 @@ __all__ = [
     "OnlineStateIntegrity",
     "OnlineStateStore",
     "OnlineStreamState",
+    "OnlineTerminalOutcome",
     "OnlineValidationError",
     "OnlineWindowPolicy",
     "StaticOnlineCalculatorTrust",

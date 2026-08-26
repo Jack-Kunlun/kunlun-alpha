@@ -5,11 +5,13 @@ description = "Versioned point-in-time feature calculations for Kunlun Alpha"
 requires-python = "==3.12.13"
 dependencies = [
     "kol-core",
+    "market-core",
     "pyarrow==25.0.1",
 ]
 
 [tool.uv.sources]
 kol-core = { workspace = true }
+market-core = { workspace = true }
 
 [build-system]
 requires = ["hatchling==1.27.0"]

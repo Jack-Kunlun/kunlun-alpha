@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 from feature_core.batch.models import (
     CalculatorIdentity,
@@ -16,6 +17,8 @@ from feature_core.registry import AvailabilityPolicy, FeatureSpec, FeatureValueT
 
 from .models import (
     EventTimeWindow,
+    OnlineCalculationDisposition,
+    OnlineCalculationResult,
     OnlineCasResult,
     OnlineCasStatus,
     OnlineConflictError,
@@ -33,6 +36,7 @@ from .models import (
     OnlineRejection,
     OnlineStateEnvelope,
     OnlineStreamState,
+    OnlineTerminalOutcome,
     OnlineValidationError,
     OnlineWindowPolicy,
     duration_microseconds,
@@ -41,6 +45,7 @@ from .ports import (
     OnlineCalculator,
     OnlineCalculatorArtifact,
     OnlineCalculatorTrust,
+    OnlineContextualCalculator,
     OnlineStateIntegrity,
     OnlineStateStore,
 )
@@ -129,7 +134,9 @@ def _calculator_artifact(
     return artifact
 
 
-def _normalize_value(spec: FeatureSpec, value: object) -> JsonValue:
+def _normalize_value(spec: FeatureSpec, value: object) -> JsonValue | None:
+    if value is None:
+        return None
     kind = spec.value_type.name
     if kind == FeatureValueType.DECIMAL.name:
         if type(value) is float:
@@ -159,16 +166,48 @@ def _normalize_value(spec: FeatureSpec, value: object) -> JsonValue:
 def _calculate(
     *,
     calculator: OnlineCalculator,
+    contextual_calculator: OnlineContextualCalculator | None,
     identity: CalculatorIdentity,
     spec: FeatureSpec,
     window: EventTimeWindow,
     events: tuple[OnlineFeatureEvent, ...],
-) -> JsonValue:
+    processing_time: datetime,
+) -> OnlineCalculationResult:
     if identity.algorithm_version != spec.algorithm_version:
         raise OnlineValidationError("calculator identity changed during processing")
-    first = _normalize_value(spec, calculator(spec, window, events))
-    second = _normalize_value(spec, calculator(spec, window, events))
-    if canonical_checksum(first) != canonical_checksum(second):
+
+    def calculate_once() -> object:
+        if contextual_calculator is not None:
+            return contextual_calculator(spec, window, events, processing_time)
+        return calculator(spec, window, events)
+
+    def normalize(result: object) -> OnlineCalculationResult:
+        if type(result) is not OnlineCalculationResult:
+            result = (
+                OnlineCalculationResult.pending()
+                if result is None
+                else OnlineCalculationResult.materialized(result)
+            )
+        if result.disposition is not OnlineCalculationDisposition.MATERIALIZED:
+            return result
+        normalized_value = _normalize_value(spec, result.value)
+        if normalized_value is None:
+            raise OnlineValidationError("materialized online calculation normalized to no value")
+        return OnlineCalculationResult.materialized(normalized_value)
+
+    def checksum(result: OnlineCalculationResult) -> str:
+        return canonical_checksum(
+            {
+                "disposition": result.disposition.value,
+                "value": result.value,
+                "status": result.status,
+                "reason": result.reason,
+            }
+        )
+
+    first = normalize(calculate_once())
+    second = normalize(calculate_once())
+    if checksum(first) != checksum(second):
         raise OnlineIntegrityError(
             "online calculator is non-deterministic for identical window input"
         )
@@ -261,6 +300,89 @@ def _validate_state(
             raise OnlineIntegrityError("online state contains duplicate or invalid rejections")
         rejection_by_id[rejection.event_id] = rejection
 
+    terminal_by_event_id: dict[str, OnlineTerminalOutcome] = {}
+    for outcome in state.terminal_outcomes:
+        if type(outcome) is not OnlineTerminalOutcome or outcome.event_id in terminal_by_event_id:
+            raise OnlineIntegrityError("online state contains duplicate or invalid terminals")
+        terminal_by_event_id[outcome.event_id] = outcome
+        receipt = receipt_by_id.get(outcome.event_id)
+        trigger = evidence_by_id.get(outcome.event_id)
+        if (
+            receipt is None
+            or receipt.disposition is not OnlineEventDisposition.ACCEPTED
+            or receipt.retain_until < outcome.retain_until
+            or receipt.processing_time != outcome.computed_at
+            or receipt.state_revision != outcome.state_revision
+            or trigger is None
+            or rejection_by_id.get(outcome.event_id) is not None
+        ):
+            raise OnlineIntegrityError("terminal outcome lacks matching accepted evidence")
+        if outcome.window != _window_for(trigger.event_time, policy):
+            raise OnlineIntegrityError("terminal outcome window is not canonical")
+        if outcome.retain_until != outcome.computed_at + policy.replay_horizon:
+            raise OnlineIntegrityError("terminal outcome retain_until is inconsistent")
+        if outcome.input_checksum != canonical_checksum(outcome.input_lineage):
+            raise OnlineIntegrityError("terminal outcome input lineage checksum is invalid")
+        terminal_inputs: list[OnlineFeatureEvent] = []
+        for lineage in outcome.input_lineage:
+            input_event = evidence_by_id.get(lineage.event_id)
+            if input_event is None or OnlineInputLineage.from_event(input_event) != lineage:
+                raise OnlineIntegrityError(
+                    "terminal outcome lineage lacks matching accepted evidence"
+                )
+            if not outcome.window.start <= input_event.event_time < outcome.window.end:
+                raise OnlineIntegrityError("terminal outcome lineage is outside its window")
+            if input_event.available_time > outcome.computed_at:
+                raise OnlineIntegrityError("terminal outcome used unavailable evidence")
+            if input_event.ingest_time > outcome.computed_at:
+                raise OnlineIntegrityError("terminal outcome used evidence before ingest_time")
+            terminal_inputs.append(input_event)
+        transition_inputs: list[OnlineFeatureEvent] = []
+        for accepted in state.accepted_evidence:
+            accepted_receipt = receipt_by_id.get(accepted.event_id)
+            if accepted_receipt is None or accepted_receipt.state_revision is None:
+                raise OnlineIntegrityError("accepted evidence lacks transition provenance")
+            if (
+                accepted_receipt.state_revision <= outcome.state_revision
+                and outcome.window.start <= accepted.event_time < outcome.window.end
+            ):
+                transition_inputs.append(accepted)
+        expected_lineage = tuple(
+            OnlineInputLineage.from_event(item)
+            for item in sorted(
+                transition_inputs,
+                key=lambda item: (item.event_time, item.available_time, item.event_id),
+            )
+        )
+        if outcome.input_lineage != expected_lineage:
+            raise OnlineIntegrityError("terminal outcome lineage is not transition-complete")
+        expected_terminal = _calculate(
+            calculator=artifact.calculator,
+            contextual_calculator=artifact.contextual_calculator,
+            identity=identity,
+            spec=feature.spec,
+            window=outcome.window,
+            events=tuple(
+                sorted(
+                    terminal_inputs,
+                    key=lambda item: (item.event_time, item.available_time, item.event_id),
+                )
+            ),
+            processing_time=outcome.computed_at,
+        )
+        if (
+            expected_terminal.disposition is not OnlineCalculationDisposition.TERMINAL
+            or expected_terminal.status != outcome.status
+            or expected_terminal.reason != outcome.reason
+        ):
+            raise OnlineIntegrityError("terminal outcome differs from trusted calculator output")
+        if (
+            state.last_processing_time is None
+            or outcome.computed_at > state.last_processing_time
+            or outcome.state_revision > state.revision
+        ):
+            raise OnlineIntegrityError("terminal outcome exceeds stream state")
+
     windows: set[tuple[datetime, datetime]] = set()
     for value in state.values:
         if type(value) is not OnlineFeatureValue:
@@ -293,14 +415,19 @@ def _validate_state(
                 key=lambda item: (item.event_time, item.available_time, item.event_id),
             ),
         )
-        expected_value = _calculate(
+        expected_result = _calculate(
             calculator=artifact.calculator,
+            contextual_calculator=artifact.contextual_calculator,
             identity=identity,
             spec=feature.spec,
             window=value.window,
             events=ordered_inputs,
+            processing_time=value.computed_at,
         )
-        if expected_value != value.value:
+        if (
+            expected_result.disposition is not OnlineCalculationDisposition.MATERIALIZED
+            or expected_result.value != value.value
+        ):
             raise OnlineIntegrityError("online value differs from trusted calculator output")
         expected_available = _expected_available_time(
             feature.spec,
@@ -333,6 +460,30 @@ def _validate_state(
             or evidence is not None
         ):
             raise OnlineIntegrityError("rejected receipt lacks matching rejection evidence")
+
+    receipt_revisions: set[int] = set()
+    for event_id, receipt in receipt_by_id.items():
+        if receipt.processing_time is None or receipt.state_revision is None:
+            raise OnlineIntegrityError("receipt lacks transition provenance")
+        if receipt.state_revision in receipt_revisions or receipt.state_revision > state.revision:
+            raise OnlineIntegrityError("receipt state_revision is inconsistent")
+        receipt_revisions.add(receipt.state_revision)
+        if receipt.retain_until < receipt.processing_time + policy.replay_horizon:
+            raise OnlineIntegrityError("receipt retain_until is shorter than replay horizon")
+        if (
+            state.last_processing_time is None
+            or receipt.processing_time > state.last_processing_time
+        ):
+            raise OnlineIntegrityError("receipt processing_time exceeds stream state")
+        evidence = evidence_by_id.get(event_id)
+        rejection = rejection_by_id.get(event_id)
+        if evidence is not None and (
+            evidence.available_time > receipt.processing_time
+            or evidence.ingest_time > receipt.processing_time
+        ):
+            raise OnlineIntegrityError("accepted evidence predates receipt processing_time")
+        if rejection is not None and rejection.processing_time != receipt.processing_time:
+            raise OnlineIntegrityError("rejection and receipt processing_time differ")
 
     if set(evidence_by_id) != {
         receipt.event_id
@@ -370,6 +521,16 @@ def _latest_value(
     return max(visible, key=lambda value: (value.window.end, value.state_revision))
 
 
+def _terminal_outcome_for_event(
+    state: OnlineStreamState,
+    event_id: str,
+) -> OnlineTerminalOutcome | None:
+    return next(
+        (outcome for outcome in state.terminal_outcomes if outcome.event_id == event_id),
+        None,
+    )
+
+
 def _prune_state(
     state: OnlineStreamState,
     *,
@@ -394,6 +555,11 @@ def _prune_state(
         values=tuple(value for value in state.values if value.expires_at > processing_time),
         rejections=tuple(
             rejection for rejection in state.rejections if rejection.event_id in retained_ids
+        ),
+        terminal_outcomes=tuple(
+            outcome
+            for outcome in state.terminal_outcomes
+            if outcome.event_id in retained_ids and outcome.retain_until > processing_time
         ),
     )
 
@@ -425,6 +591,8 @@ def _rejection_transition(
                 content_checksum=event.content_checksum,
                 disposition=reason,
                 retain_until=processing_time + policy.replay_horizon,
+                processing_time=processing_time,
+                state_revision=state.revision + 1,
             ),
         ),
         rejections=(*state.rejections, rejection),
@@ -440,7 +608,7 @@ def _accepted_transition(
     artifact: OnlineCalculatorArtifact,
     policy: OnlineWindowPolicy,
     processing_time: datetime,
-) -> tuple[OnlineStreamState, OnlineFeatureValue]:
+) -> tuple[OnlineStreamState, OnlineFeatureValue | None, OnlineCalculationResult]:
     all_events = tuple(
         sorted(
             (*state.events, event),
@@ -455,35 +623,55 @@ def _accepted_transition(
         raise OnlineIntegrityError(
             "window recomputation would use input unavailable at processing_time"
         )
-    value = _calculate(
+    calculation = _calculate(
         calculator=artifact.calculator,
+        contextual_calculator=artifact.contextual_calculator,
         identity=artifact.identity,
         spec=feature.spec,
         window=window,
         events=window_events,
+        processing_time=processing_time,
     )
     next_revision = state.revision + 1
     lineage = tuple(OnlineInputLineage.from_event(item) for item in window_events)
-    available_time = _expected_available_time(
-        feature.spec,
-        lineage,
-        computed_at=processing_time,
-    )
-    online_value = OnlineFeatureValue(
-        registry_ref=feature.snapshot_ref,
-        entity_id=event.entity_id,
-        window=window,
-        value=value,
-        input_lineage=lineage,
-        input_checksum=canonical_checksum(lineage),
-        calculator_identity=artifact.identity,
-        policy_checksum=policy.identity_checksum,
-        available_time=available_time,
-        computed_at=processing_time,
-        stale_at=available_time + policy.stale_after,
-        expires_at=available_time + policy.ttl,
-        state_revision=next_revision,
-    )
+    online_value: OnlineFeatureValue | None = None
+    terminal_outcome: OnlineTerminalOutcome | None = None
+    if calculation.disposition is OnlineCalculationDisposition.MATERIALIZED:
+        calculated_value = cast(JsonValue, calculation.value)
+        available_time = _expected_available_time(
+            feature.spec,
+            lineage,
+            computed_at=processing_time,
+        )
+        online_value = OnlineFeatureValue(
+            registry_ref=feature.snapshot_ref,
+            entity_id=event.entity_id,
+            window=window,
+            value=calculated_value,
+            input_lineage=lineage,
+            input_checksum=canonical_checksum(lineage),
+            calculator_identity=artifact.identity,
+            policy_checksum=policy.identity_checksum,
+            available_time=available_time,
+            computed_at=processing_time,
+            stale_at=available_time + policy.stale_after,
+            expires_at=available_time + policy.ttl,
+            state_revision=next_revision,
+        )
+    elif calculation.disposition is OnlineCalculationDisposition.TERMINAL:
+        if calculation.status is None or calculation.reason is None:
+            raise OnlineIntegrityError("terminal calculation lacks status or reason")
+        terminal_outcome = OnlineTerminalOutcome(
+            event_id=event.event_id,
+            window=window,
+            status=calculation.status,
+            reason=calculation.reason,
+            input_lineage=lineage,
+            input_checksum=canonical_checksum(lineage),
+            computed_at=processing_time,
+            retain_until=processing_time + policy.replay_horizon,
+            state_revision=next_revision,
+        )
     max_event_time = (
         event.event_time
         if state.max_event_time is None
@@ -498,7 +686,26 @@ def _accepted_transition(
     retained_events = tuple(
         item for item in all_events if _window_for(item.event_time, policy).end > watermark
     )
-    retained_values = tuple(existing for existing in state.values if existing.window != window)
+    retained_values = (
+        tuple(existing for existing in state.values if existing.window != window)
+        if (
+            online_value is not None
+            or calculation.disposition is OnlineCalculationDisposition.TERMINAL
+        )
+        else state.values
+    )
+    retained_receipts = state.receipts
+    if terminal_outcome is not None:
+        terminal_event_ids = {item.event_id for item in terminal_outcome.input_lineage}
+        retained_receipts = tuple(
+            replace(
+                receipt,
+                retain_until=max(receipt.retain_until, terminal_outcome.retain_until),
+            )
+            if receipt.event_id in terminal_event_ids
+            else receipt
+            for receipt in state.receipts
+        )
     candidate = replace(
         state,
         revision=next_revision,
@@ -509,28 +716,40 @@ def _accepted_transition(
         events=retained_events,
         accepted_evidence=(*state.accepted_evidence, event),
         receipts=(
-            *state.receipts,
+            *retained_receipts,
             OnlineEventReceipt(
                 event_id=event.event_id,
                 content_checksum=event.content_checksum,
                 disposition=OnlineEventDisposition.ACCEPTED,
                 retain_until=processing_time + policy.replay_horizon,
+                processing_time=processing_time,
+                state_revision=next_revision,
             ),
         ),
-        values=tuple(
-            sorted(
-                (*retained_values, online_value),
-                key=lambda item: (item.window.start, item.state_revision),
-            ),
+        values=(
+            tuple(
+                sorted(
+                    (*retained_values, online_value),
+                    key=lambda item: (item.window.start, item.state_revision),
+                ),
+            )
+            if online_value is not None
+            else retained_values
+        ),
+        terminal_outcomes=(
+            (*state.terminal_outcomes, terminal_outcome)
+            if terminal_outcome is not None
+            else state.terminal_outcomes
         ),
     )
-    return candidate, online_value
+    return candidate, online_value, calculation
 
 
 def _retain_until(state: OnlineStreamState) -> datetime:
     deadlines = [
         *[receipt.retain_until for receipt in state.receipts],
         *[value.expires_at for value in state.values],
+        *[outcome.retain_until for outcome in state.terminal_outcomes],
     ]
     if not deadlines:
         raise OnlineIntegrityError("online state has no retention evidence")
@@ -616,6 +835,8 @@ class OnlineFeatureEngine:
                         "processing_time cannot move backward within a stream"
                     )
             working_state = _prune_state(state, processing_time=processing_time)
+            terminal_status: str | None = None
+            terminal_reason: str | None = None
             existing_receipt = next(
                 (
                     receipt
@@ -623,6 +844,10 @@ class OnlineFeatureEngine:
                     if receipt.event_id == event.event_id
                 ),
                 None,
+            )
+            existing_terminal = _terminal_outcome_for_event(
+                working_state,
+                event.event_id,
             )
             if existing_receipt is not None:
                 if existing_receipt.content_checksum != event.content_checksum:
@@ -642,6 +867,12 @@ class OnlineFeatureEngine:
                             ),
                             None,
                         ),
+                        terminal_status=(
+                            None if existing_terminal is None else existing_terminal.status
+                        ),
+                        terminal_reason=(
+                            None if existing_terminal is None else existing_terminal.reason
+                        ),
                     )
                 candidate = replace(
                     working_state,
@@ -654,6 +885,9 @@ class OnlineFeatureEngine:
                     (item for item in working_state.rejections if item.event_id == event.event_id),
                     None,
                 )
+                if existing_terminal is not None:
+                    terminal_status = existing_terminal.status
+                    terminal_reason = existing_terminal.reason
             elif state.watermark is not None and event.event_time < state.watermark:
                 candidate, rejection = _rejection_transition(
                     state=working_state,
@@ -675,7 +909,7 @@ class OnlineFeatureEngine:
                 disposition = OnlineProcessDisposition.REJECTED_EXPIRED
                 value = _latest_value(candidate, as_of=processing_time)
             else:
-                candidate, value = _accepted_transition(
+                candidate, value, calculation = _accepted_transition(
                     state=working_state,
                     feature=feature,
                     event=event,
@@ -684,7 +918,14 @@ class OnlineFeatureEngine:
                     processing_time=processing_time,
                 )
                 rejection = None
-                disposition = OnlineProcessDisposition.COMMITTED
+                if calculation.disposition is OnlineCalculationDisposition.MATERIALIZED:
+                    disposition = OnlineProcessDisposition.COMMITTED
+                elif calculation.disposition is OnlineCalculationDisposition.PENDING:
+                    disposition = OnlineProcessDisposition.PENDING
+                else:
+                    disposition = OnlineProcessDisposition.TERMINAL
+                    terminal_status = calculation.status
+                    terminal_reason = calculation.reason
 
             _validate_state(
                 candidate,
@@ -732,11 +973,17 @@ class OnlineFeatureEngine:
                 or persisted != candidate
             ):
                 raise OnlineIntegrityError("online CAS result differs from durable state read-back")
+            persisted_terminal = _terminal_outcome_for_event(persisted, event.event_id)
+            if persisted_terminal is not None:
+                terminal_status = persisted_terminal.status
+                terminal_reason = persisted_terminal.reason
             return OnlineProcessResult(
                 disposition=disposition,
                 state=persisted,
                 value=value,
                 rejection=rejection,
+                terminal_status=terminal_status,
+                terminal_reason=terminal_reason,
             )
 
         raise OnlineConflictError("online state CAS retry limit was exhausted")

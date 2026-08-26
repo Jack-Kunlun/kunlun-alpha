@@ -233,6 +233,7 @@ def test_export_writes_real_parquet_manifest_and_rebuild_command(
     assert train.column("value_json").to_pylist() == ['"0.01"']
     assert evaluation.column("value_json").to_pylist() == ['"0.02"']
     assert {artifact.row_count for artifact in manifest.partitions} == {1}
+    exporter.verify(root)
 
 
 def test_rebuild_is_byte_identical_and_verifies_hashes(

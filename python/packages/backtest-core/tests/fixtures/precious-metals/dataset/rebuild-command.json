@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "uv",
+    "run",
+    "--package",
+    "feature-core",
+    "python",
+    "research/datasets/rebuild.py",
+    "--manifest",
+    "dataset-manifest.json",
+    "--output",
+    "research/datasets/rebuilt",
+    "--repository-profile",
+    "feature-history"
+  ],
+  "display": "uv run --package feature-core python research/datasets/rebuild.py --manifest dataset-manifest.json --output research/datasets/rebuilt --repository-profile feature-history"
+}

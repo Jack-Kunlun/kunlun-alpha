@@ -6,12 +6,13 @@
 
 - FeatureSpec.window_definition 必须使用 EVENT_TIME_TUMBLING 加 ISO 8601 时长，并与 OnlineWindowPolicy.size 完全一致；不支持的窗口定义失败关闭。
 - 窗口归属只使用 event_time，固定为半开区间。
-- available_time 表示事件可用于决策的时刻，ingest_time 表示进入平台的时刻，processing_time 只用于执行、TTL、单调时钟和审计。
+- available_time 表示事件可用于决策的时刻，`OnlineFeatureEvent.ingest_time` 表示受信任的在线到达/接收时刻；payload 内的 `ingestTime` 仍是源记录 provenance，二者不要求相等。processing_time 由引擎调用上下文提供，只用于执行、TTL、单调时钟和审计，不能由 payload 内的 `processingTime` 推进。
 - 每个 stream 持久化 last_processing_time；处理时间倒退失败关闭。重算前再次确认所有窗口输入在 processing_time 已可用。
 - watermark 等于已接受事件的 max_event_time 减 allowed_lateness，processing_time 不得推进 watermark。
 - event_time 早于已有 watermark 的事件写入拒绝审计，不参与重算；允许迟到范围内的乱序事件重算其事件时间窗口。
 - MAX_INPUT_AVAILABLE_TIME 取窗口输入最大可用时间；SOURCE_AVAILABLE_TIME 仅允许一个输入；MATERIALIZATION_TIME 使用本次 processing_time。
 - market. 合同只能由 MARKET 来源事件承载，domain. 合同只能由 DOMAIN 来源事件承载。
+- 合法事件先进入 accepted evidence stream。计算器通过公共 `OnlineCalculationResult` 显式返回 `MATERIALIZED`、`PENDING` 或 `TERMINAL`：缺少当前 FeatureSpec 声明的输入合同时返回 `PENDING`；输入已完整但业务计算得到拒绝或不可用结果时返回 `TERMINAL`，并携带稳定的 status/reason；只有数值结果返回 `COMMITTED`。三种结果都保留 accepted event/receipt，只有 `COMMITTED` 写在线值；`TERMINAL` 会移除同窗口旧值，后续新事件仍可触发新的计算。终态另存带完整 input lineage、原始 processing_time 和 retain_until 的 HMAC 状态记录，加载时由受信计算器重算；重复投递、CAS 回读和进程重启因此返回相同 status/reason。
 
 ## 原子状态、幂等与恢复
 
@@ -25,7 +26,7 @@
 
 每次 CAS 成功后必须 load 回读并逐字段比较。新进程使用相同完整性服务和 store 可恢复 watermark、去重收据与活动窗口输入。CAS 冲突使用固定上限重试，不能覆盖并发提交。
 
-ACCEPTED receipt 在 replay horizon 内同时保留完整 accepted evidence；即使活动窗口输入和已过期在线值被裁剪，receipt 仍有可验证证据。更晚到达的 duplicate 会以 CAS 原子推进 last_processing_time，不能让后续新事件使用更早 processing_time。
+ACCEPTED receipt 在 replay horizon 内同时保留完整 accepted evidence，并记录首次转换的 processing_time 与 state_revision；即使活动窗口输入和已过期在线值被裁剪，receipt 仍有可验证证据。终态会把完整 input lineage 对应的较早 receipt 延长到本次终态的 retain_until，避免终态审计证据提前过期。加载时必须重新验证 canonical window、完整 transition 输入集、available/ingest 可见性和 policy 派生 replay horizon。更晚到达的 duplicate 会以 CAS 原子推进 last_processing_time，不能让后续新事件使用更早 processing_time。
 
 ## 完整性 envelope
 
