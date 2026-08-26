@@ -98,4 +98,17 @@
       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei",
       sans-serif;
   }
+  :focus-visible {
+    scroll-margin: 1rem;
+  }
+}
+
+@layer utilities {
+  .terminal-canvas {
+    background-image:
+      radial-gradient(circle at 82% 4%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 28rem),
+      linear-gradient(to right, color-mix(in srgb, var(--border) 35%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--border) 35%, transparent) 1px, transparent 1px);
+    background-size: auto, 32px 32px, 32px 32px;
+  }
 }
