@@ -72,6 +72,7 @@
         "averageFillPrice",
         "totalFees",
         "status",
+        "riskDecisionId",
         "fills",
         "createdAt",
         "submittedAt",
@@ -89,10 +90,7 @@
         "filledQuantity": { "type": "integer", "minimum": 0 },
         "remainingQuantity": { "type": "integer", "minimum": 0 },
         "averageFillPrice": {
-          "oneOf": [
-            { "$ref": "#/$defs/PaperExecutionDecimalValue" },
-            { "type": "null" }
-          ]
+          "oneOf": [{ "$ref": "#/$defs/PaperExecutionDecimalValue" }, { "type": "null" }]
         },
         "totalFees": { "$ref": "#/$defs/PaperExecutionDecimalValue" },
         "status": {
@@ -106,6 +104,9 @@
             "CANCELLED",
             "REJECTED"
           ]
+        },
+        "riskDecisionId": {
+          "oneOf": [{ "type": "string", "pattern": "^[0-9a-f]{64}$" }, { "type": "null" }]
         },
         "fills": { "type": "array", "items": { "$ref": "#/$defs/PaperFill" } },
         "createdAt": { "type": "string", "format": "date-time" },

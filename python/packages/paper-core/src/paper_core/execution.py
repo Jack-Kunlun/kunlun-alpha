@@ -163,6 +163,8 @@ class CheckPaperOrder:
     accepted: bool
     rejection_code: str | None
     explanation: str
+    risk_decision_id: str
+    risk_policy_digest: str
 
     def __post_init__(self) -> None:
         _digest(self.order_id, "order_id")
@@ -173,6 +175,8 @@ class CheckPaperOrder:
         if not self.accepted:
             _text(self.rejection_code, "rejection_code")
         _text(self.explanation, "explanation")
+        _digest(self.risk_decision_id, "risk_decision_id")
+        _digest(self.risk_policy_digest, "risk_policy_digest")
 
     def payload(self) -> dict[str, object]:
         return {
@@ -182,6 +186,8 @@ class CheckPaperOrder:
             "accepted": self.accepted,
             "rejection_code": self.rejection_code,
             "explanation": self.explanation,
+            "risk_decision_id": self.risk_decision_id,
+            "risk_policy_digest": self.risk_policy_digest,
         }
 
 
@@ -310,6 +316,7 @@ class PaperOrder:
     filled_quantity: int
     average_fill_price: Decimal | None
     total_fees: Decimal
+    risk_decision_id: str | None
     fills: tuple[PaperFill, ...]
     created_at: datetime
     submitted_at: datetime | None
@@ -357,9 +364,9 @@ class PaperExecutionProjection:
     def __post_init__(self) -> None:
         _digest(self.account_id, "account_id")
         _digest(self.event_chain_digest, "event_chain_digest", allow_zero=self.event_count == 0)
-        object.__setattr__(self, "state_digest", canonical_digest(self._digest_payload()))
+        object.__setattr__(self, "state_digest", canonical_digest(self.digest_payload()))
 
-    def _digest_payload(self) -> dict[str, object]:
+    def digest_payload(self) -> dict[str, object]:
         return {
             "account_id": self.account_id,
             "orders": [_order_payload(order) for order in self.orders],
@@ -475,7 +482,12 @@ def _apply_event(
         if order.status is not PaperOrderStatus.CREATED:
             return _illegal(projection, event, order, event_type)
         status = PaperOrderStatus.CHECKED if event.accepted else PaperOrderStatus.REJECTED
-        updated = replace(order, status=status, updated_at=event.metadata.available_time)
+        updated = replace(
+            order,
+            status=status,
+            risk_decision_id=event.risk_decision_id,
+            updated_at=event.metadata.available_time,
+        )
         return _applied(projection, event, updated, event.explanation)
     if type(event) is SubmitPaperOrder:
         if order.status is not PaperOrderStatus.CHECKED:
@@ -554,6 +566,7 @@ def _create_order(
         filled_quantity=0,
         average_fill_price=None,
         total_fees=Decimal("0"),
+        risk_decision_id=None,
         fills=(),
         created_at=event.metadata.available_time,
         submitted_at=None,
@@ -750,6 +763,7 @@ def _order_payload(order: PaperOrder) -> dict[str, object]:
             None if order.average_fill_price is None else _decimal_text(order.average_fill_price)
         ),
         "total_fees": _decimal_text(order.total_fees),
+        "risk_decision_id": order.risk_decision_id,
         "fills": [_fill_payload(fill) for fill in order.fills],
         "created_at": _time_text(order.created_at),
         "submitted_at": None if order.submitted_at is None else _time_text(order.submitted_at),
@@ -795,6 +809,7 @@ def _order_contract(order: PaperOrder) -> dict[str, object]:
         ),
         "totalFees": _decimal_text(order.total_fees),
         "status": order.status.value,
+        "riskDecisionId": order.risk_decision_id,
         "fills": [
             {
                 "fillId": fill.fill_id,
