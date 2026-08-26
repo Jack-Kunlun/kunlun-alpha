@@ -2,6 +2,7 @@ import type { MarketEmotionSnapshot, SectorRotationEvent } from "./emotion-snaps
 
 export interface EmotionReplayQuery {
   date: string;
+  asOf: string;
   algorithmVersion?: string;
   sectorId?: string;
 }

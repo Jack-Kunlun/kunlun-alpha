@@ -13,12 +13,14 @@ interface PayloadRow {
 }
 
 const EVENT_SQL = `SELECT payload FROM market_events
-WHERE ($1::date IS NULL OR available_time >= $1::date)
-AND ($2::date IS NULL OR available_time < ($2::date + INTERVAL '1 day'))
+WHERE ($1::date IS NULL OR available_time >= ($1::date::timestamp AT TIME ZONE 'Asia/Shanghai'))
+AND ($2::date IS NULL OR available_time < (($2::date + 1)::timestamp AT TIME ZONE 'Asia/Shanghai'))
 AND ($3::text IS NULL OR event_type = $3)
 AND ($4::text IS NULL OR instrument_ids ? $4)
 AND ($5::integer IS NULL OR confidence_bps >= $5)
-ORDER BY available_time DESC, event_id ASC LIMIT $6`;
+AND ($6::text[] IS NULL OR event_id = ANY($6::text[]))
+AND ($7::timestamptz IS NULL OR available_time <= $7::timestamptz)
+ORDER BY available_time DESC, event_id ASC LIMIT $8`;
 
 const TOPIC_SQL = `SELECT payload FROM (
   SELECT DISTINCT ON (topic_id) topic_id, decision_time, score_bps, lifecycle, payload
@@ -40,6 +42,8 @@ export class PostgresEventIntelligenceRepository implements EventIntelligenceRep
       query.eventType ?? null,
       query.instrumentId ?? null,
       query.minimumConfidenceBps ?? null,
+      query.eventIds ?? null,
+      query.asOf ?? null,
       query.limit,
     ]);
     return result.rows.map((row) => validateMarketEventPayload(row.payload));

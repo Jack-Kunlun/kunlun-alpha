@@ -19,6 +19,7 @@ const SNAPSHOT_SQL = [
   "  toFloat64(confidence) AS confidence, source_versions, evidence_ids",
   "FROM emotion_snapshots_v1 FINAL",
   "WHERE trading_date = {date:Date}",
+  "  AND available_time <= parseDateTime64BestEffort({asOf:String}, 3, 'UTC')",
   "  AND ({version:String} = '' OR algorithm_version = {version:String})",
   "ORDER BY event_time, algorithm_version",
   "FORMAT JSONEachRow",
@@ -33,6 +34,7 @@ const EVENT_SQL = [
   "  sample_size, algorithm_version, source_versions, evidence_ids",
   "FROM sector_rotation_events_v1 FINAL",
   "WHERE trading_date = {date:Date}",
+  "  AND available_time <= parseDateTime64BestEffort({asOf:String}, 3, 'UTC')",
   "  AND ({version:String} = '' OR algorithm_version = {version:String})",
   "  AND ({sector:String} = '' OR from_sector = {sector:String} OR to_sector = {sector:String})",
   "ORDER BY event_time, event_id",
@@ -181,7 +183,7 @@ export class ClickHouseEmotionRepository implements EmotionRepository {
   async querySnapshots(query: EmotionReplayQuery): Promise<MarketEmotionSnapshot[]> {
     return this.request(
       SNAPSHOT_SQL,
-      { date: query.date, version: query.algorithmVersion ?? "" },
+      { date: query.date, asOf: query.asOf, version: query.algorithmVersion ?? "" },
       snapshotOf,
     );
   }
@@ -191,6 +193,7 @@ export class ClickHouseEmotionRepository implements EmotionRepository {
       EVENT_SQL,
       {
         date: query.date,
+        asOf: query.asOf,
         version: query.algorithmVersion ?? "",
         sector: query.sectorId ?? "",
       },
