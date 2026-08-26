@@ -40,6 +40,12 @@
       "minLength": 1,
       "description": "Benchmark or tracking index identifier"
     },
+    "benchmarkSeriesId": {
+      "type": ["string", "null"],
+      "pattern": "^benchmark:v1:[a-z0-9][a-z0-9._-]{0,31}:[a-z0-9][a-z0-9._-]{0,127}$",
+      "maxLength": 174,
+      "description": "Optional canonical benchmark:v1:<namespace>:<key> identity; null means unavailable"
+    },
     "managementFeeRate": {
       "type": "number",
       "minimum": 0,

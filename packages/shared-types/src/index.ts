@@ -967,6 +967,68 @@ export interface FeatureSpec {
 }
 
 /**
+ * Version 1 point-in-time benchmark reference observation; it is never an executable price
+ */
+export interface BenchmarkSeriesPoint {
+  /**
+   * Stable version of the benchmark-series point contract
+   */
+  schemaVersion: "benchmark-series-point-v1";
+  /**
+   * Canonical benchmark:v1:<namespace>:<key> identity; lowercase ASCII, not a label
+   */
+  benchmarkId: string;
+  /**
+   * ISO 4217 currency of the reference value
+   */
+  currency: string;
+  /**
+   * Explicit benchmark valuation/return basis
+   */
+  priceBasis: string;
+  /**
+   * Positive fixed-point decimal wire string; Python domain type is Decimal
+   */
+  referenceValue: string;
+  /**
+   * Economic observation/event time (timezone required)
+   */
+  eventTime: string;
+  /**
+   * Kunlun ingest time (timezone required)
+   */
+  ingestTime: string;
+  /**
+   * Earliest research availability time (timezone required)
+   */
+  availableTime: string;
+  /**
+   * Normalization/processing time (timezone required)
+   */
+  processingTime: string;
+  /**
+   * Data source provenance identifier
+   */
+  source: string;
+  /**
+   * Source revision or vendor version for this observation
+   */
+  sourceRevision: string;
+  /**
+   * Immutable raw evidence/object identifier
+   */
+  rawObjectId: string;
+  /**
+   * SHA-256 digest of the canonical source payload
+   */
+  payloadDigest: string;
+  /**
+   * Reference-only marker; true is mandatory and cannot imply execution
+   */
+  referenceOnly: true;
+}
+
+/**
  * Point-in-time fund NAV/iNAV reference observation; values are not executable prices
  */
 export interface FundNav {
@@ -1052,6 +1114,10 @@ export interface PreciousMetalFund {
    * Benchmark or tracking index identifier
    */
   benchmarkOrTrackingIndex: string;
+  /**
+   * Optional canonical benchmark:v1:<namespace>:<key> identity; null means unavailable
+   */
+  benchmarkSeriesId?: string | null;
   /**
    * Annual management fee rate in [0, 1]
    */

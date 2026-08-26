@@ -39,6 +39,25 @@ _IDENTITY_SCHEMAS = {
 }
 
 
+def _iter_model_schemas(schema: JsonObject) -> tuple[tuple[str | None, JsonObject], ...]:
+    """Walk root, legacy definitions and draft-07 $defs model schemas once."""
+    title = schema.get("title")
+    models: list[tuple[str | None, JsonObject]] = [
+        (title if isinstance(title, str) else None, schema)
+    ]
+    for container_name in ("definitions", "$defs"):
+        definitions = schema.get(container_name)
+        if not isinstance(definitions, dict):
+            continue
+        for fallback_name, definition in definitions.items():
+            if not isinstance(definition, dict):
+                continue
+            definition_title = definition.get("title")
+            model_name = definition_title if isinstance(definition_title, str) else fallback_name
+            models.append((model_name, definition))
+    return tuple(models)
+
+
 def ensure_pydantic_imports(content: str, symbols: tuple[str, ...]) -> str:
     """Add Pydantic symbols to the generated import without path dependencies."""
     match = re.search(r"^from pydantic import (?P<imports>[^\n]+)$", content, re.MULTILINE)
@@ -56,26 +75,14 @@ def inject_semantic_validators(schema_file: Path, generated_file: Path) -> None:
     """Inject validators declared by schema extensions, without model-name rules."""
     schema = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
     candidates: list[tuple[str, str, str]] = []
-    definitions = schema.get("$defs", {})
-    if isinstance(definitions, dict):
-        model_schemas: list[JsonObject] = [
-            value for value in definitions.values() if isinstance(value, dict)
-        ]
-    else:
-        model_schemas = []
-    if isinstance(schema, dict):
-        model_schemas.append(schema)
-    for model_schema in model_schemas:
+    for model_name, model_schema in _iter_model_schemas(schema):
         extension = model_schema.get("x-python-semantic-validator")
-        model_name = model_schema.get("title")
-        if not isinstance(extension, dict) or not isinstance(model_name, str):
+        if not isinstance(extension, dict) or model_name is None:
             continue
         module = extension.get("module")
         function = extension.get("function")
         if not isinstance(module, str) or not isinstance(function, str):
-            raise RuntimeError(
-                f"invalid x-python-semantic-validator metadata in {schema_file}"
-            )
+            raise RuntimeError(f"invalid x-python-semantic-validator metadata in {schema_file}")
         candidates.append((model_name, module, function))
     if not candidates:
         return
@@ -87,9 +94,7 @@ def inject_semantic_validators(schema_file: Path, generated_file: Path) -> None:
         if import_line not in content:
             future_import = "from __future__ import annotations\n"
             if future_import in content:
-                content = content.replace(
-                    future_import, future_import + import_line, 1
-                )
+                content = content.replace(future_import, future_import + import_line, 1)
             else:
                 content = import_line + content
         class_marker = f"class {model_name}("
@@ -112,6 +117,47 @@ def inject_semantic_validators(schema_file: Path, generated_file: Path) -> None:
         )
         content = content[: class_end + 3] + validator + content[class_end + 3 :]
     generated_file.write_text(content, encoding="utf-8", newline="\n")
+
+
+def load_public_exports(schema_files: list[Path]) -> tuple[tuple[str, str], ...]:
+    """Load schema-declared hand-written symbols for the generated public API."""
+    public_exports: set[tuple[str, str]] = set()
+    for schema_file in schema_files:
+        schema = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
+        for _, model_schema in _iter_model_schemas(schema):
+            raw_exports = model_schema.get("x-python-public-exports")
+            if raw_exports is None:
+                continue
+            if not isinstance(raw_exports, list):
+                raise RuntimeError(f"invalid x-python-public-exports metadata in {schema_file}")
+            for raw_export in raw_exports:
+                if not isinstance(raw_export, dict):
+                    raise RuntimeError(f"invalid x-python-public-exports entry in {schema_file}")
+                module = raw_export.get("module")
+                symbol = raw_export.get("symbol")
+                if not isinstance(module, str) or not isinstance(symbol, str):
+                    raise RuntimeError(f"invalid x-python-public-exports entry in {schema_file}")
+                public_exports.add((module, symbol))
+    return tuple(sorted(public_exports))
+
+
+def load_python_support_file_names(schema_files: list[Path]) -> frozenset[str]:
+    """Return hand-written ashare-contract modules allowed beside generated DTOs."""
+    modules = {module for module, _ in load_public_exports(schema_files)}
+    for schema_file in schema_files:
+        schema = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
+        for _, model_schema in _iter_model_schemas(schema):
+            extension = model_schema.get("x-python-semantic-validator")
+            if not isinstance(extension, dict):
+                continue
+            module = extension.get("module")
+            if isinstance(module, str):
+                modules.add(module)
+    return frozenset(
+        module.rsplit(".", maxsplit=1)[-1] + ".py"
+        for module in modules
+        if module.startswith("ashare_contracts.")
+    )
 
 
 def load_code_prefix_rules() -> tuple[tuple[str, str, str, str], ...]:
@@ -350,9 +396,196 @@ def inject_decimal_fields(schema_file: Path, generated_file: Path) -> None:
     generated_file.write_text(content, encoding="utf-8", newline="\n")
 
 
+def _collect_decimal_metadata(schema: JsonObject) -> dict[str, dict[str, tuple[str, int | None]]]:
+    """Collect schema-declared strict decimal fields by generated model."""
+    result: dict[str, dict[str, tuple[str, int | None]]] = {}
+
+    def add_model(model_name: str, props: JsonObject) -> None:
+        for name, prop in props.items():
+            if not isinstance(prop, dict) or prop.get("x-python-decimal") is not True:
+                continue
+            pattern = prop.get("pattern")
+            max_length = prop.get("maxLength")
+            if not isinstance(pattern, str) or (
+                max_length is not None and not isinstance(max_length, int)
+            ):
+                raise RuntimeError(
+                    "x-python-decimal requires a string pattern and integer maxLength"
+                )
+            result.setdefault(model_name, {})[_snake_case(name)] = (pattern, max_length)
+
+    title = schema.get("title")
+    props = schema.get("properties")
+    if isinstance(title, str) and isinstance(props, dict):
+        add_model(title, props)
+    definitions = schema.get("definitions")
+    if isinstance(definitions, dict):
+        for model_name, definition in definitions.items():
+            definition_props = (
+                definition.get("properties") if isinstance(definition, dict) else None
+            )
+            if isinstance(definition_props, dict):
+                add_model(model_name, definition_props)
+    return result
+
+
+def inject_decimal_metadata(schema_file: Path, generated_file: Path) -> None:
+    """Parse schema-declared canonical decimal strings into Python ``Decimal``."""
+    schema = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
+    decimal_by_model = _collect_decimal_metadata(schema)
+    if not decimal_by_model:
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    if "import re\n" not in content:
+        content = content.replace(
+            "from __future__ import annotations\n",
+            "from __future__ import annotations\n\nimport re\n",
+            1,
+        )
+    if "from decimal import Decimal\n" not in content:
+        content = content.replace(
+            "from __future__ import annotations\n",
+            "from __future__ import annotations\n\nfrom decimal import Decimal\n",
+            1,
+        )
+    content = ensure_pydantic_imports(content, ("field_validator",))
+
+    for model_name, fields in sorted(decimal_by_model.items()):
+        class_marker = f"class {model_name}(BaseModel):\n"
+        class_index = content.find(class_marker)
+        if class_index < 0:
+            raise RuntimeError(f"decimal metadata target {model_name} was not generated")
+        next_class = content.find("\nclass ", class_index + len(class_marker))
+        class_end = next_class if next_class != -1 else len(content)
+        block = content[class_index:class_end]
+        validators: list[str] = []
+        for field_name, (pattern, max_length) in sorted(fields.items()):
+            field_pattern = re.compile(
+                rf"^(    {re.escape(field_name)}: )(?P<annotation>[^=\n]+)"
+                rf" = Field\((?P<arguments>.*?)(?:\n    \)|\)$)",
+                re.MULTILINE | re.DOTALL,
+            )
+            match = field_pattern.search(block)
+            if match is None:
+                raise RuntimeError(
+                    f"decimal metadata field {model_name}.{field_name} was not generated"
+                )
+            arguments = re.sub(
+                r",\s*(?:min_length|max_length|pattern)=(?:"
+                r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"|[0-9]+)",
+                "",
+                match.group("arguments"),
+            )
+            replacement = f"{match.group(1)}Decimal = Field({arguments})"
+            block = block[: match.start()] + replacement + block[match.end() :]
+            max_length_check = (
+                f"        if len(value) > {max_length}:\n"
+                f'            raise ValueError("decimal string exceeds maxLength {max_length}")\n'
+                if max_length is not None
+                else ""
+            )
+            validators.append(
+                f'    @field_validator("{field_name}", mode="before")\n'
+                "    @classmethod\n"
+                f"    def parse_{field_name}(cls, value: object) -> object:\n"
+                f"        if type(value) is not str or re.fullmatch({pattern!r}, value) is None:\n"
+                f"            raise ValueError(\n"
+                f'                "{_snake_case(field_name)} must be a canonical positive "\n'
+                '                "fixed-point decimal string"\n'
+                "            )\n"
+                f"{max_length_check}"
+                "        return Decimal(value)\n\n"
+            )
+        block = block.replace(class_marker, class_marker + "".join(validators), 1)
+        content = content[:class_index] + block + content[class_end:]
+
+    generated_file.write_text(content, encoding="utf-8", newline="\n")
+
+
 def _snake_case(name: str) -> str:
     """camelCase -> snake_case (matches datamodel-code-generator --snake-case-field)."""
     return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _collect_strict_string_fields(schema: JsonObject) -> dict[str, dict[str, bool]]:
+    """Map strict JSON string fields to whether their schema also permits null."""
+    result: dict[str, dict[str, bool]] = {}
+
+    def add_model(model_name: str, model_schema: JsonObject) -> None:
+        properties = model_schema.get("properties")
+        if not isinstance(properties, dict):
+            return
+        strict_all = model_schema.get("x-python-strict-strings") is True
+        for name, prop in properties.items():
+            if not isinstance(prop, dict):
+                continue
+            prop_type = prop.get("type")
+            is_string = prop_type == "string" or (
+                isinstance(prop_type, list) and "string" in prop_type
+            )
+            if (
+                is_string
+                and (strict_all or prop.get("x-python-strict") is True)
+                and prop.get("x-python-decimal") is not True
+            ):
+                nullable = isinstance(prop_type, list) and "null" in prop_type
+                result.setdefault(model_name, {})[_snake_case(name)] = nullable
+
+    for model_name, model_schema in _iter_model_schemas(schema):
+        if model_name is not None:
+            add_model(model_name, model_schema)
+    return result
+
+
+def inject_strict_strings(schema_file: Path, generated_file: Path) -> None:
+    """Reject Pydantic coercion for schema-declared JSON string boundaries."""
+    schema = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
+    strict_by_model = _collect_strict_string_fields(schema)
+    if not strict_by_model:
+        return
+
+    content = generated_file.read_text(encoding="utf-8")
+    content = ensure_pydantic_imports(content, ("field_validator",))
+    for model_name, fields in sorted(strict_by_model.items()):
+        class_marker = f"class {model_name}(BaseModel):\n"
+        if class_marker not in content:
+            raise RuntimeError(
+                f"strict-string metadata target {model_name} was not generated from {schema_file}"
+            )
+        validator_parts = [class_marker]
+        for nullable in (False, True):
+            selected = sorted(
+                field for field, allows_null in fields.items() if allows_null is nullable
+            )
+            if not selected:
+                continue
+            field_arguments = "".join(f'        "{field}",\n' for field in selected)
+            method_name = (
+                "validate_nullable_strict_string_inputs"
+                if nullable
+                else "validate_strict_string_inputs"
+            )
+            nullable_guard = (
+                "        if value is None:\n            return value\n" if nullable else ""
+            )
+            validator_parts.extend(
+                [
+                    "    @field_validator(\n",
+                    field_arguments,
+                    '        mode="before",\n',
+                    "    )\n",
+                    "    @classmethod\n",
+                    f"    def {method_name}(cls, value: object) -> object:\n",
+                    nullable_guard,
+                    "        if type(value) is not str:\n",
+                    '            raise TypeError("value must be a JSON string")\n',
+                    "        return value\n\n",
+                ]
+            )
+        validator = "".join(validator_parts)
+        content = content.replace(class_marker, validator, 1)
+    generated_file.write_text(content, encoding="utf-8", newline="\n")
 
 
 def _collect_strict_bool_fields(schema: JsonObject) -> dict[str, set[str]]:
@@ -390,6 +623,35 @@ def _collect_strict_bool_fields(schema: JsonObject) -> dict[str, set[str]]:
     return result
 
 
+def _collect_strict_literal_true_fields(schema: JsonObject) -> dict[str, set[str]]:
+    """Map model class names to strict booleans whose schema value is ``true``."""
+    result: dict[str, set[str]] = {}
+
+    def add_model(model_name: str, props: JsonObject) -> None:
+        for name, prop in props.items():
+            if (
+                isinstance(prop, dict)
+                and prop.get("x-python-strict") is True
+                and prop.get("type") == "boolean"
+                and prop.get("const") is True
+            ):
+                result.setdefault(model_name, set()).add(_snake_case(name))
+
+    props = schema.get("properties")
+    title = schema.get("title")
+    if isinstance(title, str) and isinstance(props, dict):
+        add_model(title, props)
+    definitions = schema.get("definitions")
+    if isinstance(definitions, dict):
+        for model_name, definition in definitions.items():
+            definition_props = (
+                definition.get("properties") if isinstance(definition, dict) else None
+            )
+            if isinstance(definition_props, dict):
+                add_model(model_name, definition_props)
+    return result
+
+
 def inject_strict_bool(schema_file: Path, generated_file: Path) -> None:
     """Use ``StrictBool`` for boolean fields marked ``x-python-strict``.
 
@@ -401,12 +663,14 @@ def inject_strict_bool(schema_file: Path, generated_file: Path) -> None:
     generated class that owns the field, so a same-named boolean in another
     model is never touched.
     """
-    schema = json.loads(schema_file.read_text(encoding="utf-8"))
+    schema = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
     strict_by_model = _collect_strict_bool_fields(schema)
+    literal_true_by_model = _collect_strict_literal_true_fields(schema)
     if not strict_by_model:
         return
 
     content = generated_file.read_text(encoding="utf-8")
+    replaced_strict_bool = False
     for model_name, fields in sorted(strict_by_model.items()):
         class_marker = f"class {model_name}(BaseModel):\n"
         start = content.find(class_marker)
@@ -420,14 +684,44 @@ def inject_strict_bool(schema_file: Path, generated_file: Path) -> None:
         for field_name in sorted(fields):
             old = f"    {field_name}: bool\n"
             new = f"    {field_name}: StrictBool\n"
-            if old not in block:
+            if old in block:
+                block = block.replace(old, new, 1)
+                replaced_strict_bool = True
+            elif field_name in literal_true_by_model.get(model_name, set()) and re.search(
+                rf"^    {re.escape(field_name)}: Literal\[True\]",
+                block,
+                re.MULTILINE,
+            ):
+                continue
+            else:
                 raise RuntimeError(
                     "Generated output changed; cannot inject StrictBool for "
                     f"{model_name}.{field_name}"
                 )
-            block = block.replace(old, new, 1)
         content = content[:start] + block + content[end:]
-    content = ensure_pydantic_imports(content, ("StrictBool",))
+    if replaced_strict_bool:
+        content = ensure_pydantic_imports(content, ("StrictBool",))
+    for model_name, fields in sorted(literal_true_by_model.items()):
+        class_marker = f"class {model_name}(BaseModel):\n"
+        if class_marker not in content:
+            raise RuntimeError(f"Generated output changed; cannot find class {model_name}")
+        if f"def validate_strict_literal_true_{_snake_case(model_name)}" in content:
+            continue
+        field_arguments = ", ".join(f'"{field}"' for field in sorted(fields))
+        validator = (
+            class_marker
+            + f'    @field_validator({field_arguments}, mode="before")\n'
+            + "    @classmethod\n"
+            + f"    def validate_strict_literal_true_{_snake_case(model_name)}(\n"
+            + "        cls, value: object\n"
+            + "    ) -> object:\n"
+            + "        if type(value) is not bool:\n"
+            + '            raise TypeError("value must be a JSON boolean")\n'
+            + "        return value\n\n"
+        )
+        content = content.replace(class_marker, validator, 1)
+    if literal_true_by_model:
+        content = ensure_pydantic_imports(content, ("field_validator",))
     generated_file.write_text(content, encoding="utf-8", newline="\n")
 
 
@@ -481,10 +775,11 @@ def inject_strict_int(schema_file: Path, generated_file: Path) -> None:
 
 
 def inject_strict_rfc3339(schema_file: Path, generated_file: Path) -> None:
-    """Reject coercive datetime input before Pydantic can truncate or normalize it."""
-    schema = json.loads(schema_file.read_text(encoding="utf-8"))
+    """Reject non-RFC3339 datetime input before Pydantic can normalize it."""
+    schema = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
     if schema.get("x-python-strict-rfc3339") is not True:
         return
+    strict_calendar = schema.get("x-python-strict-rfc3339-calendar") is True
     fields_by_model: dict[str, set[str]] = {}
 
     def add_model(model_name: str, props: JsonObject) -> None:
@@ -511,8 +806,32 @@ def inject_strict_rfc3339(schema_file: Path, generated_file: Path) -> None:
             "from __future__ import annotations\n\nimport re\n",
             1,
         )
+    if strict_calendar and "from datetime import datetime\n" not in content:
+        content = content.replace(
+            "from __future__ import annotations\n",
+            "from __future__ import annotations\n\nfrom datetime import datetime\n",
+            1,
+        )
     content = ensure_pydantic_imports(content, ("field_validator",))
-    pattern = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})"
+    if strict_calendar:
+        pattern = (
+            r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:"
+            r"[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?"
+            r"(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])"
+        )
+        calendar_validation = (
+            "        try:\n"
+            '            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))\n'
+            "        except ValueError as exc:\n"
+            "            raise ValueError(\n"
+            '                "datetime must be a valid calendar timestamp"\n'
+            "            ) from exc\n"
+            "        if parsed.tzinfo is None or parsed.utcoffset() is None:\n"
+            '            raise ValueError("datetime must include a valid timezone offset")\n'
+        )
+    else:
+        pattern = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})"
+        calendar_validation = ""
     for model_name, fields in sorted(fields_by_model.items()):
         class_marker = f"class {model_name}(BaseModel):\n"
         if class_marker not in content:
@@ -532,6 +851,7 @@ def inject_strict_rfc3339(schema_file: Path, generated_file: Path) -> None:
             + '                "datetime must be a strict RFC3339 string with at most six "\n'
             + '                "fractional digits"\n'
             + "            )\n"
+            + calendar_validation
             + "        return value\n\n"
         )
         content = content.replace(class_marker, validator, 1)
@@ -1004,6 +1324,8 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
 
     inject_instrument_identity_validator(schema_file, tmp_file)
     inject_unified_code_identity_validator(schema_file, tmp_file)
+    inject_strict_strings(schema_file, tmp_file)
+    inject_decimal_metadata(schema_file, tmp_file)
     inject_decimal_fields(schema_file, tmp_file)
     inject_strict_bool(schema_file, tmp_file)
     inject_strict_int(schema_file, tmp_file)
@@ -1024,8 +1346,21 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
         print(format_result.stderr, file=sys.stderr)
         sys.exit(1)
 
+    import_command = [
+        sys.executable,
+        "-m",
+        "ruff",
+        "check",
+        "--select",
+        "I",
+        "--fix",
+    ]
+    schema_metadata = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
+    if schema_metadata.get("x-python-import-known-first-party") is True:
+        import_command.extend(["--config", 'lint.isort.known-first-party=["ashare_contracts"]'])
+    import_command.append(str(tmp_file))
     import_result = subprocess.run(
-        [sys.executable, "-m", "ruff", "check", "--select", "I", "--fix", str(tmp_file)],
+        import_command,
         capture_output=True,
         text=True,
     )
@@ -1056,6 +1391,7 @@ def generate(output_dir: Path = OUTPUT_DIR) -> None:
     if not schema_files:
         print("No schema files found in", SCHEMAS_DIR, file=sys.stderr)
         sys.exit(1)
+    public_exports = load_public_exports(schema_files)
 
     generated_files: list[Path] = []
     for schema_file in schema_files:
@@ -1112,20 +1448,31 @@ def generate(output_dir: Path = OUTPUT_DIR) -> None:
             )
         import_lines.append(import_line)
 
-    all_content = header + "\n".join(import_lines) + "\n"
-    all_content += (
-        "\nfrom ashare_contracts.backtest_regression_semantics import "
-        "validate_backtest_regression_comparison\n"
+    semantic_import = (
+        "from ashare_contracts.backtest_regression_semantics import "
+        "validate_backtest_regression_comparison"
     )
+    public_import_lines = [f"from {module} import {symbol}" for module, symbol in public_exports]
+    all_import_lines = sorted([*import_lines, *public_import_lines, semantic_import])
+    all_content = header + "\n".join(all_import_lines) + "\n"
     if import_lines:
         all_content += "\n__all__ = [\n"
         for _, _, export_name in exports:
             all_content += f'    "{export_name}",\n'
+        for _, symbol in public_exports:
+            all_content += f'    "{symbol}",\n'
+        all_content += '    "validate_backtest_regression_comparison",\n'
         all_content += "]\n"
-        all_content += (
-            "\n__all__.append(\"validate_backtest_regression_comparison\")\n"
-        )
     init_path.write_text(all_content, encoding="utf-8", newline="\n")
+    import_result = subprocess.run(
+        [sys.executable, "-m", "ruff", "check", "--select", "I", "--fix", str(init_path)],
+        capture_output=True,
+        text=True,
+    )
+    if import_result.returncode != 0:
+        raise RuntimeError(
+            f"Error sorting generated imports for {init_path}: {import_result.stderr}"
+        )
     (output_dir / "py.typed").write_text("", encoding="utf-8", newline="\n")
 
     print(f"Generated Python types -> {output_dir}")
@@ -1136,7 +1483,9 @@ def check() -> None:
 
     Compares only the generated artifacts (schema modules, __init__.py and
     py.typed), so hand-written subpackages such as providers/ can live
-    alongside them without tripping the sync check.
+    alongside them without tripping the sync check.  Schema-declared semantic
+    validator modules are also hand-written support files and are allowed to
+    remain beside the generated DTOs.
     """
     import tempfile
 
@@ -1160,8 +1509,13 @@ def check() -> None:
             mismatches.append("missing: py.typed")
 
         generated_names = {f.name for f in tmp_output.glob("*.py")}
+        semantic_support_names = load_python_support_file_names(sorted(SCHEMAS_DIR.rglob("*.json")))
         for real_file in sorted(OUTPUT_DIR.glob("*.py")):
-            if real_file.name not in generated_names and real_file.name != "__init__.py":
+            if (
+                real_file.name not in generated_names
+                and real_file.name not in semantic_support_names
+                and real_file.name != "__init__.py"
+            ):
                 mismatches.append(f"stale: {real_file.name}")
 
         if mismatches:
