@@ -5,6 +5,7 @@ import { migrations as claimReview } from "./004-kol-claim-review";
 import { migrations as instrumentMasterIntelligence } from "./005-instrument-master-intelligence";
 import { migrations as sectorIntelligence } from "./006-sector-intelligence";
 import { migrations as seatKolIntelligence } from "./007-seat-kol-intelligence";
+import { migrations as watchlistAlerts } from "./008-watchlist-alerts";
 
 export const migrations = [
   ...initial,
@@ -14,4 +15,5 @@ export const migrations = [
   ...instrumentMasterIntelligence,
   ...sectorIntelligence,
   ...seatKolIntelligence,
+  ...watchlistAlerts,
 ];

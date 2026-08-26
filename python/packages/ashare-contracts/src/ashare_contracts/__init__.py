@@ -1,5 +1,27 @@
 # Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND.
 
+from ashare_contracts.alerts_watchlist_alerts import FeatureName as FeatureName
+from ashare_contracts.alerts_watchlist_alerts import InstrumentId as InstrumentId
+from ashare_contracts.alerts_watchlist_alerts import NotificationId as NotificationId
+from ashare_contracts.alerts_watchlist_alerts import NotificationStatus as NotificationStatus
+from ashare_contracts.alerts_watchlist_alerts import ObservedValue as ObservedValue
+from ashare_contracts.alerts_watchlist_alerts import Outcome as Outcome
+from ashare_contracts.alerts_watchlist_alerts import PreviousRevisionId as PreviousRevisionId
+from ashare_contracts.alerts_watchlist_alerts import (
+    WatchlistAlertCondition as WatchlistAlertCondition,
+)
+from ashare_contracts.alerts_watchlist_alerts import WatchlistAlertField as WatchlistAlertField
+from ashare_contracts.alerts_watchlist_alerts import WatchlistAlertHistory as WatchlistAlertHistory
+from ashare_contracts.alerts_watchlist_alerts import (
+    WatchlistAlertOperator as WatchlistAlertOperator,
+)
+from ashare_contracts.alerts_watchlist_alerts import (
+    WatchlistAlertQuietPeriod as WatchlistAlertQuietPeriod,
+)
+from ashare_contracts.alerts_watchlist_alerts import WatchlistAlertRule as WatchlistAlertRule
+from ashare_contracts.alerts_watchlist_alerts import (
+    WatchlistAlertsWorkspace as WatchlistAlertsWorkspace,
+)
 from ashare_contracts.backtest_regression import (
     BacktestRegressionArtifact as BacktestRegressionArtifact,
 )
@@ -161,7 +183,7 @@ from ashare_contracts.event_event_feedback import Correction as Correction
 from ashare_contracts.event_event_feedback import EventFeedback as EventFeedback
 from ashare_contracts.event_event_feedback import EventType as EventType_1
 from ashare_contracts.event_event_feedback import EvidenceId as EvidenceId_3
-from ashare_contracts.event_event_feedback import InstrumentId as InstrumentId
+from ashare_contracts.event_event_feedback import InstrumentId as InstrumentId_1
 from ashare_contracts.event_event_feedback import ReasonCode as ReasonCode
 from ashare_contracts.event_event_feedback import SectorId as SectorId
 from ashare_contracts.event_event_feedback_submission import Action as Action_1
@@ -171,7 +193,7 @@ from ashare_contracts.event_event_feedback_submission import (
 )
 from ashare_contracts.event_event_feedback_submission import EventType as EventType_2
 from ashare_contracts.event_event_feedback_submission import EvidenceId as EvidenceId_4
-from ashare_contracts.event_event_feedback_submission import InstrumentId as InstrumentId_1
+from ashare_contracts.event_event_feedback_submission import InstrumentId as InstrumentId_2
 from ashare_contracts.event_event_feedback_submission import ReasonCode as ReasonCode_1
 from ashare_contracts.event_event_feedback_submission import SectorId as SectorId_1
 from ashare_contracts.event_hot_topic_snapshot import Components as Components
@@ -179,7 +201,7 @@ from ashare_contracts.event_hot_topic_snapshot import EventId as EventId
 from ashare_contracts.event_hot_topic_snapshot import HotTopicSnapshot as HotTopicSnapshot
 from ashare_contracts.event_hot_topic_snapshot import Lifecycle as Lifecycle
 from ashare_contracts.event_market_event import EvidenceReference as EvidenceReference
-from ashare_contracts.event_market_event import InstrumentId as InstrumentId_2
+from ashare_contracts.event_market_event import InstrumentId as InstrumentId_3
 from ashare_contracts.event_market_event import MarketEvent as MarketEvent
 from ashare_contracts.event_market_event import MarketEventType as MarketEventType
 from ashare_contracts.event_market_event import ModelProvenance as ModelProvenance
@@ -426,6 +448,20 @@ from ashare_contracts.strategy_strategy_descriptor import StrategyDescriptor as 
 from ashare_contracts.strategy_strategy_descriptor import StringParameterSpec as StringParameterSpec
 
 __all__ = [
+    "FeatureName",
+    "InstrumentId",
+    "NotificationId",
+    "NotificationStatus",
+    "ObservedValue",
+    "Outcome",
+    "PreviousRevisionId",
+    "WatchlistAlertCondition",
+    "WatchlistAlertField",
+    "WatchlistAlertHistory",
+    "WatchlistAlertOperator",
+    "WatchlistAlertQuietPeriod",
+    "WatchlistAlertRule",
+    "WatchlistAlertsWorkspace",
     "BacktestRegressionArtifact",
     "BacktestRegressionBaseline",
     "BacktestRegressionComparison",
@@ -531,7 +567,7 @@ __all__ = [
     "EventFeedback",
     "EventType_1",
     "EvidenceId_3",
-    "InstrumentId",
+    "InstrumentId_1",
     "ReasonCode",
     "SectorId",
     "Action_1",
@@ -539,7 +575,7 @@ __all__ = [
     "EventFeedbackSubmission",
     "EventType_2",
     "EvidenceId_4",
-    "InstrumentId_1",
+    "InstrumentId_2",
     "ReasonCode_1",
     "SectorId_1",
     "Components",
@@ -547,7 +583,7 @@ __all__ = [
     "HotTopicSnapshot",
     "Lifecycle",
     "EvidenceReference",
-    "InstrumentId_2",
+    "InstrumentId_3",
     "MarketEvent",
     "MarketEventType",
     "ModelProvenance",

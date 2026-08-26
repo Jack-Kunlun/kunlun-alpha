@@ -11,6 +11,7 @@ import { BacktestRegressionModule } from "./modules/backtest-regression/backtest
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { LimitPoolModule } from "./modules/limit-pool/limit-pool.module";
 import { InstrumentIntelligenceModule } from "./modules/instrument-intelligence/instrument-intelligence.module";
+import { WatchlistAlertsModule } from "./modules/watchlist-alerts/watchlist-alerts.module";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { InstrumentIntelligenceModule } from "./modules/instrument-intelligence/
     DashboardModule,
     LimitPoolModule,
     InstrumentIntelligenceModule,
+    WatchlistAlertsModule,
   ],
   controllers: [AppController, MetricsController],
 })

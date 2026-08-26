@@ -1,5 +1,94 @@
 /** Shared domain types. Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND. */
 /**
+ * This interface was referenced by `WatchlistAlertsWorkspace`'s JSON-Schema
+ * via the `definition` "WatchlistAlertField".
+ */
+export type WatchlistAlertField =
+  "LAST_PRICE" | "CHANGE_BPS" | "EMOTION_SCORE_BPS" | "FEATURE_VALUE";
+/**
+ * This interface was referenced by `WatchlistAlertsWorkspace`'s JSON-Schema
+ * via the `definition` "WatchlistAlertOperator".
+ */
+export type WatchlistAlertOperator = "GT" | "GTE" | "LT" | "LTE" | "EQ";
+
+/**
+ * Versioned watchlist rules and durable in-app alert history
+ */
+export interface WatchlistAlertsWorkspace {
+  schemaVersion: "watchlist-alerts-workspace-v1";
+  ruleLanguage: "BOUNDED_COMPARISON_V1";
+  generatedAt: string;
+  rules: WatchlistAlertRule[];
+  history: WatchlistAlertHistory[];
+  supportedFields: WatchlistAlertField[];
+  supportedOperators: WatchlistAlertOperator[];
+  dataMeaning: "RESEARCH_ALERTS_ONLY_NO_ORDER_PATH";
+}
+/**
+ * This interface was referenced by `WatchlistAlertsWorkspace`'s JSON-Schema
+ * via the `definition` "WatchlistAlertRule".
+ */
+export interface WatchlistAlertRule {
+  schemaVersion: "watchlist-alert-rule-v1";
+  ruleId: string;
+  revisionId: string;
+  revision: number;
+  name: string;
+  enabled: boolean;
+  /**
+   * @minItems 1
+   * @maxItems 100
+   */
+  instrumentIds: [string, ...string[]];
+  condition: WatchlistAlertCondition;
+  quietPeriod: WatchlistAlertQuietPeriod | null;
+  throttleSeconds: number;
+  notificationChannel: "IN_APP";
+  createdAt: string;
+  availableAt: string;
+  previousRevisionId: string | null;
+}
+/**
+ * This interface was referenced by `WatchlistAlertsWorkspace`'s JSON-Schema
+ * via the `definition` "WatchlistAlertCondition".
+ */
+export interface WatchlistAlertCondition {
+  field: WatchlistAlertField;
+  operator: WatchlistAlertOperator;
+  threshold: string;
+  featureName: string | null;
+}
+/**
+ * This interface was referenced by `WatchlistAlertsWorkspace`'s JSON-Schema
+ * via the `definition` "WatchlistAlertQuietPeriod".
+ */
+export interface WatchlistAlertQuietPeriod {
+  timezone: "Asia/Shanghai";
+  startMinute: number;
+  endMinute: number;
+}
+/**
+ * This interface was referenced by `WatchlistAlertsWorkspace`'s JSON-Schema
+ * via the `definition` "WatchlistAlertHistory".
+ */
+export interface WatchlistAlertHistory {
+  schemaVersion: "watchlist-alert-history-v1";
+  historyId: string;
+  ruleId: string;
+  revisionId: string;
+  eventId: string;
+  instrumentId: string;
+  eventTime: string;
+  availableTime: string;
+  outcome: "TRIGGERED" | "CONDITION_NOT_MET" | "THROTTLED" | "QUIET_PERIOD" | "RULE_DISABLED";
+  observedValue: string | null;
+  notificationId: string | null;
+  notificationStatus: "NONE" | "PENDING" | "DELIVERED" | "FAILED";
+  detail: string;
+  createdAt: string;
+}
+
+/**
  * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
  * via the `definition` "SafeId".
  */

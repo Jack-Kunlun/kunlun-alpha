@@ -133,6 +133,9 @@ services:
         postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
       INSTRUMENT_INTELLIGENCE_POSTGRES_DSN: >-
         postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+      WATCHLIST_ALERTS_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+      WATCHLIST_ALERTS_OWNER_REF: local-research-user
       EMOTION_CLICKHOUSE_URL: http://clickhouse:8123
       EMOTION_CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-kunlun}
       EMOTION_CLICKHOUSE_USER: ${CLICKHOUSE_USER:-kunlun}
