@@ -54,6 +54,7 @@ def main() -> int:
         json.dumps(
             {
                 "evidenceDigest": report.evidence_digest,
+                "evidenceScope": report.evidence_scope.value,
                 "output": str(output),
                 "qualification": report.qualification.value,
             },
