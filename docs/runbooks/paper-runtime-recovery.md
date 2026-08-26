@@ -41,9 +41,10 @@ uv run --package paper-core python scripts/run-paper-soak.py \
 `--allow-engineering-evidence` 时，非正式资格报告以退出码 2 结束，避免被 CI 误判为正式
 通过。
 
-## 正式 72 小时门禁
+## 墙钟耐久证据与正式门禁
 
-在隔离的本地或预发布模拟环境执行，不要将报告写入仓库：
+当前 runner 使用 `FaultInjectablePaperStore`，因此即使墙钟运行满 72 小时也只能形成
+`TEST_DOUBLE` 工程证据，不能取得正式资格。在隔离环境采集该证据时，不要将报告写入仓库：
 
 ```bash
 uv run --package paper-core python scripts/run-paper-soak.py \
@@ -53,16 +54,18 @@ uv run --package paper-core python scripts/run-paper-soak.py \
   --output /var/tmp/kunlun-paper-endurance-wall.json
 ```
 
-只有同时满足以下条件才输出 `QUALIFIED`：
+正式资格必须由接入真实持久化适配器的 runner 执行，并同时满足以下条件：
 
 1. `clockMode` 为 `wall`。
 2. 请求时长不少于 72 小时。
 3. 实际单调墙钟时长达到请求时长。
 4. 四种故障场景每次迭代均为 `PASS`。
 5. `executionCapability` 为 `PAPER_ONLY`。
+6. `evidenceScope` 为 `DURABLE_ADAPTER`，不能是 `TEST_DOUBLE`。
 
-虚拟时钟、缩短时长、缺失场景或任一失败都不能取得正式资格。报告包含版本、起止时间、
-实际时长、迭代数、资格状态和证据摘要；审核时需保留原始 JSON 与运行日志。
+虚拟时钟、测试替身、缩短时长、缺失场景或任一失败都不能取得正式资格。当前代码尚未接入
+真实持久化适配器，因此 P6-N12 必须保持待验收。报告包含版本、证据范围、起止时间、实际
+时长、迭代数、资格状态和证据摘要；审核时需保留原始 JSON 与运行日志。
 
 ## 恢复步骤
 

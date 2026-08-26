@@ -5,6 +5,7 @@ from paper_core.reliability import (
     AppendOutcome,
     DuplicateEventConflictError,
     EnduranceClockMode,
+    EnduranceEvidenceScope,
     EnduranceQualification,
     FaultInjectablePaperStore,
     FaultScenarioStatus,
@@ -112,6 +113,7 @@ def test_virtual_72_hour_run_is_never_formal_qualification() -> None:
     )
 
     assert report.qualification is EnduranceQualification.ENGINEERING_EVIDENCE_ONLY
+    assert report.evidence_scope is EnduranceEvidenceScope.TEST_DOUBLE
     assert report.simulated_hours == 72
     assert report.execution_capability == "PAPER_ONLY"
     assert all(result.iterations == 72 for result in report.scenarios)
@@ -124,6 +126,7 @@ def test_only_a_complete_wall_clock_run_can_qualify() -> None:
     assert (
         classify_endurance_qualification(
             clock_mode=EnduranceClockMode.WALL,
+            evidence_scope=EnduranceEvidenceScope.DURABLE_ADAPTER,
             requested_duration_hours=72,
             elapsed_wall_seconds=(72 * 60 * 60) - 0.001,
             scenarios=scenarios,
@@ -133,6 +136,7 @@ def test_only_a_complete_wall_clock_run_can_qualify() -> None:
     assert (
         classify_endurance_qualification(
             clock_mode=EnduranceClockMode.WALL,
+            evidence_scope=EnduranceEvidenceScope.DURABLE_ADAPTER,
             requested_duration_hours=72,
             elapsed_wall_seconds=72 * 60 * 60,
             scenarios=scenarios,
@@ -142,8 +146,19 @@ def test_only_a_complete_wall_clock_run_can_qualify() -> None:
     assert (
         classify_endurance_qualification(
             clock_mode=EnduranceClockMode.WALL,
+            evidence_scope=EnduranceEvidenceScope.DURABLE_ADAPTER,
             requested_duration_hours=71,
             elapsed_wall_seconds=71 * 60 * 60,
+            scenarios=scenarios,
+        )
+        is EnduranceQualification.ENGINEERING_EVIDENCE_ONLY
+    )
+    assert (
+        classify_endurance_qualification(
+            clock_mode=EnduranceClockMode.WALL,
+            evidence_scope=EnduranceEvidenceScope.TEST_DOUBLE,
+            requested_duration_hours=72,
+            elapsed_wall_seconds=72 * 60 * 60,
             scenarios=scenarios,
         )
         is EnduranceQualification.ENGINEERING_EVIDENCE_ONLY

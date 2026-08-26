@@ -63,6 +63,11 @@ class EnduranceClockMode(StrEnum):
     VIRTUAL = "virtual"
 
 
+class EnduranceEvidenceScope(StrEnum):
+    TEST_DOUBLE = "TEST_DOUBLE"
+    DURABLE_ADAPTER = "DURABLE_ADAPTER"
+
+
 class EnduranceQualification(StrEnum):
     QUALIFIED = "QUALIFIED"
     ENGINEERING_EVIDENCE_ONLY = "ENGINEERING_EVIDENCE_ONLY"
@@ -597,6 +602,7 @@ def _aggregate_fault_results(
 def classify_endurance_qualification(
     *,
     clock_mode: EnduranceClockMode,
+    evidence_scope: EnduranceEvidenceScope,
     requested_duration_hours: int,
     elapsed_wall_seconds: float,
     scenarios: tuple[FaultScenarioResult, ...],
@@ -606,6 +612,7 @@ def classify_endurance_qualification(
     requested_seconds = requested_duration_hours * 60 * 60
     if (
         clock_mode is EnduranceClockMode.WALL
+        and evidence_scope is EnduranceEvidenceScope.DURABLE_ADAPTER
         and requested_duration_hours >= MINIMUM_QUALIFYING_HOURS
         and elapsed_wall_seconds >= requested_seconds
     ):
@@ -622,6 +629,7 @@ class PaperEnduranceReport:
     elapsed_wall_seconds: float
     simulated_hours: int
     clock_mode: EnduranceClockMode
+    evidence_scope: EnduranceEvidenceScope
     qualification: EnduranceQualification
     execution_capability: str
     scenarios: tuple[FaultScenarioResult, ...]
@@ -632,6 +640,7 @@ class PaperEnduranceReport:
             "clockMode": self.clock_mode.value,
             "elapsedWallSeconds": round(self.elapsed_wall_seconds, 3),
             "evidenceDigest": self.evidence_digest,
+            "evidenceScope": self.evidence_scope.value,
             "executionCapability": self.execution_capability,
             "generatedAt": _timestamp(self.generated_at),
             "qualification": self.qualification.value,
@@ -678,8 +687,10 @@ def run_paper_endurance(
 
     elapsed_wall_seconds = time.monotonic() - started_monotonic
     scenarios = _aggregate_fault_results(collected)
+    evidence_scope = EnduranceEvidenceScope.TEST_DOUBLE
     qualification = classify_endurance_qualification(
         clock_mode=clock_mode,
+        evidence_scope=evidence_scope,
         requested_duration_hours=duration_hours,
         elapsed_wall_seconds=elapsed_wall_seconds,
         scenarios=scenarios,
@@ -688,6 +699,7 @@ def run_paper_endurance(
     evidence_body = {
         "clockMode": clock_mode.value,
         "elapsedWallSeconds": round(elapsed_wall_seconds, 3),
+        "evidenceScope": evidence_scope.value,
         "executionCapability": "PAPER_ONLY",
         "generatedAt": _timestamp(generated_at),
         "qualification": qualification.value,
@@ -705,6 +717,7 @@ def run_paper_endurance(
         elapsed_wall_seconds=elapsed_wall_seconds,
         simulated_hours=simulated_hours,
         clock_mode=clock_mode,
+        evidence_scope=evidence_scope,
         qualification=qualification,
         execution_capability="PAPER_ONLY",
         scenarios=scenarios,
