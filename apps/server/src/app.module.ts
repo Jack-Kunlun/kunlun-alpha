@@ -10,6 +10,7 @@ import { SeatKolWorkbenchModule } from "./modules/seat-kol/seat-kol.module";
 import { BacktestRegressionModule } from "./modules/backtest-regression/backtest-regression.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { LimitPoolModule } from "./modules/limit-pool/limit-pool.module";
+import { InstrumentIntelligenceModule } from "./modules/instrument-intelligence/instrument-intelligence.module";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { LimitPoolModule } from "./modules/limit-pool/limit-pool.module";
     BacktestRegressionModule,
     DashboardModule,
     LimitPoolModule,
+    InstrumentIntelligenceModule,
   ],
   controllers: [AppController, MetricsController],
 })
