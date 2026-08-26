@@ -253,7 +253,7 @@ function digestEntries(value: unknown, field: string): DigestEntry[] {
   });
 }
 
-function parseBacktestRegressionArtifactLegacy(value: unknown): BacktestRegressionArtifact {
+function _parseBacktestRegressionArtifactLegacy(value: unknown): BacktestRegressionArtifact {
   const item = exactObject(value, ["schemaVersion", "canonicalizationVersion", "suiteId", "runId", "fixtureId", "trust", "manifest", "inputs", "provenance", "versions", "results", "artifactSha256"], "artifact");
   if (item.schemaVersion !== "backtest-regression-run-v1" || item.canonicalizationVersion !== "backtest-regression-c14n-v1") throw new BacktestRegressionValidationError("artifact schema is unsupported");
   const suiteId = assertSafeId(item.suiteId, "artifact.suiteId");
@@ -524,7 +524,7 @@ export function parseCanonicalBacktestRegressionJson(raw: string): JsonObject {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw) as unknown;
-  } catch (error) {
+  } catch {
     throw new BacktestRegressionUnavailableError("artifact JSON is malformed");
   }
   if (canonicalJson(parsed) !== raw) throw new BacktestRegressionUnavailableError("artifact JSON is not canonical");
@@ -534,7 +534,7 @@ export function parseCanonicalBacktestRegressionJson(raw: string): JsonObject {
   return parsed as JsonObject;
 }
 
-function parseBacktestRegressionBaselineLegacy(value: unknown): BacktestRegressionBaseline {
+function _parseBacktestRegressionBaselineLegacy(value: unknown): BacktestRegressionBaseline {
   const baseline = exactObject(value, ["schemaVersion", "baselineId", "suiteId", "expectedArtifact", "expectedArtifactSha256", "approval"], "baseline");
   if (baseline.schemaVersion !== "backtest-regression-baseline-v1") throw new BacktestRegressionValidationError("baseline schema is unsupported");
   const baselineId = assertSafeId(baseline.baselineId, "baseline.baselineId");
