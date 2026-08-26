@@ -1,5 +1,19 @@
 """Public simulation-only paper-account API."""
 
+from .allocation import (
+    ALLOCATION_SCHEMA_VERSION,
+    ORDER_INTENT_SCHEMA_VERSION,
+    AllocationRejectionReason,
+    PaperAllocationDecision,
+    PaperAllocationError,
+    PaperAllocationPolicy,
+    PaperAllocationRejection,
+    PaperIntentSide,
+    PaperMarketQuote,
+    PaperOrderIntent,
+    PaperTargetPosition,
+    allocate_signals,
+)
 from .ledger import (
     InMemoryPaperAccountEventStore,
     PaperAccountEventStore,
@@ -34,11 +48,18 @@ from .models import (
 
 __all__ = [
     "ACCOUNT_SCHEMA_VERSION",
+    "ALLOCATION_SCHEMA_VERSION",
+    "ORDER_INTENT_SCHEMA_VERSION",
     "SNAPSHOT_SCHEMA_VERSION",
     "ZERO_DIGEST",
+    "AllocationRejectionReason",
     "ChangePaperAccountStatus",
     "InMemoryPaperAccountEventStore",
     "OpenPaperAccount",
+    "PaperAllocationDecision",
+    "PaperAllocationError",
+    "PaperAllocationPolicy",
+    "PaperAllocationRejection",
     "PaperAccountConcurrencyError",
     "PaperAccountError",
     "PaperAccountEvent",
@@ -50,14 +71,19 @@ __all__ = [
     "PaperAccountTape",
     "PaperAccountValidationError",
     "PaperEventMetadata",
+    "PaperIntentSide",
+    "PaperMarketQuote",
+    "PaperOrderIntent",
     "PaperPosition",
     "PaperValuation",
     "PaperValuationMark",
+    "PaperTargetPosition",
     "PositionTransferReason",
     "RecordPaperValuation",
     "TransferPaperPosition",
     "ValuationMarkSource",
     "append_account_event",
+    "allocate_signals",
     "event_digest",
     "replay_account",
 ]

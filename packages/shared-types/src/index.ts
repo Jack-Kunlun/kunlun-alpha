@@ -2698,6 +2698,103 @@ export interface PaperValuationMark {
   evidenceId: string;
 }
 
+/**
+ * This interface was referenced by `PaperAllocationDecision`'s JSON-Schema
+ * via the `definition` "WeightValue".
+ */
+export type WeightValue = string;
+/**
+ * This interface was referenced by `PaperAllocationDecision`'s JSON-Schema
+ * via the `definition` "DecimalValue".
+ */
+export type DecimalValue = string;
+
+/**
+ * Explainable signal-to-target allocation for simulation-only execution
+ */
+export interface PaperAllocationDecision {
+  schemaVersion: "paper-allocation-decision-v1";
+  decisionId: string;
+  accountId: string;
+  decisionTime: string;
+  accountStateDigest: string;
+  policyId: string;
+  policyVersion: string;
+  policyDigest: string;
+  targets: PaperTargetPosition[];
+  intents: PaperOrderIntent[];
+  rejections: PaperAllocationRejection[];
+  decisionDigest: string;
+  executionCapability: "PAPER_ONLY";
+  dataMeaning: "INTENT_ONLY_NO_BROKER_PATH";
+}
+/**
+ * This interface was referenced by `PaperAllocationDecision`'s JSON-Schema
+ * via the `definition` "PaperTargetPosition".
+ */
+export interface PaperTargetPosition {
+  instrumentId: string;
+  /**
+   * @minItems 1
+   */
+  sourceSignalIds: [string, ...string[]];
+  currentQuantity: number;
+  targetQuantity: number;
+  targetWeight: WeightValue;
+  referencePrice: DecimalValue;
+  roundingLotSize: number;
+  explanation: string;
+}
+/**
+ * This interface was referenced by `PaperAllocationDecision`'s JSON-Schema
+ * via the `definition` "PaperOrderIntent".
+ */
+export interface PaperOrderIntent {
+  schemaVersion: "paper-order-intent-v1";
+  intentId: string;
+  accountId: string;
+  /**
+   * @minItems 1
+   */
+  sourceSignalIds: [string, ...string[]];
+  instrumentId: string;
+  decisionTime: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  referencePrice: DecimalValue;
+  targetQuantity: number;
+  targetWeight: WeightValue;
+  policyId: string;
+  policyVersion: string;
+  policyDigest: string;
+  explanation: string;
+  brokerExecutable: false;
+  executionCapability: "PAPER_ONLY";
+}
+/**
+ * This interface was referenced by `PaperAllocationDecision`'s JSON-Schema
+ * via the `definition` "PaperAllocationRejection".
+ */
+export interface PaperAllocationRejection {
+  instrumentId: string;
+  /**
+   * @minItems 1
+   */
+  sourceSignalIds: [string, ...string[]];
+  reason:
+    | "ACCOUNT_NOT_ACTIVE"
+    | "CONFLICTING_SIGNALS"
+    | "LOW_CONFIDENCE"
+    | "SHORT_NOT_SUPPORTED"
+    | "MISSING_MARKET_DATA"
+    | "FUTURE_DATA"
+    | "MISSING_VALUATION"
+    | "BOARD_LOT_ROUNDED_TO_ZERO"
+    | "INSUFFICIENT_CASH"
+    | "NO_ACTION";
+  explanation: string;
+}
+
 export interface SeatKolWorkbenchSnapshot {
   schemaVersion: "seat-kol-workbench-v1";
   snapshotId: string;

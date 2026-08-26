@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/paper/paper-allocation-decision.json",
+  "title": "PaperAllocationDecision",
+  "description": "Explainable signal-to-target allocation for simulation-only execution",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "accountId",
+    "decisionTime",
+    "accountStateDigest",
+    "policyId",
+    "policyVersion",
+    "policyDigest",
+    "targets",
+    "intents",
+    "rejections",
+    "decisionDigest",
+    "executionCapability",
+    "dataMeaning"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "paper-allocation-decision-v1" },
+    "decisionId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "accountId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "decisionTime": { "type": "string", "format": "date-time" },
+    "accountStateDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "policyId": { "type": "string", "minLength": 1 },
+    "policyVersion": { "type": "string", "minLength": 1 },
+    "policyDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "targets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PaperTargetPosition" }
+    },
+    "intents": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PaperOrderIntent" }
+    },
+    "rejections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PaperAllocationRejection" }
+    },
+    "decisionDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "executionCapability": { "const": "PAPER_ONLY" },
+    "dataMeaning": { "const": "INTENT_ONLY_NO_BROKER_PATH" }
+  },
+  "$defs": {
+    "DecimalValue": {
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "WeightValue": {
+      "type": "string",
+      "pattern": "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    },
+    "PaperTargetPosition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrumentId",
+        "sourceSignalIds",
+        "currentQuantity",
+        "targetQuantity",
+        "targetWeight",
+        "referencePrice",
+        "roundingLotSize",
+        "explanation"
+      ],
+      "properties": {
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "sourceSignalIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "currentQuantity": { "type": "integer", "minimum": 0 },
+        "targetQuantity": { "type": "integer", "minimum": 0 },
+        "targetWeight": { "$ref": "#/$defs/WeightValue" },
+        "referencePrice": { "$ref": "#/$defs/DecimalValue" },
+        "roundingLotSize": { "type": "integer", "minimum": 1 },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "PaperOrderIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "intentId",
+        "accountId",
+        "sourceSignalIds",
+        "instrumentId",
+        "decisionTime",
+        "side",
+        "quantity",
+        "referencePrice",
+        "targetQuantity",
+        "targetWeight",
+        "policyId",
+        "policyVersion",
+        "policyDigest",
+        "explanation",
+        "brokerExecutable",
+        "executionCapability"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "paper-order-intent-v1" },
+        "intentId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "accountId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "sourceSignalIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "decisionTime": { "type": "string", "format": "date-time" },
+        "side": { "enum": ["BUY", "SELL"] },
+        "quantity": { "type": "integer", "minimum": 1 },
+        "referencePrice": { "$ref": "#/$defs/DecimalValue" },
+        "targetQuantity": { "type": "integer", "minimum": 0 },
+        "targetWeight": { "$ref": "#/$defs/WeightValue" },
+        "policyId": { "type": "string", "minLength": 1 },
+        "policyVersion": { "type": "string", "minLength": 1 },
+        "policyDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "explanation": { "type": "string", "minLength": 1 },
+        "brokerExecutable": { "const": false },
+        "executionCapability": { "const": "PAPER_ONLY" }
+      }
+    },
+    "PaperAllocationRejection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instrumentId", "sourceSignalIds", "reason", "explanation"],
+      "properties": {
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "sourceSignalIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "reason": {
+          "enum": [
+            "ACCOUNT_NOT_ACTIVE",
+            "CONFLICTING_SIGNALS",
+            "LOW_CONFIDENCE",
+            "SHORT_NOT_SUPPORTED",
+            "MISSING_MARKET_DATA",
+            "FUTURE_DATA",
+            "MISSING_VALUATION",
+            "BOARD_LOT_ROUNDED_TO_ZERO",
+            "INSUFFICIENT_CASH",
+            "NO_ACTION"
+          ]
+        },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
