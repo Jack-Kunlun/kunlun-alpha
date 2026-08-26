@@ -1,0 +1,249 @@
+{
+  "datasetManifest": "dataset/dataset-manifest.json",
+  "executionSnapshot": {
+    "askLevels": [
+      {
+        "availableTime": "2026-08-24T14:59:00+08:00",
+        "levelId": "gold-ask-1",
+        "price": "200.00",
+        "priceSource": "EXECUTABLE_QUOTE",
+        "quantity": 100,
+        "side": "SELL"
+      }
+    ],
+    "availableTime": "2026-08-24T14:59:40+08:00",
+    "bidLevels": [],
+    "calendarDigest": "006b7bc3055aee7d6fbc35e31908f17475ffabea65911e852effd00659517d5e",
+    "calendarId": "fixture.calendar",
+    "calendarVersion": "v1",
+    "instrumentCode": "518880.SH",
+    "isTradingDay": true,
+    "lockState": "NONE",
+    "matchTime": "2026-08-24T15:00:00+08:00",
+    "observedTime": "2026-08-24T14:59:30+08:00",
+    "priceBand": {
+      "dailyLower": "0.01",
+      "dailyUpper": "500",
+      "dynamicValidLower": "0.01",
+      "dynamicValidUpper": "500"
+    },
+    "processingTime": "2026-08-24T14:59:50+08:00",
+    "schemaVersion": "execution-v1",
+    "session": "CONTINUOUS",
+    "snapshotId": "gold-execution-v1",
+    "source": {
+      "availableTime": "2026-08-24T14:58:00+08:00",
+      "digest": "97f71a782b3cdf5ab5f29fba7a2da6de84b89038e0a48fdbe5d8cd41de5d5f6c",
+      "recordId": "gold-execution-v1",
+      "sourceId": "fixture.synthetic.execution",
+      "sourceVersion": "v1"
+    },
+    "tradeStatus": "OPEN",
+    "tradingDate": "2026-08-24"
+  },
+  "referenceEvidence": {
+    "bars": [
+      {
+        "availableTime": "2026-08-22T15:05:00+08:00",
+        "bar": {
+          "amount": "100000.00",
+          "close": "200.00",
+          "date": "2026-08-22",
+          "exchange": "SH",
+          "high": "200.00",
+          "interval": "DAILY",
+          "low": "200.00",
+          "open": "200.00",
+          "priceType": "RAW",
+          "session": "CONTINUOUS",
+          "suspended": false,
+          "timestamp": "2026-08-22T15:00:00+08:00",
+          "unifiedCode": "518880.SH",
+          "volume": 100000
+        },
+        "eventTime": "2026-08-22T15:00:00+08:00",
+        "ingestTime": "2026-08-22T15:01:00+08:00",
+        "payloadDigest": "sha256:1c6c52a39244a64905e37aa75b4bec87b0967a85689eb24e25f69257126e68f3",
+        "processingTime": "2026-08-22T15:06:00+08:00",
+        "rawObjectId": "bar-gold-20260822",
+        "source": "fixture.synthetic.bar",
+        "sourceRevision": "bar-gold-20260822-revision"
+      },
+      {
+        "availableTime": "2026-08-23T15:05:00+08:00",
+        "bar": {
+          "amount": "101000.00",
+          "close": "202.00",
+          "date": "2026-08-23",
+          "exchange": "SH",
+          "high": "202.00",
+          "interval": "DAILY",
+          "low": "202.00",
+          "open": "202.00",
+          "priceType": "RAW",
+          "session": "CONTINUOUS",
+          "suspended": false,
+          "timestamp": "2026-08-23T15:00:00+08:00",
+          "unifiedCode": "518880.SH",
+          "volume": 100000
+        },
+        "eventTime": "2026-08-23T15:00:00+08:00",
+        "ingestTime": "2026-08-23T15:01:00+08:00",
+        "payloadDigest": "sha256:eb0a6bfc449f94a1fd7b1bf6fc71affb895d45c5f9cd3086dd129c785a933816",
+        "processingTime": "2026-08-23T15:06:00+08:00",
+        "rawObjectId": "bar-gold-20260823",
+        "source": "fixture.synthetic.bar",
+        "sourceRevision": "bar-gold-20260823-revision"
+      }
+    ],
+    "benchmarkSeries": [
+      {
+        "benchmarkId": "benchmark:v1:sge:au9999-close-cny",
+        "currency": "CNY",
+        "priceBasis": "CLOSE",
+        "referenceOnly": true,
+        "referenceValue": "100.00"
+      },
+      {
+        "benchmarkId": "benchmark:v1:sge:au9999-close-cny",
+        "currency": "CNY",
+        "priceBasis": "CLOSE",
+        "referenceOnly": true,
+        "referenceValue": "101.00"
+      }
+    ],
+    "benchmarkSeriesId": "benchmark:v1:sge:au9999-close-cny",
+    "benchmarks": [
+      {
+        "availableTime": "2026-08-23T15:05:00+08:00",
+        "benchmarkId": "benchmark:v1:sge:au9999-close-cny",
+        "currency": "CNY",
+        "eventTime": "2026-08-23T15:00:00+08:00",
+        "ingestTime": "2026-08-23T15:01:00+08:00",
+        "payloadDigest": "sha256:38e7b99c6ce744db2f330545ce65234907f0b8dfaafd3b3d3aa0a201b23d5f7b",
+        "priceBasis": "CLOSE",
+        "processingTime": "2026-08-23T15:06:00+08:00",
+        "rawObjectId": "benchmark-gold-20260822",
+        "referenceOnly": true,
+        "referenceValue": "100.00",
+        "schemaVersion": "benchmark-series-point-v1",
+        "source": "fixture.synthetic.benchmark",
+        "sourceRevision": "benchmark-gold-20260822-revision"
+      },
+      {
+        "availableTime": "2026-08-23T15:05:00+08:00",
+        "benchmarkId": "benchmark:v1:sge:au9999-close-cny",
+        "currency": "CNY",
+        "eventTime": "2026-08-23T15:00:00+08:00",
+        "ingestTime": "2026-08-23T15:01:00+08:00",
+        "payloadDigest": "sha256:07d10a0191a7466b3521f72f901910ac6eea9f5d1e0f8b8df095abe8e8a85e7e",
+        "priceBasis": "CLOSE",
+        "processingTime": "2026-08-23T15:06:00+08:00",
+        "rawObjectId": "benchmark-gold-20260823",
+        "referenceOnly": true,
+        "referenceValue": "101.00",
+        "schemaVersion": "benchmark-series-point-v1",
+        "source": "fixture.synthetic.benchmark",
+        "sourceRevision": "benchmark-gold-20260823-revision"
+      }
+    ],
+    "classificationPayloadDigest": "sha256:d04900c31aaf17c30916628a4c6b74d6e6cbde9affe8aa0143a1e777b8e966cf",
+    "fund": {
+      "assetType": "ETF",
+      "availableTime": "2026-08-24T14:45:00+08:00",
+      "benchmarkOrTrackingIndex": "gold fixture benchmark",
+      "benchmarkSeriesId": "benchmark:v1:sge:au9999-close-cny",
+      "confidence": "0.99",
+      "eventTime": "2026-08-24T14:40:00+08:00",
+      "exchange": "SH",
+      "fundAssetClass": "PRECIOUS_METALS",
+      "ingestTime": "2026-08-24T14:42:00+08:00",
+      "managementFeeRate": "0.005",
+      "navCurrency": "CNY",
+      "processingTime": "2026-08-24T14:46:00+08:00",
+      "publishTime": "2026-08-24T14:40:00+08:00",
+      "rawObjectId": "fund-gold-v1",
+      "recurringFees": [],
+      "reviewStatus": "REVIEWED",
+      "source": "fixture.synthetic.fund",
+      "tradingCurrency": "CNY",
+      "underlyingCommodity": "GOLD",
+      "unifiedCode": "518880.SH",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    "fundAssetClass": "PRECIOUS_METALS",
+    "inavObservations": [
+      {
+        "availableTime": "2026-08-23T15:02:00+08:00",
+        "priceSource": "INAV",
+        "value": "10.00"
+      }
+    ],
+    "navRevisions": [
+      {
+        "availableTime": "2026-08-23T15:02:00+08:00",
+        "inav": "10.00",
+        "nav": "10.00",
+        "priceSource": "INAV",
+        "sourceRevision": "nav-gold-old"
+      },
+      {
+        "availableTime": "2026-08-24T15:01:00+08:00",
+        "inav": null,
+        "nav": "8.00",
+        "priceSource": "NAV",
+        "sourceRevision": "nav-gold-future"
+      }
+    ],
+    "navs": [
+      {
+        "availableTime": "2026-08-23T15:02:00+08:00",
+        "date": "2026-08-23",
+        "eventTime": "2026-08-23T14:58:00+08:00",
+        "inav": "10.00",
+        "ingestTime": "2026-08-23T15:00:00+08:00",
+        "nav": "10.00",
+        "payloadDigest": "sha256:e0cc5a9976322f91d7a738d0efab6b6ca1db77c355b3aa990770513980cdd93a",
+        "processingTime": "2026-08-23T15:03:00+08:00",
+        "publishTime": "2026-08-23T14:59:00+08:00",
+        "rawObjectId": "nav-gold-old",
+        "source": "fixture.synthetic.nav",
+        "unifiedCode": "518880.SH"
+      },
+      {
+        "availableTime": "2026-08-24T15:01:00+08:00",
+        "date": "2026-08-24",
+        "eventTime": "2026-08-24T14:58:00+08:00",
+        "inav": null,
+        "ingestTime": "2026-08-24T15:00:00+08:00",
+        "nav": "8.00",
+        "payloadDigest": "sha256:7a176e03a398a8e1b25664f61f67e0020baff076eaeb105ce94eae1c3f95652a",
+        "processingTime": "2026-08-24T15:02:00+08:00",
+        "publishTime": "2026-08-24T14:59:00+08:00",
+        "rawObjectId": "nav-gold-future",
+        "source": "fixture.synthetic.nav",
+        "unifiedCode": "518880.SH"
+      }
+    ],
+    "rawBars": [
+      {
+        "amount": "100000.00",
+        "close": "200.00",
+        "date": "2026-08-22",
+        "priceType": "RAW",
+        "suspended": false
+      },
+      {
+        "amount": "101000.00",
+        "close": "202.00",
+        "date": "2026-08-23",
+        "priceType": "RAW",
+        "suspended": false
+      }
+    ],
+    "underlyingCommodity": "GOLD"
+  },
+  "schemaVersion": "precious-metals-backtest-fixture-v1",
+  "unifiedCode": "518880.SH"
+}

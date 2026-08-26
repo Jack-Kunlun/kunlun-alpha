@@ -1,0 +1,163 @@
+{
+  "datasetManifest": "dataset/dataset-manifest.json",
+  "executionSnapshot": {
+    "askLevels": [],
+    "availableTime": "2026-08-24T14:59:40+08:00",
+    "bidLevels": [],
+    "calendarDigest": "006b7bc3055aee7d6fbc35e31908f17475ffabea65911e852effd00659517d5e",
+    "calendarId": "fixture.calendar",
+    "calendarVersion": "v1",
+    "instrumentCode": "161226.SZ",
+    "isTradingDay": true,
+    "lockState": "NONE",
+    "matchTime": "2026-08-24T15:00:00+08:00",
+    "observedTime": "2026-08-24T14:59:30+08:00",
+    "priceBand": {
+      "dailyLower": "0.01",
+      "dailyUpper": "20",
+      "dynamicValidLower": "0.01",
+      "dynamicValidUpper": "20"
+    },
+    "processingTime": "2026-08-24T14:59:50+08:00",
+    "schemaVersion": "execution-v1",
+    "session": "CONTINUOUS",
+    "snapshotId": "silver-execution-v1",
+    "source": {
+      "availableTime": "2026-08-24T14:58:00+08:00",
+      "digest": "b89731d539fe7cd4c3d4f29134352ff704091464ab646e08120d30656ca7e2b5",
+      "recordId": "silver-execution-v1",
+      "sourceId": "fixture.synthetic.execution",
+      "sourceVersion": "v1"
+    },
+    "tradeStatus": "OPEN",
+    "tradingDate": "2026-08-24"
+  },
+  "referenceEvidence": {
+    "bars": [
+      {
+        "availableTime": "2026-08-23T15:05:00+08:00",
+        "bar": {
+          "amount": "200000.00",
+          "close": "1.02",
+          "date": "2026-08-23",
+          "exchange": "SZ",
+          "high": "1.02",
+          "interval": "DAILY",
+          "low": "1.02",
+          "open": "1.02",
+          "priceType": "RAW",
+          "session": "CONTINUOUS",
+          "suspended": false,
+          "timestamp": "2026-08-23T15:00:00+08:00",
+          "unifiedCode": "161226.SZ",
+          "volume": 100000
+        },
+        "eventTime": "2026-08-23T15:00:00+08:00",
+        "ingestTime": "2026-08-23T15:01:00+08:00",
+        "payloadDigest": "sha256:1cdca336d809cd8415a55a7b0897c67320f58ed7457ab8be2b77035d17955faf",
+        "processingTime": "2026-08-23T15:06:00+08:00",
+        "rawObjectId": "bar-silver-20260823",
+        "source": "fixture.synthetic.bar",
+        "sourceRevision": "bar-silver-20260823-revision"
+      }
+    ],
+    "benchmarkSeries": [
+      {
+        "benchmarkId": "benchmark:v1:sge:agtd-close-cny",
+        "currency": "CNY",
+        "priceBasis": "CLOSE",
+        "referenceOnly": true,
+        "referenceValue": "50.00"
+      }
+    ],
+    "benchmarkSeriesId": "benchmark:v1:sge:agtd-close-cny",
+    "benchmarks": [
+      {
+        "availableTime": "2026-08-23T15:05:00+08:00",
+        "benchmarkId": "benchmark:v1:sge:agtd-close-cny",
+        "currency": "CNY",
+        "eventTime": "2026-08-23T15:00:00+08:00",
+        "ingestTime": "2026-08-23T15:01:00+08:00",
+        "payloadDigest": "sha256:fac8f5a1d950a914d1ce76666b15311f365221493cadbf747c98eeda7cd8525b",
+        "priceBasis": "CLOSE",
+        "processingTime": "2026-08-23T15:06:00+08:00",
+        "rawObjectId": "benchmark-silver-20260823",
+        "referenceOnly": true,
+        "referenceValue": "50.00",
+        "schemaVersion": "benchmark-series-point-v1",
+        "source": "fixture.synthetic.benchmark",
+        "sourceRevision": "benchmark-silver-20260823-revision"
+      }
+    ],
+    "classificationPayloadDigest": "sha256:e1cd75e1536f693192e79394f0cb4d070ec14df9c42d789758c9e8903d08e8dc",
+    "fund": {
+      "assetType": "LOF",
+      "availableTime": "2026-08-24T14:45:00+08:00",
+      "benchmarkOrTrackingIndex": "silver fixture benchmark",
+      "benchmarkSeriesId": "benchmark:v1:sge:agtd-close-cny",
+      "confidence": "0.99",
+      "eventTime": "2026-08-24T14:40:00+08:00",
+      "exchange": "SZ",
+      "fundAssetClass": "PRECIOUS_METALS",
+      "ingestTime": "2026-08-24T14:42:00+08:00",
+      "managementFeeRate": "0.005",
+      "navCurrency": "CNY",
+      "processingTime": "2026-08-24T14:46:00+08:00",
+      "publishTime": "2026-08-24T14:40:00+08:00",
+      "rawObjectId": "fund-silver-v1",
+      "recurringFees": [],
+      "reviewStatus": "REVIEWED",
+      "source": "fixture.synthetic.fund",
+      "tradingCurrency": "CNY",
+      "underlyingCommodity": "SILVER",
+      "unifiedCode": "161226.SZ",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    "fundAssetClass": "PRECIOUS_METALS",
+    "inavObservations": [
+      {
+        "availableTime": "2026-08-24T14:57:00+08:00",
+        "priceSource": "INAV",
+        "value": "1.01"
+      }
+    ],
+    "navRevisions": [
+      {
+        "availableTime": "2026-08-24T14:57:00+08:00",
+        "inav": "1.01",
+        "nav": "1.00",
+        "priceSource": "INAV",
+        "sourceRevision": "nav-silver-v1"
+      }
+    ],
+    "navs": [
+      {
+        "availableTime": "2026-08-24T14:57:00+08:00",
+        "date": "2026-08-23",
+        "eventTime": "2026-08-24T14:53:00+08:00",
+        "inav": "1.01",
+        "ingestTime": "2026-08-24T14:55:00+08:00",
+        "nav": "1.00",
+        "payloadDigest": "sha256:633fecf9c566851f248ecf156545ef2ddeddf4d1c3c850f1fa5a24651656b1d1",
+        "processingTime": "2026-08-24T14:58:00+08:00",
+        "publishTime": "2026-08-24T14:54:00+08:00",
+        "rawObjectId": "nav-silver-v1",
+        "source": "fixture.synthetic.nav",
+        "unifiedCode": "161226.SZ"
+      }
+    ],
+    "rawBars": [
+      {
+        "amount": "200000.00",
+        "close": "1.02",
+        "date": "2026-08-23",
+        "priceType": "RAW",
+        "suspended": false
+      }
+    ],
+    "underlyingCommodity": "SILVER"
+  },
+  "schemaVersion": "precious-metals-backtest-fixture-v1",
+  "unifiedCode": "161226.SZ"
+}

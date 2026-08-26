@@ -40,9 +40,64 @@ class OnlineEventDisposition(StrEnum):
 
 class OnlineProcessDisposition(StrEnum):
     COMMITTED = "COMMITTED"
+    PENDING = "PENDING"
+    TERMINAL = "TERMINAL"
     DUPLICATE = "DUPLICATE"
     REJECTED_LATE = "REJECTED_LATE"
     REJECTED_EXPIRED = "REJECTED_EXPIRED"
+
+
+class OnlineCalculationDisposition(StrEnum):
+    MATERIALIZED = "MATERIALIZED"
+    PENDING = "PENDING"
+    TERMINAL = "TERMINAL"
+
+
+@dataclass(frozen=True, slots=True)
+class OnlineCalculationResult:
+    disposition: OnlineCalculationDisposition
+    value: object | None = None
+    status: str | None = None
+    reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if type(self.disposition) is not OnlineCalculationDisposition:
+            raise OnlineValidationError(
+                "online calculation disposition must use OnlineCalculationDisposition"
+            )
+        if self.disposition is OnlineCalculationDisposition.MATERIALIZED:
+            if self.value is None or self.status is not None or self.reason is not None:
+                raise OnlineValidationError("materialized online calculation requires only a value")
+            return
+        if self.value is not None:
+            raise OnlineValidationError("non-materialized online calculation cannot carry a value")
+        if self.disposition is OnlineCalculationDisposition.PENDING:
+            if self.status is not None or self.reason is not None:
+                raise OnlineValidationError(
+                    "pending online calculation cannot carry terminal status or reason"
+                )
+            return
+        if (
+            type(self.status) is not str
+            or not self.status
+            or type(self.reason) is not str
+            or not self.reason
+        ):
+            raise OnlineValidationError(
+                "terminal online calculation requires non-empty status and reason"
+            )
+
+    @classmethod
+    def materialized(cls, value: object) -> OnlineCalculationResult:
+        return cls(OnlineCalculationDisposition.MATERIALIZED, value=value)
+
+    @classmethod
+    def pending(cls) -> OnlineCalculationResult:
+        return cls(OnlineCalculationDisposition.PENDING)
+
+    @classmethod
+    def terminal(cls, *, status: str, reason: str) -> OnlineCalculationResult:
+        return cls(OnlineCalculationDisposition.TERMINAL, status=status, reason=reason)
 
 
 class OnlineFreshness(StrEnum):
@@ -163,6 +218,11 @@ class OnlineFeatureEvent:
     def content_checksum(self) -> str:
         return canonical_checksum(self)
 
+    @property
+    def arrival_time(self) -> datetime:
+        """Trusted online arrival time; kept separate from source lineage ingest time."""
+        return self.ingest_time
+
 
 @dataclass(frozen=True, slots=True)
 class OnlineInputLineage:
@@ -189,6 +249,8 @@ class OnlineEventReceipt:
     content_checksum: str
     disposition: OnlineEventDisposition
     retain_until: datetime
+    processing_time: datetime | None = None
+    state_revision: int | None = None
 
     def __post_init__(self) -> None:
         _text(self.event_id, "receipt event_id")
@@ -196,6 +258,16 @@ class OnlineEventReceipt:
         if type(cast(object, self.disposition)) is not OnlineEventDisposition:
             raise OnlineValidationError("receipt disposition type is invalid")
         _aware(self.retain_until, "receipt retain_until")
+        if (self.processing_time is None) != (self.state_revision is None):
+            raise OnlineValidationError(
+                "receipt processing_time and state_revision must be set together"
+            )
+        if self.processing_time is not None:
+            _aware(self.processing_time, "receipt processing_time")
+        if self.state_revision is not None and (
+            type(self.state_revision) is not int or self.state_revision < 1
+        ):
+            raise OnlineValidationError("receipt state_revision must be positive")
 
 
 @dataclass(frozen=True, slots=True)
@@ -269,6 +341,38 @@ class OnlineFeatureValue:
 
 
 @dataclass(frozen=True, slots=True)
+class OnlineTerminalOutcome:
+    event_id: str
+    window: EventTimeWindow
+    status: str
+    reason: str
+    input_lineage: tuple[OnlineInputLineage, ...]
+    input_checksum: str
+    computed_at: datetime
+    retain_until: datetime
+    state_revision: int
+
+    def __post_init__(self) -> None:
+        _text(self.event_id, "terminal event_id")
+        if type(cast(object, self.window)) is not EventTimeWindow:
+            raise OnlineValidationError("terminal window type is invalid")
+        _text(self.status, "terminal status")
+        _text(self.reason, "terminal reason")
+        event_ids = [item.event_id for item in self.input_lineage]
+        if not event_ids or len(event_ids) != len(set(event_ids)) or self.event_id not in event_ids:
+            raise OnlineValidationError(
+                "terminal lineage must be unique and contain the trigger event"
+            )
+        _text(self.input_checksum, "terminal input_checksum")
+        _aware(self.computed_at, "terminal computed_at")
+        _aware(self.retain_until, "terminal retain_until")
+        if self.retain_until <= self.computed_at:
+            raise OnlineValidationError("terminal retain_until must follow computed_at")
+        if type(self.state_revision) is not int or self.state_revision < 1:
+            raise OnlineValidationError("terminal state_revision must be positive")
+
+
+@dataclass(frozen=True, slots=True)
 class OnlineStreamState:
     stream_key: str
     registry_ref: RegistrySnapshotRef
@@ -285,6 +389,7 @@ class OnlineStreamState:
     receipts: tuple[OnlineEventReceipt, ...]
     values: tuple[OnlineFeatureValue, ...]
     rejections: tuple[OnlineRejection, ...]
+    terminal_outcomes: tuple[OnlineTerminalOutcome, ...] = ()
 
     def __post_init__(self) -> None:
         _text(self.stream_key, "stream_key")
@@ -337,6 +442,7 @@ class OnlineStreamState:
             receipts=(),
             values=(),
             rejections=(),
+            terminal_outcomes=(),
         )
 
     @property
@@ -375,6 +481,8 @@ class OnlineProcessResult:
     state: OnlineStreamState
     value: OnlineFeatureValue | None
     rejection: OnlineRejection | None
+    terminal_status: str | None = None
+    terminal_reason: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

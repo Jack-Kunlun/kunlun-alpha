@@ -173,10 +173,21 @@ class DatasetExporter:
 
     def verify(
         self,
-        manifest: DatasetManifest,
-        dataset_root: Path,
-    ) -> None:
-        root = Path(dataset_root)
+        manifest_or_root: DatasetManifest | Path,
+        dataset_root: Path | None = None,
+    ) -> DatasetManifest:
+        if dataset_root is None:
+            if isinstance(manifest_or_root, DatasetManifest):
+                raise DatasetIntegrityError(
+                    "dataset root is required when verifying an in-memory manifest"
+                )
+            root = manifest_or_root
+            manifest: DatasetManifest | None = None
+        else:
+            if not isinstance(manifest_or_root, DatasetManifest):
+                raise DatasetIntegrityError("dataset manifest type is invalid")
+            root = dataset_root
+            manifest = manifest_or_root
         if root.is_symlink():
             raise DatasetIntegrityError("dataset root must not be a symlink")
         manifest_path = root / DATASET_MANIFEST_FILENAME
@@ -184,8 +195,9 @@ class DatasetExporter:
             persisted = DatasetManifest.from_json(manifest_path.read_text(encoding="utf-8"))
         except OSError as exc:
             raise DatasetIntegrityError("dataset manifest file is unavailable") from exc
-        if persisted != manifest:
+        if manifest is not None and persisted != manifest:
             raise DatasetIntegrityError("persisted dataset manifest does not match")
+        manifest = persisted
 
         command_path = root / DATASET_REBUILD_COMMAND_FILENAME
         try:
@@ -218,6 +230,7 @@ class DatasetExporter:
         for expected in manifest.partitions:
             actual = self._codec.inspect(root / expected.relative_path, expected.partition)
             self._verify_artifact(expected, actual)
+        return manifest
 
     def _export_partition(
         self,

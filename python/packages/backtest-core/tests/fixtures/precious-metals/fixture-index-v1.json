@@ -1,0 +1,47 @@
+{
+  "fixtures": [
+    {
+      "file": "gold-etf-backtest-v1.json",
+      "recordCount": 1,
+      "sha256": "sha256:286fbed16aeea61d7010e48ed38a3815c138b607ae2d5cc773879712ec5ce1f0",
+      "sizeBytes": 8529
+    },
+    {
+      "file": "silver-lof-backtest-v1.json",
+      "recordCount": 1,
+      "sha256": "sha256:d99d478190008ff6eb0a8dcccd50a82065c402e7e2bb53fdd5b54c4e0d9c9536",
+      "sizeBytes": 5502
+    },
+    {
+      "file": "other-commodity-v1.json",
+      "recordCount": 1,
+      "sha256": "sha256:2397e0406b74a3beb682e2265cbfa21d6db04467f23a1d68ab79f49036c83924",
+      "sizeBytes": 4596
+    },
+    {
+      "file": "dataset/dataset-manifest.json",
+      "recordCount": 1,
+      "sha256": "sha256:16c27ab72bcbc20c1a15cbd393af1861bbaff55314b0fb8abd934acc16b236a0",
+      "sizeBytes": 3475
+    },
+    {
+      "file": "dataset/rebuild-command.json",
+      "recordCount": 1,
+      "sha256": "sha256:a5bbdb117335b7038d771a083e9326ba7d02cbf183b11e14ab0979bfe7d563f7",
+      "sizeBytes": 461
+    },
+    {
+      "file": "dataset/partitions/train/train.parquet",
+      "recordCount": 1,
+      "sha256": "sha256:5b275e657d017afff014d8f0cc201ab1149e732e75617a14426f50f1b2a3457a",
+      "sizeBytes": 11622
+    },
+    {
+      "file": "dataset/partitions/evaluation/evaluation.parquet",
+      "recordCount": 1,
+      "sha256": "sha256:123700e0ebb80f30d2c6a19331817aaa5185c94b05d0dce2f0e2ee8d174ab7a6",
+      "sizeBytes": 11684
+    }
+  ],
+  "schemaVersion": "precious-metals-fixture-index-v1"
+}
