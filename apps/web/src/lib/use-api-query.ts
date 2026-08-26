@@ -21,6 +21,21 @@ export interface ObjectQueryResult<T> {
   error: Error | null;
 }
 
+export interface QueryRefreshScheduler {
+  setInterval(callback: () => void, intervalMs: number): number;
+  clearInterval(intervalId: number): void;
+}
+
+export function scheduleQueryRefresh(
+  callback: () => void,
+  intervalMs: number,
+  scheduler: QueryRefreshScheduler = window,
+): () => void {
+  if (intervalMs <= 0) return () => undefined;
+  const intervalId = scheduler.setInterval(callback, intervalMs);
+  return () => scheduler.clearInterval(intervalId);
+}
+
 type Action<T> =
   | { type: "start" }
   | { type: "success"; data: T[] }
@@ -113,12 +128,19 @@ export function useApiObjectQuery<T>(
   fetcher: () => Promise<T>,
   deps: readonly unknown[],
   enabled = true,
+  refreshIntervalMs = 0,
 ): ObjectQueryResult<T> {
+  const [refreshKey, refresh] = useReducer((value: number) => value + 1, 0);
   const [result, dispatch] = useReducer(objectReducer<T>, {
     status: enabled ? "loading" : "empty",
     data: null,
     error: null,
   });
+
+  useEffect(() => {
+    if (!enabled || refreshIntervalMs <= 0) return undefined;
+    return scheduleQueryRefresh(refresh, refreshIntervalMs);
+  }, [enabled, refreshIntervalMs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,7 +170,7 @@ export function useApiObjectQuery<T>(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, enabled]);
+  }, [...deps, enabled, refreshKey]);
 
   return result;
 }

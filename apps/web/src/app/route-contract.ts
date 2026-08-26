@@ -79,7 +79,7 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "指数、宽度、成交额、情绪与风险状态",
     group: "decision",
     permission: "terminal:read",
-    status: "planned",
+    status: "ready",
     node: "P6-N02",
     navigation: true,
   },
