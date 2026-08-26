@@ -219,7 +219,49 @@ from ashare_contracts.instrument_instrument import Exchange as Exchange_8
 from ashare_contracts.instrument_instrument import Instrument as Instrument
 from ashare_contracts.instrument_instrument import TradingStatus as TradingStatus
 from ashare_contracts.instrument_instrument import Type as Type
-from ashare_contracts.instrument_trading_status import TradingStatus as TradingStatus_1
+from ashare_contracts.instrument_intelligence_detail import Access as Access
+from ashare_contracts.instrument_intelligence_detail import Board as Board_2
+from ashare_contracts.instrument_intelligence_detail import ClaimMeaning as ClaimMeaning
+from ashare_contracts.instrument_intelligence_detail import Consistency as Consistency
+from ashare_contracts.instrument_intelligence_detail import Currency as Currency_2
+from ashare_contracts.instrument_intelligence_detail import DataMeaning as DataMeaning
+from ashare_contracts.instrument_intelligence_detail import DataMeaning1 as DataMeaning1
+from ashare_contracts.instrument_intelligence_detail import Emotion as Emotion
+from ashare_contracts.instrument_intelligence_detail import EmotionSection as EmotionSection
+from ashare_contracts.instrument_intelligence_detail import EventItem as EventItem
+from ashare_contracts.instrument_intelligence_detail import EventSection as EventSection
+from ashare_contracts.instrument_intelligence_detail import EvidenceId as EvidenceId_5
+from ashare_contracts.instrument_intelligence_detail import EvidenceLink as EvidenceLink
+from ashare_contracts.instrument_intelligence_detail import Exchange as Exchange_9
+from ashare_contracts.instrument_intelligence_detail import FeatureItem as FeatureItem
+from ashare_contracts.instrument_intelligence_detail import FeatureSection as FeatureSection
+from ashare_contracts.instrument_intelligence_detail import Identity as Identity
+from ashare_contracts.instrument_intelligence_detail import IdentitySection as IdentitySection
+from ashare_contracts.instrument_intelligence_detail import (
+    InstrumentIntelligenceDetail as InstrumentIntelligenceDetail,
+)
+from ashare_contracts.instrument_intelligence_detail import Kind as Kind_1
+from ashare_contracts.instrument_intelligence_detail import KolClaimItem as KolClaimItem
+from ashare_contracts.instrument_intelligence_detail import KolClaimSection as KolClaimSection
+from ashare_contracts.instrument_intelligence_detail import MarketBar as MarketBar
+from ashare_contracts.instrument_intelligence_detail import MarketSection as MarketSection
+from ashare_contracts.instrument_intelligence_detail import Mode as Mode_3
+from ashare_contracts.instrument_intelligence_detail import PostgresIsolation as PostgresIsolation
+from ashare_contracts.instrument_intelligence_detail import ReviewStatus as ReviewStatus_1
+from ashare_contracts.instrument_intelligence_detail import SchemaVersion as SchemaVersion_1
+from ashare_contracts.instrument_intelligence_detail import SeatItem as SeatItem
+from ashare_contracts.instrument_intelligence_detail import SeatSection as SeatSection
+from ashare_contracts.instrument_intelligence_detail import SectionMetadata as SectionMetadata
+from ashare_contracts.instrument_intelligence_detail import Sections as Sections
+from ashare_contracts.instrument_intelligence_detail import SectorItem as SectorItem
+from ashare_contracts.instrument_intelligence_detail import SectorSection as SectorSection
+from ashare_contracts.instrument_intelligence_detail import SnapshotBoundary as SnapshotBoundary
+from ashare_contracts.instrument_intelligence_detail import SourceVersion as SourceVersion_3
+from ashare_contracts.instrument_intelligence_detail import Status as Status_2
+from ashare_contracts.instrument_intelligence_detail import Store as Store
+from ashare_contracts.instrument_intelligence_detail import TradingStatus as TradingStatus_1
+from ashare_contracts.instrument_intelligence_detail import Type as Type_1
+from ashare_contracts.instrument_trading_status import TradingStatus as TradingStatus_2
 from ashare_contracts.instrument_trading_status import Value as Value
 from ashare_contracts.kol_claim import KolClaim as KolClaim
 from ashare_contracts.kol_claim import KolClaimAttribution as KolClaimAttribution
@@ -249,19 +291,19 @@ from ashare_contracts.kol_claim_extraction_candidate import (
     KolClaimExtractionCandidate as KolClaimExtractionCandidate,
 )
 from ashare_contracts.kol_claim_extraction_candidate import MediaExactAnchor as MediaExactAnchor
-from ashare_contracts.kol_claim_extraction_candidate import ReviewStatus as ReviewStatus_1
-from ashare_contracts.kol_claim_extraction_candidate import SchemaVersion as SchemaVersion_1
+from ashare_contracts.kol_claim_extraction_candidate import ReviewStatus as ReviewStatus_2
+from ashare_contracts.kol_claim_extraction_candidate import SchemaVersion as SchemaVersion_2
 from ashare_contracts.kol_claim_extraction_candidate import SegmentIndex as SegmentIndex
 from ashare_contracts.kol_claim_extraction_candidate import SemanticLabel as SemanticLabel
 from ashare_contracts.kol_claim_review import Decision as Decision
 from ashare_contracts.kol_claim_review import KolClaimReview as KolClaimReview
 from ashare_contracts.kol_claim_review import ReviewMeaning as ReviewMeaning
-from ashare_contracts.kol_claim_review import SchemaVersion as SchemaVersion_2
+from ashare_contracts.kol_claim_review import SchemaVersion as SchemaVersion_3
 from ashare_contracts.kol_claim_review_submission import Decision as Decision_1
 from ashare_contracts.kol_claim_review_submission import (
     KolClaimReviewSubmission as KolClaimReviewSubmission,
 )
-from ashare_contracts.kol_claim_review_submission import SchemaVersion as SchemaVersion_3
+from ashare_contracts.kol_claim_review_submission import SchemaVersion as SchemaVersion_4
 from ashare_contracts.kol_content import KolContent as KolContent
 from ashare_contracts.kol_content import (
     KolContentFingerprintAlgorithmVersion as KolContentFingerprintAlgorithmVersion,
@@ -297,18 +339,18 @@ from ashare_contracts.kol_position_claim import KolPositionDirection as KolPosit
 from ashare_contracts.kol_position_claim import KolPositionReviewStatus as KolPositionReviewStatus
 from ashare_contracts.kol_position_claim import KolPositionTimeHorizon as KolPositionTimeHorizon
 from ashare_contracts.market_data_adjustment_factor import AdjustmentFactor as AdjustmentFactor
-from ashare_contracts.market_data_adjustment_factor import Exchange as Exchange_9
+from ashare_contracts.market_data_adjustment_factor import Exchange as Exchange_10
 from ashare_contracts.market_data_adjustment_factor import FactorType as FactorType
 from ashare_contracts.market_data_bar import Bar as Bar
-from ashare_contracts.market_data_bar import Exchange as Exchange_10
+from ashare_contracts.market_data_bar import Exchange as Exchange_11
 from ashare_contracts.market_data_bar import Interval as Interval
 from ashare_contracts.market_data_bar import PriceType as PriceType
 from ashare_contracts.market_data_bar import Session as Session
 from ashare_contracts.market_data_corporate_action import ActionType as ActionType
 from ashare_contracts.market_data_corporate_action import CorporateAction as CorporateAction
-from ashare_contracts.market_data_corporate_action import Exchange as Exchange_11
+from ashare_contracts.market_data_corporate_action import Exchange as Exchange_12
 from ashare_contracts.market_data_tick import Direction as Direction
-from ashare_contracts.market_data_tick import Exchange as Exchange_12
+from ashare_contracts.market_data_tick import Exchange as Exchange_13
 from ashare_contracts.market_data_tick import Tick as Tick
 from ashare_contracts.market_data_tick import TradeType as TradeType
 from ashare_contracts.seat_alias import SeatAlias as SeatAlias
@@ -319,15 +361,15 @@ from ashare_contracts.seat_kol_workbench_snapshot import Claim as Claim
 from ashare_contracts.seat_kol_workbench_snapshot import Cooccurrence as Cooccurrence
 from ashare_contracts.seat_kol_workbench_snapshot import Direction as Direction_1
 from ashare_contracts.seat_kol_workbench_snapshot import Evidence as Evidence
-from ashare_contracts.seat_kol_workbench_snapshot import EvidenceId as EvidenceId_5
-from ashare_contracts.seat_kol_workbench_snapshot import Kind as Kind_1
+from ashare_contracts.seat_kol_workbench_snapshot import EvidenceId as EvidenceId_6
+from ashare_contracts.seat_kol_workbench_snapshot import Kind as Kind_2
 from ashare_contracts.seat_kol_workbench_snapshot import KolProfile as KolProfile
 from ashare_contracts.seat_kol_workbench_snapshot import LeftEntityType as LeftEntityType
 from ashare_contracts.seat_kol_workbench_snapshot import Metric as Metric
 from ashare_contracts.seat_kol_workbench_snapshot import MetricName as MetricName
-from ashare_contracts.seat_kol_workbench_snapshot import Mode as Mode_3
+from ashare_contracts.seat_kol_workbench_snapshot import Mode as Mode_4
 from ashare_contracts.seat_kol_workbench_snapshot import ReviewQueueItem as ReviewQueueItem
-from ashare_contracts.seat_kol_workbench_snapshot import ReviewStatus as ReviewStatus_2
+from ashare_contracts.seat_kol_workbench_snapshot import ReviewStatus as ReviewStatus_3
 from ashare_contracts.seat_kol_workbench_snapshot import RightEntityType as RightEntityType
 from ashare_contracts.seat_kol_workbench_snapshot import SeatKind as SeatKind
 from ashare_contracts.seat_kol_workbench_snapshot import (
@@ -356,19 +398,19 @@ from ashare_contracts.seat_seat_profile import (
 )
 from ashare_contracts.seat_seat_profile import SeatProfileSeatKind as SeatProfileSeatKind
 from ashare_contracts.seat_seat_profile import SuccessorSeatId as SuccessorSeatId
-from ashare_contracts.seat_trade import Currency as Currency_2
+from ashare_contracts.seat_trade import Currency as Currency_3
 from ashare_contracts.seat_trade import SeatTrade as SeatTrade
 from ashare_contracts.seat_trade import SeatTradeSchemaVersion as SeatTradeSchemaVersion
 from ashare_contracts.sector_sector import Alias as Alias_1
-from ashare_contracts.sector_sector import Kind as Kind_2
+from ashare_contracts.sector_sector import Kind as Kind_3
 from ashare_contracts.sector_sector import Sector as Sector
 from ashare_contracts.sector_sector_membership import SectorMembership as SectorMembership
 from ashare_contracts.sector_sector_rotation_event import EventType as EventType_3
-from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_6
+from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_7
 from ashare_contracts.sector_sector_rotation_event import SectorRotationEvent as SectorRotationEvent
-from ashare_contracts.sector_sector_rotation_event import SourceVersion as SourceVersion_3
+from ashare_contracts.sector_sector_rotation_event import SourceVersion as SourceVersion_4
 from ashare_contracts.strategy_signal import Direction as Direction_2
-from ashare_contracts.strategy_signal import EvidenceId as EvidenceId_7
+from ashare_contracts.strategy_signal import EvidenceId as EvidenceId_8
 from ashare_contracts.strategy_signal import Signal as Signal
 from ashare_contracts.strategy_strategy_descriptor import (
     BooleanParameterSpec as BooleanParameterSpec,
@@ -543,7 +585,47 @@ __all__ = [
     "Instrument",
     "TradingStatus",
     "Type",
+    "Access",
+    "Board_2",
+    "ClaimMeaning",
+    "Consistency",
+    "Currency_2",
+    "DataMeaning",
+    "DataMeaning1",
+    "Emotion",
+    "EmotionSection",
+    "EventItem",
+    "EventSection",
+    "EvidenceId_5",
+    "EvidenceLink",
+    "Exchange_9",
+    "FeatureItem",
+    "FeatureSection",
+    "Identity",
+    "IdentitySection",
+    "InstrumentIntelligenceDetail",
+    "Kind_1",
+    "KolClaimItem",
+    "KolClaimSection",
+    "MarketBar",
+    "MarketSection",
+    "Mode_3",
+    "PostgresIsolation",
+    "ReviewStatus_1",
+    "SchemaVersion_1",
+    "SeatItem",
+    "SeatSection",
+    "SectionMetadata",
+    "Sections",
+    "SectorItem",
+    "SectorSection",
+    "SnapshotBoundary",
+    "SourceVersion_3",
+    "Status_2",
+    "Store",
     "TradingStatus_1",
+    "Type_1",
+    "TradingStatus_2",
     "Value",
     "KolClaim",
     "KolClaimAttribution",
@@ -567,17 +649,17 @@ __all__ = [
     "EvidenceGradeVersion",
     "KolClaimExtractionCandidate",
     "MediaExactAnchor",
-    "ReviewStatus_1",
-    "SchemaVersion_1",
+    "ReviewStatus_2",
+    "SchemaVersion_2",
     "SegmentIndex",
     "SemanticLabel",
     "Decision",
     "KolClaimReview",
     "ReviewMeaning",
-    "SchemaVersion_2",
+    "SchemaVersion_3",
     "Decision_1",
     "KolClaimReviewSubmission",
-    "SchemaVersion_3",
+    "SchemaVersion_4",
     "KolContent",
     "KolContentFingerprintAlgorithmVersion",
     "KolContentSchemaVersion",
@@ -605,18 +687,18 @@ __all__ = [
     "KolPositionReviewStatus",
     "KolPositionTimeHorizon",
     "AdjustmentFactor",
-    "Exchange_9",
+    "Exchange_10",
     "FactorType",
     "Bar",
-    "Exchange_10",
+    "Exchange_11",
     "Interval",
     "PriceType",
     "Session",
     "ActionType",
     "CorporateAction",
-    "Exchange_11",
-    "Direction",
     "Exchange_12",
+    "Direction",
+    "Exchange_13",
     "Tick",
     "TradeType",
     "SeatAlias",
@@ -627,15 +709,15 @@ __all__ = [
     "Cooccurrence",
     "Direction_1",
     "Evidence",
-    "EvidenceId_5",
-    "Kind_1",
+    "EvidenceId_6",
+    "Kind_2",
     "KolProfile",
     "LeftEntityType",
     "Metric",
     "MetricName",
-    "Mode_3",
+    "Mode_4",
     "ReviewQueueItem",
-    "ReviewStatus_2",
+    "ReviewStatus_3",
     "RightEntityType",
     "SeatKind",
     "SeatKolWorkbenchSnapshot",
@@ -654,19 +736,19 @@ __all__ = [
     "SeatProfileSeatIdAlgorithm",
     "SeatProfileSeatKind",
     "SuccessorSeatId",
-    "Currency_2",
+    "Currency_3",
     "SeatTrade",
     "SeatTradeSchemaVersion",
     "Alias_1",
-    "Kind_2",
+    "Kind_3",
     "Sector",
     "SectorMembership",
     "EventType_3",
-    "EvidenceId_6",
-    "SectorRotationEvent",
-    "SourceVersion_3",
-    "Direction_2",
     "EvidenceId_7",
+    "SectorRotationEvent",
+    "SourceVersion_4",
+    "Direction_2",
+    "EvidenceId_8",
     "Signal",
     "BooleanParameterSpec",
     "DecimalParameterSpec",

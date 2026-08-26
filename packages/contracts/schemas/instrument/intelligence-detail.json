@@ -1,0 +1,487 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/instrument/intelligence-detail.json",
+  "title": "InstrumentIntelligenceDetail",
+  "description": "Research-only point-in-time instrument intelligence assembled across PostgreSQL and ClickHouse without any execution capability.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "type": "string", "enum": ["instrument-intelligence-detail-v1"] },
+    "dataMeaning": { "type": "string", "enum": ["RESEARCH_ONLY_NO_REAL_ORDER_PATH"] },
+    "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+    "mode": { "type": "string", "enum": ["CURRENT", "HISTORICAL"] },
+    "requestedAsOf": { "type": "string", "format": "date-time" },
+    "effectiveAsOf": { "type": "string", "format": "date-time" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "snapshotBoundary": { "$ref": "#/definitions/SnapshotBoundary" },
+    "sections": { "$ref": "#/definitions/Sections" },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/EvidenceLink" }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "dataMeaning",
+    "instrumentId",
+    "mode",
+    "requestedAsOf",
+    "effectiveAsOf",
+    "generatedAt",
+    "snapshotBoundary",
+    "sections",
+    "evidence"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "SnapshotBoundary": {
+      "type": "object",
+      "properties": {
+        "consistency": { "type": "string", "enum": ["BEST_EFFORT_CROSS_STORE"] },
+        "postgresIsolation": { "type": "string", "enum": ["REPEATABLE_READ"] },
+        "effectiveAsOf": { "type": "string", "format": "date-time" },
+        "stores": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "string", "enum": ["POSTGRESQL", "CLICKHOUSE"] }
+        }
+      },
+      "required": ["consistency", "postgresIsolation", "effectiveAsOf", "stores"],
+      "additionalProperties": false
+    },
+    "SectionMetadata": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["AVAILABLE", "EMPTY", "UNAVAILABLE"] },
+        "requestedAsOf": { "type": "string", "format": "date-time" },
+        "effectiveAsOf": { "type": "string", "format": "date-time" },
+        "dataCutoffTime": { "type": ["string", "null"], "format": "date-time" },
+        "availableTime": { "type": ["string", "null"], "format": "date-time" },
+        "processingTime": { "type": ["string", "null"], "format": "date-time" },
+        "freshnessSeconds": { "type": ["integer", "null"], "minimum": 0 },
+        "unavailableReason": { "type": ["string", "null"] },
+        "sourceVersions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "evidenceIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "required": [
+        "status",
+        "requestedAsOf",
+        "effectiveAsOf",
+        "dataCutoffTime",
+        "availableTime",
+        "processingTime",
+        "freshnessSeconds",
+        "unavailableReason",
+        "sourceVersions",
+        "evidenceIds"
+      ],
+      "additionalProperties": false
+    },
+    "Identity": {
+      "type": "object",
+      "properties": {
+        "unifiedCode": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "code": { "type": "string", "pattern": "^[0-9]{6}$" },
+        "exchange": { "type": "string", "enum": ["SH", "SZ", "BJ"] },
+        "board": { "type": "string", "enum": ["MAIN", "CHINEXT", "STAR", "BSE"] },
+        "type": { "type": "string", "enum": ["STOCK", "ETF", "LOF", "FUND"] },
+        "name": { "type": "string" },
+        "tradingStatus": {
+          "type": "string",
+          "enum": ["LISTED", "SUSPENDED", "ST", "DELISTED"]
+        },
+        "currency": { "type": "string", "enum": ["CNY"] },
+        "listDate": { "type": ["string", "null"], "format": "date" },
+        "delistDate": { "type": ["string", "null"], "format": "date" }
+      },
+      "required": [
+        "unifiedCode",
+        "code",
+        "exchange",
+        "board",
+        "type",
+        "name",
+        "tradingStatus",
+        "currency",
+        "listDate",
+        "delistDate"
+      ],
+      "additionalProperties": false
+    },
+    "MarketBar": {
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "open": { "type": "string" },
+        "high": { "type": "string" },
+        "low": { "type": "string" },
+        "close": { "type": "string" },
+        "volume": { "type": "string" },
+        "amount": { "type": "string" },
+        "suspended": { "type": "boolean" },
+        "dataVersion": { "type": "string" },
+        "source": { "type": "string" },
+        "sourceVersion": { "type": "string" },
+        "evidenceId": { "type": "string" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "processingTime": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "date",
+        "eventTime",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "amount",
+        "suspended",
+        "dataVersion",
+        "source",
+        "sourceVersion",
+        "evidenceId",
+        "availableTime",
+        "processingTime"
+      ],
+      "additionalProperties": false
+    },
+    "Emotion": {
+      "type": "object",
+      "properties": {
+        "eventTime": { "type": "string", "format": "date-time" },
+        "score": { "type": "string" },
+        "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "sampleSize": { "type": "integer", "minimum": 0 },
+        "algorithmVersion": { "type": "string" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "processingTime": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "eventTime",
+        "score",
+        "confidenceBps",
+        "sampleSize",
+        "algorithmVersion",
+        "availableTime",
+        "processingTime"
+      ],
+      "additionalProperties": false
+    },
+    "SectorItem": {
+      "type": "object",
+      "properties": {
+        "sectorId": { "type": "string" },
+        "name": { "type": "string" },
+        "kind": { "type": "string", "enum": ["INDUSTRY", "CONCEPT", "THEME"] },
+        "validFrom": { "type": "string", "format": "date" },
+        "validTo": { "type": ["string", "null"], "format": "date" },
+        "source": { "type": "string" },
+        "sourceVersion": { "type": "string" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "evidenceId": { "type": "string" }
+      },
+      "required": [
+        "sectorId",
+        "name",
+        "kind",
+        "validFrom",
+        "validTo",
+        "source",
+        "sourceVersion",
+        "availableTime",
+        "evidenceId"
+      ],
+      "additionalProperties": false
+    },
+    "EventItem": {
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "eventType": { "type": "string" },
+        "headline": { "type": "string" },
+        "summary": { "type": "string" },
+        "occurTime": { "type": "string", "format": "date-time" },
+        "publishTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "modelVersion": { "type": "string" },
+        "evidenceIds": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": [
+        "eventId",
+        "eventType",
+        "headline",
+        "summary",
+        "occurTime",
+        "publishTime",
+        "availableTime",
+        "confidenceBps",
+        "modelVersion",
+        "evidenceIds"
+      ],
+      "additionalProperties": false
+    },
+    "SeatItem": {
+      "type": "object",
+      "properties": {
+        "tradeId": { "type": "string" },
+        "revisionId": { "type": "string" },
+        "seatId": { "type": "string" },
+        "rawSeatName": { "type": "string" },
+        "tradeDate": { "type": "string", "format": "date" },
+        "currency": { "type": "string", "enum": ["CNY"] },
+        "buyAmount": { "type": "string" },
+        "sellAmount": { "type": "string" },
+        "netAmount": { "type": "string" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "evidenceId": { "type": "string" },
+        "dataMeaning": {
+          "type": "string",
+          "enum": ["PUBLIC_DRAGON_TIGER_FACT_NOT_BROKER_ORDER"]
+        }
+      },
+      "required": [
+        "tradeId",
+        "revisionId",
+        "seatId",
+        "rawSeatName",
+        "tradeDate",
+        "currency",
+        "buyAmount",
+        "sellAmount",
+        "netAmount",
+        "availableTime",
+        "evidenceId",
+        "dataMeaning"
+      ],
+      "additionalProperties": false
+    },
+    "KolClaimItem": {
+      "type": "object",
+      "properties": {
+        "claimId": { "type": "string" },
+        "revisionId": { "type": "string" },
+        "kolId": { "type": "string" },
+        "statement": { "type": "string" },
+        "direction": { "type": "string" },
+        "reviewStatus": {
+          "type": "string",
+          "enum": ["UNREVIEWED", "IN_REVIEW", "APPROVED", "REJECTED"]
+        },
+        "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "publishTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "evidenceIds": { "type": "array", "items": { "type": "string" } },
+        "claimMeaning": {
+          "type": "string",
+          "enum": ["PUBLIC_WORDING_CLAIM_NOT_BROKER_TRADE"]
+        }
+      },
+      "required": [
+        "claimId",
+        "revisionId",
+        "kolId",
+        "statement",
+        "direction",
+        "reviewStatus",
+        "confidenceBps",
+        "publishTime",
+        "availableTime",
+        "evidenceIds",
+        "claimMeaning"
+      ],
+      "additionalProperties": false
+    },
+    "FeatureItem": {
+      "type": "object",
+      "properties": {
+        "featureName": { "type": "string" },
+        "featureVersion": { "type": "string" },
+        "featureFingerprint": { "type": "string" },
+        "algorithmVersion": { "type": "string" },
+        "valueType": { "type": "string" },
+        "value": {},
+        "eventTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "processingTime": { "type": "string", "format": "date-time" },
+        "lineageChecksum": { "type": "string" },
+        "sourceKind": { "type": "string" },
+        "sourceSnapshotVersion": { "type": "string" },
+        "revisionId": { "type": "string" }
+      },
+      "required": [
+        "featureName",
+        "featureVersion",
+        "featureFingerprint",
+        "algorithmVersion",
+        "valueType",
+        "value",
+        "eventTime",
+        "availableTime",
+        "processingTime",
+        "lineageChecksum",
+        "sourceKind",
+        "sourceSnapshotVersion",
+        "revisionId"
+      ],
+      "additionalProperties": false
+    },
+    "IdentitySection": {
+      "allOf": [
+        { "$ref": "#/definitions/SectionMetadata" },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "oneOf": [{ "$ref": "#/definitions/Identity" }, { "type": "null" }]
+            }
+          },
+          "required": ["data"]
+        }
+      ]
+    },
+    "MarketSection": {
+      "allOf": [
+        { "$ref": "#/definitions/SectionMetadata" },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "oneOf": [{ "$ref": "#/definitions/MarketBar" }, { "type": "null" }]
+            }
+          },
+          "required": ["data"]
+        }
+      ]
+    },
+    "EmotionSection": {
+      "allOf": [
+        { "$ref": "#/definitions/SectionMetadata" },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "oneOf": [{ "$ref": "#/definitions/Emotion" }, { "type": "null" }]
+            }
+          },
+          "required": ["data"]
+        }
+      ]
+    },
+    "SectorSection": {
+      "allOf": [
+        { "$ref": "#/definitions/SectionMetadata" },
+        {
+          "type": "object",
+          "properties": {
+            "data": { "type": "array", "items": { "$ref": "#/definitions/SectorItem" } }
+          },
+          "required": ["data"]
+        }
+      ]
+    },
+    "EventSection": {
+      "allOf": [
+        { "$ref": "#/definitions/SectionMetadata" },
+        {
+          "type": "object",
+          "properties": {
+            "data": { "type": "array", "items": { "$ref": "#/definitions/EventItem" } }
+          },
+          "required": ["data"]
+        }
+      ]
+    },
+    "SeatSection": {
+      "allOf": [
+        { "$ref": "#/definitions/SectionMetadata" },
+        {
+          "type": "object",
+          "properties": {
+            "data": { "type": "array", "items": { "$ref": "#/definitions/SeatItem" } }
+          },
+          "required": ["data"]
+        }
+      ]
+    },
+    "KolClaimSection": {
+      "allOf": [
+        { "$ref": "#/definitions/SectionMetadata" },
+        {
+          "type": "object",
+          "properties": {
+            "data": { "type": "array", "items": { "$ref": "#/definitions/KolClaimItem" } }
+          },
+          "required": ["data"]
+        }
+      ]
+    },
+    "FeatureSection": {
+      "allOf": [
+        { "$ref": "#/definitions/SectionMetadata" },
+        {
+          "type": "object",
+          "properties": {
+            "data": { "type": "array", "items": { "$ref": "#/definitions/FeatureItem" } }
+          },
+          "required": ["data"]
+        }
+      ]
+    },
+    "Sections": {
+      "type": "object",
+      "properties": {
+        "identity": { "$ref": "#/definitions/IdentitySection" },
+        "market": { "$ref": "#/definitions/MarketSection" },
+        "emotion": { "$ref": "#/definitions/EmotionSection" },
+        "sector": { "$ref": "#/definitions/SectorSection" },
+        "events": { "$ref": "#/definitions/EventSection" },
+        "seats": { "$ref": "#/definitions/SeatSection" },
+        "kolClaims": { "$ref": "#/definitions/KolClaimSection" },
+        "features": { "$ref": "#/definitions/FeatureSection" }
+      },
+      "required": [
+        "identity",
+        "market",
+        "emotion",
+        "sector",
+        "events",
+        "seats",
+        "kolClaims",
+        "features"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceLink": {
+      "type": "object",
+      "properties": {
+        "evidenceId": { "type": "string" },
+        "source": { "type": ["string", "null"] },
+        "sourceVersion": { "type": ["string", "null"] },
+        "availableTime": { "type": ["string", "null"], "format": "date-time" },
+        "excerpt": { "type": ["string", "null"] },
+        "locator": { "type": ["string", "null"] },
+        "access": { "type": "string", "enum": ["DIRECT_URL", "REFERENCE_ONLY"] }
+      },
+      "required": [
+        "evidenceId",
+        "source",
+        "sourceVersion",
+        "availableTime",
+        "excerpt",
+        "locator",
+        "access"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
