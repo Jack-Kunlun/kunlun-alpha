@@ -2841,6 +2841,7 @@ export interface PaperOrder {
     | "FILLED"
     | "CANCELLED"
     | "REJECTED";
+  riskDecisionId: string | null;
   fills: PaperFill[];
   createdAt: string;
   submittedAt: string | null;
@@ -2888,6 +2889,75 @@ export interface PaperOrderAlert {
     | "OVERFILL_REJECTED";
   detail: string;
   availableTime: string;
+}
+
+/**
+ * Point-in-time reconciliation between execution-derived and account books
+ */
+export interface PaperReconciliationResult {
+  schemaVersion: "paper-reconciliation-result-v1";
+  reconciliationId: string;
+  accountId: string;
+  asOf: string;
+  status: "MATCHED" | "DRIFTED";
+  expectedBookDigest: string;
+  observedBookDigest: string;
+  diffs: PaperBookDiff[];
+  duplicateFillCount: number;
+  executionCapability: "PAPER_ONLY";
+  dataMeaning: "SIMULATION_BOOK_RECONCILIATION";
+}
+/**
+ * This interface was referenced by `PaperReconciliationResult`'s JSON-Schema
+ * via the `definition` "PaperBookDiff".
+ */
+export interface PaperBookDiff {
+  kind: "CASH" | "POSITION_QUANTITY" | "POSITION_COST";
+  instrumentId: string | null;
+  expected: string;
+  observed: string;
+  difference: string;
+}
+
+/**
+ * Fail-closed pre-trade risk decision bound to immutable account and execution state
+ */
+export interface PaperRiskDecision {
+  schemaVersion: "paper-risk-decision-v1";
+  decisionId: string;
+  accountId: string;
+  intentId: string;
+  decisionTime: string;
+  allowed: boolean;
+  checks: PaperRiskCheck[];
+  accountStateDigest: string;
+  executionStateDigest: string;
+  policyId: string;
+  policyVersion: string;
+  policyDigest: string;
+  executionCapability: "PAPER_ONLY";
+  dataMeaning: "SERVER_SIDE_RISK_NO_BROKER_PATH";
+}
+/**
+ * This interface was referenced by `PaperRiskDecision`'s JSON-Schema
+ * via the `definition` "PaperRiskCheck".
+ */
+export interface PaperRiskCheck {
+  code:
+    | "ACCOUNT_ACTIVE"
+    | "RISK_ENGINE_READY"
+    | "EXECUTION_CONNECTED"
+    | "RECONCILIATION_HEALTHY"
+    | "ORDER_NOTIONAL_LIMIT"
+    | "POSITION_WEIGHT_LIMIT"
+    | "DAILY_TURNOVER_LIMIT"
+    | "OPEN_ORDER_LIMIT"
+    | "CASH_AVAILABLE"
+    | "PAPER_ONLY_BOUNDARY";
+  status: "PASS" | "FAIL";
+  actual: string;
+  limit: string | null;
+  explanation: string;
 }
 
 export interface SeatKolWorkbenchSnapshot {

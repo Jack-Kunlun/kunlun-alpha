@@ -408,8 +408,21 @@ from ashare_contracts.paper_paper_execution_workspace import PaperFill as PaperF
 from ashare_contracts.paper_paper_execution_workspace import PaperOrder as PaperOrder
 from ashare_contracts.paper_paper_execution_workspace import PaperOrderAlert as PaperOrderAlert
 from ashare_contracts.paper_paper_execution_workspace import PaperOrderAudit as PaperOrderAudit
+from ashare_contracts.paper_paper_execution_workspace import RiskDecisionId as RiskDecisionId
 from ashare_contracts.paper_paper_execution_workspace import Side as Side_1
 from ashare_contracts.paper_paper_execution_workspace import Status as Status_4
+from ashare_contracts.paper_paper_reconciliation_result import InstrumentId as InstrumentId_4
+from ashare_contracts.paper_paper_reconciliation_result import Kind as Kind_2
+from ashare_contracts.paper_paper_reconciliation_result import PaperBookDiff as PaperBookDiff
+from ashare_contracts.paper_paper_reconciliation_result import (
+    PaperReconciliationResult as PaperReconciliationResult,
+)
+from ashare_contracts.paper_paper_reconciliation_result import Status as Status_5
+from ashare_contracts.paper_paper_risk_decision import Code as Code_2
+from ashare_contracts.paper_paper_risk_decision import Limit as Limit
+from ashare_contracts.paper_paper_risk_decision import PaperRiskCheck as PaperRiskCheck
+from ashare_contracts.paper_paper_risk_decision import PaperRiskDecision as PaperRiskDecision
+from ashare_contracts.paper_paper_risk_decision import Status as Status_6
 from ashare_contracts.seat_alias import SeatAlias as SeatAlias
 from ashare_contracts.seat_alias import SeatAliasSchemaVersion as SeatAliasSchemaVersion
 from ashare_contracts.seat_alias import SeatAliasType as SeatAliasType
@@ -419,7 +432,7 @@ from ashare_contracts.seat_kol_workbench_snapshot import Cooccurrence as Cooccur
 from ashare_contracts.seat_kol_workbench_snapshot import Direction as Direction_1
 from ashare_contracts.seat_kol_workbench_snapshot import Evidence as Evidence
 from ashare_contracts.seat_kol_workbench_snapshot import EvidenceId as EvidenceId_6
-from ashare_contracts.seat_kol_workbench_snapshot import Kind as Kind_2
+from ashare_contracts.seat_kol_workbench_snapshot import Kind as Kind_3
 from ashare_contracts.seat_kol_workbench_snapshot import KolProfile as KolProfile
 from ashare_contracts.seat_kol_workbench_snapshot import LeftEntityType as LeftEntityType
 from ashare_contracts.seat_kol_workbench_snapshot import Metric as Metric
@@ -459,7 +472,7 @@ from ashare_contracts.seat_trade import Currency as Currency_3
 from ashare_contracts.seat_trade import SeatTrade as SeatTrade
 from ashare_contracts.seat_trade import SeatTradeSchemaVersion as SeatTradeSchemaVersion
 from ashare_contracts.sector_sector import Alias as Alias_1
-from ashare_contracts.sector_sector import Kind as Kind_3
+from ashare_contracts.sector_sector import Kind as Kind_4
 from ashare_contracts.sector_sector import Sector as Sector
 from ashare_contracts.sector_sector_membership import SectorMembership as SectorMembership
 from ashare_contracts.sector_sector_rotation_event import EventType as EventType_3
@@ -793,8 +806,19 @@ __all__ = [
     "PaperOrder",
     "PaperOrderAlert",
     "PaperOrderAudit",
+    "RiskDecisionId",
     "Side_1",
     "Status_4",
+    "InstrumentId_4",
+    "Kind_2",
+    "PaperBookDiff",
+    "PaperReconciliationResult",
+    "Status_5",
+    "Code_2",
+    "Limit",
+    "PaperRiskCheck",
+    "PaperRiskDecision",
+    "Status_6",
     "SeatAlias",
     "SeatAliasSchemaVersion",
     "SeatAliasType",
@@ -804,7 +828,7 @@ __all__ = [
     "Direction_1",
     "Evidence",
     "EvidenceId_6",
-    "Kind_2",
+    "Kind_3",
     "KolProfile",
     "LeftEntityType",
     "Metric",
@@ -834,7 +858,7 @@ __all__ = [
     "SeatTrade",
     "SeatTradeSchemaVersion",
     "Alias_1",
-    "Kind_3",
+    "Kind_4",
     "Sector",
     "SectorMembership",
     "EventType_3",

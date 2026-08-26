@@ -74,7 +74,15 @@ def _submitted() -> tuple[PaperExecutionTape, str]:
     tape, order_id = _created()
     tape = append_execution_event(
         tape,
-        CheckPaperOrder(_metadata(tape, "2" * 64, 1), order_id, True, None, "检查通过"),
+        CheckPaperOrder(
+            _metadata(tape, "2" * 64, 1),
+            order_id,
+            True,
+            None,
+            "检查通过",
+            "d" * 64,
+            "e" * 64,
+        ),
     )
     tape = append_execution_event(
         tape,

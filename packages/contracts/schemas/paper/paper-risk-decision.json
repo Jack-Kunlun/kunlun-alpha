@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/paper/paper-risk-decision.json",
+  "title": "PaperRiskDecision",
+  "description": "Fail-closed pre-trade risk decision bound to immutable account and execution state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "accountId",
+    "intentId",
+    "decisionTime",
+    "allowed",
+    "checks",
+    "accountStateDigest",
+    "executionStateDigest",
+    "policyId",
+    "policyVersion",
+    "policyDigest",
+    "executionCapability",
+    "dataMeaning"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "paper-risk-decision-v1" },
+    "decisionId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "accountId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "intentId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "decisionTime": { "type": "string", "format": "date-time" },
+    "allowed": { "type": "boolean" },
+    "checks": { "type": "array", "items": { "$ref": "#/$defs/PaperRiskCheck" } },
+    "accountStateDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "executionStateDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "policyId": { "type": "string", "minLength": 1 },
+    "policyVersion": { "type": "string", "minLength": 1 },
+    "policyDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "executionCapability": { "const": "PAPER_ONLY" },
+    "dataMeaning": { "const": "SERVER_SIDE_RISK_NO_BROKER_PATH" }
+  },
+  "$defs": {
+    "PaperRiskCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "status", "actual", "limit", "explanation"],
+      "properties": {
+        "code": {
+          "enum": [
+            "ACCOUNT_ACTIVE",
+            "RISK_ENGINE_READY",
+            "EXECUTION_CONNECTED",
+            "RECONCILIATION_HEALTHY",
+            "ORDER_NOTIONAL_LIMIT",
+            "POSITION_WEIGHT_LIMIT",
+            "DAILY_TURNOVER_LIMIT",
+            "OPEN_ORDER_LIMIT",
+            "CASH_AVAILABLE",
+            "PAPER_ONLY_BOUNDARY"
+          ]
+        },
+        "status": { "enum": ["PASS", "FAIL"] },
+        "actual": { "type": "string", "minLength": 1 },
+        "limit": {
+          "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+        },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

@@ -42,6 +42,10 @@ class Status(Enum):
     rejected = "REJECTED"
 
 
+class RiskDecisionId(RootModel[str]):
+    root: str = Field(..., pattern="^[0-9a-f]{64}$")
+
+
 class PaperOrder(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -58,6 +62,7 @@ class PaperOrder(BaseModel):
     average_fill_price: PaperExecutionDecimalValue | None = Field(..., alias="averageFillPrice")
     total_fees: str = Field(..., alias="totalFees", pattern="^(0|[1-9][0-9]*)(\\.[0-9]+)?$")
     status: Status
+    risk_decision_id: RiskDecisionId | None = Field(..., alias="riskDecisionId")
     fills: list[PaperFill]
     created_at: AwareDatetime = Field(..., alias="createdAt")
     submitted_at: AwareDatetime | None = Field(..., alias="submittedAt")

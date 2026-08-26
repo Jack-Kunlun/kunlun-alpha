@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/paper/paper-reconciliation-result.json",
+  "title": "PaperReconciliationResult",
+  "description": "Point-in-time reconciliation between execution-derived and account books",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reconciliationId",
+    "accountId",
+    "asOf",
+    "status",
+    "expectedBookDigest",
+    "observedBookDigest",
+    "diffs",
+    "duplicateFillCount",
+    "executionCapability",
+    "dataMeaning"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "paper-reconciliation-result-v1" },
+    "reconciliationId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "accountId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "asOf": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["MATCHED", "DRIFTED"] },
+    "expectedBookDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "observedBookDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "diffs": { "type": "array", "items": { "$ref": "#/$defs/PaperBookDiff" } },
+    "duplicateFillCount": { "type": "integer", "minimum": 0 },
+    "executionCapability": { "const": "PAPER_ONLY" },
+    "dataMeaning": { "const": "SIMULATION_BOOK_RECONCILIATION" }
+  },
+  "$defs": {
+    "PaperBookDiff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "instrumentId", "expected", "observed", "difference"],
+      "properties": {
+        "kind": { "enum": ["CASH", "POSITION_QUANTITY", "POSITION_COST"] },
+        "instrumentId": {
+          "oneOf": [{ "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" }, { "type": "null" }]
+        },
+        "expected": { "type": "string", "minLength": 1 },
+        "observed": { "type": "string", "minLength": 1 },
+        "difference": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
