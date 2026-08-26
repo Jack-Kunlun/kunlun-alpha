@@ -1,5 +1,5 @@
-import { BadRequestException, Controller, Get, Param, Query } from "@nestjs/common";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { BadRequestException, Controller, Get, Inject, Param, Query } from "@nestjs/common";
+import { ApiExtraModels, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type {
   BacktestRegressionArtifact,
   BacktestRegressionComparison,
@@ -10,9 +10,10 @@ import { BacktestRegressionService } from "./backtest-regression.service";
 import { BacktestRegressionValidationError } from "./backtest-regression.validation";
 
 @ApiTags("backtest-regression")
+@ApiExtraModels(BacktestRegressionComparisonQueryDto)
 @Controller("backtest/regressions")
 export class BacktestRegressionController {
-  constructor(private readonly service: BacktestRegressionService) {}
+  constructor(@Inject(BacktestRegressionService) private readonly service: BacktestRegressionService) {}
 
   @Get()
   @ApiOperation({ summary: "List read-only backtest regression run summaries" })
