@@ -31,6 +31,9 @@ vi.mock("./features/seat-kol/seat-kol-workbench-page", () => ({
 vi.mock("./features/backtest/backtest-regression-page", () => ({
   BacktestRegressionPage: () => <div>BACKTEST_REGRESSION_MARKER</div>,
 }));
+vi.mock("./features/precious-metals/precious-metals-terminal-page", () => ({
+  PreciousMetalsTerminalPage: () => <div>PRECIOUS_METALS_TERMINAL_MARKER</div>,
+}));
 vi.mock("./components/ui/sonner", () => ({ Toaster: () => null }));
 
 import { App } from "./App";
@@ -64,12 +67,11 @@ describe("App routing", () => {
     );
   });
 
-  it("keeps planned deep links stable without fabricating feature data", () => {
+  it("serves the precious-metals funds terminal", () => {
     route = "/precious-metals";
     const html = renderToStaticMarkup(<App />);
-    expect(html).toContain("ROUTE_PLACEHOLDER:precious-metals");
-    expect(html).toContain("规划能力");
-    expect(html).toContain("路由已就绪");
+    expect(html).toContain("PRECIOUS_METALS_TERMINAL_MARKER");
+    expect(html).not.toContain("ROUTE_PLACEHOLDER:precious-metals");
   });
 
   it("supports dynamic instrument deep links", () => {
