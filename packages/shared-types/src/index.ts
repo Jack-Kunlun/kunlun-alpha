@@ -1494,6 +1494,167 @@ export interface PreciousMetalFund {
 }
 
 /**
+ * Point-in-time read model for exchange-listed precious-metals funds; NAV and iNAV are non-executable reference values
+ */
+export interface PreciousMetalsTerminalSnapshot {
+  schemaVersion: "precious-metals-terminal-v1";
+  mode: "CURRENT" | "HISTORICAL";
+  requestedAsOf: string;
+  effectiveAsOf: string;
+  generatedAt: string;
+  status: "AVAILABLE" | "PARTIAL" | "EMPTY" | "UNAVAILABLE";
+  executionCapability: "REFERENCE_ONLY";
+  valuationPolicy: "NAV_INAV_NON_EXECUTABLE";
+  rankingAlgorithmVersion: "precious-metals-turnover-ranking-v1";
+  rankingMetric: "LATEST_EXCHANGE_TURNOVER_CNY";
+  sampleSize: number;
+  gaps: PreciousMetalsTerminalGap[];
+  sourceVersions: string[];
+  evidenceIds: string[];
+  funds: PreciousMetalsTerminalFund[];
+  events: PreciousMetalsTerminalEvent[];
+}
+/**
+ * This interface was referenced by `PreciousMetalsTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "PreciousMetalsTerminalGap".
+ */
+export interface PreciousMetalsTerminalGap {
+  scope: "METADATA" | "MARKET" | "NAV" | "INAV" | "FEATURES" | "EVENTS";
+  severity: "INFO" | "WARNING" | "ERROR";
+  code:
+    "SOURCE_UNAVAILABLE" | "NO_VISIBLE_DATA" | "STALE_DATA" | "INVALID_UPSTREAM_DATA" | "TRUNCATED";
+  instrumentId: string | null;
+  message: string;
+}
+/**
+ * This interface was referenced by `PreciousMetalsTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "PreciousMetalsTerminalFund".
+ */
+export interface PreciousMetalsTerminalFund {
+  unifiedCode: string;
+  displayName: string;
+  exchange: "SH" | "SZ" | "BJ";
+  assetType: "ETF" | "LOF" | "FUND";
+  underlyingCommodity: "GOLD" | "SILVER" | "OTHER";
+  tradingCurrency: "CNY";
+  navCurrency: string;
+  benchmarkOrTrackingIndex: string;
+  managementFeeRateBps: number;
+  metadataConfidenceBps: number;
+  reviewStatus: "REVIEWED" | "NEEDS_REVIEW";
+  metadataSource: string;
+  metadataSourceVersion: string;
+  metadataAvailableTime: string;
+  metadataProcessingTime: string;
+  market: PreciousMetalsTerminalMarket | null;
+  valuation: PreciousMetalsTerminalValuation;
+  features: PreciousMetalsTerminalFeature[];
+  ranking: PreciousMetalsTerminalRanking | null;
+  alertContext: PreciousMetalsTerminalAlertContext;
+}
+/**
+ * This interface was referenced by `PreciousMetalsTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "PreciousMetalsTerminalMarket".
+ */
+export interface PreciousMetalsTerminalMarket {
+  date: string;
+  eventTime: string;
+  close: string;
+  volume: string;
+  turnoverCny: string;
+  suspended: boolean;
+  freshness: "FRESH" | "STALE";
+  source: string;
+  sourceVersion: string;
+  dataVersion: string;
+  availableTime: string;
+  processingTime: string;
+  evidenceId: string;
+}
+/**
+ * This interface was referenced by `PreciousMetalsTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "PreciousMetalsTerminalValuation".
+ */
+export interface PreciousMetalsTerminalValuation {
+  navValue: string | null;
+  inavValue: string | null;
+  referenceKind: "NAV" | "INAV" | null;
+  referenceValue: string | null;
+  referenceDate: string | null;
+  premiumDiscountBps: string | null;
+  freshness: "FRESH" | "STALE" | "MISSING";
+  staleAfterSeconds: number | null;
+  source: string | null;
+  sourceVersion: string | null;
+  availableTime: string | null;
+  processingTime: string | null;
+  evidenceIds: string[];
+  referenceOnly: true;
+}
+/**
+ * This interface was referenced by `PreciousMetalsTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "PreciousMetalsTerminalFeature".
+ */
+export interface PreciousMetalsTerminalFeature {
+  name: string;
+  value: string;
+  valueType: "BOOLEAN" | "INTEGER" | "DECIMAL" | "STRING" | "CATEGORY";
+  featureVersion: string;
+  algorithmVersion: string;
+  eventTime: string;
+  availableTime: string;
+  processingTime: string;
+  evidenceId: string;
+}
+/**
+ * This interface was referenced by `PreciousMetalsTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "PreciousMetalsTerminalRanking".
+ */
+export interface PreciousMetalsTerminalRanking {
+  rank: number;
+  metric: "LATEST_EXCHANGE_TURNOVER_CNY";
+  metricValue: string;
+  algorithmVersion: "precious-metals-turnover-ranking-v1";
+  sampleSize: number;
+  confidenceBps: number;
+}
+/**
+ * This interface was referenced by `PreciousMetalsTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "PreciousMetalsTerminalAlertContext".
+ */
+export interface PreciousMetalsTerminalAlertContext {
+  instrumentId: string;
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  supportedFields: ["LAST_PRICE" | "FEATURE_VALUE", "LAST_PRICE" | "FEATURE_VALUE"];
+  premiumFeatureName: "precious_metals_fund.premium_discount_bps";
+}
+/**
+ * This interface was referenced by `PreciousMetalsTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "PreciousMetalsTerminalEvent".
+ */
+export interface PreciousMetalsTerminalEvent {
+  eventId: string;
+  /**
+   * @minItems 1
+   */
+  instrumentIds: [string, ...string[]];
+  eventType: string;
+  headline: string;
+  summary: string;
+  publishTime: string;
+  availableTime: string;
+  confidenceBps: number;
+  modelVersion: string;
+  /**
+   * @minItems 1
+   */
+  evidenceIds: [string, ...string[]];
+}
+
+/**
  * Service health-check response
  */
 export interface HealthStatus {

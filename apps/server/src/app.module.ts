@@ -12,6 +12,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { LimitPoolModule } from "./modules/limit-pool/limit-pool.module";
 import { InstrumentIntelligenceModule } from "./modules/instrument-intelligence/instrument-intelligence.module";
 import { WatchlistAlertsModule } from "./modules/watchlist-alerts/watchlist-alerts.module";
+import { PreciousMetalsModule } from "./modules/precious-metals/precious-metals.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { WatchlistAlertsModule } from "./modules/watchlist-alerts/watchlist-aler
     LimitPoolModule,
     InstrumentIntelligenceModule,
     WatchlistAlertsModule,
+    PreciousMetalsModule,
   ],
   controllers: [AppController, MetricsController],
 })

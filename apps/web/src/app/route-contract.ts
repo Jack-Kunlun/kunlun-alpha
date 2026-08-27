@@ -148,7 +148,7 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "场内黄金、白银基金的行情、估值参考与事件",
     group: "decision",
     permission: "terminal:read",
-    status: "planned",
+    status: "ready",
     navigation: true,
   },
   {

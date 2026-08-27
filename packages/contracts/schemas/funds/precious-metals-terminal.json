@@ -1,0 +1,327 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/funds/precious-metals-terminal.json",
+  "title": "PreciousMetalsTerminalSnapshot",
+  "description": "Point-in-time read model for exchange-listed precious-metals funds; NAV and iNAV are non-executable reference values",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "const": "precious-metals-terminal-v1" },
+    "mode": { "enum": ["CURRENT", "HISTORICAL"] },
+    "requestedAsOf": { "type": "string", "format": "date-time" },
+    "effectiveAsOf": { "type": "string", "format": "date-time" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["AVAILABLE", "PARTIAL", "EMPTY", "UNAVAILABLE"] },
+    "executionCapability": { "const": "REFERENCE_ONLY" },
+    "valuationPolicy": { "const": "NAV_INAV_NON_EXECUTABLE" },
+    "rankingAlgorithmVersion": { "const": "precious-metals-turnover-ranking-v1" },
+    "rankingMetric": { "const": "LATEST_EXCHANGE_TURNOVER_CNY" },
+    "sampleSize": { "type": "integer", "minimum": 0 },
+    "gaps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PreciousMetalsTerminalGap" }
+    },
+    "sourceVersions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "evidenceIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "funds": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PreciousMetalsTerminalFund" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PreciousMetalsTerminalEvent" }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "mode",
+    "requestedAsOf",
+    "effectiveAsOf",
+    "generatedAt",
+    "status",
+    "executionCapability",
+    "valuationPolicy",
+    "rankingAlgorithmVersion",
+    "rankingMetric",
+    "sampleSize",
+    "gaps",
+    "sourceVersions",
+    "evidenceIds",
+    "funds",
+    "events"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "PreciousMetalsTerminalGap": {
+      "type": "object",
+      "properties": {
+        "scope": { "enum": ["METADATA", "MARKET", "NAV", "INAV", "FEATURES", "EVENTS"] },
+        "severity": { "enum": ["INFO", "WARNING", "ERROR"] },
+        "code": {
+          "enum": [
+            "SOURCE_UNAVAILABLE",
+            "NO_VISIBLE_DATA",
+            "STALE_DATA",
+            "INVALID_UPSTREAM_DATA",
+            "TRUNCATED"
+          ]
+        },
+        "instrumentId": {
+          "type": ["string", "null"],
+          "pattern": "^\\d{6}\\.(SH|SZ|BJ)$"
+        },
+        "message": { "type": "string", "minLength": 1 }
+      },
+      "required": ["scope", "severity", "code", "instrumentId", "message"],
+      "additionalProperties": false
+    },
+    "PreciousMetalsTerminalMarket": {
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "close": { "type": "string", "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$" },
+        "volume": { "type": "string", "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$" },
+        "turnoverCny": { "type": "string", "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$" },
+        "suspended": { "type": "boolean" },
+        "freshness": { "enum": ["FRESH", "STALE"] },
+        "source": { "type": "string", "minLength": 1 },
+        "sourceVersion": { "type": "string", "minLength": 1 },
+        "dataVersion": { "type": "string", "minLength": 1 },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "processingTime": { "type": "string", "format": "date-time" },
+        "evidenceId": { "type": "string", "minLength": 1 }
+      },
+      "required": [
+        "date",
+        "eventTime",
+        "close",
+        "volume",
+        "turnoverCny",
+        "suspended",
+        "freshness",
+        "source",
+        "sourceVersion",
+        "dataVersion",
+        "availableTime",
+        "processingTime",
+        "evidenceId"
+      ],
+      "additionalProperties": false
+    },
+    "PreciousMetalsTerminalValuation": {
+      "type": "object",
+      "properties": {
+        "navValue": {
+          "type": ["string", "null"],
+          "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "inavValue": {
+          "type": ["string", "null"],
+          "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "referenceKind": { "enum": ["NAV", "INAV", null] },
+        "referenceValue": {
+          "type": ["string", "null"],
+          "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "referenceDate": { "type": ["string", "null"], "format": "date" },
+        "premiumDiscountBps": {
+          "type": ["string", "null"],
+          "pattern": "^-?(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "freshness": { "enum": ["FRESH", "STALE", "MISSING"] },
+        "staleAfterSeconds": { "type": ["integer", "null"], "minimum": 1 },
+        "source": { "type": ["string", "null"] },
+        "sourceVersion": { "type": ["string", "null"] },
+        "availableTime": { "type": ["string", "null"], "format": "date-time" },
+        "processingTime": { "type": ["string", "null"], "format": "date-time" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "referenceOnly": { "const": true }
+      },
+      "required": [
+        "navValue",
+        "inavValue",
+        "referenceKind",
+        "referenceValue",
+        "referenceDate",
+        "premiumDiscountBps",
+        "freshness",
+        "staleAfterSeconds",
+        "source",
+        "sourceVersion",
+        "availableTime",
+        "processingTime",
+        "evidenceIds",
+        "referenceOnly"
+      ],
+      "additionalProperties": false
+    },
+    "PreciousMetalsTerminalFeature": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "pattern": "^precious_metals_fund\\.[a-z0-9_]+$" },
+        "value": { "type": "string", "minLength": 1 },
+        "valueType": { "enum": ["BOOLEAN", "INTEGER", "DECIMAL", "STRING", "CATEGORY"] },
+        "featureVersion": { "type": "string", "minLength": 1 },
+        "algorithmVersion": { "type": "string", "minLength": 1 },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "processingTime": { "type": "string", "format": "date-time" },
+        "evidenceId": { "type": "string", "minLength": 1 }
+      },
+      "required": [
+        "name",
+        "value",
+        "valueType",
+        "featureVersion",
+        "algorithmVersion",
+        "eventTime",
+        "availableTime",
+        "processingTime",
+        "evidenceId"
+      ],
+      "additionalProperties": false
+    },
+    "PreciousMetalsTerminalRanking": {
+      "type": "object",
+      "properties": {
+        "rank": { "type": "integer", "minimum": 1 },
+        "metric": { "const": "LATEST_EXCHANGE_TURNOVER_CNY" },
+        "metricValue": { "type": "string", "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$" },
+        "algorithmVersion": { "const": "precious-metals-turnover-ranking-v1" },
+        "sampleSize": { "type": "integer", "minimum": 1 },
+        "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 }
+      },
+      "required": [
+        "rank",
+        "metric",
+        "metricValue",
+        "algorithmVersion",
+        "sampleSize",
+        "confidenceBps"
+      ],
+      "additionalProperties": false
+    },
+    "PreciousMetalsTerminalAlertContext": {
+      "type": "object",
+      "properties": {
+        "instrumentId": { "type": "string", "pattern": "^\\d{6}\\.(SH|SZ|BJ)$" },
+        "supportedFields": {
+          "type": "array",
+          "items": { "enum": ["LAST_PRICE", "FEATURE_VALUE"] },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true
+        },
+        "premiumFeatureName": { "const": "precious_metals_fund.premium_discount_bps" }
+      },
+      "required": ["instrumentId", "supportedFields", "premiumFeatureName"],
+      "additionalProperties": false
+    },
+    "PreciousMetalsTerminalFund": {
+      "type": "object",
+      "properties": {
+        "unifiedCode": { "type": "string", "pattern": "^\\d{6}\\.(SH|SZ|BJ)$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "exchange": { "enum": ["SH", "SZ", "BJ"] },
+        "assetType": { "enum": ["ETF", "LOF", "FUND"] },
+        "underlyingCommodity": { "enum": ["GOLD", "SILVER", "OTHER"] },
+        "tradingCurrency": { "const": "CNY" },
+        "navCurrency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "benchmarkOrTrackingIndex": { "type": "string", "minLength": 1 },
+        "managementFeeRateBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "metadataConfidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "reviewStatus": { "enum": ["REVIEWED", "NEEDS_REVIEW"] },
+        "metadataSource": { "type": "string", "minLength": 1 },
+        "metadataSourceVersion": { "type": "string", "minLength": 1 },
+        "metadataAvailableTime": { "type": "string", "format": "date-time" },
+        "metadataProcessingTime": { "type": "string", "format": "date-time" },
+        "market": {
+          "oneOf": [{ "$ref": "#/$defs/PreciousMetalsTerminalMarket" }, { "type": "null" }]
+        },
+        "valuation": { "$ref": "#/$defs/PreciousMetalsTerminalValuation" },
+        "features": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PreciousMetalsTerminalFeature" }
+        },
+        "ranking": {
+          "oneOf": [{ "$ref": "#/$defs/PreciousMetalsTerminalRanking" }, { "type": "null" }]
+        },
+        "alertContext": { "$ref": "#/$defs/PreciousMetalsTerminalAlertContext" }
+      },
+      "required": [
+        "unifiedCode",
+        "displayName",
+        "exchange",
+        "assetType",
+        "underlyingCommodity",
+        "tradingCurrency",
+        "navCurrency",
+        "benchmarkOrTrackingIndex",
+        "managementFeeRateBps",
+        "metadataConfidenceBps",
+        "reviewStatus",
+        "metadataSource",
+        "metadataSourceVersion",
+        "metadataAvailableTime",
+        "metadataProcessingTime",
+        "market",
+        "valuation",
+        "features",
+        "ranking",
+        "alertContext"
+      ],
+      "additionalProperties": false
+    },
+    "PreciousMetalsTerminalEvent": {
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string", "minLength": 1 },
+        "instrumentIds": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^\\d{6}\\.(SH|SZ|BJ)$" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "eventType": { "type": "string", "minLength": 1 },
+        "headline": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 },
+        "publishTime": { "type": "string", "format": "date-time" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "confidenceBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "modelVersion": { "type": "string", "minLength": 1 },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "eventId",
+        "instrumentIds",
+        "eventType",
+        "headline",
+        "summary",
+        "publishTime",
+        "availableTime",
+        "confidenceBps",
+        "modelVersion",
+        "evidenceIds"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
