@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
-import type { WatchlistAlertsService } from "./watchlist-alerts.service";
+import { Body, Controller, Get, Inject, Param, Post } from "@nestjs/common";
+import { WatchlistAlertsService } from "./watchlist-alerts.service";
 
 @Controller("watchlist-alerts")
 export class WatchlistAlertsController {
-  constructor(private readonly service: WatchlistAlertsService) {}
+  constructor(
+    @Inject(WatchlistAlertsService) private readonly service: WatchlistAlertsService,
+  ) {}
 
   @Get()
   workspace() {
