@@ -32,7 +32,6 @@ export interface TerminalRouteContract {
   group: TerminalRouteGroup;
   permission: TerminalPermission;
   status: "ready" | "planned";
-  node: string;
   navigation: boolean;
 }
 
@@ -66,7 +65,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "decision",
     permission: "terminal:read",
     status: "ready",
-    node: "P6-N01",
     navigation: true,
   },
   {
@@ -79,7 +77,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "decision",
     permission: "terminal:read",
     status: "ready",
-    node: "P6-N02",
     navigation: true,
   },
   {
@@ -92,7 +89,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "decision",
     permission: "terminal:read",
     status: "ready",
-    node: "P6-N03",
     navigation: true,
   },
   {
@@ -105,7 +101,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "decision",
     permission: "terminal:read",
     status: "ready",
-    node: "P6-N04",
     navigation: true,
   },
   {
@@ -118,7 +113,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "decision",
     permission: "terminal:read",
     status: "ready",
-    node: "P6-N05",
     navigation: true,
   },
   {
@@ -131,7 +125,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "decision",
     permission: "terminal:read",
     status: "ready",
-    node: "P6-N06",
     navigation: true,
   },
   {
@@ -144,7 +137,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "decision",
     permission: "terminal:read",
     status: "ready",
-    node: "P6-N06",
     navigation: false,
   },
   {
@@ -157,7 +149,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "decision",
     permission: "terminal:read",
     status: "planned",
-    node: "P6-N13",
     navigation: true,
   },
   {
@@ -170,7 +161,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "workspace",
     permission: "terminal:read",
     status: "ready",
-    node: "P6-N07",
     navigation: true,
   },
   {
@@ -183,7 +173,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "workspace",
     permission: "paper:read",
     status: "planned",
-    node: "P6-N08",
     navigation: true,
   },
   {
@@ -196,7 +185,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "research",
     permission: "research:read",
     status: "ready",
-    node: "P2-N10",
     navigation: true,
   },
   {
@@ -209,7 +197,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "research",
     permission: "research:read",
     status: "ready",
-    node: "P3-N06",
     navigation: true,
   },
   {
@@ -222,7 +209,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "research",
     permission: "research:read",
     status: "ready",
-    node: "P4-N10",
     navigation: true,
   },
   {
@@ -235,7 +221,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "research",
     permission: "research:read",
     status: "ready",
-    node: "P5-N13",
     navigation: true,
   },
   {
@@ -248,7 +233,6 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     group: "research",
     permission: "operations:read",
     status: "ready",
-    node: "P1-N12",
     navigation: true,
   },
 ];

@@ -64,11 +64,11 @@ describe("App routing", () => {
     );
   });
 
-  it("keeps planned Phase 6 deep links stable without fabricating feature data", () => {
+  it("keeps planned deep links stable without fabricating feature data", () => {
     route = "/precious-metals";
     const html = renderToStaticMarkup(<App />);
     expect(html).toContain("ROUTE_PLACEHOLDER:precious-metals");
-    expect(html).toContain("P6-N13");
+    expect(html).toContain("规划能力");
     expect(html).toContain("路由已就绪");
   });
 
@@ -103,9 +103,7 @@ describe("App routing", () => {
   it("registers every route contract through the generated router", () => {
     for (const contract of terminalRoutes) {
       route = contract.href.replace("600519.SH", "000001.SZ");
-      expect(renderToStaticMarkup(<App roles={["platform_admin"]} />)).not.toContain(
-        "页面不存在",
-      );
+      expect(renderToStaticMarkup(<App roles={["platform_admin"]} />)).not.toContain("页面不存在");
     }
   });
 

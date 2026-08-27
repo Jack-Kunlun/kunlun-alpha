@@ -8,10 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
-import {
-  isCanonicalInstrumentId,
-  useInstrumentIntelligence,
-} from "./use-instrument-intelligence";
+import { isCanonicalInstrumentId, useInstrumentIntelligence } from "./use-instrument-intelligence";
 
 type SectionMetadata =
   InstrumentIntelligenceDetail["sections"][keyof InstrumentIntelligenceDetail["sections"]];
@@ -75,7 +72,10 @@ function SectionFrame({
       </CardHeader>
       <CardContent className="pt-5">
         {section.status === "UNAVAILABLE" ? (
-          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <p
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+          >
             数据源当前不可用：{section.unavailableReason}
           </p>
         ) : section.status === "EMPTY" ? (
@@ -113,13 +113,15 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
               {identity?.name ?? "个股 Intelligence"}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-              行情、市场情绪、板块、事件、公开龙虎榜、KOL Claim 与特征在同一
-              effectiveAsOf 下聚合。跨库一致性为明确披露的 best effort。
+              行情、市场情绪、板块、事件、公开龙虎榜、KOL Claim 与特征在同一 effectiveAsOf
+              下聚合。跨库一致性为明确披露的 best effort。
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-right text-xs text-slate-400">
             <span>请求点时</span>
-            <strong className="font-mono text-slate-100">{shanghaiTime(detail.requestedAsOf)}</strong>
+            <strong className="font-mono text-slate-100">
+              {shanghaiTime(detail.requestedAsOf)}
+            </strong>
             <span>生成时间</span>
             <strong className="font-mono text-slate-100">{shanghaiTime(detail.generatedAt)}</strong>
           </div>
@@ -127,15 +129,13 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
       </header>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <SectionFrame
-          title="证券身份"
-          eyebrow="Identity"
-          section={detail.sections.identity}
-        >
+        <SectionFrame title="证券身份" eyebrow="Identity" section={detail.sections.identity}>
           {identity && (
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <dt className="text-muted-foreground">交易所 / 板块</dt>
-              <dd className="text-right font-medium">{identity.exchange} / {identity.board}</dd>
+              <dd className="text-right font-medium">
+                {identity.exchange} / {identity.board}
+              </dd>
               <dt className="text-muted-foreground">证券类型</dt>
               <dd className="text-right font-medium">{identity.type}</dd>
               <dt className="text-muted-foreground">交易状态</dt>
@@ -146,30 +146,36 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
           )}
         </SectionFrame>
 
-        <SectionFrame
-          title="最新可见行情"
-          eyebrow="Market"
-          section={detail.sections.market}
-        >
+        <SectionFrame title="最新可见行情" eyebrow="Market" section={detail.sections.market}>
           {market && (
             <div>
               <strong className="font-mono text-3xl tracking-tight">{decimal(market.close)}</strong>
-              <p className="mt-1 text-xs text-muted-foreground">{market.date} · RAW · {market.dataVersion}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {market.date} · RAW · {market.dataVersion}
+              </p>
               <dl className="mt-4 grid grid-cols-4 gap-2 text-center text-xs">
-                <div><dt className="text-muted-foreground">开</dt><dd className="mt-1 font-mono">{market.open}</dd></div>
-                <div><dt className="text-muted-foreground">高</dt><dd className="mt-1 font-mono">{market.high}</dd></div>
-                <div><dt className="text-muted-foreground">低</dt><dd className="mt-1 font-mono">{market.low}</dd></div>
-                <div><dt className="text-muted-foreground">额</dt><dd className="mt-1 font-mono">{decimal(market.amount)}</dd></div>
+                <div>
+                  <dt className="text-muted-foreground">开</dt>
+                  <dd className="mt-1 font-mono">{market.open}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">高</dt>
+                  <dd className="mt-1 font-mono">{market.high}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">低</dt>
+                  <dd className="mt-1 font-mono">{market.low}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">额</dt>
+                  <dd className="mt-1 font-mono">{decimal(market.amount)}</dd>
+                </div>
               </dl>
             </div>
           )}
         </SectionFrame>
 
-        <SectionFrame
-          title="市场情绪"
-          eyebrow="Emotion"
-          section={detail.sections.emotion}
-        >
+        <SectionFrame title="市场情绪" eyebrow="Emotion" section={detail.sections.emotion}>
           {emotion && (
             <div>
               <strong className="font-mono text-3xl">{emotion.score}</strong>
@@ -186,7 +192,10 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
         <SectionFrame title="点时板块归属" eyebrow="Sector" section={detail.sections.sector}>
           <div className="flex flex-wrap gap-2">
             {detail.sections.sector.data.map((item) => (
-              <span key={item.sectorId} className="rounded-full border bg-slate-50 px-3 py-1.5 text-sm">
+              <span
+                key={item.sectorId}
+                className="rounded-full border bg-slate-50 px-3 py-1.5 text-sm"
+              >
                 {item.name} <span className="text-xs text-muted-foreground">{item.kind}</span>
               </span>
             ))}
@@ -196,7 +205,10 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
         <SectionFrame title="历史特征" eyebrow="Feature store" section={detail.sections.features}>
           <div className="space-y-3">
             {detail.sections.features.data.map((item) => (
-              <article key={item.revisionId} className="grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_auto]">
+              <article
+                key={item.revisionId}
+                className="grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_auto]"
+              >
                 <div>
                   <h4 className="font-medium">{item.featureName}</h4>
                   <p className="text-xs text-muted-foreground">
@@ -218,7 +230,9 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
             <article key={event.eventId} className="rounded-2xl border p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Badge variant="outline">{event.eventType}</Badge>
-                <time className="text-xs text-muted-foreground">{shanghaiTime(event.publishTime)}</time>
+                <time className="text-xs text-muted-foreground">
+                  {shanghaiTime(event.publishTime)}
+                </time>
               </div>
               <h4 className="mt-3 font-semibold">{event.headline}</h4>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{event.summary}</p>
@@ -238,7 +252,9 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h4 className="font-medium">{seat.rawSeatName}</h4>
-                    <p className="text-xs text-muted-foreground">{seat.tradeDate} · {seat.seatId}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {seat.tradeDate} · {seat.seatId}
+                    </p>
                   </div>
                   <strong className="font-mono">{decimal(seat.netAmount)}</strong>
                 </div>
@@ -250,10 +266,17 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
           </div>
         </SectionFrame>
 
-        <SectionFrame title="KOL 公开表述" eyebrow="Claim, not trade" section={detail.sections.kolClaims}>
+        <SectionFrame
+          title="KOL 公开表述"
+          eyebrow="Claim, not trade"
+          section={detail.sections.kolClaims}
+        >
           <div className="space-y-3">
             {detail.sections.kolClaims.data.map((claim) => (
-              <article key={claim.revisionId} className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+              <article
+                key={claim.revisionId}
+                className="rounded-xl border border-amber-200 bg-amber-50/50 p-4"
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{claim.reviewStatus}</Badge>
                   <Badge variant="outline">{claim.direction}</Badge>
@@ -305,7 +328,7 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
       </Card>
 
       <p className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
-        本页仅用于研究解释。Phase 0–6 无真实账户、真实券商连接或真实下单路径。
+        本页仅用于研究解释。当前系统无真实账户、真实券商连接或真实下单路径。
       </p>
     </div>
   );
@@ -319,12 +342,25 @@ export function InstrumentIntelligenceView({
   result: ObjectQueryResult<InstrumentIntelligenceDetail>;
 }) {
   if (!isCanonicalInstrumentId(instrumentId)) {
-    return <p role="alert" className="text-destructive">证券代码必须使用 600519.SH 形式。</p>;
+    return (
+      <p role="alert" className="text-destructive">
+        证券代码必须使用 600519.SH 形式。
+      </p>
+    );
   }
   if (result.status === "loading") return <p role="status">正在装配个股 Intelligence…</p>;
-  if (result.status === "forbidden") return <p role="alert" className="text-destructive">无权访问个股 Intelligence</p>;
+  if (result.status === "forbidden")
+    return (
+      <p role="alert" className="text-destructive">
+        无权访问个股 Intelligence
+      </p>
+    );
   if (result.status === "error") {
-    return <p role="alert" className="text-destructive">个股 Intelligence 加载失败：{result.error?.message}</p>;
+    return (
+      <p role="alert" className="text-destructive">
+        个股 Intelligence 加载失败：{result.error?.message}
+      </p>
+    );
   }
   if (result.status === "empty" || result.data === null) {
     return <p className="text-muted-foreground">该点时没有个股 Intelligence 响应。</p>;
@@ -343,22 +379,30 @@ export function InstrumentDirectoryPage() {
   return (
     <section className="mx-auto max-w-3xl py-8 sm:py-16">
       <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-        Instrument lens · P6-N06
+        Instrument lens · Point-in-time
       </p>
       <h2 className="mt-3 text-3xl font-semibold tracking-tight">进入一只标的的证据链</h2>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-        输入统一证券代码，查询同一 effectiveAsOf 下的行情、情绪、板块、事件、席位、KOL Claim 与特征。
+        输入统一证券代码，查询同一 effectiveAsOf 下的行情、情绪、板块、事件、席位、KOL Claim
+        与特征。
       </p>
-      <form className="mt-8 flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm sm:flex-row" onSubmit={submit}>
+      <form
+        className="mt-8 flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm sm:flex-row"
+        onSubmit={submit}
+      >
         <Input
           aria-label="统一证券代码"
           value={value}
           onChange={(event) => setValue(event.target.value.toUpperCase())}
           placeholder="600519.SH"
         />
-        <Button type="submit" disabled={!valid}>查看 Intelligence</Button>
+        <Button type="submit" disabled={!valid}>
+          查看 Intelligence
+        </Button>
       </form>
-      {!valid && <p className="mt-2 text-sm text-destructive">格式示例：600519.SH、000001.SZ、430047.BJ</p>}
+      {!valid && (
+        <p className="mt-2 text-sm text-destructive">格式示例：600519.SH、000001.SZ、430047.BJ</p>
+      )}
     </section>
   );
 }

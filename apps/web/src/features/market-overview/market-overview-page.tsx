@@ -88,7 +88,8 @@ function OverviewContent({ snapshot }: { snapshot: MarketOverviewSnapshot }) {
             <Badge variant="outline">完整度 {snapshot.completeness}</Badge>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            请求点时 {shanghaiTime(snapshot.requestedAsOf)} · 数据截止 {shanghaiTime(snapshot.dataCutoffTime)}
+            请求点时 {shanghaiTime(snapshot.requestedAsOf)} · 数据截止{" "}
+            {shanghaiTime(snapshot.dataCutoffTime)}
           </p>
         </div>
         <div className="text-left text-xs text-muted-foreground md:text-right">
@@ -99,7 +100,9 @@ function OverviewContent({ snapshot }: { snapshot: MarketOverviewSnapshot }) {
 
       <section aria-labelledby="overview-indices" className="space-y-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Pulse</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Pulse
+          </p>
           <h2 id="overview-indices" className="text-xl font-semibold">
             核心指数
           </h2>
@@ -120,7 +123,10 @@ function OverviewContent({ snapshot }: { snapshot: MarketOverviewSnapshot }) {
         </div>
       </section>
 
-      <section aria-label="市场宽度、成交额、情绪与风险" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section
+        aria-label="市场宽度、成交额、情绪与风险"
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+      >
         {breadth === null ? (
           <MissingMetric label="市场宽度" />
         ) : (
@@ -156,7 +162,7 @@ function OverviewContent({ snapshot }: { snapshot: MarketOverviewSnapshot }) {
       </section>
 
       <p className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
-        风险温度仅用于研究上下文，不是订单风控结论。Phase 0–6 无真实账户或真实下单路径。
+        风险温度仅用于研究上下文，不是订单风控结论。当前系统没有真实账户或真实下单路径。
       </p>
     </div>
   );
@@ -197,7 +203,7 @@ export function MarketOverviewPage() {
     <div className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Market overview · P6-N02
+          Market overview · Point-in-time
         </p>
         <h2 className="text-2xl font-semibold tracking-tight">一屏判断市场所处位置</h2>
         <p className="max-w-3xl text-sm text-muted-foreground">

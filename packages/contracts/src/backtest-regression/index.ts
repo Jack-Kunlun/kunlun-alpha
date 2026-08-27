@@ -1,14 +1,9 @@
-/** Runtime boundary for the read-only P5-N13 regression contracts. */
+/** Runtime boundary for the read-only backtest regression contracts. */
 
 import { createHash } from "node:crypto";
 
 export type RegressionJsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | RegressionJsonValue[]
-  | { [key: string]: RegressionJsonValue };
+  null | boolean | number | string | RegressionJsonValue[] | { [key: string]: RegressionJsonValue };
 
 export interface ContentDigestReference {
   kind: "CONTENT_SHA256";
@@ -167,7 +162,13 @@ interface RegressionInputs {
   portfolioHistoryRef: PortfolioHistoryRef;
   valuationLineage: ValuationLineage;
   navObservations: [Observation, Observation, Observation, Observation, ...Observation[]];
-  riskFreeObservations: [RiskFreeObservation, RiskFreeObservation, RiskFreeObservation, RiskFreeObservation, ...RiskFreeObservation[]];
+  riskFreeObservations: [
+    RiskFreeObservation,
+    RiskFreeObservation,
+    RiskFreeObservation,
+    RiskFreeObservation,
+    ...RiskFreeObservation[],
+  ];
   tPlusOne: TPlusOneInputs;
 }
 
@@ -291,11 +292,13 @@ const UV_LOCK_ENTRY = "uv.lock";
 
 function canonicalValue(value: unknown): unknown {
   if (value === null || typeof value === "string" || typeof value === "boolean") {
-    if (typeof value === "string" && value.includes("\r")) throw new TypeError("canonical JSON must not contain CR");
+    if (typeof value === "string" && value.includes("\r"))
+      throw new TypeError("canonical JSON must not contain CR");
     return value;
   }
   if (typeof value === "number") {
-    if (!Number.isFinite(value) || !Number.isInteger(value)) throw new TypeError("canonical JSON must not contain floats");
+    if (!Number.isFinite(value) || !Number.isInteger(value))
+      throw new TypeError("canonical JSON must not contain floats");
     return value;
   }
   if (Array.isArray(value)) return value.map(canonicalValue);
@@ -417,7 +420,8 @@ function assertNoDuplicateJsonKeys(raw: string): void {
 }
 
 export function parseCanonicalJson(raw: string): Record<string, unknown> {
-  if (raw.charCodeAt(0) === 0xfeff || raw.includes("\r")) throw new TypeError("JSON encoding is invalid");
+  if (raw.charCodeAt(0) === 0xfeff || raw.includes("\r"))
+    throw new TypeError("JSON encoding is invalid");
   assertNoDuplicateJsonKeys(raw);
   let parsed: unknown;
   try {
@@ -481,7 +485,11 @@ function decimal(value: unknown, field: string): string {
     throw new TypeError(`${field} must be a canonical Decimal string`);
   }
   const [integer, fraction] = candidate.replace(/^-/, "").split(".");
-  const normalized = `${candidate.startsWith("-") ? "-" : ""}${integer}${fraction === undefined ? "" : `.${fraction.replace(/0+$/, "")}`}`.replace(/\.$/, "");
+  const normalized =
+    `${candidate.startsWith("-") ? "-" : ""}${integer}${fraction === undefined ? "" : `.${fraction.replace(/0+$/, "")}`}`.replace(
+      /\.$/,
+      "",
+    );
   if (normalized !== candidate) throw new TypeError(`${field} must use canonical Decimal spelling`);
   return candidate;
 }
@@ -531,12 +539,18 @@ function digestReference(value: unknown, field: string): DigestReference {
 }
 
 function observations(value: unknown, field: string, valueKey: string): void {
-  if (!Array.isArray(value) || value.length < 4) throw new TypeError(`${field} must contain at least four observations`);
+  if (!Array.isArray(value) || value.length < 4)
+    throw new TypeError(`${field} must contain at least four observations`);
   let previous: string | undefined;
   value.forEach((raw, index) => {
-    const item = exact(raw, ["observationTime", valueKey, "provenanceDigest"], `${field}[${index}]`);
+    const item = exact(
+      raw,
+      ["observationTime", valueKey, "provenanceDigest"],
+      `${field}[${index}]`,
+    );
     const current = timestamp(item.observationTime, `${field}[${index}].observationTime`);
-    if (previous !== undefined && current <= previous) throw new TypeError(`${field} must be ordered`);
+    if (previous !== undefined && current <= previous)
+      throw new TypeError(`${field} must be ordered`);
     previous = current;
     decimal(item[valueKey], `${field}[${index}].${valueKey}`);
     sha(item.provenanceDigest, `${field}[${index}].provenanceDigest`);
@@ -576,37 +590,74 @@ function tPlusOneInputs(value: unknown, field: string): TPlusOneInputs {
     buyOrderId: safeId(item.buyOrderId, `${field}.buyOrderId`),
     sellOrderId: safeId(item.sellOrderId, `${field}.sellOrderId`),
     buyExecutionInputDigest: sha(item.buyExecutionInputDigest, `${field}.buyExecutionInputDigest`),
-    sameDaySellExecutionInputDigest: sha(item.sameDaySellExecutionInputDigest, `${field}.sameDaySellExecutionInputDigest`),
-    nextDaySellExecutionInputDigest: sha(item.nextDaySellExecutionInputDigest, `${field}.nextDaySellExecutionInputDigest`),
-    sameDaySellabilityDigest: sha(item.sameDaySellabilityDigest, `${field}.sameDaySellabilityDigest`),
-    nextDaySellabilityDigest: sha(item.nextDaySellabilityDigest, `${field}.nextDaySellabilityDigest`),
+    sameDaySellExecutionInputDigest: sha(
+      item.sameDaySellExecutionInputDigest,
+      `${field}.sameDaySellExecutionInputDigest`,
+    ),
+    nextDaySellExecutionInputDigest: sha(
+      item.nextDaySellExecutionInputDigest,
+      `${field}.nextDaySellExecutionInputDigest`,
+    ),
+    sameDaySellabilityDigest: sha(
+      item.sameDaySellabilityDigest,
+      `${field}.sameDaySellabilityDigest`,
+    ),
+    nextDaySellabilityDigest: sha(
+      item.nextDaySellabilityDigest,
+      `${field}.nextDaySellabilityDigest`,
+    ),
     sameDayBatchDigest: sha(item.sameDayBatchDigest, `${field}.sameDayBatchDigest`),
     nextDayBatchDigest: sha(item.nextDayBatchDigest, `${field}.nextDayBatchDigest`),
   };
 }
 
 function tPlusOneObservation(value: unknown, field: string): TPlusOneObservation {
-  const item = exact(value, ["orderId", "status", "rejectReason", "fillCount", "batchDigest", "resultDigest", "tradingDate", "sellabilityDigest"], field);
+  const item = exact(
+    value,
+    [
+      "orderId",
+      "status",
+      "rejectReason",
+      "fillCount",
+      "batchDigest",
+      "resultDigest",
+      "tradingDate",
+      "sellabilityDigest",
+    ],
+    field,
+  );
   safeId(item.orderId, `${field}.orderId`);
-  if (item.status !== "REJECTED" && item.status !== "FILLED") throw new TypeError(`${field}.status is unsupported`);
+  if (item.status !== "REJECTED" && item.status !== "FILLED")
+    throw new TypeError(`${field}.status is unsupported`);
   if (item.rejectReason !== null) text(item.rejectReason, `${field}.rejectReason`);
-  if (typeof item.fillCount !== "number" || !Number.isInteger(item.fillCount) || item.fillCount < 0) throw new TypeError(`${field}.fillCount is invalid`);
+  if (typeof item.fillCount !== "number" || !Number.isInteger(item.fillCount) || item.fillCount < 0)
+    throw new TypeError(`${field}.fillCount is invalid`);
   sha(item.batchDigest, `${field}.batchDigest`);
   sha(item.resultDigest, `${field}.resultDigest`);
   const tradingDate = text(item.tradingDate, `${field}.tradingDate`);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(tradingDate) || Number.isNaN(Date.parse(`${tradingDate}T00:00:00Z`))) throw new TypeError(`${field}.tradingDate is invalid`);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(tradingDate) ||
+    Number.isNaN(Date.parse(`${tradingDate}T00:00:00Z`))
+  )
+    throw new TypeError(`${field}.tradingDate is invalid`);
   if (item.sellabilityDigest !== null) sha(item.sellabilityDigest, `${field}.sellabilityDigest`);
-  if (item.status === "REJECTED" && item.rejectReason === null) throw new TypeError(`${field}.rejectReason is required for rejected orders`);
-  if (item.status === "FILLED" && item.rejectReason !== null) throw new TypeError(`${field}.rejectReason must be null for filled orders`);
+  if (item.status === "REJECTED" && item.rejectReason === null)
+    throw new TypeError(`${field}.rejectReason is required for rejected orders`);
+  if (item.status === "FILLED" && item.rejectReason !== null)
+    throw new TypeError(`${field}.rejectReason must be null for filled orders`);
   return {
     orderId: safeId(item.orderId, `${field}.orderId`),
     status: item.status,
-    rejectReason: item.rejectReason === null ? null : text(item.rejectReason, `${field}.rejectReason`),
+    rejectReason:
+      item.rejectReason === null ? null : text(item.rejectReason, `${field}.rejectReason`),
     fillCount: item.fillCount,
     batchDigest: sha(item.batchDigest, `${field}.batchDigest`),
     resultDigest: sha(item.resultDigest, `${field}.resultDigest`),
     tradingDate,
-    sellabilityDigest: item.sellabilityDigest === null ? null : sha(item.sellabilityDigest, `${field}.sellabilityDigest`),
+    sellabilityDigest:
+      item.sellabilityDigest === null
+        ? null
+        : sha(item.sellabilityDigest, `${field}.sellabilityDigest`),
   };
 }
 
@@ -614,8 +665,10 @@ function tPlusOneResults(value: unknown, field: string): TPlusOneResults {
   const item = exact(value, ["sameDay", "nextDay"], field);
   const sameDay = tPlusOneObservation(item.sameDay, `${field}.sameDay`);
   const nextDay = tPlusOneObservation(item.nextDay, `${field}.nextDay`);
-  if (sameDay.status !== "REJECTED" || sameDay.rejectReason !== "T_PLUS_ONE_NOT_SELLABLE") throw new TypeError(`${field}.sameDay must record the T+1 rejection`);
-  if (nextDay.status !== "FILLED" || nextDay.fillCount < 1) throw new TypeError(`${field}.nextDay must record a fill`);
+  if (sameDay.status !== "REJECTED" || sameDay.rejectReason !== "T_PLUS_ONE_NOT_SELLABLE")
+    throw new TypeError(`${field}.sameDay must record the T+1 rejection`);
+  if (nextDay.status !== "FILLED" || nextDay.fillCount < 1)
+    throw new TypeError(`${field}.nextDay must record a fill`);
   return { sameDay, nextDay };
 }
 
@@ -638,56 +691,116 @@ function artifact(input: unknown): BacktestRegressionArtifact {
     ],
     "artifact",
   );
-  if (item.schemaVersion !== "backtest-regression-run-v1") throw new TypeError("unsupported artifact schema");
-  if (item.canonicalizationVersion !== "backtest-regression-c14n-v1") throw new TypeError("unsupported canonicalization");
+  if (item.schemaVersion !== "backtest-regression-run-v1")
+    throw new TypeError("unsupported artifact schema");
+  if (item.canonicalizationVersion !== "backtest-regression-c14n-v1")
+    throw new TypeError("unsupported canonicalization");
   safeId(item.suiteId, "artifact.suiteId");
   safeId(item.runId, "artifact.runId");
   safeId(item.fixtureId, "artifact.fixtureId");
-  const trust = exact(item.trust, ["mode", "evidenceIntegrityConfidence", "evidenceRefs"], "artifact.trust");
-  if (trust.mode !== "FIXTURE_SELF_CONTAINED" && trust.mode !== "VERIFIED") throw new TypeError("unsupported trust mode");
-  if (trust.evidenceIntegrityConfidence !== "LOW" && trust.evidenceIntegrityConfidence !== "MEDIUM" && trust.evidenceIntegrityConfidence !== "HIGH") throw new TypeError("unsupported evidence confidence");
-  if (!Array.isArray(trust.evidenceRefs)) throw new TypeError("artifact.trust.evidenceRefs must be an array");
-  trust.evidenceRefs.forEach((ref, index) => digestReference(ref, `artifact.trust.evidenceRefs[${index}]`));
+  const trust = exact(
+    item.trust,
+    ["mode", "evidenceIntegrityConfidence", "evidenceRefs"],
+    "artifact.trust",
+  );
+  if (trust.mode !== "FIXTURE_SELF_CONTAINED" && trust.mode !== "VERIFIED")
+    throw new TypeError("unsupported trust mode");
+  if (
+    trust.evidenceIntegrityConfidence !== "LOW" &&
+    trust.evidenceIntegrityConfidence !== "MEDIUM" &&
+    trust.evidenceIntegrityConfidence !== "HIGH"
+  )
+    throw new TypeError("unsupported evidence confidence");
+  if (!Array.isArray(trust.evidenceRefs))
+    throw new TypeError("artifact.trust.evidenceRefs must be an array");
+  trust.evidenceRefs.forEach((ref, index) =>
+    digestReference(ref, `artifact.trust.evidenceRefs[${index}]`),
+  );
   const manifest = exact(item.manifest, ["json", "sha256"], "artifact.manifest");
   record(manifest.json, "artifact.manifest.json");
   sha(manifest.sha256, "artifact.manifest.sha256");
-  if (sha256Json(manifest.json) !== manifest.sha256) throw new TypeError("manifest digest mismatch");
-  const inputs = exact(item.inputs, ["fixtureSha256", "executionInputDigests", "portfolioHistoryRef", "valuationLineage", "navObservations", "riskFreeObservations", "tPlusOne"], "artifact.inputs");
+  if (sha256Json(manifest.json) !== manifest.sha256)
+    throw new TypeError("manifest digest mismatch");
+  const inputs = exact(
+    item.inputs,
+    [
+      "fixtureSha256",
+      "executionInputDigests",
+      "portfolioHistoryRef",
+      "valuationLineage",
+      "navObservations",
+      "riskFreeObservations",
+      "tPlusOne",
+    ],
+    "artifact.inputs",
+  );
   sha(inputs.fixtureSha256, "artifact.inputs.fixtureSha256");
-  if (!Array.isArray(inputs.executionInputDigests)) throw new TypeError("executionInputDigests must be an array");
-  inputs.executionInputDigests.forEach((digestValue, index) => sha(digestValue, `executionInputDigests[${index}]`));
+  if (!Array.isArray(inputs.executionInputDigests))
+    throw new TypeError("executionInputDigests must be an array");
+  inputs.executionInputDigests.forEach((digestValue, index) =>
+    sha(digestValue, `executionInputDigests[${index}]`),
+  );
   observations(inputs.navObservations, "artifact.inputs.navObservations", "nav");
   observations(inputs.riskFreeObservations, "artifact.inputs.riskFreeObservations", "rate");
   tPlusOneInputs(inputs.tPlusOne, "artifact.inputs.tPlusOne");
-  const history = exact(inputs.portfolioHistoryRef, ["tapeId", "eventTapeDigest", "eventCount"], "portfolioHistoryRef");
+  const history = exact(
+    inputs.portfolioHistoryRef,
+    ["tapeId", "eventTapeDigest", "eventCount"],
+    "portfolioHistoryRef",
+  );
   safeId(history.tapeId, "portfolioHistoryRef.tapeId");
   sha(history.eventTapeDigest, "portfolioHistoryRef.eventTapeDigest");
-  if (typeof history.eventCount !== "number" || !Number.isInteger(history.eventCount) || history.eventCount < 0) throw new TypeError("portfolioHistoryRef.eventCount is invalid");
-  const lineage = exact(inputs.valuationLineage, ["valuationPolicyId", "valuationPolicyVersion", "valuationPolicyDigest", "valuations"], "valuationLineage");
+  if (
+    typeof history.eventCount !== "number" ||
+    !Number.isInteger(history.eventCount) ||
+    history.eventCount < 0
+  )
+    throw new TypeError("portfolioHistoryRef.eventCount is invalid");
+  const lineage = exact(
+    inputs.valuationLineage,
+    ["valuationPolicyId", "valuationPolicyVersion", "valuationPolicyDigest", "valuations"],
+    "valuationLineage",
+  );
   text(lineage.valuationPolicyId, "valuationLineage.valuationPolicyId");
   text(lineage.valuationPolicyVersion, "valuationLineage.valuationPolicyVersion");
   sha(lineage.valuationPolicyDigest, "valuationLineage.valuationPolicyDigest");
-  if (!Array.isArray(lineage.valuations)) throw new TypeError("valuationLineage.valuations must be an array");
+  if (!Array.isArray(lineage.valuations))
+    throw new TypeError("valuationLineage.valuations must be an array");
   lineage.valuations.forEach((raw, index) => {
-    const valuation = exact(raw, ["observationTime", "inputDigest", "markDigest", "stateDigest", "nav"], `valuations[${index}]`);
+    const valuation = exact(
+      raw,
+      ["observationTime", "inputDigest", "markDigest", "stateDigest", "nav"],
+      `valuations[${index}]`,
+    );
     timestamp(valuation.observationTime, `valuations[${index}].observationTime`);
     sha(valuation.inputDigest, `valuations[${index}].inputDigest`);
     sha(valuation.markDigest, `valuations[${index}].markDigest`);
     sha(valuation.stateDigest, `valuations[${index}].stateDigest`);
     decimal(valuation.nav, `valuations[${index}].nav`);
   });
-  const provenance = exact(item.provenance, ["code", "config", "dependencies", "toolchain"], "artifact.provenance");
+  const provenance = exact(
+    item.provenance,
+    ["code", "config", "dependencies", "toolchain"],
+    "artifact.provenance",
+  );
   const code = exact(provenance.code, ["allowlist", "treeSha256"], "artifact.provenance.code");
   if (!Array.isArray(code.allowlist)) throw new TypeError("code.allowlist must be an array");
   code.allowlist.forEach((raw, index) => {
     const entry = exact(raw, ["path", "sha256"], `code.allowlist[${index}]`);
     const path = text(entry.path, `code.allowlist[${index}].path`);
-    if (path.startsWith("/") || path.includes("\\") || path.includes("://") || path.split("/").some((part) => part === "" || part === "." || part === "..")) throw new TypeError("code path must be relative");
+    if (
+      path.startsWith("/") ||
+      path.includes("\\") ||
+      path.includes("://") ||
+      path.split("/").some((part) => part === "" || part === "." || part === "..")
+    )
+      throw new TypeError("code path must be relative");
     sha(entry.sha256, `code.allowlist[${index}].sha256`);
   });
   sha(code.treeSha256, "code.treeSha256");
   for (const name of ["config", "dependencies"] as const) {
-    if (!Array.isArray(provenance[name])) throw new TypeError(`provenance.${name} must be an array`);
+    if (!Array.isArray(provenance[name]))
+      throw new TypeError(`provenance.${name} must be an array`);
     provenance[name].forEach((raw, index) => {
       const entry = exact(raw, ["name", "version", "sha256"], `${name}[${index}]`);
       text(entry.name, `${name}[${index}].name`);
@@ -708,7 +821,8 @@ function artifact(input: unknown): BacktestRegressionArtifact {
     ],
     "toolchain",
   );
-  if (toolchain.python !== "3.12.13" || toolchain.uv !== "0.12.3") throw new TypeError("toolchain pin mismatch");
+  if (toolchain.python !== "3.12.13" || toolchain.uv !== "0.12.3")
+    throw new TypeError("toolchain pin mismatch");
   if (toolchain.hatchling !== "1.27.0") throw new TypeError("hatchling pin mismatch");
   sha(toolchain.evidenceSha256, "toolchain.evidenceSha256");
   sha(toolchain.rootPyprojectSha256, "toolchain.rootPyprojectSha256");
@@ -722,17 +836,33 @@ function artifact(input: unknown): BacktestRegressionArtifact {
         entry !== null &&
         (entry as Record<string, unknown>).name === name,
     );
-    if (matches.length !== 1) throw new TypeError(field + " must contain exactly one " + name + " entry");
+    if (matches.length !== 1)
+      throw new TypeError(field + " must contain exactly one " + name + " entry");
     const match = matches[0];
     if (match === undefined) throw new TypeError(field + " entry is missing");
     return match;
   };
-  const rootEntry = uniqueEntry(provenance.config, ROOT_PYPROJECT_ENTRY, "artifact.provenance.config");
-  const serviceEntry = uniqueEntry(provenance.config, SERVICE_PYPROJECT_ENTRY, "artifact.provenance.config");
-  const lockEntry = uniqueEntry(provenance.dependencies, UV_LOCK_ENTRY, "artifact.provenance.dependencies");
-  if (rootEntry.sha256 !== toolchain.rootPyprojectSha256) throw new TypeError("root pyproject digest binding is invalid");
-  if (serviceEntry.sha256 !== toolchain.servicePyprojectSha256) throw new TypeError("service pyproject digest binding is invalid");
-  if (lockEntry.sha256 !== toolchain.uvLockSha256) throw new TypeError("uv.lock digest binding is invalid");
+  const rootEntry = uniqueEntry(
+    provenance.config,
+    ROOT_PYPROJECT_ENTRY,
+    "artifact.provenance.config",
+  );
+  const serviceEntry = uniqueEntry(
+    provenance.config,
+    SERVICE_PYPROJECT_ENTRY,
+    "artifact.provenance.config",
+  );
+  const lockEntry = uniqueEntry(
+    provenance.dependencies,
+    UV_LOCK_ENTRY,
+    "artifact.provenance.dependencies",
+  );
+  if (rootEntry.sha256 !== toolchain.rootPyprojectSha256)
+    throw new TypeError("root pyproject digest binding is invalid");
+  if (serviceEntry.sha256 !== toolchain.servicePyprojectSha256)
+    throw new TypeError("service pyproject digest binding is invalid");
+  if (lockEntry.sha256 !== toolchain.uvLockSha256)
+    throw new TypeError("uv.lock digest binding is invalid");
   const evidencePayload = {
     python: toolchain.python as "3.12.13",
     uv: toolchain.uv as "0.12.3",
@@ -746,23 +876,61 @@ function artifact(input: unknown): BacktestRegressionArtifact {
   }
   const versions = record(item.versions, "artifact.versions");
   for (const [key, value] of Object.entries(versions)) text(value, `versions.${key}`);
-  const results = exact(item.results, ["counts", "pnl", "finalNav", "finalValuation", "metrics", "observations", "tPlusOne"], "artifact.results");
-  const counts = exact(results.counts, ["events", "intents", "orders", "fills", "navObservations", "tPlusOneRejected", "nextDaySellFills"], "results.counts");
+  const results = exact(
+    item.results,
+    ["counts", "pnl", "finalNav", "finalValuation", "metrics", "observations", "tPlusOne"],
+    "artifact.results",
+  );
+  const counts = exact(
+    results.counts,
+    [
+      "events",
+      "intents",
+      "orders",
+      "fills",
+      "navObservations",
+      "tPlusOneRejected",
+      "nextDaySellFills",
+    ],
+    "results.counts",
+  );
   for (const [key, value] of Object.entries(counts)) {
-    if (typeof value !== "number" || !Number.isInteger(value) || value < 0) throw new TypeError(`results.counts.${key} is invalid`);
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 0)
+      throw new TypeError(`results.counts.${key} is invalid`);
   }
   exact(results.pnl, ["realized", "unrealized", "total", "fees"], "results.pnl");
   const pnl = results.pnl as Record<string, unknown>;
   for (const [key, value] of Object.entries(pnl)) decimal(value, `results.pnl.${key}`);
   decimal(results.finalNav, "results.finalNav");
-  const finalValuation = exact(results.finalValuation, ["cutoffTime", "nav", "totalPnl", "stateDigest", "inputDigest", "sampleCount"], "results.finalValuation");
+  const finalValuation = exact(
+    results.finalValuation,
+    ["cutoffTime", "nav", "totalPnl", "stateDigest", "inputDigest", "sampleCount"],
+    "results.finalValuation",
+  );
   timestamp(finalValuation.cutoffTime, "results.finalValuation.cutoffTime");
   decimal(finalValuation.nav, "results.finalValuation.nav");
   decimal(finalValuation.totalPnl, "results.finalValuation.totalPnl");
   sha(finalValuation.stateDigest, "results.finalValuation.stateDigest");
   sha(finalValuation.inputDigest, "results.finalValuation.inputDigest");
-  if (typeof finalValuation.sampleCount !== "number" || !Number.isInteger(finalValuation.sampleCount) || finalValuation.sampleCount < 0) throw new TypeError("results.finalValuation.sampleCount is invalid");
-  const metrics = exact(results.metrics, ["cumulativeChainedReturn", "annualizedReturn", "annualizedVolatility", "maximumDrawdown", "sharpe", "sortino", "calmar"], "results.metrics");
+  if (
+    typeof finalValuation.sampleCount !== "number" ||
+    !Number.isInteger(finalValuation.sampleCount) ||
+    finalValuation.sampleCount < 0
+  )
+    throw new TypeError("results.finalValuation.sampleCount is invalid");
+  const metrics = exact(
+    results.metrics,
+    [
+      "cumulativeChainedReturn",
+      "annualizedReturn",
+      "annualizedVolatility",
+      "maximumDrawdown",
+      "sharpe",
+      "sortino",
+      "calmar",
+    ],
+    "results.metrics",
+  );
   for (const [name, raw] of Object.entries(metrics)) {
     const metric = exact(raw, ["status", "value"], `results.metrics.${name}`);
     text(metric.status, `results.metrics.${name}.status`);
@@ -770,11 +938,13 @@ function artifact(input: unknown): BacktestRegressionArtifact {
   }
   observations(results.observations, "results.observations", "nav");
   const resultTPlusOne = tPlusOneResults(results.tPlusOne, "artifact.results.tPlusOne");
-  if (counts.tPlusOneRejected !== 1 || counts.nextDaySellFills !== 1) throw new TypeError("results T+1 counts are inconsistent");
+  if (counts.tPlusOneRejected !== 1 || counts.nextDaySellFills !== 1)
+    throw new TypeError("results T+1 counts are inconsistent");
   sha(item.artifactSha256, "artifact.artifactSha256");
   const withoutDigest = { ...item };
   delete withoutDigest.artifactSha256;
-  if (sha256Json(withoutDigest) !== item.artifactSha256) throw new TypeError("artifact digest mismatch");
+  if (sha256Json(withoutDigest) !== item.artifactSha256)
+    throw new TypeError("artifact digest mismatch");
   return {
     ...item,
     inputs: { ...inputs, tPlusOne: tPlusOneInputs(inputs.tPlusOne, "artifact.inputs.tPlusOne") },
@@ -788,23 +958,53 @@ export function parseBacktestRegressionArtifact(input: unknown): BacktestRegress
 }
 
 export function parseBacktestRegressionBaseline(input: unknown): BacktestRegressionBaseline {
-  const item = exact(input, ["schemaVersion", "baselineId", "suiteId", "expectedArtifact", "expectedArtifactSha256", "approval"], "baseline");
-  if (item.schemaVersion !== "backtest-regression-baseline-v1") throw new TypeError("unsupported baseline schema");
+  const item = exact(
+    input,
+    [
+      "schemaVersion",
+      "baselineId",
+      "suiteId",
+      "expectedArtifact",
+      "expectedArtifactSha256",
+      "approval",
+    ],
+    "baseline",
+  );
+  if (item.schemaVersion !== "backtest-regression-baseline-v1")
+    throw new TypeError("unsupported baseline schema");
   safeId(item.baselineId, "baseline.baselineId");
   safeId(item.suiteId, "baseline.suiteId");
   const expectedArtifact = artifact(item.expectedArtifact);
   if (expectedArtifact.suiteId !== item.suiteId) throw new TypeError("baseline suite mismatch");
-  if (expectedArtifact.artifactSha256 !== item.expectedArtifactSha256) throw new TypeError("baseline artifact digest mismatch");
-  const approval = exact(item.approval, ["approvalId", "reviewedBy", "reviewedAt", "reviewedArtifactSha256", "changeReference", "reason", "evidenceRefs"], "baseline.approval");
+  if (expectedArtifact.artifactSha256 !== item.expectedArtifactSha256)
+    throw new TypeError("baseline artifact digest mismatch");
+  const approval = exact(
+    item.approval,
+    [
+      "approvalId",
+      "reviewedBy",
+      "reviewedAt",
+      "reviewedArtifactSha256",
+      "changeReference",
+      "reason",
+      "evidenceRefs",
+    ],
+    "baseline.approval",
+  );
   const approvalId = safeId(approval.approvalId, "approval.approvalId");
   const reviewedBy = text(approval.reviewedBy, "approval.reviewedBy");
   const reviewedAt = timestamp(approval.reviewedAt, "approval.reviewedAt");
-  if (approval.reviewedArtifactSha256 !== expectedArtifact.artifactSha256) throw new TypeError("approval digest mismatch");
+  if (approval.reviewedArtifactSha256 !== expectedArtifact.artifactSha256)
+    throw new TypeError("approval digest mismatch");
   const changeReference = digestReference(approval.changeReference, "approval.changeReference");
-  if (changeReference.kind !== "OPAQUE_EXTERNAL") throw new TypeError("approval changeReference must be opaque");
+  if (changeReference.kind !== "OPAQUE_EXTERNAL")
+    throw new TypeError("approval changeReference must be opaque");
   const reason = text(approval.reason, "approval.reason");
-  if (!Array.isArray(approval.evidenceRefs)) throw new TypeError("approval.evidenceRefs must be an array");
-  const evidenceRefs = approval.evidenceRefs.map((ref, index) => digestReference(ref, `approval.evidenceRefs[${index}]`));
+  if (!Array.isArray(approval.evidenceRefs))
+    throw new TypeError("approval.evidenceRefs must be an array");
+  const evidenceRefs = approval.evidenceRefs.map((ref, index) =>
+    digestReference(ref, `approval.evidenceRefs[${index}]`),
+  );
   const typedApproval: BaselineApproval = {
     approvalId,
     reviewedBy,
@@ -833,19 +1033,27 @@ export function parseBacktestRegressionComparison(input: unknown): BacktestRegre
   }
   const diffs = item.diffs.map((raw, index): BacktestRegressionDiff => {
     const field = "comparison.diffs[" + index + "]";
-    const diff = exact(raw, ["category", "pointer", "status", "baselineValue", "candidateValue"], field);
+    const diff = exact(
+      raw,
+      ["category", "pointer", "status", "baselineValue", "candidateValue"],
+      field,
+    );
     const category = text(diff.category, field + ".category");
     if (!(REGRESSION_DIFF_CATEGORIES as readonly string[]).includes(category)) {
       throw new TypeError(field + ".category is unsupported");
     }
     const pointer = text(diff.pointer, field + ".pointer");
-    if (!pointer.startsWith("/") || [...pointer].some((character) => character.charCodeAt(0) > 0x7f)) {
+    if (
+      !pointer.startsWith("/") ||
+      [...pointer].some((character) => character.charCodeAt(0) > 0x7f)
+    ) {
       throw new TypeError(field + ".pointer must be an ASCII RFC 6901 pointer");
     }
     for (let pointerIndex = 0; pointerIndex < pointer.length; pointerIndex += 1) {
       if (pointer[pointerIndex] === "~") {
         const escape = pointer[pointerIndex + 1];
-        if (escape !== "0" && escape !== "1") throw new TypeError(field + ".pointer has an invalid escape");
+        if (escape !== "0" && escape !== "1")
+          throw new TypeError(field + ".pointer has an invalid escape");
         pointerIndex += 1;
       }
     }
@@ -873,7 +1081,10 @@ export function parseBacktestRegressionComparison(input: unknown): BacktestRegre
     };
   });
   const categoryCountsValue = record(item.categoryCounts, "comparison.categoryCounts");
-  if (Object.keys(categoryCountsValue).sort(compareAscii).join("\u0000") !== [...REGRESSION_DIFF_CATEGORIES].sort(compareAscii).join("\u0000")) {
+  if (
+    Object.keys(categoryCountsValue).sort(compareAscii).join("\u0000") !==
+    [...REGRESSION_DIFF_CATEGORIES].sort(compareAscii).join("\u0000")
+  ) {
     throw new TypeError("comparison.categoryCounts must contain exactly the five categories");
   }
   const categoryCounts = {} as BacktestRegressionComparison["categoryCounts"];
@@ -887,7 +1098,8 @@ export function parseBacktestRegressionComparison(input: unknown): BacktestRegre
   const identities = new Set<string>();
   for (const diff of diffs) {
     const identity = diff.category + "\u0000" + diff.pointer;
-    if (identities.has(identity)) throw new TypeError("comparison contains duplicate diff identities");
+    if (identities.has(identity))
+      throw new TypeError("comparison contains duplicate diff identities");
     identities.add(identity);
   }
   const sortedDiffs = [...diffs].sort((left, right) => {
@@ -912,12 +1124,22 @@ export function parseBacktestRegressionComparison(input: unknown): BacktestRegre
       throw new TypeError("comparison categoryCounts does not match diffs");
     }
   }
-  const diffLines = item.diffLines.map((line, index) => text(line, "comparison.diffLines[" + index + "]"));
+  const diffLines = item.diffLines.map((line, index) =>
+    text(line, "comparison.diffLines[" + index + "]"),
+  );
   const expectedLines = diffs.map((diff) => diff.category + " " + diff.status + " " + diff.pointer);
-  if (diffLines.length !== expectedLines.length || diffLines.some((line, index) => line !== expectedLines[index])) {
+  if (
+    diffLines.length !== expectedLines.length ||
+    diffLines.some((line, index) => line !== expectedLines[index])
+  ) {
     throw new TypeError("comparison diffLines are not canonical");
   }
-  if (item.status === "MATCHED" && (diffs.length !== 0 || diffLines.length !== 0 || Object.values(categoryCounts).some((count) => count !== 0))) {
+  if (
+    item.status === "MATCHED" &&
+    (diffs.length !== 0 ||
+      diffLines.length !== 0 ||
+      Object.values(categoryCounts).some((count) => count !== 0))
+  ) {
     throw new TypeError("MATCHED comparison must be empty");
   }
   if (item.status === "DRIFTED" && diffs.length === 0) {

@@ -3,7 +3,7 @@ import type { Migration } from "@kunlun/db";
 /**
  * Initial business model: control-plane tables for providers, tasks,
  * checkpoints, data versions and quality events. High-frequency market data
- * deliberately lives in ClickHouse (P1-N10), never here.
+ * deliberately lives in ClickHouse, never here.
  */
 export const migrations: Migration[] = [
   {

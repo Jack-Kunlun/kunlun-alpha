@@ -15,7 +15,7 @@ export function TerminalModulePlaceholder({ routeId }: { routeId: TerminalRouteI
         <div className="h-1 bg-gradient-to-r from-amber-400 via-sky-500 to-emerald-500" />
         <CardHeader className="space-y-5 sm:p-8">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{route.node}</Badge>
+            <Badge variant="outline">规划能力</Badge>
             <Badge variant="secondary">路由已就绪</Badge>
           </div>
           <div className="flex items-start gap-4">
@@ -26,8 +26,8 @@ export function TerminalModulePlaceholder({ routeId }: { routeId: TerminalRouteI
               <span className="sr-only">ROUTE_PLACEHOLDER:{route.id}</span>
               <CardTitle className="text-2xl sm:text-3xl">{route.label}</CardTitle>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-                {route.description}。本节点只建立信息架构与稳定深链接，业务数据将在 {route.node}
-                按独立验收边界接入。
+                {route.description}
+                。当前页面只保留稳定深链接；真实业务数据接入前不展示模拟行情或结论。
               </p>
             </div>
           </div>

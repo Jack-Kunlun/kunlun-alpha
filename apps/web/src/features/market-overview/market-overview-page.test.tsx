@@ -92,7 +92,7 @@ describe("MarketOverviewView", () => {
     expect(html).toContain("历史点时");
     expect(html).toContain("9,007,199,254,740,993.25");
     expect(html).toContain("上证指数");
-    expect(html).toContain("Phase 0–6 无真实账户或真实下单路径");
+    expect(html).toContain("当前系统没有真实账户或真实下单路径");
   });
 
   it("renders missing regions explicitly instead of displaying zero", () => {

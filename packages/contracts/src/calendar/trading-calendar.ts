@@ -132,7 +132,7 @@ function inSession(session: TradingSession, minutes: number): boolean {
 
 /**
  * Default in-memory calendar built from the shared templates and seed holidays.
- * Real provider-synced calendars (P1-N07) will implement the same interface.
+ * Provider-synced calendars implement the same interface.
  */
 export class StaticTradingCalendar implements TradingCalendar {
   private readonly templates: Record<string, TradingSession[]>;
