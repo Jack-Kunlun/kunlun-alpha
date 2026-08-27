@@ -12,12 +12,8 @@ describe("terminal route contract", () => {
     expect(new Set(terminalRoutes.map((route) => route.path)).size).toBe(terminalRoutes.length);
   });
 
-  it("reserves stable deep links for every Phase 6 product surface", () => {
-    expect(
-      terminalRoutes
-        .filter((route) => route.node.startsWith("P6-"))
-        .map((route) => route.path),
-    ).toEqual(
+  it("reserves stable deep links for every current decision and workspace surface", () => {
+    expect(terminalRoutes.map((route) => route.path)).toEqual(
       expect.arrayContaining([
         "/",
         "/market-overview",
@@ -39,12 +35,12 @@ describe("terminal route contract", () => {
     expect(viewerRoutes.map((route) => route.id)).not.toContain("paper");
     expect(viewerRoutes.map((route) => route.id)).not.toContain("data-quality");
     expect(canAccessTerminalRoute(getTerminalRoute("paper"), ["paper_operator"])).toBe(true);
-    expect(
-      terminalRoutes.every((route) => canAccessTerminalRoute(route, ["platform_admin"])),
-    ).toBe(true);
+    expect(terminalRoutes.every((route) => canAccessTerminalRoute(route, ["platform_admin"]))).toBe(
+      true,
+    );
   });
 
-  it("marks both P6-N06 entry and deep-link routes ready", () => {
+  it("marks both instrument entry and deep-link routes ready", () => {
     expect(getTerminalRoute("instruments").status).toBe("ready");
     expect(getTerminalRoute("instrument-detail").status).toBe("ready");
   });

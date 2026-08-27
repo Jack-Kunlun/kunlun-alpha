@@ -1,5 +1,5 @@
 {
-  "$comment": "Static seed holidays for the default calendar — P1-N07 will replace this with provider-synced exchange calendars. Weekends are derived by the calendar code and must not be listed here. Each entry applies to a single exchange; list one row per exchange for market-wide closures.",
+  "$comment": "Static seed holidays for the default calendar; provider-synced exchange calendars are the current expansion boundary. Weekends are derived by the calendar code and must not be listed here. Each entry applies to a single exchange; list one row per exchange for market-wide closures.",
   "timezone": "Asia/Shanghai",
   "holidays": [
     { "date": "2026-01-01", "exchange": "SH", "reason": "PUBLIC_HOLIDAY", "note": "元旦" },

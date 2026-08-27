@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://kunlun-alpha/schemas/emotion/terminal-limit-pool-snapshot.json",
   "title": "LimitPoolTerminalSnapshot",
-  "description": "Versioned point-in-time projection consumed by the Phase 6 limit-pool terminal",
+  "description": "Versioned point-in-time projection consumed by the limit-pool terminal",
   "type": "object",
   "additionalProperties": false,
   "required": [

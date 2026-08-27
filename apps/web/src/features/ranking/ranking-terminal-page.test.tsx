@@ -15,8 +15,8 @@ describe("RankingTerminalView", () => {
       <RankingTerminalView result={{ state: "success", snapshot: rankingAcceptanceSnapshot }} />,
     );
 
-    expect(html).toContain("脱敏验收快照");
-    expect(html).toContain("本节点尚未接入实时 Ranking 读取端");
+    expect(html).toContain("版本化研究快照");
+    expect(html).toContain("当前尚未接入实时 Ranking 读取端");
     expect(html).toContain("研究排序，不构成收益保证");
     expect(html).toContain("快照时点尚不可用");
     expect(html).toContain("查看贡献 · 缺失 1");

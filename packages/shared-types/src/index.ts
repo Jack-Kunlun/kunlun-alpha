@@ -871,7 +871,7 @@ export type LimitPoolState = "SEALED" | "OPENED" | "LIMIT_DOWN";
 export type PositiveDecimalString = string;
 
 /**
- * Versioned point-in-time projection consumed by the Phase 6 limit-pool terminal
+ * Versioned point-in-time projection consumed by the limit-pool terminal
  */
 export interface LimitPoolTerminalSnapshot {
   schemaVersion: "limit-pool-terminal-v1";

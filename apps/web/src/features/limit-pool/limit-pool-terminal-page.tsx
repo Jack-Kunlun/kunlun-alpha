@@ -146,7 +146,7 @@ export function LimitPoolEvidenceDetails({ entry }: { entry: LimitPoolTerminalEn
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-        算法输出，不代表可成交价格；Phase 0–6 不存在真实下单路径。
+        算法输出，不代表可成交价格；当前系统不存在真实下单路径。
       </div>
       <dl className="grid gap-3 text-sm">
         {rows.map(([label, value]) => (
@@ -452,7 +452,7 @@ export function LimitPoolTerminalPage() {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
-            Phase 6 · Decision Terminal
+            Decision Terminal · Point-in-time
           </p>
           <h1 id="limit-pool-title" className="mt-2 text-3xl font-semibold tracking-tight">
             涨跌停与连板终端

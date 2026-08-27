@@ -3,7 +3,7 @@
  *
  * Business tables store control-plane state (providers, tasks, checkpoints,
  * data versions, quality events) — never high-frequency market data, which
- * belongs in ClickHouse (P1-N10).
+ * belongs in ClickHouse.
  */
 
 export interface Entity {

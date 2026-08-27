@@ -6,14 +6,14 @@ import { Home } from "./Home";
 import { NotFound } from "./NotFound";
 
 describe("terminal page states", () => {
-  it("renders the Phase 6 information architecture shell", () => {
+  it("renders the current decision-terminal information architecture", () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <Home />
       </MemoryRouter>,
     );
     expect(html).toContain("从证据到决策");
-    expect(html).toContain("P6-N01");
+    expect(html).toContain("Decision Terminal");
     expect(html).toContain("研究与模拟");
   });
 

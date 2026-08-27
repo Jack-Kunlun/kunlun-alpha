@@ -288,9 +288,9 @@ function RankingSuccess({
             <div className="max-w-3xl">
               <div className="mb-3 flex flex-wrap gap-2">
                 <Badge className="bg-amber-500 text-amber-950 hover:bg-amber-500">
-                  脱敏验收快照
+                  版本化研究快照
                 </Badge>
-                <Badge variant="outline">P6-N05</Badge>
+                <Badge variant="outline">离线数据</Badge>
               </div>
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
                 Intelligence Ranking
@@ -307,7 +307,7 @@ function RankingSuccess({
             </div>
             <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-950 xl:max-w-md">
               <strong className="block">研究排序，不构成收益保证</strong>
-              <span>本节点尚未接入实时 Ranking 读取端，不产生 Signal、OrderIntent 或订单。</span>
+              <span>当前尚未接入实时 Ranking 读取端，不产生 Signal、OrderIntent 或订单。</span>
             </div>
           </div>
         </header>
