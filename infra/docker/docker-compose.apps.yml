@@ -152,6 +152,8 @@ services:
       DASHBOARD_TERMINAL_READ_POLICY: public
       PAPER_ENGINE_URL: http://quant-engine:8081
       PAPER_ENGINE_TIMEOUT_MS: ${PAPER_ENGINE_TIMEOUT_MS:-5000}
+      QUANT_ENGINE_URL: http://quant-engine:8081
+      QUANT_ENGINE_TIMEOUT_MS: ${QUANT_ENGINE_TIMEOUT_MS:-5000}
     ports:
       - "${SERVER_PORT:-3002}:3002"
     healthcheck:

@@ -102,8 +102,7 @@ export function missingPolicyLabel(policy: MissingFeaturePolicy): string {
 
 export function rankingContextNotice(searchParams: URLSearchParams): string | null {
   const ignored: string[] = [];
-  if (searchParams.get("asOf") !== null) ignored.push("asOf");
   if (searchParams.get("instrument") !== null) ignored.push("instrument");
   if (ignored.length === 0) return null;
-  return `固定验收快照未应用 URL 上下文：${ignored.join("、")}。当前只展示快照自身的 as-of 与全量脱敏证券。`;
+  return `Ranking 快照未应用 URL 上下文：${ignored.join("、")}。asOf 会由服务端用于选择点时快照。`;
 }

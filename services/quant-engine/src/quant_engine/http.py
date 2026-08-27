@@ -7,26 +7,57 @@ import threading
 from collections.abc import Mapping
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import cast
+from urllib.parse import parse_qs, urlsplit
 
 from pydantic import ValidationError
 
 from .paper_workspace import PaperWorkspace, PaperWorkspaceConflictError, PaperWorkspaceError
+from .ranking_store import (
+    RankingSnapshotConflictError,
+    RankingSnapshotNotFoundError,
+    RankingSnapshotStore,
+    RankingSnapshotStoreError,
+)
 
 MAX_BODY_BYTES = 64 * 1024
 
 
 class QuantEngineHttpServer:
-    def __init__(self, host: str, port: int, workspace: PaperWorkspace) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        workspace: PaperWorkspace,
+        ranking_store: RankingSnapshotStore | None = None,
+    ) -> None:
         owner = self
         self._workspace = workspace
+        self._ranking_store = ranking_store or RankingSnapshotStore()
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
-                if self.path == "/health":
+                request = urlsplit(self.path)
+                if request.path == "/health":
                     owner._send(self, 200, {"status": "ok", "service": "quant-engine"})
                     return
-                if self.path == "/v1/paper/workspace":
+                if request.path == "/v1/paper/workspace":
                     owner._send(self, 200, owner._workspace.snapshot())
+                    return
+                if request.path == "/v1/ranking/snapshots/latest":
+                    try:
+                        query = parse_qs(request.query, keep_blank_values=True)
+                        values = query.get("asOf", [])
+                        if len(values) > 1:
+                            raise RankingSnapshotStoreError("asOf must appear at most once")
+                        owner._send(
+                            self,
+                            200,
+                            owner._ranking_store.latest(values[0] if values else None),
+                        )
+                    except RankingSnapshotNotFoundError as error:
+                        owner._send(self, 404, {"error": "not_found", "message": str(error)})
+                    except RankingSnapshotStoreError as error:
+                        owner._send(self, 422, {"error": "invalid_request", "message": str(error)})
                     return
                 owner._send(self, 404, {"error": "not_found"})
 
@@ -39,10 +70,20 @@ class QuantEngineHttpServer:
                     if self.path == "/v1/paper/simulations":
                         owner._send(self, 200, owner._workspace.simulate(body))
                         return
+                    if self.path == "/v1/ranking/snapshots":
+                        owner._send(self, 200, owner._ranking_store.publish(body))
+                        return
                     owner._send(self, 404, {"error": "not_found"})
                 except PaperWorkspaceConflictError as error:
                     owner._send(self, 409, {"error": "conflict", "message": str(error)})
-                except (PaperWorkspaceError, ValidationError, ValueError) as error:
+                except RankingSnapshotConflictError as error:
+                    owner._send(self, 409, {"error": "conflict", "message": str(error)})
+                except (
+                    PaperWorkspaceError,
+                    RankingSnapshotStoreError,
+                    ValidationError,
+                    ValueError,
+                ) as error:
                     owner._send(self, 422, {"error": "invalid_request", "message": str(error)})
 
             def log_message(self, format: str, *args: object) -> None:  # noqa: A002

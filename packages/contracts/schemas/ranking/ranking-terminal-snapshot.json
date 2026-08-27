@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kunlun-alpha.local/schemas/ranking/ranking-terminal-snapshot.json",
+  "title": "RankingTerminalSnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshotId",
+    "inputFingerprint",
+    "asOf",
+    "generatedAt",
+    "sourceMode",
+    "spec",
+    "rows"
+  ],
+  "properties": {
+    "snapshotId": { "$ref": "#/$defs/RankingTerminalDigest" },
+    "inputFingerprint": { "$ref": "#/$defs/RankingTerminalDigest" },
+    "asOf": { "type": "string", "format": "date-time" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "sourceMode": { "const": "VERSIONED_RESEARCH_SNAPSHOT" },
+    "spec": { "$ref": "#/$defs/RankingTerminalSpec" },
+    "rows": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/RankingTerminalRow" }
+    }
+  },
+  "$defs": {
+    "RankingTerminalDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "RankingTerminalFeatureSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "weightBps", "direction", "missingPolicy"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "weightBps": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "direction": { "enum": ["HIGHER_IS_BETTER", "LOWER_IS_BETTER"] },
+        "missingPolicy": { "enum": ["EXCLUDE", "ZERO", "RENORMALIZE"] }
+      }
+    },
+    "RankingTerminalSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specId",
+        "version",
+        "algorithmVersion",
+        "fingerprint",
+        "minimumCoverageBps",
+        "features"
+      ],
+      "properties": {
+        "specId": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "algorithmVersion": { "type": "string", "minLength": 1 },
+        "fingerprint": { "$ref": "#/$defs/RankingTerminalDigest" },
+        "minimumCoverageBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "features": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/RankingTerminalFeatureSpec" }
+        }
+      }
+    },
+    "RankingTerminalContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "featureKey",
+        "label",
+        "direction",
+        "rawValue",
+        "normalizedScoreBps",
+        "configuredWeightBps",
+        "effectiveWeightBps",
+        "contributionBps",
+        "missingReason",
+        "availableTime",
+        "source"
+      ],
+      "properties": {
+        "featureKey": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "direction": { "enum": ["HIGHER_IS_BETTER", "LOWER_IS_BETTER"] },
+        "rawValue": {
+          "type": ["string", "null"],
+          "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        },
+        "normalizedScoreBps": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "configuredWeightBps": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "effectiveWeightBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "contributionBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "missingReason": { "type": ["string", "null"] },
+        "availableTime": { "type": ["string", "null"], "format": "date-time" },
+        "source": { "type": ["string", "null"] }
+      }
+    },
+    "RankingTerminalRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrumentId",
+        "instrumentName",
+        "sector",
+        "status",
+        "rank",
+        "scoreBps",
+        "coverageBps",
+        "contributions",
+        "exclusionReasons"
+      ],
+      "properties": {
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "instrumentName": { "type": "string", "minLength": 1 },
+        "sector": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["INCLUDED", "EXCLUDED"] },
+        "rank": { "type": ["integer", "null"], "minimum": 1 },
+        "scoreBps": { "type": ["integer", "null"], "minimum": 0, "maximum": 10000 },
+        "coverageBps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "contributions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RankingTerminalContribution" }
+        },
+        "exclusionReasons": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

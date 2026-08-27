@@ -23,6 +23,8 @@ curl http://localhost:3002/api/v1/paper/workspace
 
 Web 页面：`http://localhost:5173/paper`。
 
+Ranking 正式页面只读取 quant-engine 已发布的版本化快照。若尚未发布，页面显示空状态；测试验收 JSON 不会作为运行时回退数据。
+
 ## 故障处理
 
 1. `quant-engine` 不健康时检查容器日志和 `KUNLUN_PORT`。

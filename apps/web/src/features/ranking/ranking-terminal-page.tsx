@@ -24,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { rankingAcceptanceSnapshot } from "./ranking-fixture";
+import { useRankingTerminal } from "./use-ranking-terminal";
 import {
   clampMinimumScore,
   defaultRankingFilters,
@@ -290,7 +290,7 @@ function RankingSuccess({
                 <Badge className="bg-amber-500 text-amber-950 hover:bg-amber-500">
                   版本化研究快照
                 </Badge>
-                <Badge variant="outline">离线数据</Badge>
+                <Badge variant="outline">服务端发布快照</Badge>
               </div>
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
                 Intelligence Ranking
@@ -307,7 +307,7 @@ function RankingSuccess({
             </div>
             <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-950 xl:max-w-md">
               <strong className="block">研究排序，不构成收益保证</strong>
-              <span>当前尚未接入实时 Ranking 读取端，不产生 Signal、OrderIntent 或订单。</span>
+              <span>读取服务端发布的点时快照，不产生 Signal、OrderIntent 或订单。</span>
             </div>
           </div>
         </header>
@@ -505,6 +505,9 @@ export function RankingTerminalView({
   if (result.state === "forbidden") {
     return <TerminalState title="无权查看股票智能排序" message={result.message} tone="danger" />;
   }
+  if (result.state === "empty") {
+    return <TerminalState title="暂无已发布排名快照" message={result.message} tone="neutral" />;
+  }
   if (result.state === "error") {
     return <TerminalState title="排名快照加载失败" message={result.message} tone="danger" />;
   }
@@ -519,10 +522,6 @@ export function RankingTerminalView({
 
 export function RankingTerminalPage() {
   const [searchParams] = useSearchParams();
-  return (
-    <RankingTerminalView
-      result={{ state: "success", snapshot: rankingAcceptanceSnapshot }}
-      contextNotice={rankingContextNotice(searchParams)}
-    />
-  );
+  const result = useRankingTerminal(searchParams.get("asOf"));
+  return <RankingTerminalView result={result} contextNotice={rankingContextNotice(searchParams)} />;
 }
