@@ -469,6 +469,48 @@ from ashare_contracts.paper_paper_risk_decision import Limit as Limit
 from ashare_contracts.paper_paper_risk_decision import PaperRiskCheck as PaperRiskCheck
 from ashare_contracts.paper_paper_risk_decision import PaperRiskDecision as PaperRiskDecision
 from ashare_contracts.paper_paper_risk_decision import Status as Status_7
+from ashare_contracts.paper_paper_terminal_create_account import (
+    PaperTerminalCreateAccountCommand as PaperTerminalCreateAccountCommand,
+)
+from ashare_contracts.paper_paper_terminal_simulation import (
+    PaperTerminalSimulationCommand as PaperTerminalSimulationCommand,
+)
+from ashare_contracts.paper_paper_terminal_workspace import Digest as Digest
+from ashare_contracts.paper_paper_terminal_workspace import Limitation as Limitation
+from ashare_contracts.paper_paper_terminal_workspace import Money as Money
+from ashare_contracts.paper_paper_terminal_workspace import (
+    PaperTerminalAccount as PaperTerminalAccount,
+)
+from ashare_contracts.paper_paper_terminal_workspace import (
+    PaperTerminalAllocation as PaperTerminalAllocation,
+)
+from ashare_contracts.paper_paper_terminal_workspace import (
+    PaperTerminalAllocationRejection as PaperTerminalAllocationRejection,
+)
+from ashare_contracts.paper_paper_terminal_workspace import PaperTerminalAudit as PaperTerminalAudit
+from ashare_contracts.paper_paper_terminal_workspace import (
+    PaperTerminalBookDiff as PaperTerminalBookDiff,
+)
+from ashare_contracts.paper_paper_terminal_workspace import PaperTerminalOrder as PaperTerminalOrder
+from ashare_contracts.paper_paper_terminal_workspace import (
+    PaperTerminalPosition as PaperTerminalPosition,
+)
+from ashare_contracts.paper_paper_terminal_workspace import (
+    PaperTerminalReconciliation as PaperTerminalReconciliation,
+)
+from ashare_contracts.paper_paper_terminal_workspace import PaperTerminalRisk as PaperTerminalRisk
+from ashare_contracts.paper_paper_terminal_workspace import (
+    PaperTerminalRiskCheck as PaperTerminalRiskCheck,
+)
+from ashare_contracts.paper_paper_terminal_workspace import (
+    PaperTerminalWorkspace as PaperTerminalWorkspace,
+)
+from ashare_contracts.paper_paper_terminal_workspace import Side as Side_2
+from ashare_contracts.paper_paper_terminal_workspace import Status as Status_8
+from ashare_contracts.paper_paper_terminal_workspace import Status1 as Status1_1
+from ashare_contracts.paper_paper_terminal_workspace import Status2 as Status2_1
+from ashare_contracts.paper_paper_terminal_workspace import Status3 as Status3
+from ashare_contracts.paper_paper_terminal_workspace import Status4 as Status4
 from ashare_contracts.seat_alias import SeatAlias as SeatAlias
 from ashare_contracts.seat_alias import SeatAliasSchemaVersion as SeatAliasSchemaVersion
 from ashare_contracts.seat_alias import SeatAliasType as SeatAliasType
@@ -891,6 +933,28 @@ __all__ = [
     "PaperRiskCheck",
     "PaperRiskDecision",
     "Status_7",
+    "PaperTerminalCreateAccountCommand",
+    "PaperTerminalSimulationCommand",
+    "Digest",
+    "Limitation",
+    "Money",
+    "PaperTerminalAccount",
+    "PaperTerminalAllocation",
+    "PaperTerminalAllocationRejection",
+    "PaperTerminalAudit",
+    "PaperTerminalBookDiff",
+    "PaperTerminalOrder",
+    "PaperTerminalPosition",
+    "PaperTerminalReconciliation",
+    "PaperTerminalRisk",
+    "PaperTerminalRiskCheck",
+    "PaperTerminalWorkspace",
+    "Side_2",
+    "Status_8",
+    "Status1_1",
+    "Status2_1",
+    "Status3",
+    "Status4",
     "SeatAlias",
     "SeatAliasSchemaVersion",
     "SeatAliasType",

@@ -11,12 +11,12 @@ import { RotationTerminalPage } from "../features/rotation/rotation-terminal-pag
 import { SeatKolWorkbenchPage } from "../features/seat-kol/seat-kol-workbench-page";
 import { AlertsPage } from "../features/alerts/alerts-page";
 import { PreciousMetalsTerminalPage } from "../features/precious-metals/precious-metals-terminal-page";
+import { PaperTerminalPage } from "../features/paper/paper-terminal-page";
 import {
   InstrumentDirectoryPage,
   InstrumentIntelligencePage,
 } from "../features/instrument/instrument-intelligence-page";
 import { Home } from "../pages/Home";
-import { TerminalModulePlaceholder } from "../pages/TerminalModulePlaceholder";
 
 export const terminalRouteElements: Readonly<Record<TerminalRouteId, ReactNode>> = {
   home: <Home />,
@@ -28,7 +28,7 @@ export const terminalRouteElements: Readonly<Record<TerminalRouteId, ReactNode>>
   "instrument-detail": <InstrumentIntelligencePage />,
   "precious-metals": <PreciousMetalsTerminalPage />,
   watchlists: <AlertsPage />,
-  paper: <TerminalModulePlaceholder routeId="paper" />,
+  paper: <PaperTerminalPage />,
   "market-regime": <MarketRegimePage />,
   "event-workbench": <EventWorkbenchPage />,
   "seat-kol": <SeatKolWorkbenchPage />,

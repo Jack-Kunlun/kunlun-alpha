@@ -1,18 +1,23 @@
 [project]
 name = "quant-engine"
 version = "0.0.0"
-description = "Reproducible backtest regression artifacts and reports"
+description = "Quant research, ranking snapshots, backtest regression, and paper simulation service"
 requires-python = "==3.12.13"
 dependencies = [
     "ashare-contracts",
     "backtest-core",
+    "paper-core",
     "quant-core",
 ]
 
 [tool.uv.sources]
 ashare-contracts = { workspace = true }
 backtest-core = { workspace = true }
+paper-core = { workspace = true }
 quant-core = { workspace = true }
+
+[project.scripts]
+quant-engine = "quant_engine.main:main_cli"
 
 [build-system]
 requires = ["hatchling==1.27.0"]

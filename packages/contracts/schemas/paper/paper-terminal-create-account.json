@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kunlun-alpha.local/schemas/paper/paper-terminal-create-account.json",
+  "title": "PaperTerminalCreateAccountCommand",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "clientRequestId", "name", "initialCapital"],
+  "properties": {
+    "schemaVersion": { "const": "paper-terminal-create-account-v1" },
+    "clientRequestId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "initialCapital": {
+      "type": "string",
+      "pattern": "^(?:0\\.\\d*[1-9]\\d*|[1-9]\\d*(?:\\.\\d+)?)$",
+      "maxLength": 32
+    }
+  }
+}

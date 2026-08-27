@@ -3121,6 +3121,186 @@ export interface PaperRiskCheck {
   explanation: string;
 }
 
+export interface PaperTerminalCreateAccountCommand {
+  schemaVersion: "paper-terminal-create-account-v1";
+  clientRequestId: string;
+  name: string;
+  initialCapital: string;
+}
+
+export interface PaperTerminalSimulationCommand {
+  schemaVersion: "paper-terminal-simulation-v1";
+  clientRequestId: string;
+  instrumentId: string;
+  price: string;
+  score: string;
+  confidence: string;
+  lotSize: number;
+}
+
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "Digest".
+ */
+export type Digest = string;
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "Money".
+ */
+export type Money = string;
+
+export interface PaperTerminalWorkspace {
+  schemaVersion: "paper-terminal-workspace-v1";
+  status: "EMPTY" | "READY" | "DEGRADED" | "UNAVAILABLE";
+  dataMeaning: "SIMULATION_ONLY_NO_BROKER_PATH";
+  executionCapability: "PAPER_ONLY";
+  persistenceMode: "VOLATILE_IN_MEMORY";
+  generatedAt: string;
+  /**
+   * @minItems 1
+   */
+  limitations: [string, ...string[]];
+  account: PaperTerminalAccount | null;
+  latestAllocation: PaperTerminalAllocation | null;
+  orders: PaperTerminalOrder[];
+  latestRisk: PaperTerminalRisk | null;
+  reconciliation: PaperTerminalReconciliation | null;
+  audit: PaperTerminalAudit;
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalAccount".
+ */
+export interface PaperTerminalAccount {
+  accountId: Digest;
+  name: string;
+  status: "ACTIVE" | "SUSPENDED" | "CLOSED";
+  baseCurrency: "CNY";
+  initialCapital: Money;
+  cash: Money;
+  nav: Money;
+  dataCutoffTime: string;
+  eventCount: number;
+  eventChainDigest: Digest;
+  positions: PaperTerminalPosition[];
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalPosition".
+ */
+export interface PaperTerminalPosition {
+  instrumentId: string;
+  quantity: number;
+  availableQuantity: number;
+  costAmount: Money;
+  marketValue: Money;
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalAllocation".
+ */
+export interface PaperTerminalAllocation {
+  decisionId: Digest;
+  policyId: string;
+  policyVersion: string;
+  intentCount: number;
+  rejectionCount: number;
+  rejections: PaperTerminalAllocationRejection[];
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalAllocationRejection".
+ */
+export interface PaperTerminalAllocationRejection {
+  instrumentId: string;
+  reason: string;
+  explanation: string;
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalOrder".
+ */
+export interface PaperTerminalOrder {
+  orderId: Digest;
+  instrumentId: string;
+  side: "BUY" | "SELL";
+  status:
+    | "CREATED"
+    | "CHECKED"
+    | "SUBMITTED"
+    | "PARTIALLY_FILLED"
+    | "CANCEL_PENDING"
+    | "FILLED"
+    | "CANCELLED"
+    | "REJECTED";
+  quantity: number;
+  filledQuantity: number;
+  averageFillPrice: Money | null;
+  totalFees: Money;
+  explanation: string;
+  updatedAt: string;
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalRisk".
+ */
+export interface PaperTerminalRisk {
+  decisionId: Digest;
+  allowed: boolean;
+  policyId: string;
+  policyVersion: string;
+  /**
+   * @minItems 1
+   */
+  checks: [PaperTerminalRiskCheck, ...PaperTerminalRiskCheck[]];
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalRiskCheck".
+ */
+export interface PaperTerminalRiskCheck {
+  code: string;
+  status: "PASS" | "FAIL";
+  actual: string;
+  limit: string | null;
+  explanation: string;
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalReconciliation".
+ */
+export interface PaperTerminalReconciliation {
+  reconciliationId: Digest;
+  status: "MATCHED" | "DRIFTED";
+  asOf: string;
+  duplicateFillCount: number;
+  diffs: PaperTerminalBookDiff[];
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalBookDiff".
+ */
+export interface PaperTerminalBookDiff {
+  kind: string;
+  instrumentId: string | null;
+  expected: string;
+  observed: string;
+  difference: string;
+}
+/**
+ * This interface was referenced by `PaperTerminalWorkspace`'s JSON-Schema
+ * via the `definition` "PaperTerminalAudit".
+ */
+export interface PaperTerminalAudit {
+  accountEventCount: number;
+  executionEventCount: number;
+  orderAuditCount: number;
+  alertCount: number;
+  accountDigest: Digest | null;
+  executionDigest: Digest | null;
+  lastClientRequestId: string | null;
+}
+
 export interface SeatKolWorkbenchSnapshot {
   schemaVersion: "seat-kol-workbench-v1";
   snapshotId: string;

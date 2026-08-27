@@ -1,4 +1,4 @@
-# Phase 0-3 local application overlay.
+# Local application overlay.
 # Combine this file with docker-compose.yml; it never removes named or bind volumes.
 
 services:
@@ -120,6 +120,8 @@ services:
         condition: service_completed_successfully
       limit-pool-terminal-materialize:
         condition: service_completed_successfully
+      quant-engine:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3002
@@ -148,6 +150,8 @@ services:
       DASHBOARD_EMOTION_ALGORITHM_VERSION: ${DASHBOARD_EMOTION_ALGORITHM_VERSION:-emotion_score_v1}
       DASHBOARD_CLICKHOUSE_TIMEOUT_MS: ${DASHBOARD_CLICKHOUSE_TIMEOUT_MS:-5000}
       DASHBOARD_TERMINAL_READ_POLICY: public
+      PAPER_ENGINE_URL: http://quant-engine:8081
+      PAPER_ENGINE_TIMEOUT_MS: ${PAPER_ENGINE_TIMEOUT_MS:-5000}
     ports:
       - "${SERVER_PORT:-3002}:3002"
     healthcheck:
@@ -165,6 +169,37 @@ services:
     labels:
       - "kunlun.service=server"
       - "kunlun.description=NestJS control plane"
+
+  quant-engine:
+    image: kunlun-quant-engine:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: quant-engine
+    container_name: kunlun-quant-engine
+    restart: unless-stopped
+    init: true
+    environment:
+      KUNLUN_LOG_LEVEL: INFO
+      KUNLUN_HOST: 0.0.0.0
+      KUNLUN_PORT: 8081
+    ports:
+      - "${QUANT_ENGINE_PORT:-8081}:8081"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    labels:
+      - "kunlun.service=quant-engine"
+      - "kunlun.description=Quant research and paper simulation engine"
 
   web:
     image: kunlun-web:local

@@ -1,1 +1,1 @@
-"""Offline quant-engine service boundaries."""
+"""Quant research and simulation service boundaries."""

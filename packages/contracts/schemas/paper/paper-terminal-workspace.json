@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kunlun-alpha.local/schemas/paper/paper-terminal-workspace.json",
+  "title": "PaperTerminalWorkspace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "dataMeaning",
+    "executionCapability",
+    "persistenceMode",
+    "generatedAt",
+    "limitations",
+    "account",
+    "latestAllocation",
+    "orders",
+    "latestRisk",
+    "reconciliation",
+    "audit"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "paper-terminal-workspace-v1" },
+    "status": { "enum": ["EMPTY", "READY", "DEGRADED", "UNAVAILABLE"] },
+    "dataMeaning": { "const": "SIMULATION_ONLY_NO_BROKER_PATH" },
+    "executionCapability": { "const": "PAPER_ONLY" },
+    "persistenceMode": { "const": "VOLATILE_IN_MEMORY" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "account": {
+      "oneOf": [{ "$ref": "#/$defs/PaperTerminalAccount" }, { "type": "null" }]
+    },
+    "latestAllocation": {
+      "oneOf": [{ "$ref": "#/$defs/PaperTerminalAllocation" }, { "type": "null" }]
+    },
+    "orders": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PaperTerminalOrder" }
+    },
+    "latestRisk": {
+      "oneOf": [{ "$ref": "#/$defs/PaperTerminalRisk" }, { "type": "null" }]
+    },
+    "reconciliation": {
+      "oneOf": [{ "$ref": "#/$defs/PaperTerminalReconciliation" }, { "type": "null" }]
+    },
+    "audit": { "$ref": "#/$defs/PaperTerminalAudit" }
+  },
+  "$defs": {
+    "Digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "Money": {
+      "type": "string",
+      "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+    },
+    "PaperTerminalPosition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instrumentId", "quantity", "availableQuantity", "costAmount", "marketValue"],
+      "properties": {
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "quantity": { "type": "integer", "minimum": 0 },
+        "availableQuantity": { "type": "integer", "minimum": 0 },
+        "costAmount": { "$ref": "#/$defs/Money" },
+        "marketValue": { "$ref": "#/$defs/Money" }
+      }
+    },
+    "PaperTerminalAccount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accountId",
+        "name",
+        "status",
+        "baseCurrency",
+        "initialCapital",
+        "cash",
+        "nav",
+        "dataCutoffTime",
+        "eventCount",
+        "eventChainDigest",
+        "positions"
+      ],
+      "properties": {
+        "accountId": { "$ref": "#/$defs/Digest" },
+        "name": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["ACTIVE", "SUSPENDED", "CLOSED"] },
+        "baseCurrency": { "const": "CNY" },
+        "initialCapital": { "$ref": "#/$defs/Money" },
+        "cash": { "$ref": "#/$defs/Money" },
+        "nav": { "$ref": "#/$defs/Money" },
+        "dataCutoffTime": { "type": "string", "format": "date-time" },
+        "eventCount": { "type": "integer", "minimum": 1 },
+        "eventChainDigest": { "$ref": "#/$defs/Digest" },
+        "positions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PaperTerminalPosition" }
+        }
+      }
+    },
+    "PaperTerminalAllocationRejection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instrumentId", "reason", "explanation"],
+      "properties": {
+        "instrumentId": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "PaperTerminalAllocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisionId",
+        "policyId",
+        "policyVersion",
+        "intentCount",
+        "rejectionCount",
+        "rejections"
+      ],
+      "properties": {
+        "decisionId": { "$ref": "#/$defs/Digest" },
+        "policyId": { "type": "string", "minLength": 1 },
+        "policyVersion": { "type": "string", "minLength": 1 },
+        "intentCount": { "type": "integer", "minimum": 0 },
+        "rejectionCount": { "type": "integer", "minimum": 0 },
+        "rejections": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PaperTerminalAllocationRejection" }
+        }
+      }
+    },
+    "PaperTerminalOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "orderId",
+        "instrumentId",
+        "side",
+        "status",
+        "quantity",
+        "filledQuantity",
+        "averageFillPrice",
+        "totalFees",
+        "explanation",
+        "updatedAt"
+      ],
+      "properties": {
+        "orderId": { "$ref": "#/$defs/Digest" },
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "side": { "enum": ["BUY", "SELL"] },
+        "status": {
+          "enum": [
+            "CREATED",
+            "CHECKED",
+            "SUBMITTED",
+            "PARTIALLY_FILLED",
+            "CANCEL_PENDING",
+            "FILLED",
+            "CANCELLED",
+            "REJECTED"
+          ]
+        },
+        "quantity": { "type": "integer", "minimum": 1 },
+        "filledQuantity": { "type": "integer", "minimum": 0 },
+        "averageFillPrice": {
+          "oneOf": [{ "$ref": "#/$defs/Money" }, { "type": "null" }]
+        },
+        "totalFees": { "$ref": "#/$defs/Money" },
+        "explanation": { "type": "string", "minLength": 1 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "PaperTerminalRiskCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "status", "actual", "limit", "explanation"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["PASS", "FAIL"] },
+        "actual": { "type": "string" },
+        "limit": { "type": ["string", "null"] },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "PaperTerminalRisk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decisionId", "allowed", "policyId", "policyVersion", "checks"],
+      "properties": {
+        "decisionId": { "$ref": "#/$defs/Digest" },
+        "allowed": { "type": "boolean" },
+        "policyId": { "type": "string", "minLength": 1 },
+        "policyVersion": { "type": "string", "minLength": 1 },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/PaperTerminalRiskCheck" }
+        }
+      }
+    },
+    "PaperTerminalBookDiff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "instrumentId", "expected", "observed", "difference"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "instrumentId": { "type": ["string", "null"] },
+        "expected": { "type": "string" },
+        "observed": { "type": "string" },
+        "difference": { "type": "string" }
+      }
+    },
+    "PaperTerminalReconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reconciliationId", "status", "asOf", "duplicateFillCount", "diffs"],
+      "properties": {
+        "reconciliationId": { "$ref": "#/$defs/Digest" },
+        "status": { "enum": ["MATCHED", "DRIFTED"] },
+        "asOf": { "type": "string", "format": "date-time" },
+        "duplicateFillCount": { "type": "integer", "minimum": 0 },
+        "diffs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PaperTerminalBookDiff" }
+        }
+      }
+    },
+    "PaperTerminalAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accountEventCount",
+        "executionEventCount",
+        "orderAuditCount",
+        "alertCount",
+        "accountDigest",
+        "executionDigest",
+        "lastClientRequestId"
+      ],
+      "properties": {
+        "accountEventCount": { "type": "integer", "minimum": 0 },
+        "executionEventCount": { "type": "integer", "minimum": 0 },
+        "orderAuditCount": { "type": "integer", "minimum": 0 },
+        "alertCount": { "type": "integer", "minimum": 0 },
+        "accountDigest": {
+          "oneOf": [{ "$ref": "#/$defs/Digest" }, { "type": "null" }]
+        },
+        "executionDigest": {
+          "oneOf": [{ "$ref": "#/$defs/Digest" }, { "type": "null" }]
+        },
+        "lastClientRequestId": { "type": ["string", "null"] }
+      }
+    }
+  }
+}
