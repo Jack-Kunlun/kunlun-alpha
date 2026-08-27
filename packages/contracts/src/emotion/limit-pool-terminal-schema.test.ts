@@ -1,10 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const schemaPath = new URL(
-  "../../schemas/emotion/terminal-limit-pool-snapshot.json",
-  import.meta.url,
-);
+const schemaPath = "schemas/emotion/terminal-limit-pool-snapshot.json";
 
 describe("limit-pool terminal contract source", () => {
   it("defines the versioned terminal snapshot and every public nested type", () => {
