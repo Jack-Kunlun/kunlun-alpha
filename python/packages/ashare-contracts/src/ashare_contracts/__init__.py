@@ -511,13 +511,32 @@ from ashare_contracts.paper_paper_terminal_workspace import Status1 as Status1_1
 from ashare_contracts.paper_paper_terminal_workspace import Status2 as Status2_1
 from ashare_contracts.paper_paper_terminal_workspace import Status3 as Status3
 from ashare_contracts.paper_paper_terminal_workspace import Status4 as Status4
+from ashare_contracts.ranking_ranking_terminal_snapshot import Direction as Direction_1
+from ashare_contracts.ranking_ranking_terminal_snapshot import ExclusionReason as ExclusionReason
+from ashare_contracts.ranking_ranking_terminal_snapshot import MissingPolicy as MissingPolicy
+from ashare_contracts.ranking_ranking_terminal_snapshot import (
+    RankingTerminalContribution as RankingTerminalContribution,
+)
+from ashare_contracts.ranking_ranking_terminal_snapshot import (
+    RankingTerminalFeatureSpec as RankingTerminalFeatureSpec,
+)
+from ashare_contracts.ranking_ranking_terminal_snapshot import (
+    RankingTerminalRow as RankingTerminalRow,
+)
+from ashare_contracts.ranking_ranking_terminal_snapshot import (
+    RankingTerminalSnapshot as RankingTerminalSnapshot,
+)
+from ashare_contracts.ranking_ranking_terminal_snapshot import (
+    RankingTerminalSpec as RankingTerminalSpec,
+)
+from ashare_contracts.ranking_ranking_terminal_snapshot import Status as Status_9
 from ashare_contracts.seat_alias import SeatAlias as SeatAlias
 from ashare_contracts.seat_alias import SeatAliasSchemaVersion as SeatAliasSchemaVersion
 from ashare_contracts.seat_alias import SeatAliasType as SeatAliasType
 from ashare_contracts.seat_kol_workbench_snapshot import Alias as Alias
 from ashare_contracts.seat_kol_workbench_snapshot import Claim as Claim
 from ashare_contracts.seat_kol_workbench_snapshot import Cooccurrence as Cooccurrence
-from ashare_contracts.seat_kol_workbench_snapshot import Direction as Direction_1
+from ashare_contracts.seat_kol_workbench_snapshot import Direction as Direction_2
 from ashare_contracts.seat_kol_workbench_snapshot import Evidence as Evidence
 from ashare_contracts.seat_kol_workbench_snapshot import EvidenceId as EvidenceId_7
 from ashare_contracts.seat_kol_workbench_snapshot import Kind as Kind_3
@@ -567,7 +586,7 @@ from ashare_contracts.sector_sector_rotation_event import EventType as EventType
 from ashare_contracts.sector_sector_rotation_event import EvidenceId as EvidenceId_8
 from ashare_contracts.sector_sector_rotation_event import SectorRotationEvent as SectorRotationEvent
 from ashare_contracts.sector_sector_rotation_event import SourceVersion as SourceVersion_5
-from ashare_contracts.strategy_signal import Direction as Direction_2
+from ashare_contracts.strategy_signal import Direction as Direction_3
 from ashare_contracts.strategy_signal import EvidenceId as EvidenceId_9
 from ashare_contracts.strategy_signal import Signal as Signal
 from ashare_contracts.strategy_strategy_descriptor import (
@@ -955,13 +974,22 @@ __all__ = [
     "Status2_1",
     "Status3",
     "Status4",
+    "Direction_1",
+    "ExclusionReason",
+    "MissingPolicy",
+    "RankingTerminalContribution",
+    "RankingTerminalFeatureSpec",
+    "RankingTerminalRow",
+    "RankingTerminalSnapshot",
+    "RankingTerminalSpec",
+    "Status_9",
     "SeatAlias",
     "SeatAliasSchemaVersion",
     "SeatAliasType",
     "Alias",
     "Claim",
     "Cooccurrence",
-    "Direction_1",
+    "Direction_2",
     "Evidence",
     "EvidenceId_7",
     "Kind_3",
@@ -1001,7 +1029,7 @@ __all__ = [
     "EvidenceId_8",
     "SectorRotationEvent",
     "SourceVersion_5",
-    "Direction_2",
+    "Direction_3",
     "EvidenceId_9",
     "Signal",
     "BooleanParameterSpec",

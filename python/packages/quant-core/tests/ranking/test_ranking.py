@@ -680,7 +680,7 @@ def _acceptance_payload() -> dict[str, object]:
 def _acceptance_fixture_path() -> Path:
     return (
         Path(__file__).resolve().parents[5]
-        / "apps/web/src/features/ranking/ranking-acceptance-snapshot.json"
+        / "apps/web/src/__fixtures__/ranking-acceptance-snapshot.json"
     )
 
 

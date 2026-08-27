@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { rankingAcceptanceSnapshot } from "./ranking-fixture";
+import { rankingAcceptanceSnapshot } from "../../__fixtures__/ranking-snapshot";
 import {
   clampMinimumScore,
   exclusionReasonLabel,
@@ -54,10 +54,10 @@ describe("ranking terminal model", () => {
     expect(formatShanghaiTime("2026-08-26T07:00:00Z")).toContain("15:00:00");
   });
 
-  it("explicitly rejects global URL context for the fixed fixture", () => {
+  it("applies asOf remotely and reports only unsupported instrument context", () => {
     expect(
       rankingContextNotice(new URLSearchParams("asOf=2026-08-24T07:00:00Z&instrument=600519.SH")),
-    ).toContain("固定验收快照未应用 URL 上下文：asOf、instrument");
+    ).toContain("Ranking 快照未应用 URL 上下文：instrument");
     expect(rankingContextNotice(new URLSearchParams())).toBeNull();
   });
 

@@ -3301,6 +3301,80 @@ export interface PaperTerminalAudit {
   lastClientRequestId: string | null;
 }
 
+/**
+ * This interface was referenced by `RankingTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "RankingTerminalDigest".
+ */
+export type RankingTerminalDigest = string;
+
+export interface RankingTerminalSnapshot {
+  snapshotId: RankingTerminalDigest;
+  inputFingerprint: RankingTerminalDigest;
+  asOf: string;
+  generatedAt: string;
+  sourceMode: "VERSIONED_RESEARCH_SNAPSHOT";
+  spec: RankingTerminalSpec;
+  rows: RankingTerminalRow[];
+}
+/**
+ * This interface was referenced by `RankingTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "RankingTerminalSpec".
+ */
+export interface RankingTerminalSpec {
+  specId: string;
+  version: string;
+  algorithmVersion: string;
+  fingerprint: RankingTerminalDigest;
+  minimumCoverageBps: number;
+  /**
+   * @minItems 1
+   */
+  features: [RankingTerminalFeatureSpec, ...RankingTerminalFeatureSpec[]];
+}
+/**
+ * This interface was referenced by `RankingTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "RankingTerminalFeatureSpec".
+ */
+export interface RankingTerminalFeatureSpec {
+  key: string;
+  label: string;
+  weightBps: number;
+  direction: "HIGHER_IS_BETTER" | "LOWER_IS_BETTER";
+  missingPolicy: "EXCLUDE" | "ZERO" | "RENORMALIZE";
+}
+/**
+ * This interface was referenced by `RankingTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "RankingTerminalRow".
+ */
+export interface RankingTerminalRow {
+  instrumentId: string;
+  instrumentName: string;
+  sector: string;
+  status: "INCLUDED" | "EXCLUDED";
+  rank: number | null;
+  scoreBps: number | null;
+  coverageBps: number;
+  contributions: RankingTerminalContribution[];
+  exclusionReasons: string[];
+}
+/**
+ * This interface was referenced by `RankingTerminalSnapshot`'s JSON-Schema
+ * via the `definition` "RankingTerminalContribution".
+ */
+export interface RankingTerminalContribution {
+  featureKey: string;
+  label: string;
+  direction: "HIGHER_IS_BETTER" | "LOWER_IS_BETTER";
+  rawValue: string | null;
+  normalizedScoreBps: number | null;
+  configuredWeightBps: number;
+  effectiveWeightBps: number;
+  contributionBps: number;
+  missingReason: string | null;
+  availableTime: string | null;
+  source: string | null;
+}
+
 export interface SeatKolWorkbenchSnapshot {
   schemaVersion: "seat-kol-workbench-v1";
   snapshotId: string;

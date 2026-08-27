@@ -14,6 +14,7 @@ import { InstrumentIntelligenceModule } from "./modules/instrument-intelligence/
 import { WatchlistAlertsModule } from "./modules/watchlist-alerts/watchlist-alerts.module";
 import { PreciousMetalsModule } from "./modules/precious-metals/precious-metals.module";
 import { PaperTerminalModule } from "./modules/paper/paper-terminal.module";
+import { RankingTerminalModule } from "./modules/ranking/ranking-terminal.module";
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PaperTerminalModule } from "./modules/paper/paper-terminal.module";
     WatchlistAlertsModule,
     PreciousMetalsModule,
     PaperTerminalModule,
+    RankingTerminalModule,
   ],
   controllers: [AppController, MetricsController],
 })

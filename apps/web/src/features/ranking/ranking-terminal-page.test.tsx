@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { rankingAcceptanceSnapshot } from "./ranking-fixture";
+import { rankingAcceptanceSnapshot } from "../../__fixtures__/ranking-snapshot";
 import {
   ContributionEvidence,
   RankingEvidenceDialog,
@@ -10,13 +10,13 @@ import {
 import type { RankingSnapshot } from "./types";
 
 describe("RankingTerminalView", () => {
-  it("labels the acceptance fixture and avoids return guarantees", () => {
+  it("labels the published snapshot and avoids return guarantees", () => {
     const html = renderToStaticMarkup(
       <RankingTerminalView result={{ state: "success", snapshot: rankingAcceptanceSnapshot }} />,
     );
 
     expect(html).toContain("版本化研究快照");
-    expect(html).toContain("当前尚未接入实时 Ranking 读取端");
+    expect(html).toContain("读取服务端发布的点时快照");
     expect(html).toContain("研究排序，不构成收益保证");
     expect(html).toContain("快照时点尚不可用");
     expect(html).toContain("查看贡献 · 缺失 1");
@@ -47,16 +47,16 @@ describe("RankingTerminalView", () => {
     expect(html).toContain("当前筛选没有匹配记录");
   });
 
-  it("warns when the fixed fixture does not apply route context", () => {
+  it("warns when an instrument context does not apply to the snapshot", () => {
     const html = renderToStaticMarkup(
       <RankingTerminalView
         result={{ state: "success", snapshot: rankingAcceptanceSnapshot }}
-        contextNotice="固定验收快照未应用 URL 上下文：asOf、instrument。"
+        contextNotice="Ranking 快照未应用 URL 上下文：instrument。"
       />,
     );
 
     expect(html).toContain("URL 上下文未应用");
-    expect(html).toContain("固定验收快照未应用 URL 上下文");
+    expect(html).toContain("Ranking 快照未应用 URL 上下文");
   });
 
   it("explains RENORMALIZE and ZERO with configured and effective weights", () => {
