@@ -172,7 +172,7 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "PaperAccount、OrderIntent、模拟成交与对账",
     group: "workspace",
     permission: "paper:read",
-    status: "planned",
+    status: "ready",
     navigation: true,
   },
   {

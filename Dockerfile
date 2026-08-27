@@ -87,3 +87,28 @@ USER kunlun
 FROM data-worker-migrate AS data-worker
 
 CMD ["limit-pool-terminal-materialize"]
+
+FROM python:3.12.13-slim-bookworm AS quant-engine
+
+COPY --from=uv-bin /uv /uvx /bin/
+
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_NO_CACHE=1
+ENV UV_NO_DEV=1
+
+WORKDIR /workspace
+
+COPY . .
+
+RUN uv sync --locked --no-dev --package quant-engine
+RUN groupadd --gid 10001 kunlun \
+    && useradd --create-home --uid 10001 --gid 10001 kunlun
+
+ENV PATH="/workspace/.venv/bin:${PATH}"
+
+EXPOSE 8081
+
+USER kunlun
+
+CMD ["quant-engine"]

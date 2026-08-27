@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kunlun-alpha.local/schemas/paper/paper-terminal-simulation.json",
+  "title": "PaperTerminalSimulationCommand",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "clientRequestId",
+    "instrumentId",
+    "price",
+    "score",
+    "confidence",
+    "lotSize"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "paper-terminal-simulation-v1" },
+    "clientRequestId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+    },
+    "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+    "price": {
+      "type": "string",
+      "pattern": "^(?:0\\.\\d*[1-9]\\d*|[1-9]\\d*(?:\\.\\d+)?)$",
+      "maxLength": 32
+    },
+    "score": {
+      "type": "string",
+      "pattern": "^(?:0(?:\\.\\d+)?|1(?:\\.0+)?)$",
+      "maxLength": 20
+    },
+    "confidence": {
+      "type": "string",
+      "pattern": "^(?:0(?:\\.\\d+)?|1(?:\\.0+)?)$",
+      "maxLength": 20
+    },
+    "lotSize": { "type": "integer", "minimum": 1, "maximum": 10000 }
+  }
+}

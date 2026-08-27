@@ -867,6 +867,7 @@ source = { editable = "services/quant-engine" }
 dependencies = [
     { name = "ashare-contracts" },
     { name = "backtest-core" },
+    { name = "paper-core" },
     { name = "quant-core" },
 ]
 
@@ -874,6 +875,7 @@ dependencies = [
 requires-dist = [
     { name = "ashare-contracts", editable = "python/packages/ashare-contracts" },
     { name = "backtest-core", editable = "python/packages/backtest-core" },
+    { name = "paper-core", editable = "python/packages/paper-core" },
     { name = "quant-core", editable = "python/packages/quant-core" },
 ]
 
