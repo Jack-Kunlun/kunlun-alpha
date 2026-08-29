@@ -55,10 +55,22 @@ REPEATABLE READ READ ONLY 事务内批量读取。ClickHouse 的行情、情绪�
 未设置专用变量时，读取器可复用 Event Intelligence PostgreSQL 与 Emotion
 ClickHouse 的连接配置。
 
+## 本地股票目录
+
+本地 Compose 在 Server migration 后执行一次
+`local-terminal-reference-materialize`。输入固定为仓库内的
+`data/reference/local-terminal-instruments-v1.json`，目前只登记具有本地日线数据的
+4 只 A 股：`000001.SZ`、`300750.SZ`、`600000.SH`、`600519.SH`。
+
+目录使用带版本、来源、证据标识、可用时间与 SHA-256 指纹的不可变 revision。
+重复运行只接受完全一致的 revision；同一 revision ID 的任一内容不一致都会使整次事务
+回滚。该目录不包含指数、ETF、真实账户或可执行价格，也不会触发网络采集或订单路径。
+
 ## 故障排查
 
 1. 确认 Server migrations 5、6、7 已执行。
-2. 检查响应中具体 section 的 unavailableReason。
-3. PostgreSQL 故障会使其负责的 section 一起不可用，以避免混合数据库快照。
-4. ClickHouse section 独立失败，不影响其他 section。
-5. 证据 URL 只允许 http 或 https；其他 locator 仅以引用标识展示。
+2. 确认 `local-terminal-reference-materialize` 退出码为 0。
+3. 检查响应中具体 section 的 unavailableReason。
+4. PostgreSQL 故障会使其负责的 section 一起不可用，以避免混合数据库快照。
+5. ClickHouse section 独立失败，不影响其他 section。
+6. 证据 URL 只允许 http 或 https；其他 locator 仅以引用标识展示。

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "local-terminal-instrument-catalog-v1",
+  "catalogVersion": "2026.08.30.1",
+  "source": "local-curated-reference",
+  "sourceVersion": "2026.08.30.1",
+  "evidenceId": "repo:data/reference/local-terminal-instruments-v1.json",
+  "effectiveFrom": "2026-08-30T00:00:00+08:00",
+  "availableTime": "2026-08-30T00:00:00+08:00",
+  "sectors": [
+    {
+      "sectorId": "cn-industry-bank",
+      "name": "银行",
+      "kind": "INDUSTRY",
+      "aliases": []
+    },
+    {
+      "sectorId": "cn-industry-electrical-equipment",
+      "name": "电力设备",
+      "kind": "INDUSTRY",
+      "aliases": []
+    },
+    {
+      "sectorId": "cn-industry-food-beverage",
+      "name": "食品饮料",
+      "kind": "INDUSTRY",
+      "aliases": []
+    }
+  ],
+  "instruments": [
+    {
+      "instrumentId": "000001.SZ",
+      "name": "平安银行",
+      "board": "MAIN",
+      "type": "STOCK",
+      "sectorId": "cn-industry-bank"
+    },
+    {
+      "instrumentId": "300750.SZ",
+      "name": "宁德时代",
+      "board": "CHINEXT",
+      "type": "STOCK",
+      "sectorId": "cn-industry-electrical-equipment"
+    },
+    {
+      "instrumentId": "600000.SH",
+      "name": "浦发银行",
+      "board": "MAIN",
+      "type": "STOCK",
+      "sectorId": "cn-industry-bank"
+    },
+    {
+      "instrumentId": "600519.SH",
+      "name": "贵州茅台",
+      "board": "MAIN",
+      "type": "STOCK",
+      "sectorId": "cn-industry-food-beverage"
+    }
+  ]
+}

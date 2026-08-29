@@ -57,6 +57,9 @@ data/*
 !data/fixtures/
 data/fixtures/*
 !data/fixtures/limit-pool-terminal-local.json
+!data/reference/
+data/reference/*
+!data/reference/local-terminal-instruments-v1.json
 
 # Infrastructure volumes
 infra/docker/data/

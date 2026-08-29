@@ -79,6 +79,26 @@ services:
       - "kunlun.service=data-worker-migrate"
       - "kunlun.description=Verified data-worker schema migrations"
 
+  local-terminal-reference-materialize:
+    image: kunlun-data-worker:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: data-worker
+    container_name: kunlun-local-terminal-reference-materialize
+    restart: "no"
+    depends_on:
+      server-migrate:
+        condition: service_completed_successfully
+    environment:
+      KUNLUN_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+      LOCAL_TERMINAL_REFERENCE_FILE: /workspace/data/reference/local-terminal-instruments-v1.json
+    command: ["local-terminal-reference-materialize"]
+    labels:
+      - "kunlun.service=local-terminal-reference-materialize"
+      - "kunlun.description=Versioned local terminal instrument and sector reference"
+
   market-data-sync:
     profiles: ["real-market-data"]
     image: kunlun-data-worker:local
@@ -156,6 +176,8 @@ services:
       clickhouse-migrate:
         condition: service_completed_successfully
       limit-pool-terminal-materialize:
+        condition: service_completed_successfully
+      local-terminal-reference-materialize:
         condition: service_completed_successfully
       quant-engine:
         condition: service_healthy
