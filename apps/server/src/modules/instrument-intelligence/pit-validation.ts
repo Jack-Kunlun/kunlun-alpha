@@ -37,6 +37,16 @@ function optionalDate(input: Record<string, unknown>, field: string): boolean {
   return value === undefined || (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value));
 }
 
+function date(input: Record<string, unknown>, field: string): boolean {
+  const value = input[field];
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function nullableDate(input: Record<string, unknown>, field: string): boolean {
+  const value = input[field];
+  return value === undefined || value === null || date(input, field);
+}
+
 export function validateInstrumentPayload(value: unknown): Instrument {
   const input = record(value, "Instrument");
   const unifiedCode = text(input, "unifiedCode");
@@ -66,12 +76,13 @@ export function validateSectorPayload(value: unknown): Sector {
     !["INDUSTRY", "CONCEPT", "THEME"].includes(text(input, "kind")) ||
     !Array.isArray(input["aliases"]) ||
     input["aliases"].some((item) => typeof item !== "string") ||
-    !optionalDate(input, "validFrom") ||
-    !optionalDate(input, "validTo")
+    !date(input, "validFrom") ||
+    !nullableDate(input, "validTo")
   ) {
     throw new Error("invalid persisted Sector payload");
   }
-  for (const field of ["sectorId", "name", "source", "sourceVersion", "evidenceId"]) text(input, field);
+  for (const field of ["sectorId", "name", "source", "sourceVersion", "evidenceId"])
+    text(input, field);
   instant(input, "availableTime");
   return value as Sector;
 }
@@ -80,8 +91,8 @@ export function validateSectorMembershipPayload(value: unknown): SectorMembershi
   const input = record(value, "SectorMembership");
   if (
     !INSTRUMENT.test(text(input, "unifiedCode")) ||
-    !optionalDate(input, "validFrom") ||
-    !optionalDate(input, "validTo")
+    !date(input, "validFrom") ||
+    !nullableDate(input, "validTo")
   ) {
     throw new Error("invalid persisted SectorMembership payload");
   }
@@ -128,9 +139,7 @@ export function validateKolClaimPayload(value: unknown): KolClaim {
     !Number.isInteger(input["confidenceBps"]) ||
     Number(input["confidenceBps"]) < 0 ||
     Number(input["confidenceBps"]) > 10_000 ||
-    !["UNREVIEWED", "IN_REVIEW", "APPROVED", "REJECTED"].includes(
-      text(input, "reviewStatus"),
-    ) ||
+    !["UNREVIEWED", "IN_REVIEW", "APPROVED", "REJECTED"].includes(text(input, "reviewStatus")) ||
     typeof input["deleted"] !== "boolean" ||
     !Array.isArray(evidence) ||
     evidence.length === 0 ||
@@ -173,12 +182,9 @@ export function validateKolEvidencePayload(value: unknown): KolEvidence {
   if (
     input["schemaVersion"] !== "kol-evidence-v1" ||
     !["URL", "TEXT_RANGE", "TIME_RANGE", "PAGE"].includes(text(input, "locatorType")) ||
-    ![
-      "PRIMARY_SOURCE",
-      "SECONDARY_SOURCE",
-      "TERTIARY_SOURCE",
-      "UNCLASSIFIED",
-    ].includes(text(input, "evidenceGrade"))
+    !["PRIMARY_SOURCE", "SECONDARY_SOURCE", "TERTIARY_SOURCE", "UNCLASSIFIED"].includes(
+      text(input, "evidenceGrade"),
+    )
   ) {
     throw new Error("invalid persisted KolEvidence payload");
   }
