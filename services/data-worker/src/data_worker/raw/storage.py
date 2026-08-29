@@ -115,6 +115,16 @@ class RawStorage(ABC):
         source_revision_absent: bool = False,
         attempt_id: str | None = None,
         page_ordinal: int | None = None,
+        schema_version: str | None = None,
+        capture_version: str | None = None,
+        api_name: str | None = None,
+        unified_code: str | None = None,
+        interval: str | None = None,
+        requested_start: str | None = None,
+        requested_end: str | None = None,
+        source_version: str | None = None,
+        market_run_id: str | None = None,
+        capture_ordinal: int | None = None,
     ) -> RawObjectManifest:
         """Store a response and return its immutable capture manifest."""
 
@@ -131,6 +141,15 @@ class RawStorage(ABC):
     @abstractmethod
     def list(self, source: str, date: str) -> list[RawObjectManifest]:
         """List capture manifests in deterministic ingest-time/capture order."""
+
+    @abstractmethod
+    def find_capture(
+        self,
+        *,
+        market_run_id: str,
+        capture_ordinal: int,
+    ) -> RawObjectManifest | None:
+        """Find one persisted market capture by its durable run identity."""
 
 
 class LocalFileStorage(RawStorage):
@@ -357,6 +376,16 @@ class LocalFileStorage(RawStorage):
             and left.source_revision == right.source_revision
             and left.attempt_id == right.attempt_id
             and left.page_ordinal == right.page_ordinal
+            and left.schema_version == right.schema_version
+            and left.capture_version == right.capture_version
+            and left.api_name == right.api_name
+            and left.unified_code == right.unified_code
+            and left.interval == right.interval
+            and left.requested_start == right.requested_start
+            and left.requested_end == right.requested_end
+            and left.source_version == right.source_version
+            and left.market_run_id == right.market_run_id
+            and left.capture_ordinal == right.capture_ordinal
         )
 
     @staticmethod
@@ -449,6 +478,16 @@ class LocalFileStorage(RawStorage):
         source_revision_absent: bool = False,
         attempt_id: str | None = None,
         page_ordinal: int | None = None,
+        schema_version: str | None = None,
+        capture_version: str | None = None,
+        api_name: str | None = None,
+        unified_code: str | None = None,
+        interval: str | None = None,
+        requested_start: str | None = None,
+        requested_end: str | None = None,
+        source_version: str | None = None,
+        market_run_id: str | None = None,
+        capture_ordinal: int | None = None,
     ) -> RawObjectManifest:
         """Store one response under a capture-level transaction lock."""
 
@@ -497,6 +536,16 @@ class LocalFileStorage(RawStorage):
             source_revision=source_revision,
             attempt_id=attempt_id,
             page_ordinal=page_ordinal,
+            schema_version=schema_version,
+            capture_version=capture_version,
+            api_name=api_name,
+            unified_code=unified_code,
+            interval=interval,
+            requested_start=requested_start,
+            requested_end=requested_end,
+            source_version=source_version,
+            market_run_id=market_run_id,
+            capture_ordinal=capture_ordinal,
         )
 
         capture_lock = self._capture_lock_path(source, date, manifest.capture_id)
@@ -627,6 +676,32 @@ class LocalFileStorage(RawStorage):
             manifests.append(manifest)
         manifests.sort(key=lambda item: (item.ingest_time, item.capture_id))
         return manifests
+
+    def find_capture(
+        self,
+        *,
+        market_run_id: str,
+        capture_ordinal: int,
+    ) -> RawObjectManifest | None:
+        """Find a market manifest without guessing its provider/date partition."""
+
+        if not market_run_id or "\x00" in market_run_id:
+            raise ValueError("market_run_id must be non-empty")
+        if type(capture_ordinal) is not int or capture_ordinal < 1:
+            raise ValueError("capture_ordinal must be positive")
+        if not self._index.exists():
+            return None
+        matches: list[RawObjectManifest] = []
+        for path in self._index.rglob("*.json"):
+            manifest = self._read_manifest_file(path)
+            if (
+                manifest.market_run_id == market_run_id
+                and manifest.capture_ordinal == capture_ordinal
+            ):
+                matches.append(manifest)
+        if len(matches) > 1:
+            raise RawIntegrityError("multiple manifests share a market capture identity")
+        return matches[0] if matches else None
 
 
 StorageCallback = Callable[[RawObjectManifest, bytes], None]

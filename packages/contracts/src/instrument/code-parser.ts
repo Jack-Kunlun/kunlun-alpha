@@ -107,6 +107,21 @@ export function isUnifiedCodeForExchange(unifiedCode: string, exchange: Exchange
   return parsed !== null && parsed.exchange === exchange;
 }
 
+/**
+ * Accept a tradable instrument or a supported exchange-index Bar identity.
+ * This wider boundary must not be used for Tick or Instrument validation.
+ */
+export function isMarketDataCodeForExchange(unifiedCode: string, exchange: ExchangeCode): boolean {
+  if (isUnifiedCodeForExchange(unifiedCode, exchange)) return true;
+  const match = /^(\d{6})\.(SH|SZ|BJ)$/.exec(unifiedCode);
+  if (match === null || match[2] !== exchange) return false;
+  const code = match[1];
+  if (code === undefined) return false;
+  return (
+    (exchange === "SH" && /^000\d{3}$/.test(code)) || (exchange === "SZ" && /^399\d{3}$/.test(code))
+  );
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

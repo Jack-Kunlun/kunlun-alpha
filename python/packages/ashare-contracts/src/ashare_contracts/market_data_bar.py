@@ -92,6 +92,11 @@ class Bar(BaseModel):
         suffix = unified_code[7:]
         if suffix != exchange:
             raise ValueError("unifiedCode/exchange identity mismatch")
+        is_exchange_index = (exchange == "SH" and code.startswith("000")) or (
+            exchange == "SZ" and code.startswith("399")
+        )
+        if is_exchange_index:
+            return self
         expected_rule = next(
             (rule for rule in prefix_rules if code.startswith(rule[0])),
             None,

@@ -17,6 +17,15 @@ export interface ClickHouseDashboardConfig {
 
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
+const MARKET_SOURCE_FILTER =
+  "source IN ('tushare-pro', 'akshare-tencent', 'akshare-sina', 'akshare-eastmoney')";
+const MARKET_SOURCE_PRIORITY =
+  "multiIf(source = 'tushare-pro', 3, source IN ('akshare-tencent', 'akshare-sina'), 2, source = 'akshare-eastmoney', 1, 0)";
+const MINUTE_SOURCE_RANK =
+  "tuple(identity_replacement_version, source_priority, source, source_version, data_version, interval, session, price_type)";
+const DAILY_SOURCE_RANK =
+  "tuple(identity_replacement_version, source_priority, source, source_version, data_version, interval, session, price_type, toString(event_time))";
+
 function minuteBarCtes(filter: string): string[] {
   return [
     "  minute_revision_groups AS (",
@@ -27,26 +36,28 @@ function minuteBarCtes(filter: string): string[] {
     "    FROM bars_minute_v2",
     `    WHERE ${filter}`,
     "      AND interval = 'MINUTE_1' AND price_type = 'RAW' AND date = trading_date",
-    "      AND event_time <= cutoff AND available_time <= cutoff",
+    "      AND event_time <= cutoff AND available_time <= cutoff AND processing_time <= cutoff",
+    `      AND ${MARKET_SOURCE_FILTER}`,
     "    GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version",
     "    HAVING throwIf(uniqExact(revision_fingerprint) > 1, 'revision_fingerprint conflict') = 0",
     "  ),",
     "  minute_identities AS (",
     "    SELECT unified_code, interval, event_time, session, price_type, data_version, source, source_version,",
-    "      argMax(revision_close, replacement_version) AS identity_close,",
-    "      argMax(revision_amount, replacement_version) AS identity_amount,",
-    "      argMax(revision_suspended, replacement_version) AS identity_suspended,",
-    "      argMax(revision_evidence_id, replacement_version) AS identity_evidence_id",
+    "      argMax(tuple(revision_close, revision_amount, revision_suspended, source_version, revision_evidence_id), replacement_version) AS identity_values,",
+    "      max(replacement_version) AS identity_replacement_version,",
+    `      ${MARKET_SOURCE_PRIORITY} AS source_priority`,
     "    FROM minute_revision_groups",
     "    GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version",
     "    HAVING max(revision_count) = 1",
     "  ),",
     "  minute_events AS (",
-    "    SELECT unified_code, event_time, any(identity_close) AS event_close,",
-    "      any(identity_amount) AS event_amount, any(identity_suspended) AS event_suspended,",
-    "      any(source_version) AS event_source_version, any(identity_evidence_id) AS event_evidence_id",
+    "    SELECT unified_code, event_time,",
+    `      argMax(identity_values, ${MINUTE_SOURCE_RANK}).1 AS event_close,`,
+    `      argMax(identity_values, ${MINUTE_SOURCE_RANK}).2 AS event_amount,`,
+    `      argMax(identity_values, ${MINUTE_SOURCE_RANK}).3 AS event_suspended,`,
+    `      argMax(identity_values, ${MINUTE_SOURCE_RANK}).4 AS event_source_version,`,
+    `      argMax(identity_values, ${MINUTE_SOURCE_RANK}).5 AS event_evidence_id`,
     "    FROM minute_identities GROUP BY unified_code, event_time",
-    "    HAVING throwIf(uniqExact(tuple(interval, session, price_type, data_version, source, source_version)) > 1, 'bar source identity conflict') = 0",
     "  ),",
   ];
 }
@@ -60,23 +71,26 @@ function dailyBarCtes(filter: string): string[] {
     "    FROM bars_daily_v2",
     `    WHERE ${filter}`,
     "      AND interval = 'DAILY' AND price_type = 'RAW' AND date < trading_date",
-    "      AND event_time <= cutoff AND available_time <= cutoff",
+    "      AND event_time <= cutoff AND available_time <= cutoff AND processing_time <= cutoff",
+    `      AND ${MARKET_SOURCE_FILTER}`,
     "    GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version, date",
     "    HAVING throwIf(uniqExact(revision_fingerprint) > 1, 'revision_fingerprint conflict') = 0",
     "  ),",
     "  daily_identities AS (",
     "    SELECT unified_code, interval, event_time, session, price_type, data_version, source, source_version, date,",
-    "      argMax(revision_close, replacement_version) AS identity_close,",
-    "      argMax(revision_evidence_id, replacement_version) AS identity_evidence_id",
+    "      argMax(tuple(revision_close, source_version, revision_evidence_id), replacement_version) AS identity_values,",
+    "      max(replacement_version) AS identity_replacement_version,",
+    `      ${MARKET_SOURCE_PRIORITY} AS source_priority`,
     "    FROM daily_revision_groups",
     "    GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version, date",
     "    HAVING max(revision_count) = 1",
     "  ),",
     "  daily_events AS (",
-    "    SELECT unified_code, date, any(identity_close) AS event_close,",
-    "      any(identity_evidence_id) AS event_evidence_id",
+    "    SELECT unified_code, date,",
+    `      argMax(identity_values, ${DAILY_SOURCE_RANK}).1 AS event_close,`,
+    `      argMax(identity_values, ${DAILY_SOURCE_RANK}).2 AS event_source_version,`,
+    `      argMax(identity_values, ${DAILY_SOURCE_RANK}).3 AS event_evidence_id`,
     "    FROM daily_identities GROUP BY unified_code, date",
-    "    HAVING throwIf(uniqExact(tuple(interval, event_time, session, price_type, data_version, source, source_version)) > 1, 'daily bar source identity conflict') = 0",
     "  ),",
   ];
 }
@@ -156,7 +170,7 @@ const EMOTION_SQL = [
   "      uniqExact(payload_digest) AS revision_count",
   "    FROM emotion_snapshots_v1",
   "    WHERE trading_date = requested_date AND algorithm_version = {emotionVersion:String}",
-  "      AND event_time <= cutoff AND available_time <= cutoff",
+  "      AND event_time <= cutoff AND available_time <= cutoff AND processing_time <= cutoff",
   "    GROUP BY trading_date, event_time, algorithm_version, replacement_version",
   "    HAVING throwIf(uniqExact(payload_digest) > 1, 'emotion payload conflict') = 0",
   "  ),",
@@ -292,7 +306,8 @@ function marketOf(value: unknown): {
   const sourceVersions = stringsOf(row, "source_versions");
   const evidenceIds = stringsOf(row, "evidence_ids");
   const comparable = advancingCount + decliningCount + unchangedCount;
-  const advancingRatioBps = comparable === 0 ? 0 : Math.round((advancingCount * 10_000) / comparable);
+  const advancingRatioBps =
+    comparable === 0 ? 0 : Math.round((advancingCount * 10_000) / comparable);
   return {
     breadth: {
       dataTime,

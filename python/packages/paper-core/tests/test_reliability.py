@@ -1,3 +1,5 @@
+from collections.abc import Generator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 
 import pytest
@@ -9,6 +11,7 @@ from paper_core.reliability import (
     EnduranceQualification,
     FaultInjectablePaperStore,
     FaultScenarioStatus,
+    PaperEnduranceProgress,
     PaperProjectionCache,
     PersistenceUnavailableError,
     RecoverablePaperRuntime,
@@ -18,6 +21,34 @@ from paper_core.reliability import (
 )
 
 NOW = datetime(2026, 8, 26, 1, 2, 3, tzinfo=UTC)
+
+
+class RecordingFaultHarness:
+    evidence_scope = EnduranceEvidenceScope.TEST_DOUBLE
+    evidence_target = "recording-test-double"
+    fault_injection = "in-process-availability-toggle"
+    storage_adapter = "in-memory-test-double"
+
+    def __init__(self) -> None:
+        self.store = FaultInjectablePaperStore()
+        self.new_store_calls = 0
+        self.outage_calls = 0
+
+    def new_store(self) -> FaultInjectablePaperStore:
+        self.new_store_calls += 1
+        return self.store
+
+    def active_connection_count(self) -> None:
+        return None
+
+    @contextmanager
+    def database_outage(self) -> Generator[None, None, None]:
+        self.outage_calls += 1
+        self.store.set_available(False)
+        try:
+            yield
+        finally:
+            self.store.set_available(True)
 
 
 def test_restart_and_cache_loss_rebuild_the_durable_projection() -> None:
@@ -106,6 +137,16 @@ def test_fault_matrix_covers_all_required_recovery_scenarios() -> None:
     assert all(result.status is FaultScenarioStatus.PASS for result in results)
 
 
+def test_fault_matrix_reopens_the_store_and_uses_the_harness_outage() -> None:
+    harness = RecordingFaultHarness()
+
+    results = run_fault_matrix(now=NOW, harness=harness)
+
+    assert all(result.status is FaultScenarioStatus.PASS for result in results)
+    assert harness.new_store_calls >= 5
+    assert harness.outage_calls == 1
+
+
 def test_virtual_72_hour_run_is_never_formal_qualification() -> None:
     report = run_paper_endurance(
         duration_hours=72,
@@ -118,6 +159,31 @@ def test_virtual_72_hour_run_is_never_formal_qualification() -> None:
     assert report.execution_capability == "PAPER_ONLY"
     assert all(result.iterations == 72 for result in report.scenarios)
     assert len(report.evidence_digest) == 64
+
+
+def test_endurance_reports_progress_store_identity_and_resource_baseline() -> None:
+    progress: list[PaperEnduranceProgress] = []
+
+    report = run_paper_endurance(
+        duration_hours=2,
+        clock_mode=EnduranceClockMode.VIRTUAL,
+        harness=RecordingFaultHarness(),
+        progress_callback=progress.append,
+        source_version="test-source-version",
+    )
+
+    assert [item.completed_iterations for item in progress] == [1, 2]
+    assert all(item.execution_capability == "PAPER_ONLY" for item in progress)
+    assert report.storage_adapter == "in-memory-test-double"
+    assert report.fault_injection == "in-process-availability-toggle"
+    assert report.evidence_target == "recording-test-double"
+    assert report.source_version == "test-source-version"
+    assert report.resource_metrics.python_heap_peak_bytes >= 0
+    assert report.resource_metrics.adapter_connections_start is None
+    assert report.resource_metrics.adapter_connections_end is None
+    resource_metrics = report.to_dict()["resourceMetrics"]
+    assert isinstance(resource_metrics, dict)
+    assert resource_metrics["pythonHeapPeakBytes"] >= 0
 
 
 def test_only_a_complete_wall_clock_run_can_qualify() -> None:

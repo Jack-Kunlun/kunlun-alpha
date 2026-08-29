@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from market_core.models.validators import Bar
-from market_core.validation import QualityEvent, detect_sequence_issues, validate_bar_with_event
+from market_core.validation import QualityEvent, validate_bar_with_event
 
 from data_worker.normalize.normalizer import MissingFieldError, normalize_bar
 from data_worker.normalize.rejection import RejectionZone
@@ -29,6 +29,7 @@ def process_bars(records: list[dict[str, object]]) -> BarPipelineResult:
     """Normalize, validate and sequence-check a batch of raw bar records."""
     rejection = RejectionZone()
     accepted: list[Bar] = []
+    accepted_records: list[dict[str, object]] = []
     events: list[QualityEvent] = []
 
     for record in records:
@@ -53,6 +54,51 @@ def process_bars(records: list[dict[str, object]]) -> BarPipelineResult:
             continue
 
         accepted.append(bar)
+        accepted_records.append(record)
 
-    events.extend(detect_sequence_issues(accepted))
+    seen_identities: set[tuple[str, str, str, str, str]] = set()
+    previous: Bar | None = None
+    for bar, record in zip(accepted, accepted_records, strict=True):
+        identity = (
+            bar.unified_code,
+            bar.interval,
+            bar.timestamp,
+            bar.session,
+            bar.price_type,
+        )
+        if identity in seen_identities:
+            rejection.add(record, f"sequence: duplicate bar identity {bar.timestamp}")
+            events.append(
+                QualityEvent(
+                    kind="DUPLICATE",
+                    unified_code=bar.unified_code,
+                    timestamp=bar.timestamp,
+                    detail=f"duplicate bar identity at {bar.timestamp}",
+                )
+            )
+        elif previous is not None and bar.timestamp == previous.timestamp:
+            rejection.add(record, f"sequence: duplicate timestamp {bar.timestamp}")
+            events.append(
+                QualityEvent(
+                    kind="DUPLICATE",
+                    unified_code=bar.unified_code,
+                    timestamp=bar.timestamp,
+                    detail=f"duplicate timestamp {bar.timestamp}",
+                )
+            )
+        elif previous is not None and bar.timestamp < previous.timestamp:
+            rejection.add(
+                record,
+                f"sequence: out-of-order timestamp {bar.timestamp} after {previous.timestamp}",
+            )
+            events.append(
+                QualityEvent(
+                    kind="OUT_OF_ORDER",
+                    unified_code=bar.unified_code,
+                    timestamp=bar.timestamp,
+                    detail=f"{bar.timestamp} after {previous.timestamp}",
+                )
+            )
+        seen_identities.add(identity)
+        previous = bar
     return BarPipelineResult(accepted=accepted, rejection_zone=rejection, events=events)

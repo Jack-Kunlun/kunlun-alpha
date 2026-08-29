@@ -25,6 +25,11 @@ from market_core.providers.interfaces import (
     SectorProvider,
 )
 from market_core.providers.ratelimit import RateLimiter
+from market_core.providers.tushare import (
+    TushareBarCapture,
+    TushareConfig,
+    TushareMarketDataProvider,
+)
 
 __all__ = [
     "CalendarProvider",
@@ -47,4 +52,7 @@ __all__ = [
     "ProviderUnavailableError",
     "RateLimiter",
     "SectorProvider",
+    "TushareBarCapture",
+    "TushareConfig",
+    "TushareMarketDataProvider",
 ]

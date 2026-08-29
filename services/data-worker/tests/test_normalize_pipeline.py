@@ -42,12 +42,16 @@ def test_valid_bars_are_accepted() -> None:
 def test_out_of_order_bars_raise_event() -> None:
     result = process_bars([_bar("2026-08-13T01:31:00.000Z"), _bar("2026-08-13T01:30:00.000Z")])
     assert any(e.kind == "OUT_OF_ORDER" for e in result.events)
+    assert len(result.rejection_zone) == 1
+    assert "out-of-order" in result.rejection_zone.records()[0].reason
 
 
 def test_duplicate_bars_raise_event() -> None:
     ts = "2026-08-13T01:30:00.000Z"
     result = process_bars([_bar(ts), _bar(ts)])
     assert any(e.kind == "DUPLICATE" for e in result.events)
+    assert len(result.rejection_zone) == 1
+    assert "duplicate" in result.rejection_zone.records()[0].reason
 
 
 def test_negative_price_is_rejected_with_event() -> None:

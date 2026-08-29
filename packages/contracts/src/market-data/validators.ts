@@ -10,7 +10,7 @@
  * of truth shared with the Python port in market-core/models.
  */
 
-import { isUnifiedCodeForExchange } from "../instrument/code-parser";
+import { isMarketDataCodeForExchange, isUnifiedCodeForExchange } from "../instrument/code-parser";
 
 export type ExchangeId = "SH" | "SZ" | "BJ";
 export type BarInterval = "DAILY" | "MINUTE_1" | "MINUTE_5";
@@ -99,7 +99,7 @@ function isNonNegative(value: number): boolean {
  * prices (RAW) are kept separate via the required priceType field.
  */
 export function validateBar(bar: Bar): ValidationResult {
-  if (!hasValidIdentity(bar.unifiedCode, bar.exchange)) {
+  if (!isMarketDataCodeForExchange(bar.unifiedCode, bar.exchange)) {
     return fail("unifiedCode/exchange identity mismatch");
   }
   if (!isNonNegative(bar.open)) return fail("open must be >= 0");

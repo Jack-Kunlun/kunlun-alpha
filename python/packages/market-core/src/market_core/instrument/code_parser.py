@@ -27,6 +27,10 @@ _RULES_PATH = (
 
 _CODE_RE = re.compile(r"^\d{6}$")
 _UNIFIED_CODE_RE = re.compile(r"^(?P<code>\d{6})\.(?P<exchange>SH|SZ|BJ)$")
+_MARKET_INDEX_PATTERNS = {
+    "SH": re.compile(r"^000\d{3}$"),
+    "SZ": re.compile(r"^399\d{3}$"),
+}
 
 
 @dataclass(frozen=True)
@@ -96,3 +100,21 @@ def is_unified_code_for_exchange(unified_code: str, exchange: ExchangeCode) -> b
         return False
     parsed = parse_instrument_code(match.group("code"))
     return parsed is not None and parsed.exchange == exchange
+
+
+def is_market_data_code_for_exchange(unified_code: str, exchange: ExchangeCode) -> bool:
+    """Accept a tradable instrument or a supported exchange-index Bar identity.
+
+    Exchange indices are observation identities, not tradable instruments. The
+    wider rule is intentionally used only by Bar validation; Tick, Instrument,
+    corporate-action, and adjustment-factor boundaries retain the stricter
+    tradable-instrument rule.
+    """
+
+    if is_unified_code_for_exchange(unified_code, exchange):
+        return True
+    match = _UNIFIED_CODE_RE.fullmatch(unified_code)
+    if match is None or match.group("exchange") != exchange:
+        return False
+    pattern = _MARKET_INDEX_PATTERNS.get(exchange)
+    return pattern is not None and pattern.fullmatch(match.group("code")) is not None

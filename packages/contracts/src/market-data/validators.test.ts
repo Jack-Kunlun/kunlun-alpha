@@ -143,6 +143,35 @@ describe("research vs trade price separation", () => {
 });
 
 describe("unified code and exchange identity", () => {
+  it("accepts exchange index identities for bar data without treating them as instruments", () => {
+    const shIndex: Bar = {
+      ...data.bars.valid[0]!.bar,
+      unifiedCode: "000001.SH",
+      exchange: "SH",
+    };
+    const szIndex: Bar = {
+      ...data.bars.valid[0]!.bar,
+      unifiedCode: "399006.SZ",
+      exchange: "SZ",
+    };
+
+    expect(validateBar(shIndex)).toEqual({ valid: true, errors: [] });
+    expect(validateBar(szIndex)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("does not widen executed-trade identities to market indices", () => {
+    const tick: Tick = {
+      ...data.ticks.valid[0]!.tick,
+      unifiedCode: "000001.SH",
+      exchange: "SH",
+    };
+
+    expect(validateTick(tick)).toEqual({
+      valid: false,
+      errors: ["unifiedCode/exchange identity mismatch"],
+    });
+  });
+
   it("rejects a bar whose suffix disagrees with exchange", () => {
     const bar: Bar = { ...data.bars.valid[0]!.bar, unifiedCode: "600000.SZ", exchange: "SH" };
     expect(validateBar(bar)).toEqual({

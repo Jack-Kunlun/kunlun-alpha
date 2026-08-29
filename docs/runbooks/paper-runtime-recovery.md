@@ -14,15 +14,21 @@
 
 ## 故障矩阵
 
-| 故障 | 注入方式 | 通过条件 |
-| --- | --- | --- |
-| 进程重启 | 使用同一持久事件流创建全新运行时 | 摘要链通过校验，事件数和事件 ID 完整恢复 |
-| 重复消息 | 重放相同 `event_id` 和内容 | 返回 `DUPLICATE`，持久流只增加一次 |
-| 数据库短暂不可用 | 在追加前关闭持久存储 | 请求失败关闭且无写入；恢复后重试只应用一次 |
-| 缓存丢失 | 清空全部投影缓存 | 从持久流重建的事件 ID、数量和流头摘要一致 |
+| 故障             | 注入方式                         | 通过条件                                   |
+| ---------------- | -------------------------------- | ------------------------------------------ |
+| 进程重启         | 使用同一持久事件流创建全新运行时 | 摘要链通过校验，事件数和事件 ID 完整恢复   |
+| 重复消息         | 重放相同 `event_id` 和内容       | 返回 `DUPLICATE`，持久流只增加一次         |
+| 数据库短暂不可用 | 在追加前关闭持久存储             | 请求失败关闭且无写入；恢复后重试只应用一次 |
+| 缓存丢失         | 清空全部投影缓存                 | 从持久流重建的事件 ID、数量和流头摘要一致  |
 
-`FaultInjectablePaperStore` 是故障测试替身，不是生产数据库适配器。正式运行环境必须让
-实际持久化适配器满足同一 `PaperDurableEventStore` 契约，并在真实数据库上执行故障矩阵。
+`FaultInjectablePaperStore` 是故障测试替身，不是持久化适配器。正式运行使用
+`PostgresPaperEventStore`，每次操作重新建立受限连接，并通过流头行锁完成比较交换。故障
+harness 只允许操作名称以 `kunlun_paper_endurance_` 开头且带 UUID 后缀的隔离数据库；它不会
+停止或禁用主业务数据库，也不会接触券商、真实账户或真实订单路径。每次运行必须创建全新
+数据库；harness 会在 PostgreSQL database catalog metadata 中写入本次运行的随机 ownership marker，所有
+禁用连接、恢复和删除动作都会先核验该 marker。marker 不进入命令行、日志、报告或进度文件。
+管理 DSN 的 `current_database()` 还必须位于 `kunlun_paper_endurance_` 命名空间之外，不能把旧的
+耐久数据库误当作控制库。
 
 ## 工程快速检查
 
@@ -43,16 +49,30 @@ uv run --package paper-core python scripts/run-paper-soak.py \
 
 ## 墙钟耐久证据与正式门禁
 
-当前 runner 使用 `FaultInjectablePaperStore`，因此即使墙钟运行满 72 小时也只能形成
-`TEST_DOUBLE` 工程证据，不能取得正式资格。在隔离环境采集该证据时，不要将报告写入仓库：
+不传 `--store postgres` 时，runner 使用 `FaultInjectablePaperStore`，即使墙钟运行满 72
+小时也只能形成 `TEST_DOUBLE` 工程证据。正式运行必须连接具备建库、切换连接许可和终止
+隔离数据库会话权限的 PostgreSQL 管理数据库。DSN 只通过环境变量注入，不得写入命令参数、
+日志或报告：
 
 ```bash
+export KUNLUN_PAPER_ENDURANCE_ADMIN_DSN='postgresql://USER:PASSWORD@HOST:PORT/postgres'
 uv run --package paper-core python scripts/run-paper-soak.py \
+  --store postgres \
   --clock-mode wall \
   --duration-hours 72 \
   --tick-seconds 60 \
+  --progress-output /var/tmp/kunlun-paper-endurance-progress.json \
   --output /var/tmp/kunlun-paper-endurance-wall.json
 ```
+
+runner 默认生成带不可预测 UUID 的全新隔离数据库；显式传入的名称也必须带合法 UUID 后缀，
+已存在的同名前缀数据库一律拒绝复用。数据库短断场景先核验本次 ownership marker，再将该隔离
+数据库设为拒绝新连接并终止它的既有会话；追加必须失败关闭。`finally` 路径恢复连接许可前会
+再次核验 marker，随后使用新连接验证数据库已恢复。主业务数据库名称不满足前缀和 UUID 保护，
+不能成为故障目标。
+进度文件每轮原子更新，正式报告只在整段运行结束后生成；报告同时记录 Python 堆内存起止与
+峰值、隔离数据库起止连接数，以及当前 Git 提交与关键运行源码的 SHA-256 指纹。正式资格
+要求结束连接数为零；审核时必须用源码指纹确认报告对应的精确代码状态。
 
 正式资格必须由接入真实持久化适配器的 runner 执行，并同时满足以下条件：
 
@@ -63,9 +83,18 @@ uv run --package paper-core python scripts/run-paper-soak.py \
 5. `executionCapability` 为 `PAPER_ONLY`。
 6. `evidenceScope` 为 `DURABLE_ADAPTER`，不能是 `TEST_DOUBLE`。
 
-虚拟时钟、测试替身、缩短时长、缺失场景或任一失败都不能取得正式资格。当前代码尚未接入
-真实持久化适配器，因此 P6-N12 必须保持待验收。报告包含版本、证据范围、起止时间、实际
-时长、迭代数、资格状态和证据摘要；审核时需保留原始 JSON 与运行日志。
+虚拟时钟、测试替身、缩短时长、缺失场景或任一失败都不能取得正式资格。报告包含版本、
+证据范围、起止时间、实际时长、迭代数、资格状态和证据摘要；审核时需保留原始 JSON 与
+运行日志。适配器和快速 PostgreSQL 故障矩阵通过不等于 72 小时门禁通过；墙钟报告生成前，
+P6-N12 继续保持待验收。
+
+若进程在数据库连接被禁用的极短窗口内遭遇不可捕获终止，不得按数据库名前缀手工执行
+`ALTER DATABASE`、`DROP DATABASE` 或拼接中断前后的时长。ownership marker 只由本次 harness
+保存在进程内，无法由报告或命令行重建；应将该数据库交给管理员按 catalog marker 做人工隔离
+清理，然后使用新生成的数据库重新开始完整 72 小时运行。
+
+此前固定名称运行的 `kunlun_paper_endurance_p6n12` 属于旧源码运行，不是本修复后的验收证据；
+修复后必须启动全新的 72 小时墙钟运行，不能续用或拼接旧运行时长。
 
 ## 恢复步骤
 

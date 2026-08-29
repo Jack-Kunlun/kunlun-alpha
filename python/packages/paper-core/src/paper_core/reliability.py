@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import json
 import time
+import tracemalloc
 from collections import Counter
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Generator, Mapping
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
 from threading import RLock
 from typing import Final, Protocol, Self
+from uuid import uuid4
 
 GENESIS_DIGEST: Final = "0" * 64
 MINIMUM_QUALIFYING_HOURS: Final = 72
@@ -91,7 +94,7 @@ def _digest(value: object) -> str:
     return sha256(encoded).hexdigest()
 
 
-def _payload_items(
+def normalize_payload_items(
     payload: Mapping[str, object],
 ) -> tuple[tuple[str, PayloadScalar], ...]:
     normalized: list[tuple[str, PayloadScalar]] = []
@@ -138,7 +141,7 @@ class PaperRuntimeEvent:
             msg = "sequence must be positive"
             raise ValueError(msg)
         normalized_time = occurred_at.astimezone(UTC)
-        items = _payload_items(payload)
+        items = normalize_payload_items(payload)
         body = {
             "eventId": event_id,
             "eventType": event_type,
@@ -199,6 +202,21 @@ class PaperDurableEventStore(Protocol):
     ) -> tuple[AppendOutcome, tuple[PaperRuntimeEvent, ...]]: ...
 
 
+class PaperFaultHarness(Protocol):
+    """Provide isolated stores and a real or simulated persistence outage."""
+
+    evidence_scope: EnduranceEvidenceScope
+    evidence_target: str
+    fault_injection: str
+    storage_adapter: str
+
+    def new_store(self) -> PaperDurableEventStore: ...
+
+    def database_outage(self) -> AbstractContextManager[None]: ...
+
+    def active_connection_count(self) -> int | None: ...
+
+
 class FaultInjectablePaperStore:
     """Thread-safe persistence test double with compare-and-swap appends."""
 
@@ -255,6 +273,32 @@ class FaultInjectablePaperStore:
         if not self._available:
             msg = "paper persistence is unavailable; operation failed closed"
             raise PersistenceUnavailableError(msg)
+
+
+class InMemoryPaperFaultHarness:
+    """Fault harness for fast engineering checks using one in-memory store."""
+
+    evidence_scope = EnduranceEvidenceScope.TEST_DOUBLE
+    evidence_target = "ephemeral-test-double"
+    fault_injection = "in-process-availability-toggle"
+    storage_adapter = "in-memory-test-double"
+
+    def __init__(self) -> None:
+        self._store = FaultInjectablePaperStore()
+
+    def new_store(self) -> PaperDurableEventStore:
+        return self._store
+
+    def active_connection_count(self) -> None:
+        return None
+
+    @contextmanager
+    def database_outage(self) -> Generator[None, None, None]:
+        self._store.set_available(False)
+        try:
+            yield
+        finally:
+            self._store.set_available(True)
 
 
 class PaperProjectionCache:
@@ -342,8 +386,9 @@ class RecoverablePaperRuntime:
             for persisted in events:
                 if persisted.event_id != event_id:
                     continue
-                if persisted.event_type != event_type or persisted.payload_items != _payload_items(
-                    payload
+                if (
+                    persisted.event_type != event_type
+                    or persisted.payload_items != normalize_payload_items(payload)
                 ):
                     msg = f"event_id {event_id!r} was reused with different content"
                     raise DuplicateEventConflictError(msg)
@@ -447,40 +492,44 @@ def _run_scenario(
     )
 
 
-def run_fault_matrix(*, now: datetime | None = None) -> tuple[FaultScenarioResult, ...]:
+def run_fault_matrix(
+    *,
+    now: datetime | None = None,
+    harness: PaperFaultHarness | None = None,
+) -> tuple[FaultScenarioResult, ...]:
     """Exercise restart, duplicate, persistence-outage, and cache-loss recovery."""
 
     event_time = now if now is not None else datetime.now(UTC)
+    selected_harness = harness if harness is not None else InMemoryPaperFaultHarness()
+    stream_prefix = f"paper-endurance-{uuid4().hex}"
 
     def process_restart() -> str:
-        store = FaultInjectablePaperStore()
-        runtime = RecoverablePaperRuntime(store)
+        runtime = RecoverablePaperRuntime(selected_harness.new_store())
         runtime.append_message(
-            stream_id="paper-account",
+            stream_id=f"{stream_prefix}-restart",
             event_id="restart-1",
             event_type="CASH_DEPOSITED",
             payload={"amount": "100000.00", "currency": "CNY"},
             occurred_at=event_time,
         )
-        restarted = RecoverablePaperRuntime(store)
-        recovered = restarted.recover("paper-account")
+        restarted = RecoverablePaperRuntime(selected_harness.new_store())
+        recovered = restarted.recover(f"{stream_prefix}-restart")
         if recovered.event_count != 1 or recovered.event_ids != ("restart-1",):
             msg = "process restart did not recover the durable projection"
             raise RecoveryInvariantError(msg)
         return "replayed one durable event after a fresh runtime start"
 
     def duplicate_message() -> str:
-        store = FaultInjectablePaperStore()
-        runtime = RecoverablePaperRuntime(store)
+        runtime = RecoverablePaperRuntime(selected_harness.new_store())
         runtime.append_message(
-            stream_id="paper-execution",
+            stream_id=f"{stream_prefix}-duplicate",
             event_id="fill-1",
             event_type="ORDER_FILLED",
             payload={"fillId": "fill-1", "quantity": 100},
             occurred_at=event_time,
         )
         duplicate = runtime.append_message(
-            stream_id="paper-execution",
+            stream_id=f"{stream_prefix}-duplicate",
             event_id="fill-1",
             event_type="ORDER_FILLED",
             payload={"fillId": "fill-1", "quantity": 100},
@@ -495,36 +544,35 @@ def run_fault_matrix(*, now: datetime | None = None) -> tuple[FaultScenarioResul
         return "replayed duplicate event_id without a second durable mutation"
 
     def database_outage() -> str:
-        store = FaultInjectablePaperStore()
-        runtime = RecoverablePaperRuntime(store)
-        store.set_available(False)
-        try:
-            runtime.append_message(
-                stream_id="paper-account",
-                event_id="outage-1",
-                event_type="ORDER_RESERVED",
-                payload={"amount": "1000.00"},
-                occurred_at=event_time,
-            )
-        except PersistenceUnavailableError:
-            pass
-        else:
-            msg = "persistence outage did not fail closed"
-            raise RecoveryInvariantError(msg)
+        runtime = RecoverablePaperRuntime(selected_harness.new_store())
+        stream_id = f"{stream_prefix}-outage"
+        with selected_harness.database_outage():
+            try:
+                runtime.append_message(
+                    stream_id=stream_id,
+                    event_id="outage-1",
+                    event_type="ORDER_RESERVED",
+                    payload={"amount": "1000.00"},
+                    occurred_at=event_time,
+                )
+            except PersistenceUnavailableError:
+                pass
+            else:
+                msg = "persistence outage did not fail closed"
+                raise RecoveryInvariantError(msg)
 
-        store.set_available(True)
-        if runtime.projection("paper-account").event_count != 0:
+        if runtime.projection(stream_id).event_count != 0:
             msg = "failed persistence operation mutated the durable stream"
             raise RecoveryInvariantError(msg)
         applied = runtime.append_message(
-            stream_id="paper-account",
+            stream_id=stream_id,
             event_id="outage-1",
             event_type="ORDER_RESERVED",
             payload={"amount": "1000.00"},
             occurred_at=event_time,
         )
         duplicate = runtime.append_message(
-            stream_id="paper-account",
+            stream_id=stream_id,
             event_id="outage-1",
             event_type="ORDER_RESERVED",
             payload={"amount": "1000.00"},
@@ -539,20 +587,20 @@ def run_fault_matrix(*, now: datetime | None = None) -> tuple[FaultScenarioResul
         return "failed closed during outage and applied one idempotent retry"
 
     def cache_loss() -> str:
-        store = FaultInjectablePaperStore()
         cache = PaperProjectionCache()
-        runtime = RecoverablePaperRuntime(store, cache)
+        runtime = RecoverablePaperRuntime(selected_harness.new_store(), cache)
+        stream_id = f"{stream_prefix}-cache"
         for sequence in (1, 2):
             runtime.append_message(
-                stream_id="paper-account",
+                stream_id=stream_id,
                 event_id=f"cache-{sequence}",
                 event_type="POSITION_CHANGED",
                 payload={"quantity": sequence * 100, "symbol": "600519.SH"},
                 occurred_at=event_time,
             )
-        before = runtime.projection("paper-account")
+        before = runtime.projection(stream_id)
         cache.clear()
-        after = runtime.projection("paper-account")
+        after = runtime.projection(stream_id)
         if (
             after.event_ids != before.event_ids
             or after.head_digest != before.head_digest
@@ -621,6 +669,52 @@ def classify_endurance_qualification(
 
 
 @dataclass(frozen=True, slots=True)
+class PaperEnduranceProgress:
+    started_at: datetime
+    updated_at: datetime
+    requested_duration_hours: int
+    elapsed_wall_seconds: float
+    completed_iterations: int
+    clock_mode: EnduranceClockMode
+    evidence_scope: EnduranceEvidenceScope
+    execution_capability: str
+    source_version: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "clockMode": self.clock_mode.value,
+            "completedIterations": self.completed_iterations,
+            "elapsedWallSeconds": round(self.elapsed_wall_seconds, 3),
+            "evidenceScope": self.evidence_scope.value,
+            "executionCapability": self.execution_capability,
+            "requestedDurationHours": self.requested_duration_hours,
+            "sourceVersion": self.source_version,
+            "startedAt": _timestamp(self.started_at),
+            "status": "RUNNING",
+            "updatedAt": _timestamp(self.updated_at),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class EnduranceResourceMetrics:
+    python_heap_start_bytes: int
+    python_heap_end_bytes: int
+    python_heap_peak_bytes: int
+    adapter_connections_start: int | None
+    adapter_connections_end: int | None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "adapterConnectionsEnd": self.adapter_connections_end,
+            "adapterConnectionsStart": self.adapter_connections_start,
+            "pythonHeapEndBytes": self.python_heap_end_bytes,
+            "pythonHeapGrowthBytes": (self.python_heap_end_bytes - self.python_heap_start_bytes),
+            "pythonHeapPeakBytes": self.python_heap_peak_bytes,
+            "pythonHeapStartBytes": self.python_heap_start_bytes,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class PaperEnduranceReport:
     report_version: str
     started_at: datetime
@@ -630,8 +724,13 @@ class PaperEnduranceReport:
     simulated_hours: int
     clock_mode: EnduranceClockMode
     evidence_scope: EnduranceEvidenceScope
+    evidence_target: str
+    fault_injection: str
     qualification: EnduranceQualification
     execution_capability: str
+    storage_adapter: str
+    source_version: str
+    resource_metrics: EnduranceResourceMetrics
     scenarios: tuple[FaultScenarioResult, ...]
     evidence_digest: str
 
@@ -641,14 +740,19 @@ class PaperEnduranceReport:
             "elapsedWallSeconds": round(self.elapsed_wall_seconds, 3),
             "evidenceDigest": self.evidence_digest,
             "evidenceScope": self.evidence_scope.value,
+            "evidenceTarget": self.evidence_target,
             "executionCapability": self.execution_capability,
+            "faultInjection": self.fault_injection,
             "generatedAt": _timestamp(self.generated_at),
             "qualification": self.qualification.value,
             "reportVersion": self.report_version,
             "requestedDurationHours": self.requested_duration_hours,
+            "resourceMetrics": self.resource_metrics.to_dict(),
             "scenarios": [scenario.to_dict() for scenario in self.scenarios],
             "simulatedHours": self.simulated_hours,
             "startedAt": _timestamp(self.started_at),
+            "storageAdapter": self.storage_adapter,
+            "sourceVersion": self.source_version,
         }
 
 
@@ -657,6 +761,9 @@ def run_paper_endurance(
     duration_hours: int = MINIMUM_QUALIFYING_HOURS,
     clock_mode: EnduranceClockMode = EnduranceClockMode.WALL,
     tick_seconds: int = 60,
+    harness: PaperFaultHarness | None = None,
+    progress_callback: Callable[[PaperEnduranceProgress], None] | None = None,
+    source_version: str = "unversioned",
 ) -> PaperEnduranceReport:
     """Run the fault matrix under a virtual or real wall-clock endurance window."""
 
@@ -666,60 +773,118 @@ def run_paper_endurance(
     if tick_seconds < 1:
         msg = "tick_seconds must be positive"
         raise ValueError(msg)
+    if not source_version:
+        msg = "source_version must not be empty"
+        raise ValueError(msg)
 
     started_at = datetime.now(UTC)
     started_monotonic = time.monotonic()
     collected: list[FaultScenarioResult] = []
     simulated_hours = 0
+    selected_harness = harness if harness is not None else InMemoryPaperFaultHarness()
+    owns_tracing = not tracemalloc.is_tracing()
+    if owns_tracing:
+        tracemalloc.start()
+    heap_start, _ = tracemalloc.get_traced_memory()
+    connections_start = selected_harness.active_connection_count()
+    completed_iterations = 0
 
-    if clock_mode is EnduranceClockMode.VIRTUAL:
-        for hour in range(duration_hours):
-            collected.extend(run_fault_matrix(now=started_at))
-            simulated_hours = hour + 1
-    else:
-        requested_seconds = duration_hours * 60 * 60
-        while True:
-            collected.extend(run_fault_matrix())
-            elapsed = time.monotonic() - started_monotonic
-            if elapsed >= requested_seconds:
-                break
-            time.sleep(min(float(tick_seconds), requested_seconds - elapsed))
+    def report_progress(elapsed: float) -> None:
+        if progress_callback is None:
+            return
+        progress_callback(
+            PaperEnduranceProgress(
+                started_at=started_at,
+                updated_at=datetime.now(UTC),
+                requested_duration_hours=duration_hours,
+                elapsed_wall_seconds=elapsed,
+                completed_iterations=completed_iterations,
+                clock_mode=clock_mode,
+                evidence_scope=selected_harness.evidence_scope,
+                execution_capability="PAPER_ONLY",
+                source_version=source_version,
+            )
+        )
 
-    elapsed_wall_seconds = time.monotonic() - started_monotonic
-    scenarios = _aggregate_fault_results(collected)
-    evidence_scope = EnduranceEvidenceScope.TEST_DOUBLE
-    qualification = classify_endurance_qualification(
-        clock_mode=clock_mode,
-        evidence_scope=evidence_scope,
-        requested_duration_hours=duration_hours,
-        elapsed_wall_seconds=elapsed_wall_seconds,
-        scenarios=scenarios,
-    )
-    generated_at = datetime.now(UTC)
-    evidence_body = {
-        "clockMode": clock_mode.value,
-        "elapsedWallSeconds": round(elapsed_wall_seconds, 3),
-        "evidenceScope": evidence_scope.value,
-        "executionCapability": "PAPER_ONLY",
-        "generatedAt": _timestamp(generated_at),
-        "qualification": qualification.value,
-        "reportVersion": "paper-endurance-report/v1",
-        "requestedDurationHours": duration_hours,
-        "scenarios": [scenario.to_dict() for scenario in scenarios],
-        "simulatedHours": simulated_hours,
-        "startedAt": _timestamp(started_at),
-    }
-    return PaperEnduranceReport(
-        report_version="paper-endurance-report/v1",
-        started_at=started_at,
-        generated_at=generated_at,
-        requested_duration_hours=duration_hours,
-        elapsed_wall_seconds=elapsed_wall_seconds,
-        simulated_hours=simulated_hours,
-        clock_mode=clock_mode,
-        evidence_scope=evidence_scope,
-        qualification=qualification,
-        execution_capability="PAPER_ONLY",
-        scenarios=scenarios,
-        evidence_digest=_digest(evidence_body),
-    )
+    try:
+        if clock_mode is EnduranceClockMode.VIRTUAL:
+            for hour in range(duration_hours):
+                collected.extend(run_fault_matrix(now=started_at, harness=selected_harness))
+                simulated_hours = hour + 1
+                completed_iterations += 1
+                report_progress(time.monotonic() - started_monotonic)
+        else:
+            requested_seconds = duration_hours * 60 * 60
+            while True:
+                collected.extend(run_fault_matrix(harness=selected_harness))
+                completed_iterations += 1
+                elapsed = time.monotonic() - started_monotonic
+                report_progress(elapsed)
+                if elapsed >= requested_seconds:
+                    break
+                time.sleep(min(float(tick_seconds), requested_seconds - elapsed))
+
+        elapsed_wall_seconds = time.monotonic() - started_monotonic
+        heap_end, heap_peak = tracemalloc.get_traced_memory()
+        resource_metrics = EnduranceResourceMetrics(
+            python_heap_start_bytes=heap_start,
+            python_heap_end_bytes=heap_end,
+            python_heap_peak_bytes=heap_peak,
+            adapter_connections_start=connections_start,
+            adapter_connections_end=selected_harness.active_connection_count(),
+        )
+        scenarios = _aggregate_fault_results(collected)
+        evidence_scope = selected_harness.evidence_scope
+        qualification = classify_endurance_qualification(
+            clock_mode=clock_mode,
+            evidence_scope=evidence_scope,
+            requested_duration_hours=duration_hours,
+            elapsed_wall_seconds=elapsed_wall_seconds,
+            scenarios=scenarios,
+        )
+        if (
+            qualification is EnduranceQualification.QUALIFIED
+            and resource_metrics.adapter_connections_end != 0
+        ):
+            qualification = EnduranceQualification.FAILED
+        generated_at = datetime.now(UTC)
+        evidence_body = {
+            "clockMode": clock_mode.value,
+            "elapsedWallSeconds": round(elapsed_wall_seconds, 3),
+            "evidenceScope": evidence_scope.value,
+            "evidenceTarget": selected_harness.evidence_target,
+            "executionCapability": "PAPER_ONLY",
+            "faultInjection": selected_harness.fault_injection,
+            "generatedAt": _timestamp(generated_at),
+            "qualification": qualification.value,
+            "reportVersion": "paper-endurance-report/v2",
+            "requestedDurationHours": duration_hours,
+            "resourceMetrics": resource_metrics.to_dict(),
+            "scenarios": [scenario.to_dict() for scenario in scenarios],
+            "simulatedHours": simulated_hours,
+            "startedAt": _timestamp(started_at),
+            "storageAdapter": selected_harness.storage_adapter,
+            "sourceVersion": source_version,
+        }
+        return PaperEnduranceReport(
+            report_version="paper-endurance-report/v2",
+            started_at=started_at,
+            generated_at=generated_at,
+            requested_duration_hours=duration_hours,
+            elapsed_wall_seconds=elapsed_wall_seconds,
+            simulated_hours=simulated_hours,
+            clock_mode=clock_mode,
+            evidence_scope=evidence_scope,
+            evidence_target=selected_harness.evidence_target,
+            fault_injection=selected_harness.fault_injection,
+            qualification=qualification,
+            execution_capability="PAPER_ONLY",
+            storage_adapter=selected_harness.storage_adapter,
+            source_version=source_version,
+            resource_metrics=resource_metrics,
+            scenarios=scenarios,
+            evidence_digest=_digest(evidence_body),
+        )
+    finally:
+        if owns_tracing:
+            tracemalloc.stop()

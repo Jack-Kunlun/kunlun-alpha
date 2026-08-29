@@ -13,7 +13,7 @@ import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import cast
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
@@ -31,6 +31,25 @@ _MAX_QUERY_VALUE_LENGTH = 128
 _MAX_QUERY_FIELDS = 32
 _CURSOR_HASH_PREFIX = "sha256-"
 FUND_ENDPOINT_KINDS = frozenset({"metadata", "nav", "inav", "benchmark", "fees"})
+MARKET_INTERVALS = frozenset({"DAILY", "MINUTE_1", "MINUTE_5"})
+MARKET_CAPTURE_SCHEMA_VERSION = "market-bar-v1"
+MARKET_CAPTURE_VERSION = "capture-v1"
+_MARKET_CODE_RE = re.compile(r"^\d{6}\.(?:SH|SZ|BJ)$")
+_ROUTE_VALUE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+_MARKET_ROUTE_FIELDS = (
+    "schema_version",
+    "capture_version",
+    "api_name",
+    "unified_code",
+    "interval",
+    "requested_start",
+    "requested_end",
+    "source_version",
+    "market_run_id",
+    "capture_ordinal",
+)
+_FUND_ROUTE_FIELDS = ("endpoint_kind", "run_id", "source_revision", "attempt_id", "page_ordinal")
+_UNSAFE_ROUTE_MARKERS = ("token", "secret", "password", "credential", "cookie", "dsn")
 _MIME_TOKEN_RE = r"[A-Za-z0-9!#$&^_.+-]+"
 _MIME_RE = re.compile(
     rf"^(?P<type>{_MIME_TOKEN_RE})/(?P<subtype>{_MIME_TOKEN_RE})(?:;\s*charset=(?P<charset>{_MIME_TOKEN_RE}))?$",
@@ -112,6 +131,80 @@ def validate_fund_endpoint_kind(value: object) -> str:
 
     if not isinstance(value, str) or value not in FUND_ENDPOINT_KINDS:
         raise ValueError("endpoint_kind must be one of metadata, nav, inav, benchmark, fees")
+    return value
+
+
+def _validate_route_value(
+    value: object,
+    field_name: str,
+    *,
+    max_length: int = 128,
+) -> str:
+    """Validate a bounded ASCII route value without admitting secret material."""
+
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{field_name} must be a non-empty string")
+    if len(value) > max_length or not value.isascii() or _ROUTE_VALUE_RE.fullmatch(value) is None:
+        raise ValueError(f"{field_name} is invalid")
+    lowered = value.casefold()
+    if any(marker in lowered for marker in _UNSAFE_ROUTE_MARKERS):
+        raise ValueError(f"{field_name} contains unsafe material")
+    return value
+
+
+def _validate_market_date(value: object, field_name: str) -> str:
+    normalized = validate_date_identifier(value)
+    try:
+        date.fromisoformat(normalized)
+    except ValueError as error:
+        raise ValueError(f"{field_name} must be a valid calendar date") from error
+    return normalized
+
+
+def _validate_market_route_fields(manifest: RawObjectManifest) -> bool:
+    """Validate the all-or-none market capture route on a manifest."""
+
+    market_values = tuple(getattr(manifest, field_name) for field_name in _MARKET_ROUTE_FIELDS)
+    has_market_route = any(value is not None for value in market_values)
+    if not has_market_route:
+        return False
+    if any(value is None for value in market_values):
+        raise ValueError("market route metadata must be provided together")
+    if any(getattr(manifest, field_name) is not None for field_name in _FUND_ROUTE_FIELDS):
+        raise ValueError("market route cannot be mixed with fund route metadata")
+
+    if manifest.schema_version != MARKET_CAPTURE_SCHEMA_VERSION:
+        raise ValueError("unsupported market capture schema version")
+    if manifest.capture_version != MARKET_CAPTURE_VERSION:
+        raise ValueError("unsupported market capture version")
+    _validate_route_value(manifest.schema_version, "schema_version")
+    _validate_route_value(manifest.capture_version, "capture_version")
+    _validate_route_value(manifest.api_name, "api_name")
+    unified_code = manifest.unified_code
+    if not isinstance(unified_code, str) or _MARKET_CODE_RE.fullmatch(unified_code) is None:
+        raise ValueError("unified_code must use a six-digit exchange code")
+    interval = manifest.interval
+    if not isinstance(interval, str) or interval not in MARKET_INTERVALS:
+        raise ValueError("interval must be DAILY, MINUTE_1 or MINUTE_5")
+    requested_start = _validate_market_date(manifest.requested_start, "requested_start")
+    requested_end = _validate_market_date(manifest.requested_end, "requested_end")
+    if requested_end < requested_start:
+        raise ValueError("requested_end must not precede requested_start")
+    _validate_route_value(manifest.source_version, "source_version")
+    _validate_route_value(manifest.market_run_id, "market_run_id", max_length=64)
+    if (
+        type(manifest.capture_ordinal) is not int
+        or manifest.capture_ordinal < 0
+        or manifest.capture_ordinal > 2**31 - 1
+    ):
+        raise ValueError("capture_ordinal must be a bounded non-negative integer")
+    return True
+
+
+def _optional_route_text(raw: Mapping[str, object], field_name: str) -> str | None:
+    value = raw.get(field_name)
+    if value is not None and not isinstance(value, str):
+        raise ValueError(f"manifest {field_name} must be a string")
     return value
 
 
@@ -223,6 +316,16 @@ class RawObjectManifest:
     source_revision: str | None = None
     attempt_id: str | None = None
     page_ordinal: int | None = None
+    schema_version: str | None = None
+    capture_version: str | None = None
+    api_name: str | None = None
+    unified_code: str | None = None
+    interval: str | None = None
+    requested_start: str | None = None
+    requested_end: str | None = None
+    source_version: str | None = None
+    market_run_id: str | None = None
+    capture_ordinal: int | None = None
 
     def __post_init__(self) -> None:
         validate_identifier(self.source, "source")
@@ -271,6 +374,7 @@ class RawObjectManifest:
             type(self.page_ordinal) is not int or self.page_ordinal < 0
         ):
             raise ValueError("page_ordinal must be a non-negative integer")
+        _validate_market_route_fields(self)
 
     @staticmethod
     def route_identity(
@@ -307,6 +411,19 @@ class RawObjectManifest:
 
         return self.request
 
+    @property
+    def received_at(self) -> datetime:
+        """Return the response-completion time used as market availability."""
+
+        assert self.available_time is not None
+        return self.available_time
+
+    @property
+    def is_market_capture(self) -> bool:
+        """Whether this manifest carries a complete market-bar route."""
+
+        return self.schema_version is not None
+
     def to_dict(self) -> dict[str, object]:
         """Serialize the manifest using JSON-compatible primitive values."""
 
@@ -329,6 +446,10 @@ class RawObjectManifest:
             if value is not None:
                 payload[field_name] = value
         for field_name in ("attempt_id", "page_ordinal"):
+            value = getattr(self, field_name)
+            if value is not None:
+                payload[field_name] = value
+        for field_name in _MARKET_ROUTE_FIELDS:
             value = getattr(self, field_name)
             if value is not None:
                 payload[field_name] = value
@@ -366,6 +487,11 @@ class RawObjectManifest:
             type(raw_page_ordinal) is not int or raw_page_ordinal < 0
         ):
             raise ValueError("manifest page_ordinal must be a non-negative integer")
+        raw_capture_ordinal = raw.get("capture_ordinal")
+        if raw_capture_ordinal is not None and (
+            type(raw_capture_ordinal) is not int or raw_capture_ordinal < 0
+        ):
+            raise ValueError("manifest capture_ordinal must be a non-negative integer")
         return cls(
             object_id=object_id,
             source=str(raw["source"]),
@@ -384,6 +510,16 @@ class RawObjectManifest:
             ),
             attempt_id=None if raw.get("attempt_id") is None else str(raw["attempt_id"]),
             page_ordinal=raw_page_ordinal,
+            schema_version=_optional_route_text(raw, "schema_version"),
+            capture_version=_optional_route_text(raw, "capture_version"),
+            api_name=_optional_route_text(raw, "api_name"),
+            unified_code=_optional_route_text(raw, "unified_code"),
+            interval=_optional_route_text(raw, "interval"),
+            requested_start=_optional_route_text(raw, "requested_start"),
+            requested_end=_optional_route_text(raw, "requested_end"),
+            source_version=_optional_route_text(raw, "source_version"),
+            market_run_id=_optional_route_text(raw, "market_run_id"),
+            capture_ordinal=raw_capture_ordinal,
         )
 
 

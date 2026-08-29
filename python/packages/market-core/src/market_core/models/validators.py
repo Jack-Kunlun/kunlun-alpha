@@ -17,7 +17,10 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Literal, cast
 
-from market_core.instrument.code_parser import is_unified_code_for_exchange
+from market_core.instrument.code_parser import (
+    is_market_data_code_for_exchange,
+    is_unified_code_for_exchange,
+)
 
 ExchangeId = Literal["SH", "SZ", "BJ"]
 BarInterval = Literal["DAILY", "MINUTE_1", "MINUTE_5"]
@@ -49,7 +52,7 @@ class Bar:
     suspended: bool = False
 
     def __post_init__(self) -> None:
-        _validate_unified_identity(self.unified_code, self.exchange)
+        _validate_market_data_identity(self.unified_code, self.exchange)
         _validate_integer(self.volume, "volume")
         for field in ("open", "high", "low", "close", "amount"):
             object.__setattr__(self, field, _decimal_from_external(getattr(self, field)))
@@ -131,6 +134,11 @@ def _fail(message: str) -> ValidationResult:
 
 def _validate_unified_identity(unified_code: str, exchange: ExchangeId) -> None:
     if not is_unified_code_for_exchange(unified_code, exchange):
+        raise ValueError("unifiedCode/exchange identity mismatch")
+
+
+def _validate_market_data_identity(unified_code: str, exchange: ExchangeId) -> None:
+    if not is_market_data_code_for_exchange(unified_code, exchange):
         raise ValueError("unifiedCode/exchange identity mismatch")
 
 

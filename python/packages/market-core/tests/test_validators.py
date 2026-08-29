@@ -18,6 +18,7 @@ from market_core.models.validators import (
     AdjustmentFactor,
     Bar,
     CorporateAction,
+    ExchangeId,
     Tick,
     ValidationResult,
     action_from_dict,
@@ -223,6 +224,47 @@ def test_price_sensitive_market_fields_use_decimal_without_float_round_trip() ->
                     "priceType": "RAW",
                 }
             }
+        )
+
+
+@pytest.mark.parametrize(
+    ("unified_code", "exchange"),
+    [("000001.SH", "SH"), ("399001.SZ", "SZ"), ("399006.SZ", "SZ")],
+)
+def test_bar_accepts_exchange_index_identity(unified_code: str, exchange: ExchangeId) -> None:
+    bar = bar_from_dict(
+        {
+            "unifiedCode": unified_code,
+            "exchange": exchange,
+            "date": "2026-08-27",
+            "interval": "MINUTE_1",
+            "session": "CONTINUOUS",
+            "timestamp": "2026-08-27T01:31:00.000Z",
+            "open": Decimal("3800.1"),
+            "high": Decimal("3801.2"),
+            "low": Decimal("3799.8"),
+            "close": Decimal("3800.8"),
+            "volume": 100,
+            "amount": Decimal("1000"),
+            "priceType": "RAW",
+        }
+    )
+
+    assert validate_bar(bar).valid is True
+
+
+def test_tick_does_not_accept_exchange_index_identity() -> None:
+    with pytest.raises(ValueError, match="unifiedCode/exchange identity mismatch"):
+        Tick(
+            unified_code="000001.SH",
+            exchange="SH",
+            date="2026-08-27",
+            timestamp="2026-08-27T01:31:00.000Z",
+            price=Decimal("3800.8"),
+            volume=100,
+            amount=Decimal("1000"),
+            direction="BUY",
+            trade_type="MATCH",
         )
 
 

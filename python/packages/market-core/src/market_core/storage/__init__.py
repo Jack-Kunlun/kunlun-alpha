@@ -1,5 +1,10 @@
 """Market data storage."""
 
+from market_core.storage.clickhouse import (
+    ClickHouseBarConfig,
+    ClickHouseBarWriter,
+    QueryTransport,
+)
 from market_core.storage.storage import (
     BarStorage,
     InMemoryBarStorage,
@@ -8,6 +13,9 @@ from market_core.storage.storage import (
 
 __all__ = [
     "BarStorage",
+    "ClickHouseBarConfig",
+    "ClickHouseBarWriter",
     "InMemoryBarStorage",
     "StoredBar",
+    "QueryTransport",
 ]

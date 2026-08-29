@@ -252,6 +252,15 @@ def inject_unified_code_identity_validator(schema_file: Path, generated_file: Pa
 
     content = ensure_pydantic_imports(content, ("model_validator",))
     prefix_rules_literal = repr(load_code_prefix_rules())
+    market_index_clause = ""
+    if relative_schema == "market-data/bar.json":
+        market_index_clause = (
+            '        is_exchange_index = (exchange == "SH" and code.startswith("000")) or (\n'
+            '            exchange == "SZ" and code.startswith("399")\n'
+            "        )\n"
+            "        if is_exchange_index:\n"
+            "            return self\n"
+        )
     validator = (
         class_marker
         + '    @model_validator(mode="after")\n'
@@ -265,6 +274,7 @@ def inject_unified_code_identity_validator(schema_file: Path, generated_file: Pa
         + "        suffix = unified_code[7:]\n"
         + "        if suffix != exchange:\n"
         + '            raise ValueError("unifiedCode/exchange identity mismatch")\n'
+        + market_index_clause
         + "        expected_rule = next(\n"
         + "            (rule for rule in prefix_rules if code.startswith(rule[0])),\n"
         + "            None,\n"

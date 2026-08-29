@@ -745,6 +745,123 @@ def test_manifest_checksum_matches_content(tmp_path: Path) -> None:
     assert manifest.object_id == manifest.checksum
 
 
+def test_market_manifest_route_roundtrips_all_provenance_fields(tmp_path: Path) -> None:
+    storage = LocalFileStorage(tmp_path)
+    received_at = datetime(2026, 8, 27, 4, 0, 5, tzinfo=UTC)
+    manifest = storage.put(
+        "akshare-eastmoney",
+        "2026-08-27",
+        "GET /akshare/stock_zh_a_hist?code=600000&date=2026-08-26:2026-08-26",
+        b"[]",
+        content_type="application/json; charset=utf-8",
+        capture_id="market-capture-1",
+        ingest_time=received_at,
+        available_time=received_at,
+        schema_version="market-bar-v1",
+        capture_version="capture-v1",
+        api_name="stock_zh_a_hist",
+        unified_code="600000.SH",
+        interval="DAILY",
+        requested_start="2026-08-26",
+        requested_end="2026-08-26",
+        source_version="akshare:1.18.94:stock_zh_a_hist:v1",
+        market_run_id="market-run-1",
+        capture_ordinal=3,
+    )
+
+    assert manifest.schema_version == "market-bar-v1"
+    assert manifest.capture_version == "capture-v1"
+    assert manifest.api_name == "stock_zh_a_hist"
+    assert manifest.unified_code == "600000.SH"
+    assert manifest.interval == "DAILY"
+    assert manifest.requested_start == "2026-08-26"
+    assert manifest.requested_end == "2026-08-26"
+    assert manifest.source_version == "akshare:1.18.94:stock_zh_a_hist:v1"
+    assert manifest.market_run_id == "market-run-1"
+    assert manifest.capture_ordinal == 3
+    assert manifest.received_at == received_at
+    assert RawObjectManifest.from_dict(manifest.to_dict()) == manifest
+    assert storage.list("akshare-eastmoney", "2026-08-27") == [manifest]
+
+
+def test_market_manifest_route_requires_all_fields_and_rejects_fund_mix(
+    tmp_path: Path,
+) -> None:
+    storage = LocalFileStorage(tmp_path)
+
+    with pytest.raises(ValueError, match="market.*metadata"):
+        storage.put(
+            "akshare-eastmoney",
+            "2026-08-27",
+            "GET /raw",
+            b"[]",
+            capture_id="market-incomplete",
+            schema_version="market-bar-v1",
+            capture_version="capture-v1",
+            api_name=None,
+            unified_code="600000.SH",
+            interval="DAILY",
+            requested_start="2026-08-26",
+            requested_end="2026-08-26",
+            source_version="akshare:1.18.94:stock_zh_a_hist:v1",
+            market_run_id="market-run-1",
+            capture_ordinal=0,
+        )
+
+
+@pytest.mark.parametrize(
+    ("schema_version", "capture_version"),
+    [("market-bar-v2", "capture-v1"), ("market-bar-v1", "capture-v2")],
+)
+def test_market_manifest_rejects_unknown_capture_versions(
+    tmp_path: Path, schema_version: str, capture_version: str
+) -> None:
+    storage = LocalFileStorage(tmp_path)
+
+    with pytest.raises(ValueError, match="version"):
+        storage.put(
+            "akshare-eastmoney",
+            "2026-08-27",
+            "GET /raw",
+            b"[]",
+            capture_id="market-unknown-version",
+            schema_version=schema_version,
+            capture_version=capture_version,
+            api_name="stock_zh_a_hist",
+            unified_code="600000.SH",
+            interval="DAILY",
+            requested_start="2026-08-26",
+            requested_end="2026-08-26",
+            source_version="akshare:1.18.94:stock_zh_a_hist:v1",
+            market_run_id="market-run-1",
+            capture_ordinal=0,
+        )
+
+    with pytest.raises(ValueError, match="fund|market"):
+        storage.put(
+            "akshare-eastmoney",
+            "2026-08-27",
+            "GET /raw",
+            b"[]",
+            capture_id="market-fund-mix",
+            endpoint_kind="nav",
+            run_id="fund-run",
+            source_revision="revision-1",
+            attempt_id="attempt-1",
+            page_ordinal=0,
+            schema_version="market-bar-v1",
+            capture_version="capture-v1",
+            api_name="stock_zh_a_hist",
+            unified_code="600000.SH",
+            interval="DAILY",
+            requested_start="2026-08-26",
+            requested_end="2026-08-26",
+            source_version="akshare:1.18.94:stock_zh_a_hist:v1",
+            market_run_id="market-run-1",
+            capture_ordinal=0,
+        )
+
+
 def test_routed_manifest_binds_attempt_and_page_ordinal_without_changing_legacy_digest(
     tmp_path: Path,
 ) -> None:
