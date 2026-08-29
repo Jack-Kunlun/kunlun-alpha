@@ -99,6 +99,34 @@ services:
       - "kunlun.service=local-terminal-reference-materialize"
       - "kunlun.description=Versioned local terminal instrument and sector reference"
 
+  ranking-terminal-materialize:
+    image: kunlun-data-worker:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: data-worker
+    container_name: kunlun-ranking-terminal-materialize
+    restart: "no"
+    depends_on:
+      clickhouse-migrate:
+        condition: service_completed_successfully
+      local-terminal-reference-materialize:
+        condition: service_completed_successfully
+      quant-engine:
+        condition: service_healthy
+    environment:
+      LOCAL_TERMINAL_REFERENCE_FILE: /workspace/data/reference/local-terminal-instruments-v1.json
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-kunlun}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-kunlun}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-kunlun-local-dev}
+      QUANT_ENGINE_URL: http://quant-engine:8081
+      RANKING_MATERIALIZER_TIMEOUT_SECONDS: "5"
+    command: ["ranking-snapshot-materialize"]
+    labels:
+      - "kunlun.service=ranking-terminal-materialize"
+      - "kunlun.description=Point-in-time real local market ranking publication"
+
   market-data-sync:
     profiles: ["real-market-data"]
     image: kunlun-data-worker:local
@@ -178,6 +206,8 @@ services:
       limit-pool-terminal-materialize:
         condition: service_completed_successfully
       local-terminal-reference-materialize:
+        condition: service_completed_successfully
+      ranking-terminal-materialize:
         condition: service_completed_successfully
       quant-engine:
         condition: service_healthy

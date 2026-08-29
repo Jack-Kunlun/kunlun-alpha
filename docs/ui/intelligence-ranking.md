@@ -41,3 +41,19 @@ Web 只过滤已经生成的快照，不在浏览器中重算分数或名次。�
 服务端使用 URL 的 `asOf` 选择不晚于该时点的已发布快照。`instrument` 仍不是 Ranking 查询条件，页面会明确提示该上下文未应用，避免把全市场快照误解为单一证券结果。
 
 P6-N05 不产生 `Signal`、`OrderIntent` 或订单，不包含券商、QMT、实盘凭据或任何真实下单路径。
+
+## 本地真实行情快照
+
+本地 Compose 在 ClickHouse schema、股票目录和 quant-engine 健康后执行一次
+`ranking-terminal-materialize`。它只读取股票目录中的 4 个标准证券 ID，不读取指数、ETF
+或测试 fixture；查询 `bars_daily_v2` 时在 revision/source winner 选择前同时应用
+`event_time`、`available_time`、`processing_time <= read cutoff`。
+
+首版 `local-daily-bars-ranking` 使用最近 10 个唯一交易日：10 日动量 4000 bps、
+10 日平均成交额 3000 bps、10 日日内振幅 3000 bps（低者更优）。10 日窗口来自当前本地
+4 只股票共同具备的真实去重历史，不能用重复 revision 凑样本；不足 10 日的股票明确排除。
+原始价格和金额、特征与排序全部使用 `Decimal`。特征来源包含输入 bar 证据摘要、算法版本
+和本地目录版本；快照 as-of 取所有实际输入（含目录）的最晚可见时间。
+
+发布前先按 as-of 查询 quant-engine：相同 snapshot ID 不重复发布；内容变化才写入新的不可变
+快照。读取、解析、时点校验或发布失败都会以非零状态阻止 Server 启动，不会回退到验收夹具。

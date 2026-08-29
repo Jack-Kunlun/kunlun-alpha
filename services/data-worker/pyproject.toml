@@ -8,6 +8,7 @@ dependencies = [
     "ashare-contracts",
     "emotion-core",
     "market-core",
+    "quant-core",
     "seat-core",
     "psycopg[binary]==3.3.4",
 ]
@@ -16,11 +17,13 @@ dependencies = [
 limit-pool-terminal-materialize = "data_worker.jobs.limit_pool_terminal.runtime:main"
 local-terminal-reference-materialize = "data_worker.jobs.local_reference.runtime:main"
 market-data-sync = "data_worker.jobs.market_data.runtime:main"
+ranking-snapshot-materialize = "data_worker.jobs.ranking_snapshot.runtime:main"
 
 [tool.uv.sources]
 ashare-contracts = { workspace = true }
 emotion-core = { workspace = true }
 market-core = { workspace = true }
+quant-core = { workspace = true }
 seat-core = { workspace = true }
 
 [build-system]

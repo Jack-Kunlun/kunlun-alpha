@@ -14,6 +14,7 @@ from .models import (
     RankingSnapshot,
     RankingSpec,
 )
+from .terminal_payload import ranking_terminal_payload
 
 __all__ = [
     "RANKING_ALGORITHM_VERSION",
@@ -31,4 +32,5 @@ __all__ = [
     "RankingSpec",
     "filter_ranking_rows",
     "rank_instruments",
+    "ranking_terminal_payload",
 ]

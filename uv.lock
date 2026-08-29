@@ -324,6 +324,7 @@ dependencies = [
     { name = "emotion-core" },
     { name = "market-core" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "quant-core" },
     { name = "seat-core" },
 ]
 
@@ -334,6 +335,7 @@ requires-dist = [
     { name = "emotion-core", editable = "python/packages/emotion-core" },
     { name = "market-core", editable = "python/packages/market-core" },
     { name = "psycopg", extras = ["binary"], specifier = "==3.3.4" },
+    { name = "quant-core", editable = "python/packages/quant-core" },
     { name = "seat-core", editable = "python/packages/seat-core" },
 ]
 
