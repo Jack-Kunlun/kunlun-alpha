@@ -147,7 +147,7 @@ export function Layout() {
                 </div>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-6">
+            <div className="flex-1 overflow-y-auto px-4 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Navigation />
             </div>
             <div className="border-t border-white/8 px-5 py-4">
