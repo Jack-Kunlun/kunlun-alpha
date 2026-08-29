@@ -30,7 +30,7 @@ class LocalReferenceMaterializationResult:
 class PostgresLocalReferenceWriter:
     """Append immutable reference revisions in one all-or-nothing transaction."""
 
-    def __init__(self, connection: str | Connection[Row], *, schema: str = "public") -> None:
+    def __init__(self, connection: str | Connection[Row], *, schema: str = "kunlun") -> None:
         if _IDENTIFIER.fullmatch(schema) is None:
             raise ValueError("schema must be a safe PostgreSQL identifier")
         self._owns_connection = isinstance(connection, str)

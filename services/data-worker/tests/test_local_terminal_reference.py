@@ -6,8 +6,10 @@ from pathlib import Path
 import pytest
 from data_worker.jobs.local_reference import (
     LocalReferenceCatalogError,
+    LocalReferenceMaterializationResult,
     build_local_reference_plan,
     load_local_reference_catalog,
+    runtime,
 )
 
 
@@ -59,3 +61,34 @@ def test_catalog_rejects_duplicate_or_non_stock_entries(tmp_path: Path) -> None:
 
     with pytest.raises(LocalReferenceCatalogError, match="STOCK"):
         load_local_reference_catalog(wrong_type)
+
+
+def test_runtime_routes_materialization_to_explicit_application_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class StubWriter:
+        def __init__(self, dsn: str, *, schema: str) -> None:
+            captured["dsn"] = dsn
+            captured["schema"] = schema
+
+        def write(self, plan: object) -> LocalReferenceMaterializationResult:
+            captured["plan"] = plan
+            return LocalReferenceMaterializationResult(inserted=11, existing=0)
+
+        def close(self) -> None:
+            captured["closed"] = True
+
+    monkeypatch.setattr(runtime, "PostgresLocalReferenceWriter", StubWriter)
+
+    result = runtime.run_materialization(
+        dsn="postgresql://local-test",
+        catalog_path=_catalog_path(),
+        schema="kunlun",
+    )
+
+    assert result == LocalReferenceMaterializationResult(inserted=11, existing=0)
+    assert captured["dsn"] == "postgresql://local-test"
+    assert captured["schema"] == "kunlun"
+    assert captured["closed"] is True

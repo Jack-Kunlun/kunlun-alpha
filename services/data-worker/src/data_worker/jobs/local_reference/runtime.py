@@ -15,11 +15,12 @@ def run_materialization(
     *,
     dsn: str,
     catalog_path: Path,
+    schema: str,
 ) -> LocalReferenceMaterializationResult:
     if not dsn.strip():
         raise RuntimeError("KUNLUN_POSTGRES_DSN is required")
     plan = build_local_reference_plan(load_local_reference_catalog(catalog_path))
-    writer = PostgresLocalReferenceWriter(dsn)
+    writer = PostgresLocalReferenceWriter(dsn, schema=schema)
     try:
         return writer.write(plan)
     finally:
@@ -32,6 +33,7 @@ def main() -> None:
         catalog_path=Path(
             os.environ.get("LOCAL_TERMINAL_REFERENCE_FILE", str(_DEFAULT_CATALOG_PATH))
         ),
+        schema=os.environ.get("KUNLUN_POSTGRES_SCHEMA", "kunlun"),
     )
     print(
         "Materialized local terminal reference revisions "

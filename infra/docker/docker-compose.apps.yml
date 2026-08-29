@@ -93,6 +93,7 @@ services:
     environment:
       KUNLUN_POSTGRES_DSN: >-
         postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+      KUNLUN_POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-kunlun}
       LOCAL_TERMINAL_REFERENCE_FILE: /workspace/data/reference/local-terminal-instruments-v1.json
     command: ["local-terminal-reference-materialize"]
     labels:
