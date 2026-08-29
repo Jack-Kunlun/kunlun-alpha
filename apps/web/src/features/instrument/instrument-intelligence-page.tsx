@@ -1,6 +1,6 @@
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
-import type { InstrumentIntelligenceDetail } from "@kunlun/shared-types";
+import type { InstrumentBarsResponse, InstrumentIntelligenceDetail } from "@kunlun/shared-types";
 import { useNavigate, useParams } from "react-router";
 import { useTerminalFilters } from "@/app/filter-context";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
 import { isCanonicalInstrumentId, useInstrumentIntelligence } from "./use-instrument-intelligence";
+import { InstrumentKlineChart } from "./instrument-kline-chart";
+import { useInstrumentBars } from "./use-instrument-bars";
 
 type SectionMetadata =
   InstrumentIntelligenceDetail["sections"][keyof InstrumentIntelligenceDetail["sections"]];
@@ -90,7 +92,102 @@ function SectionFrame({
   );
 }
 
-function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
+function InstrumentBarsSection({ result }: { result: ObjectQueryResult<InstrumentBarsResponse> }) {
+  if (result.status === "loading") {
+    return (
+      <Card aria-label="日 K 线">
+        <CardContent className="pt-6">
+          <p role="status" className="text-sm text-muted-foreground">
+            正在加载日 K 线…
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+  if (result.status === "forbidden") {
+    return (
+      <Card aria-label="日 K 线">
+        <CardContent className="pt-6">
+          <p role="alert" className="text-sm text-destructive">
+            无权访问日 K 线
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+  if (result.status === "error") {
+    return (
+      <Card aria-label="日 K 线">
+        <CardContent className="pt-6">
+          <p role="alert" className="text-sm text-destructive">
+            日 K 线加载失败：{result.error?.message ?? "未知错误"}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const data = result.data;
+  if (
+    result.status === "empty" ||
+    data === null ||
+    data.status === "EMPTY" ||
+    data.barCount === 0
+  ) {
+    return (
+      <Card aria-label="日 K 线">
+        <CardContent className="pt-6">
+          <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+            该点时没有可见的日 K 线，不以最新值或零值代替。
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card aria-labelledby="instrument-bars-title" className="overflow-hidden">
+      <CardHeader className="border-b bg-slate-50/70 dark:bg-slate-900/50">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-slate-500 uppercase">
+              Daily RAW bars
+            </p>
+            <CardTitle id="instrument-bars-title" className="mt-1 text-lg">
+              历史日 K 线
+            </CardTitle>
+          </div>
+          <Badge variant="outline">点时研究数据</Badge>
+        </div>
+        <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+          <span>数据截止时间 {shanghaiTime(data.dataCutoffTime)}</span>
+          <span className="sm:text-right">
+            {data.interval} · {data.priceType} · effectiveAsOf {shanghaiTime(data.effectiveAsOf)}
+          </span>
+        </div>
+        <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-3">
+          <span>样本 {data.barCount} 根</span>
+          <span>来源版本 {data.sourceVersions.join(", ") || "暂无"}</span>
+          <span className="sm:text-right">证据 {data.evidenceIds.length} 条</span>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-5">
+        <InstrumentKlineChart bars={data.bars} />
+        <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
+          本图仅展示 DAILY / RAW 点时历史，价格不是实时或可成交价格；系统不会由此产生真实订单。
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DetailContent({
+  detail,
+  barsResult,
+}: {
+  detail: InstrumentIntelligenceDetail;
+  barsResult?: ObjectQueryResult<InstrumentBarsResponse>;
+}) {
   const identity = detail.sections.identity.data;
   const market = detail.sections.market.data;
   const emotion = detail.sections.emotion.data;
@@ -127,6 +224,8 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
           </div>
         </div>
       </header>
+
+      {barsResult !== undefined && <InstrumentBarsSection result={barsResult} />}
 
       <section className="grid gap-4 lg:grid-cols-3">
         <SectionFrame title="证券身份" eyebrow="Identity" section={detail.sections.identity}>
@@ -337,9 +436,11 @@ function DetailContent({ detail }: { detail: InstrumentIntelligenceDetail }) {
 export function InstrumentIntelligenceView({
   instrumentId,
   result,
+  barsResult,
 }: {
   instrumentId: string;
   result: ObjectQueryResult<InstrumentIntelligenceDetail>;
+  barsResult?: ObjectQueryResult<InstrumentBarsResponse>;
 }) {
   if (!isCanonicalInstrumentId(instrumentId)) {
     return (
@@ -365,7 +466,7 @@ export function InstrumentIntelligenceView({
   if (result.status === "empty" || result.data === null) {
     return <p className="text-muted-foreground">该点时没有个股 Intelligence 响应。</p>;
   }
-  return <DetailContent detail={result.data} />;
+  return <DetailContent detail={result.data} barsResult={barsResult} />;
 }
 
 export function InstrumentDirectoryPage() {
@@ -411,5 +512,12 @@ export function InstrumentIntelligencePage() {
   const { instrumentId = "" } = useParams();
   const { value: filters } = useTerminalFilters();
   const result = useInstrumentIntelligence(instrumentId, filters.asOf);
-  return <InstrumentIntelligenceView instrumentId={instrumentId} result={result} />;
+  const barsResult = useInstrumentBars(instrumentId, filters.asOf);
+  return (
+    <InstrumentIntelligenceView
+      instrumentId={instrumentId}
+      result={result}
+      barsResult={barsResult}
+    />
+  );
 }

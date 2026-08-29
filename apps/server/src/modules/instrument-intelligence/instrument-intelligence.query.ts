@@ -2,6 +2,9 @@ import { isRfc3339Instant } from "../../common/rfc3339";
 
 const INSTRUMENT = /^[0-9]{6}\.(SH|SZ|BJ)$/;
 const ALLOWED_KEYS = new Set(["mode", "asOf"]);
+const BARS_ALLOWED_KEYS = new Set(["mode", "asOf", "limit"]);
+const DEFAULT_BARS_LIMIT = 250;
+const MAX_BARS_LIMIT = 500;
 
 export class InstrumentIntelligenceValidationError extends Error {
   constructor(message: string) {
@@ -15,6 +18,10 @@ export interface InstrumentIntelligenceQuery {
   requestedAsOf: string;
   effectiveAsOf: string;
   generatedAt: string;
+}
+
+export interface InstrumentBarsQuery extends InstrumentIntelligenceQuery {
+  limit: number;
 }
 
 export interface InstrumentIntelligenceClock {
@@ -82,4 +89,34 @@ export function parseInstrumentIntelligenceQuery(
     effectiveAsOf,
     generatedAt,
   };
+}
+
+export function parseInstrumentBarsQuery(
+  value: Record<string, unknown>,
+  clock: InstrumentIntelligenceClock,
+): InstrumentBarsQuery {
+  for (const key of Object.keys(value)) {
+    if (!BARS_ALLOWED_KEYS.has(key)) {
+      throw new InstrumentIntelligenceValidationError("unsupported query parameter: " + key);
+    }
+  }
+
+  const baseInput: Record<string, unknown> = {};
+  if (value["mode"] !== undefined) baseInput["mode"] = value["mode"];
+  if (value["asOf"] !== undefined) baseInput["asOf"] = value["asOf"];
+  const base = parseInstrumentIntelligenceQuery(baseInput, clock);
+  const rawLimit = value["limit"];
+  if (rawLimit === undefined) return { ...base, limit: DEFAULT_BARS_LIMIT };
+  if (typeof rawLimit !== "string" || !/^[1-9][0-9]*$/.test(rawLimit)) {
+    throw new InstrumentIntelligenceValidationError(
+      "limit must be a positive integer between 1 and 500",
+    );
+  }
+  const limit = Number(rawLimit);
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_BARS_LIMIT) {
+    throw new InstrumentIntelligenceValidationError(
+      "limit must be a positive integer between 1 and 500",
+    );
+  }
+  return { ...base, limit };
 }

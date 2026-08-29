@@ -23,32 +23,59 @@ export interface ApiClient {
   post<TBody, TResponse>(path: string, body: TBody): Promise<TResponse>;
 }
 
+interface ApiAuthenticationState {
+  csrfToken: string | null;
+  onUnauthorized: (() => void) | null;
+}
+
+const authentication: ApiAuthenticationState = {
+  csrfToken: null,
+  onUnauthorized: null,
+};
+
+export function configureApiAuthentication(next: ApiAuthenticationState): void {
+  authentication.csrfToken = next.csrfToken;
+  authentication.onUnauthorized = next.onUnauthorized;
+}
+
 class FetchApiClient implements ApiClient {
-  constructor(private readonly baseUrl: string) {}
+  constructor(
+    private readonly baseUrl: string,
+    private readonly origin: () => string,
+  ) {}
 
   async get<T>(path: string, query?: Record<string, string>): Promise<T> {
-    const url = new URL(this.baseUrl + path, window.location.origin);
+    const url = new URL(this.baseUrl + path, this.origin());
     for (const [key, value] of Object.entries(query ?? {})) {
       if (value !== undefined && value !== "") {
         url.searchParams.set(key, value);
       }
     }
 
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), { credentials: "include" });
     return this.parse<T>(response);
   }
 
   async post<TBody, TResponse>(path: string, body: TBody): Promise<TResponse> {
-    const url = new URL(this.baseUrl + path, window.location.origin);
+    const url = new URL(this.baseUrl + path, this.origin());
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (authentication.csrfToken !== null) {
+      headers["x-csrf-token"] = authentication.csrfToken;
+    }
     const response = await fetch(url.toString(), {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      credentials: "include",
+      headers,
       body: JSON.stringify(body),
     });
     return this.parse<TResponse>(response);
   }
 
   private async parse<T>(response: Response): Promise<T> {
+    if (response.status === 401) {
+      authentication.onUnauthorized?.();
+      throw new ApiError("请登录", 401);
+    }
     if (response.status === 403) {
       throw new ApiError("无权访问", 403);
     }
@@ -59,5 +86,12 @@ class FetchApiClient implements ApiClient {
   }
 }
 
+export function createApiClient(
+  baseUrl: string,
+  origin: () => string = () => window.location.origin,
+): ApiClient {
+  return new FetchApiClient(baseUrl, origin);
+}
+
 /** Shared client instance bound to the public gateway. */
-export const apiClient: ApiClient = new FetchApiClient(env.API_URL);
+export const apiClient: ApiClient = createApiClient(env.API_URL);

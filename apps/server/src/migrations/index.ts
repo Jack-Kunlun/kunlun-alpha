@@ -6,6 +6,7 @@ import { migrations as instrumentMasterIntelligence } from "./005-instrument-mas
 import { migrations as sectorIntelligence } from "./006-sector-intelligence";
 import { migrations as seatKolIntelligence } from "./007-seat-kol-intelligence";
 import { migrations as watchlistAlerts } from "./008-watchlist-alerts";
+import { migrations as auth } from "./009-auth";
 
 export const migrations = [
   ...initial,
@@ -16,4 +17,5 @@ export const migrations = [
   ...sectorIntelligence,
   ...seatKolIntelligence,
   ...watchlistAlerts,
+  ...auth,
 ];

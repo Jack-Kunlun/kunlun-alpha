@@ -79,6 +79,43 @@ services:
       - "kunlun.service=data-worker-migrate"
       - "kunlun.description=Verified data-worker schema migrations"
 
+  market-data-sync:
+    profiles: ["real-market-data"]
+    image: kunlun-data-worker:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: data-worker
+    container_name: kunlun-market-data-sync
+    restart: "on-failure:5"
+    init: true
+    depends_on:
+      clickhouse-migrate:
+        condition: service_completed_successfully
+    environment:
+      MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-akshare}
+      TUSHARE_TOKEN: ${TUSHARE_TOKEN:-}
+      TUSHARE_API_URL: ${TUSHARE_API_URL:-https://api.tushare.pro}
+      MARKET_DATA_SYMBOLS: >-
+        ${MARKET_DATA_SYMBOLS:-600519.SH}
+      MARKET_DATA_MINUTE_SYMBOLS: ${MARKET_DATA_MINUTE_SYMBOLS:-}
+      MARKET_DATA_RAW_ROOT: /workspace/var/market-raw
+      MARKET_DATA_RUN_MODE: ${MARKET_DATA_RUN_MODE:-once}
+      MARKET_DATA_POLL_SECONDS: ${MARKET_DATA_POLL_SECONDS:-60}
+      MARKET_DATA_DAILY_LOOKBACK_DAYS: ${MARKET_DATA_DAILY_LOOKBACK_DAYS:-730}
+      MARKET_DATA_MINUTE_INTERVAL: ${MARKET_DATA_MINUTE_INTERVAL:-MINUTE_1}
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-kunlun}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-kunlun}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-kunlun-local-dev}
+      CLICKHOUSE_TIMEOUT_SECONDS: ${CLICKHOUSE_TIMEOUT_SECONDS:-5}
+    volumes:
+      - kunlun-market-raw:/workspace/var/market-raw
+    command: ["market-data-sync"]
+    labels:
+      - "kunlun.service=market-data-sync"
+      - "kunlun.description=Raw-first real market Bar synchronization"
+
   limit-pool-terminal-materialize:
     image: kunlun-data-worker:local
     build:
@@ -125,6 +162,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3002
+      AUTH_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+      AUTH_PUBLIC_ORIGIN: ${AUTH_PUBLIC_ORIGIN:-http://localhost:5173}
+      AUTH_ALLOW_INSECURE_COOKIE: ${AUTH_ALLOW_INSECURE_COOKIE:-true}
       CLAIM_REVIEW_POSTGRES_DSN: >-
         postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
       DATA_QUALITY_POSTGRES_DSN: >-
@@ -274,3 +315,7 @@ services:
     labels:
       - "kunlun.service=sample-engine"
       - "kunlun.description=Python service lifecycle reference"
+
+volumes:
+  kunlun-market-raw:
+    name: ${MARKET_DATA_RAW_VOLUME_NAME:-kunlun-market-raw}

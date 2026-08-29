@@ -89,6 +89,32 @@ export interface WatchlistAlertHistory {
 }
 
 /**
+ * Authenticated local research-terminal session; no broker or real-order authority
+ */
+export interface AuthSessionResponse {
+  schemaVersion: "auth-session-v1";
+  authenticated: true;
+  user: AuthUser;
+  csrfToken: string;
+  absoluteExpiresAt: string;
+  idleExpiresAt: string;
+}
+/**
+ * This interface was referenced by `AuthSessionResponse`'s JSON-Schema
+ * via the `definition` "AuthUser".
+ */
+export interface AuthUser {
+  userId: string;
+  username: string;
+  displayName: string;
+  /**
+   * @minItems 1
+   * @maxItems 1
+   */
+  roles: ["platform_admin"];
+}
+
+/**
  * This interface was referenced by `BacktestRegressionArtifact`'s JSON-Schema
  * via the `definition` "SafeId".
  */
@@ -1670,6 +1696,54 @@ export interface HealthStatus {
    * Service version string
    */
   version: string;
+}
+
+/**
+ * Versioned point-in-time daily RAW bars for research display; no real-order capability
+ */
+export interface InstrumentBarsResponse {
+  schemaVersion: "instrument-bars-v1";
+  dataMeaning: "RESEARCH_ONLY_NO_REAL_ORDER_PATH";
+  instrumentId: string;
+  mode: "CURRENT" | "HISTORICAL";
+  requestedAsOf: string;
+  effectiveAsOf: string;
+  interval: "DAILY";
+  priceType: "RAW";
+  status: "AVAILABLE" | "EMPTY";
+  barCount: number;
+  /**
+   * Latest visible event time represented by the returned bars
+   */
+  dataCutoffTime: string | null;
+  freshnessSeconds: number | null;
+  /**
+   * @maxItems 500
+   */
+  bars: InstrumentDailyBar[];
+  sourceVersions: string[];
+  evidenceIds: string[];
+}
+/**
+ * This interface was referenced by `InstrumentBarsResponse`'s JSON-Schema
+ * via the `definition` "InstrumentDailyBar".
+ */
+export interface InstrumentDailyBar {
+  date: string;
+  eventTime: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  amount: string;
+  suspended: boolean;
+  availableTime: string;
+  processingTime: string;
+  source: string;
+  sourceVersion: string;
+  dataVersion: string;
+  evidenceId: string;
 }
 
 /**

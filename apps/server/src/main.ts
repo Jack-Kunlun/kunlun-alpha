@@ -8,6 +8,8 @@ import { GlobalExceptionFilter } from "./common/filters/http-exception.filter";
 import { RequestIdInterceptor } from "./common/interceptors/request-id.interceptor";
 import { env } from "./env";
 import { initTelemetry } from "@kunlun/observability";
+import type { AuthConfig } from "./modules/auth/auth.config";
+import { AUTH_CONFIG } from "./modules/auth/auth.tokens";
 
 async function bootstrap(): Promise<void> {
   const telemetry = initTelemetry({
@@ -31,17 +33,23 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  if (!env.isProduction) {
-    app.enableCors({ origin: "http://localhost:5173" });
-  }
+  const authConfig = app.get<AuthConfig>(AUTH_CONFIG);
+  app.enableCors({
+    origin: authConfig.publicOrigin,
+    credentials: true,
+    allowedHeaders: ["content-type", "x-csrf-token", "x-request-id"],
+  });
 
-  const config = new DocumentBuilder()
-    .setTitle("昆仑智策 API")
-    .setDescription("Kunlun Alpha — A-Share Intelligence & Quant Platform")
-    .setVersion("0.0.0")
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api/docs", app, document);
+  if (!env.isProduction) {
+    const config = new DocumentBuilder()
+      .setTitle("昆仑智策 API")
+      .setDescription("Kunlun Alpha — A-Share Intelligence & Quant Platform")
+      .setVersion("0.0.0")
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup("api/docs", app, document);
+    logger.log(`Swagger docs at http://localhost:${env.port}/api/docs`);
+  }
 
   await app.listen(env.port);
   app.enableShutdownHooks();
@@ -49,7 +57,6 @@ async function bootstrap(): Promise<void> {
   process.once("SIGTERM", shutdown);
   process.once("SIGINT", shutdown);
   logger.log(`Server running on http://localhost:${env.port}`);
-  logger.log(`Swagger docs at http://localhost:${env.port}/api/docs`);
 }
 
 bootstrap().catch((err: unknown) => {

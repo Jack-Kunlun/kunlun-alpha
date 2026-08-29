@@ -5,19 +5,14 @@ import { useApiObjectQuery } from "@/lib/use-api-query";
 const INSTRUMENT = /^[0-9]{6}\.(SH|SZ|BJ)$/;
 
 export function instrumentIntelligencePath(instrumentId: string): string {
-  return "/instrument-intelligence/" + encodeURIComponent(instrumentId);
+  return "/v1/instrument-intelligence/" + encodeURIComponent(instrumentId);
 }
 
-export function instrumentIntelligenceQuery(
-  asOf: string | null,
-): Record<string, string> {
+export function instrumentIntelligenceQuery(asOf: string | null): Record<string, string> {
   return asOf === null ? { mode: "CURRENT" } : { mode: "HISTORICAL", asOf };
 }
 
-export function useInstrumentIntelligence(
-  instrumentId: string,
-  asOf: string | null,
-) {
+export function useInstrumentIntelligence(instrumentId: string, asOf: string | null) {
   const enabled = INSTRUMENT.test(instrumentId);
   return useApiObjectQuery(
     () =>

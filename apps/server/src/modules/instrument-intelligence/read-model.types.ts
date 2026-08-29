@@ -1,4 +1,5 @@
 import type {
+  InstrumentDailyBar as SharedInstrumentDailyBar,
   Instrument,
   KolClaim,
   KolEvidence,
@@ -7,6 +8,8 @@ import type {
   Sector,
   SectorMembership,
 } from "@kunlun/shared-types";
+
+export type InstrumentDailyBar = SharedInstrumentDailyBar;
 
 export interface PitRecord<T> {
   data: T;
@@ -79,6 +82,10 @@ export interface InstrumentFeatureValue {
 
 export interface InstrumentMarketReadModel {
   load(instrumentId: string, asOf: string): Promise<InstrumentMarketBar | null>;
+}
+
+export interface InstrumentBarsReadModel {
+  load(instrumentId: string, asOf: string, limit: number): Promise<InstrumentDailyBar[]>;
 }
 
 export interface InstrumentEmotionReadModel {

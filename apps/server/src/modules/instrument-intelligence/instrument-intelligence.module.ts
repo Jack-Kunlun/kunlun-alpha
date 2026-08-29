@@ -1,15 +1,14 @@
 import { Module } from "@nestjs/common";
 import { Pool } from "pg";
-import {
-  type ClickHouseIntelligenceConfig,
-  ClickHouseJsonClient,
-} from "./clickhouse-json-client";
+import { type ClickHouseIntelligenceConfig, ClickHouseJsonClient } from "./clickhouse-json-client";
 import { ClickHouseInstrumentFeatureRepository } from "./clickhouse-feature.read-model";
 import {
   ClickHouseInstrumentEmotionRepository,
   ClickHouseInstrumentMarketRepository,
 } from "./clickhouse-market.read-model";
+import { ClickHouseInstrumentBarsRepository } from "./clickhouse-bars.read-model";
 import { InstrumentIntelligenceController } from "./instrument-intelligence.controller";
+import { InstrumentBarsService } from "./instrument-bars.service";
 import { SystemInstrumentIntelligenceClock } from "./instrument-intelligence.query";
 import {
   AllowAllInstrumentIntelligenceAuthorizer,
@@ -17,6 +16,7 @@ import {
 } from "./instrument-intelligence.service";
 import {
   INSTRUMENT_INTELLIGENCE_AUTHORIZER,
+  INSTRUMENT_INTELLIGENCE_BARS,
   INSTRUMENT_INTELLIGENCE_CLOCK,
   INSTRUMENT_INTELLIGENCE_EMOTION,
   INSTRUMENT_INTELLIGENCE_FEATURES,
@@ -38,17 +38,14 @@ function timeout(value: string | undefined): number {
   if (value === undefined) return 5_000;
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 30_000) {
-    throw new Error(
-      "INSTRUMENT_INTELLIGENCE_CLICKHOUSE_TIMEOUT_MS must be between 1 and 30000",
-    );
+    throw new Error("INSTRUMENT_INTELLIGENCE_CLICKHOUSE_TIMEOUT_MS must be between 1 and 30000");
   }
   return parsed;
 }
 
 function clickhouseConfig(): ClickHouseIntelligenceConfig {
   const url =
-    process.env["INSTRUMENT_INTELLIGENCE_CLICKHOUSE_URL"] ??
-    process.env["EMOTION_CLICKHOUSE_URL"];
+    process.env["INSTRUMENT_INTELLIGENCE_CLICKHOUSE_URL"] ?? process.env["EMOTION_CLICKHOUSE_URL"];
   if (!url) throw new Error("INSTRUMENT_INTELLIGENCE_CLICKHOUSE_URL is required");
   const config: ClickHouseIntelligenceConfig = {
     url,
@@ -82,6 +79,10 @@ function clickhouseClient(): ClickHouseJsonClient {
       useFactory: () => new ClickHouseInstrumentMarketRepository(clickhouseClient()),
     },
     {
+      provide: INSTRUMENT_INTELLIGENCE_BARS,
+      useFactory: () => new ClickHouseInstrumentBarsRepository(clickhouseClient()),
+    },
+    {
       provide: INSTRUMENT_INTELLIGENCE_EMOTION,
       useFactory: () => new ClickHouseInstrumentEmotionRepository(clickhouseClient()),
     },
@@ -98,6 +99,7 @@ function clickhouseClient(): ClickHouseJsonClient {
       useClass: SystemInstrumentIntelligenceClock,
     },
     InstrumentIntelligenceService,
+    InstrumentBarsService,
   ],
 })
 export class InstrumentIntelligenceModule {}

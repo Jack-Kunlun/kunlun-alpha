@@ -15,9 +15,11 @@ import { WatchlistAlertsModule } from "./modules/watchlist-alerts/watchlist-aler
 import { PreciousMetalsModule } from "./modules/precious-metals/precious-metals.module";
 import { PaperTerminalModule } from "./modules/paper/paper-terminal.module";
 import { RankingTerminalModule } from "./modules/ranking/ranking-terminal.module";
+import { AuthModule } from "./modules/auth/auth.module";
 
 @Module({
   imports: [
+    AuthModule,
     DataQualityModule,
     EmotionModule,
     EventFeedbackModule,

@@ -9,6 +9,7 @@ import {
   Gem,
   House,
   ListFilter,
+  LogOut,
   Menu,
   Newspaper,
   Orbit,
@@ -29,6 +30,8 @@ import {
   type TerminalRouteId,
 } from "@/app/route-contract";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useOptionalAuth } from "@/features/auth/auth-context";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 const routeIcons: Record<TerminalRouteId, LucideIcon> = {
@@ -120,6 +123,7 @@ export function Layout() {
   const currentRoute = terminalRoutes.find((route) =>
     matchPath({ path: route.path, end: true }, location.pathname),
   );
+  const auth = useOptionalAuth();
   return (
     <ErrorBoundary>
       <div className="terminal-canvas min-h-screen bg-background lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -172,6 +176,28 @@ export function Layout() {
                 </h1>
               </div>
               <div className="flex items-center gap-2">
+                {auth?.status === "authenticated" && auth.message !== null && (
+                  <span role="alert" className="hidden text-xs text-red-600 sm:inline">
+                    {auth.message}
+                  </span>
+                )}
+                {auth?.session !== null && auth?.session !== undefined && (
+                  <div className="hidden items-center gap-2 md:flex">
+                    <span className="max-w-40 truncate text-xs text-muted-foreground">
+                      {auth.session.user.displayName}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={auth.pending}
+                      onClick={() => void auth.logout()}
+                    >
+                      <LogOut aria-hidden="true" className="size-4" />
+                      退出
+                    </Button>
+                  </div>
+                )}
                 {(filters.asOf !== null || filters.instrumentIds.length > 0) && (
                   <Badge className="hidden md:inline-flex" variant="secondary">
                     上下文 {filters.instrumentIds.length} 标的

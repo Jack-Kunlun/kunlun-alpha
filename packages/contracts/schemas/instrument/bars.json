@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/instrument/bars.json",
+  "title": "InstrumentBarsResponse",
+  "description": "Versioned point-in-time daily RAW bars for research display; no real-order capability",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "const": "instrument-bars-v1" },
+    "dataMeaning": { "const": "RESEARCH_ONLY_NO_REAL_ORDER_PATH" },
+    "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+    "mode": { "enum": ["CURRENT", "HISTORICAL"] },
+    "requestedAsOf": { "type": "string", "format": "date-time" },
+    "effectiveAsOf": { "type": "string", "format": "date-time" },
+    "interval": { "const": "DAILY" },
+    "priceType": { "const": "RAW" },
+    "status": { "enum": ["AVAILABLE", "EMPTY"] },
+    "barCount": { "type": "integer", "minimum": 0, "maximum": 500 },
+    "dataCutoffTime": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Latest visible event time represented by the returned bars"
+    },
+    "freshnessSeconds": { "type": ["integer", "null"], "minimum": 0 },
+    "bars": {
+      "type": "array",
+      "maxItems": 500,
+      "items": { "$ref": "#/definitions/InstrumentDailyBar" }
+    },
+    "sourceVersions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "evidenceIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "dataMeaning",
+    "instrumentId",
+    "mode",
+    "requestedAsOf",
+    "effectiveAsOf",
+    "interval",
+    "priceType",
+    "status",
+    "barCount",
+    "dataCutoffTime",
+    "freshnessSeconds",
+    "bars",
+    "sourceVersions",
+    "evidenceIds"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "InstrumentDailyBar": {
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "open": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "high": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "low": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "close": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "volume": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "amount": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)(\\.\\d+)?$"
+        },
+        "suspended": { "type": "boolean" },
+        "availableTime": { "type": "string", "format": "date-time" },
+        "processingTime": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "minLength": 1 },
+        "sourceVersion": { "type": "string", "minLength": 1 },
+        "dataVersion": { "type": "string", "minLength": 1 },
+        "evidenceId": { "type": "string", "minLength": 1 }
+      },
+      "required": [
+        "date",
+        "eventTime",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "amount",
+        "suspended",
+        "availableTime",
+        "processingTime",
+        "source",
+        "sourceVersion",
+        "dataVersion",
+        "evidenceId"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

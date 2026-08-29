@@ -7,6 +7,7 @@
     "dev": "nest start --watch",
     "start": "nest start",
     "migrate": "node dist/migrate.js",
+    "auth:bootstrap": "node dist/auth-bootstrap.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

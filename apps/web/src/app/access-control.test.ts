@@ -8,9 +8,9 @@ describe("terminal role bootstrap", () => {
     ]);
   });
 
-  it("allows an explicit development-only administrator fallback", () => {
+  it("never grants an administrator role when a development session is absent", () => {
     expect(resolveBootstrapTerminalRoles({ development: true, sessionRoles: undefined })).toEqual([
-      "platform_admin",
+      "viewer",
     ]);
   });
 
@@ -22,7 +22,10 @@ describe("terminal role bootstrap", () => {
       }),
     ).toEqual(["researcher", "paper_operator"]);
     expect(
-      resolveBootstrapTerminalRoles({ development: false, sessionRoles: ["platform_admin", "root"] }),
+      resolveBootstrapTerminalRoles({
+        development: false,
+        sessionRoles: ["platform_admin", "root"],
+      }),
     ).toEqual(["viewer"]);
   });
 });

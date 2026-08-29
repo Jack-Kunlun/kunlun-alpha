@@ -11,7 +11,6 @@ const TERMINAL_ROLES: readonly TerminalRole[] = [
 ];
 
 export function resolveBootstrapTerminalRoles({
-  development,
   sessionRoles,
 }: {
   development: boolean;
@@ -27,12 +26,10 @@ export function resolveBootstrapTerminalRoles({
     }
     return ANONYMOUS_TERMINAL_ROLES;
   }
-  return development ? ["platform_admin"] : ANONYMOUS_TERMINAL_ROLES;
+  return ANONYMOUS_TERMINAL_ROLES;
 }
 
-const TerminalAccessContext = createContext<readonly TerminalRole[]>(
-  ANONYMOUS_TERMINAL_ROLES,
-);
+const TerminalAccessContext = createContext<readonly TerminalRole[]>(ANONYMOUS_TERMINAL_ROLES);
 
 export function TerminalAccessProvider({
   roles,
