@@ -233,6 +233,9 @@ services:
       KUNLUN_LOG_LEVEL: INFO
       KUNLUN_HOST: 0.0.0.0
       KUNLUN_PORT: 8081
+      KUNLUN_QUANT_STATE_DIR: /var/lib/kunlun/quant-engine
+    volumes:
+      - kunlun-quant-state:/var/lib/kunlun/quant-engine
     ports:
       - "${QUANT_ENGINE_PORT:-8081}:8081"
     healthcheck:
@@ -319,3 +322,5 @@ services:
 volumes:
   kunlun-market-raw:
     name: ${MARKET_DATA_RAW_VOLUME_NAME:-kunlun-market-raw}
+  kunlun-quant-state:
+    name: ${QUANT_STATE_VOLUME_NAME:-kunlun-quant-state}

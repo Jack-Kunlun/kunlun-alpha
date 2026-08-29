@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import json
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 from quant_engine.ranking_store import (
     RankingSnapshotConflictError,
     RankingSnapshotNotFoundError,
     RankingSnapshotStore,
+    RankingSnapshotStoreError,
 )
 
 
@@ -83,3 +86,26 @@ def test_snapshot_publication_is_idempotent_and_conflicts_fail_closed() -> None:
     changed["inputFingerprint"] = "d" * 64
     with pytest.raises(RankingSnapshotConflictError):
         store.publish(changed)
+
+
+def test_file_backed_store_recovers_published_snapshots_after_restart(tmp_path: Path) -> None:
+    storage = tmp_path / "ranking"
+    first = RankingSnapshotStore(storage)
+    first.publish(snapshot())
+
+    recovered = RankingSnapshotStore(storage)
+
+    assert recovered.latest()["snapshotId"] == "a" * 64
+    assert recovered.persistence_mode == "DURABLE_FILE_SNAPSHOTS"
+
+
+def test_file_backed_store_rejects_corrupted_snapshot_on_startup(tmp_path: Path) -> None:
+    storage = tmp_path / "ranking"
+    storage.mkdir()
+    (storage / f"{'a' * 64}.json").write_text(
+        json.dumps({"snapshotId": "a" * 64}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RankingSnapshotStoreError, match="persisted ranking snapshot"):
+        RankingSnapshotStore(storage)

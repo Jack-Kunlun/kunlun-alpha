@@ -105,7 +105,9 @@ COPY . .
 
 RUN uv sync --locked --no-dev --package quant-engine
 RUN groupadd --gid 10001 kunlun \
-    && useradd --create-home --uid 10001 --gid 10001 kunlun
+    && useradd --create-home --uid 10001 --gid 10001 kunlun \
+    && mkdir -p /var/lib/kunlun/quant-engine \
+    && chown -R 10001:10001 /var/lib/kunlun
 
 ENV PATH="/workspace/.venv/bin:${PATH}"
 

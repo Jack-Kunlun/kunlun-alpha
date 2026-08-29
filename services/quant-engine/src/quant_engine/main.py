@@ -7,10 +7,12 @@ import os
 import signal
 import sys
 import threading
+from pathlib import Path
 from types import FrameType
 
 from .http import QuantEngineHttpServer
 from .paper_workspace import PaperWorkspace
+from .ranking_store import RankingSnapshotStore
 
 
 def main() -> int:
@@ -20,7 +22,12 @@ def main() -> int:
     )
     host = os.environ.get("KUNLUN_HOST", "0.0.0.0")
     port = int(os.environ.get("KUNLUN_PORT", "8081"))
-    server = QuantEngineHttpServer(host, port, PaperWorkspace())
+    state_root_value = os.environ.get("KUNLUN_QUANT_STATE_DIR")
+    state_root = None if state_root_value is None else Path(state_root_value)
+    ranking_store = RankingSnapshotStore(
+        None if state_root is None else state_root / "ranking-snapshots"
+    )
+    server = QuantEngineHttpServer(host, port, PaperWorkspace(), ranking_store)
     stopped = threading.Event()
 
     def stop(signum: int, frame: FrameType | None) -> None:
