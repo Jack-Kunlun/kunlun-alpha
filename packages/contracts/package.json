@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@kunlun/config": "workspace:*",
+    "@types/node": "26.2.0",
     "json-schema-to-typescript": "14.1.0",
     "typescript": "5.7.3",
     "vitest": "4.1.10"

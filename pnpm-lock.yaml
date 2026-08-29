@@ -180,6 +180,9 @@ importers:
       '@kunlun/config':
         specifier: workspace:*
         version: link:../config
+      '@types/node':
+        specifier: 26.2.0
+        version: 26.2.0
       json-schema-to-typescript:
         specifier: 14.1.0
         version: 14.1.0
