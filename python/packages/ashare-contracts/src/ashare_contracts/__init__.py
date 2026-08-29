@@ -513,6 +513,7 @@ from ashare_contracts.paper_paper_terminal_workspace import (
 from ashare_contracts.paper_paper_terminal_workspace import (
     PaperTerminalWorkspace as PaperTerminalWorkspace,
 )
+from ashare_contracts.paper_paper_terminal_workspace import PersistenceMode as PersistenceMode
 from ashare_contracts.paper_paper_terminal_workspace import Side as Side_2
 from ashare_contracts.paper_paper_terminal_workspace import Status as Status_9
 from ashare_contracts.paper_paper_terminal_workspace import Status1 as Status1_1
@@ -984,6 +985,7 @@ __all__ = [
     "PaperTerminalRisk",
     "PaperTerminalRiskCheck",
     "PaperTerminalWorkspace",
+    "PersistenceMode",
     "Side_2",
     "Status_9",
     "Status1_1",

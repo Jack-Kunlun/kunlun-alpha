@@ -32,6 +32,24 @@ describe("PaperTerminalPage", () => {
     expect(html).toContain("风险：");
   });
 
+  it("labels the durable command journal without implying live execution", () => {
+    mocked.mockReturnValue(
+      model(
+        {
+          ...emptyWorkspace(),
+          persistenceMode: "DURABLE_COMMAND_JOURNAL",
+          limitations: ["日志损坏时拒绝恢复", "不连接真实账户或券商"],
+        },
+        "empty",
+      ),
+    );
+    const html = renderToStaticMarkup(<PaperTerminalPage />);
+    expect(html).toContain("重启恢复日志");
+    expect(html).toContain("服务重启后会校验并恢复");
+    expect(html).toContain("无券商路径");
+    expect(html).not.toContain("账户只保存在 quant-engine 当前进程内");
+  });
+
   it("renders unavailable and forbidden states separately", () => {
     mocked.mockReturnValue(model({ ...emptyWorkspace(), status: "UNAVAILABLE" }, "unavailable"));
     expect(renderToStaticMarkup(<PaperTerminalPage />)).toContain("模拟引擎暂不可用");

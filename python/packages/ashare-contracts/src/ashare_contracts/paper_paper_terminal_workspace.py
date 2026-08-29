@@ -16,6 +16,11 @@ class Status(Enum):
     unavailable = "UNAVAILABLE"
 
 
+class PersistenceMode(Enum):
+    volatile_in_memory = "VOLATILE_IN_MEMORY"
+    durable_command_journal = "DURABLE_COMMAND_JOURNAL"
+
+
 class Limitation(RootModel[str]):
     root: str = Field(..., min_length=1)
 
@@ -192,7 +197,7 @@ class PaperTerminalWorkspace(BaseModel):
     status: Status
     data_meaning: Literal["SIMULATION_ONLY_NO_BROKER_PATH"] = Field(..., alias="dataMeaning")
     execution_capability: Literal["PAPER_ONLY"] = Field(..., alias="executionCapability")
-    persistence_mode: Literal["VOLATILE_IN_MEMORY"] = Field(..., alias="persistenceMode")
+    persistence_mode: PersistenceMode = Field(..., alias="persistenceMode")
     generated_at: AwareDatetime = Field(..., alias="generatedAt")
     limitations: list[Limitation] = Field(..., min_length=1)
     account: PaperTerminalAccount | None

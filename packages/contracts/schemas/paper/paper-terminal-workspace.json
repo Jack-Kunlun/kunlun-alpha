@@ -24,7 +24,9 @@
     "status": { "enum": ["EMPTY", "READY", "DEGRADED", "UNAVAILABLE"] },
     "dataMeaning": { "const": "SIMULATION_ONLY_NO_BROKER_PATH" },
     "executionCapability": { "const": "PAPER_ONLY" },
-    "persistenceMode": { "const": "VOLATILE_IN_MEMORY" },
+    "persistenceMode": {
+      "enum": ["VOLATILE_IN_MEMORY", "DURABLE_COMMAND_JOURNAL"]
+    },
     "generatedAt": { "type": "string", "format": "date-time" },
     "limitations": {
       "type": "array",

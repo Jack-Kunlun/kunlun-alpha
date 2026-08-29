@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+from pathlib import Path
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 import pytest
 from quant_engine.http import QuantEngineHttpServer
-from quant_engine.paper_workspace import PaperWorkspace, PaperWorkspaceConflictError
+from quant_engine.paper_workspace import (
+    PaperWorkspace,
+    PaperWorkspaceConflictError,
+    PaperWorkspaceError,
+)
 
 NOW = datetime(2026, 8, 27, 10, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
 
@@ -60,6 +65,44 @@ def test_command_retries_are_idempotent_and_conflicts_fail_closed() -> None:
     assert len(workspace.simulate(simulation_command())["orders"]) == 1  # type: ignore[arg-type]
     with pytest.raises(PaperWorkspaceConflictError):
         workspace.simulate({**simulation_command(), "price": "101"})
+
+
+def test_durable_command_journal_recovers_exact_workspace_after_restart(tmp_path: Path) -> None:
+    journal = tmp_path / "paper-workspace.jsonl"
+    first = PaperWorkspace(lambda: NOW, journal)
+    first.create_account(create_command())
+    before = first.simulate(simulation_command())
+
+    recovered = PaperWorkspace(lambda: NOW, journal)
+    after = recovered.snapshot()
+
+    assert after["persistenceMode"] == "DURABLE_COMMAND_JOURNAL"
+    assert after["account"] == before["account"]
+    assert after["orders"] == before["orders"]
+    assert after["reconciliation"] == before["reconciliation"]
+    assert after["audit"] == before["audit"]
+    assert len(recovered.simulate(simulation_command())["orders"]) == 1  # type: ignore[arg-type]
+    with pytest.raises(PaperWorkspaceConflictError):
+        recovered.simulate({**simulation_command(), "price": "101"})
+
+
+def test_corrupted_durable_command_journal_fails_closed(tmp_path: Path) -> None:
+    journal = tmp_path / "paper-workspace.jsonl"
+    journal.write_text('{"sequence":1}\n', encoding="utf-8")
+
+    with pytest.raises(PaperWorkspaceError, match="模拟工作区持久化日志损坏"):
+        PaperWorkspace(lambda: NOW, journal)
+
+
+def test_tampered_durable_command_journal_fails_digest_validation(tmp_path: Path) -> None:
+    journal = tmp_path / "paper-workspace.jsonl"
+    PaperWorkspace(lambda: NOW, journal).create_account(create_command())
+    record = json.loads(journal.read_text(encoding="utf-8"))
+    record["command"]["name"] = "被篡改的账户"
+    journal.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    with pytest.raises(PaperWorkspaceError, match="digest does not match"):
+        PaperWorkspace(lambda: NOW, journal)
 
 
 def test_internal_http_boundary_exposes_health_and_bounded_commands() -> None:

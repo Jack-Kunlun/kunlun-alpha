@@ -79,6 +79,7 @@ export function PaperTerminalPage() {
       <StateCard title="模拟组合暂无数据" detail="工作区响应为空。" retry={terminal.refresh} />
     );
   }
+  const durable = workspace.persistenceMode === "DURABLE_COMMAND_JOURNAL";
 
   const createAccount = async (event: FormEvent) => {
     event.preventDefault();
@@ -121,7 +122,7 @@ export function PaperTerminalPage() {
             <div>
               <div className="mb-3 flex flex-wrap gap-2">
                 <Badge className="bg-amber-500 text-amber-950">仅模拟</Badge>
-                <Badge variant="outline">易失内存模式</Badge>
+                <Badge variant="outline">{durable ? "重启恢复日志" : "易失内存模式"}</Badge>
                 <Badge variant="outline">无券商路径</Badge>
               </div>
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-700">
@@ -155,7 +156,9 @@ export function PaperTerminalPage() {
             <CardHeader>
               <CardTitle>创建本地模拟账户</CardTitle>
               <CardDescription>
-                账户只保存在 quant-engine 当前进程内，服务重启后会清空。
+                {durable
+                  ? "账户命令写入本地哈希日志，服务重启后会校验并恢复。"
+                  : "账户只保存在 quant-engine 当前进程内，服务重启后会清空。"}
               </CardDescription>
             </CardHeader>
             <CardContent>

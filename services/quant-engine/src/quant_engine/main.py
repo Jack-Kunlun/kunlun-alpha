@@ -27,7 +27,10 @@ def main() -> int:
     ranking_store = RankingSnapshotStore(
         None if state_root is None else state_root / "ranking-snapshots"
     )
-    server = QuantEngineHttpServer(host, port, PaperWorkspace(), ranking_store)
+    workspace = PaperWorkspace(
+        journal_path=None if state_root is None else state_root / "paper-workspace.jsonl"
+    )
+    server = QuantEngineHttpServer(host, port, workspace, ranking_store)
     stopped = threading.Event()
 
     def stop(signum: int, frame: FrameType | None) -> None:

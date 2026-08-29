@@ -3228,7 +3228,7 @@ export interface PaperTerminalWorkspace {
   status: "EMPTY" | "READY" | "DEGRADED" | "UNAVAILABLE";
   dataMeaning: "SIMULATION_ONLY_NO_BROKER_PATH";
   executionCapability: "PAPER_ONLY";
-  persistenceMode: "VOLATILE_IN_MEMORY";
+  persistenceMode: "VOLATILE_IN_MEMORY" | "DURABLE_COMMAND_JOURNAL";
   generatedAt: string;
   /**
    * @minItems 1
