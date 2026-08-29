@@ -1,4 +1,9 @@
-import type { AuthSessionResponse } from "@kunlun/shared-types";
+import type {
+  AuthPasswordChangeResponse,
+  AuthSessionListResponse,
+  AuthSessionResponse,
+  AuthSessionRevocationResponse,
+} from "@kunlun/shared-types";
 import {
   Body,
   Controller,
@@ -7,6 +12,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
   Post,
   Req,
   Res,
@@ -31,6 +37,18 @@ export class AuthLoginDto {
   @MinLength(12)
   @MaxLength(256)
   password!: string;
+}
+
+export class AuthPasswordChangeDto {
+  @IsString()
+  @MinLength(12)
+  @MaxLength(256)
+  currentPassword!: string;
+
+  @IsString()
+  @MinLength(12)
+  @MaxLength(256)
+  newPassword!: string;
 }
 
 @ApiTags("auth")
@@ -75,6 +93,42 @@ export class AuthController {
     await this.authService.logout(request.authSession.sessionDigest);
     response.clearCookie(this.config.cookieName, this.cookieOptions());
     return { authenticated: false };
+  }
+
+  @Get("sessions")
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "List active local administrator sessions" })
+  sessions(@Req() request: AuthenticatedRequest): Promise<AuthSessionListResponse> {
+    if (request.authSession === undefined) throw new UnauthorizedException("请先登录");
+    return this.authService.listSessions(request.authSession);
+  }
+
+  @Post("password")
+  @HttpCode(HttpStatus.OK)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "Change the local administrator password and revoke other sessions" })
+  changePassword(
+    @Req() request: AuthenticatedRequest,
+    @Body() input: AuthPasswordChangeDto,
+  ): Promise<AuthPasswordChangeResponse> {
+    if (request.authSession === undefined) throw new UnauthorizedException("请先登录");
+    return this.authService.changePassword(
+      request.authSession,
+      input.currentPassword,
+      input.newPassword,
+    );
+  }
+
+  @Post("sessions/:sessionId/revoke")
+  @HttpCode(HttpStatus.OK)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "Revoke another active local administrator session" })
+  revokeSession(
+    @Req() request: AuthenticatedRequest,
+    @Param("sessionId") sessionId: string,
+  ): Promise<AuthSessionRevocationResponse> {
+    if (request.authSession === undefined) throw new UnauthorizedException("请先登录");
+    return this.authService.revokeManagedSession(request.authSession, sessionId);
   }
 
   private cookieOptions() {

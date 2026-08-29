@@ -89,6 +89,47 @@ export interface WatchlistAlertHistory {
 }
 
 /**
+ * Active local research-terminal sessions represented by non-credential references
+ */
+export interface AuthSessionListResponse {
+  schemaVersion: "auth-session-list-v1";
+  generatedAt: string;
+  /**
+   * @maxItems 64
+   */
+  sessions: AuthSessionSummary[];
+}
+/**
+ * This interface was referenced by `AuthSessionListResponse`'s JSON-Schema
+ * via the `definition` "AuthSessionSummary".
+ */
+export interface AuthSessionSummary {
+  sessionId: string;
+  current: boolean;
+  createdAt: string;
+  lastSeenAt: string;
+  idleExpiresAt: string;
+  absoluteExpiresAt: string;
+}
+/**
+ * This interface was referenced by `AuthSessionListResponse`'s JSON-Schema
+ * via the `definition` "AuthPasswordChangeResponse".
+ */
+export interface AuthPasswordChangeResponse {
+  schemaVersion: "auth-password-change-v1";
+  changedAt: string;
+  revokedOtherSessions: number;
+}
+/**
+ * This interface was referenced by `AuthSessionListResponse`'s JSON-Schema
+ * via the `definition` "AuthSessionRevocationResponse".
+ */
+export interface AuthSessionRevocationResponse {
+  schemaVersion: "auth-session-revocation-v1";
+  revoked: true;
+}
+
+/**
  * Authenticated local research-terminal session; no broker or real-order authority
  */
 export interface AuthSessionResponse {

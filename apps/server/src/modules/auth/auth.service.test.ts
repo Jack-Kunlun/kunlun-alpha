@@ -1,4 +1,4 @@
-import { UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, UnauthorizedException } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
 import type { PasswordHasher } from "./password";
 import { AuthService } from "./auth.service";
@@ -22,10 +22,12 @@ const user: AuthUserRecord = {
 
 class FakeHasher implements PasswordHasher {
   dummyCalls = 0;
+  hashCalls: string[] = [];
   verifyCalls = 0;
 
-  async hash(): Promise<string> {
-    return "unused";
+  async hash(password: string): Promise<string> {
+    this.hashCalls.push(password);
+    return "new-password-hash";
   }
 
   async verify(password: string, encoded: string): Promise<boolean> {
@@ -46,6 +48,25 @@ class FakeRepository implements AuthRepository {
   storedSession: AuthSessionRecord | null = null;
   touches: Array<{ sessionDigest: string; lastSeenAt: string; idleExpiresAt: string }> = [];
   revoked: string[] = [];
+  activeSessions: Array<{
+    sessionDigest: string;
+    createdAt: string;
+    lastSeenAt: string;
+    idleExpiresAt: string;
+    absoluteExpiresAt: string;
+  }> = [];
+  passwordChanges: Array<{
+    userId: string;
+    currentSessionDigest: string;
+    passwordHash: string;
+    changedAt: string;
+  }> = [];
+  managedRevocations: Array<{
+    userId: string;
+    sessionDigest: string;
+    currentSessionDigest: string;
+    revokedAt: string;
+  }> = [];
 
   async findUserByUsername(): Promise<AuthUserRecord | null> {
     return this.storedUser;
@@ -78,6 +99,30 @@ class FakeRepository implements AuthRepository {
 
   async revokeSession(sessionDigest: string): Promise<void> {
     this.revoked.push(sessionDigest);
+  }
+
+  async listActiveSessions(): Promise<typeof this.activeSessions> {
+    return this.activeSessions;
+  }
+
+  async replacePasswordAndRevokeOtherSessions(
+    userId: string,
+    currentSessionDigest: string,
+    passwordHash: string,
+    changedAt: string,
+  ): Promise<{ passwordUpdated: boolean; revokedSessions: number }> {
+    this.passwordChanges.push({ userId, currentSessionDigest, passwordHash, changedAt });
+    return { passwordUpdated: true, revokedSessions: 2 };
+  }
+
+  async revokeUserSession(
+    userId: string,
+    sessionDigest: string,
+    currentSessionDigest: string,
+    revokedAt: string,
+  ): Promise<boolean> {
+    this.managedRevocations.push({ userId, sessionDigest, currentSessionDigest, revokedAt });
+    return true;
   }
 }
 
@@ -162,5 +207,154 @@ describe("AuthService", () => {
     expect(repository.touches).toHaveLength(1);
     expect(() => service.assertCsrf(login.sessionToken, login.response.csrfToken)).not.toThrow();
     expect(() => service.assertCsrf(login.sessionToken, "x".repeat(43))).toThrow("CSRF");
+  });
+
+  it("lists opaque session references and marks only the authenticated session as current", async () => {
+    const repository = new FakeRepository();
+    repository.activeSessions = [
+      {
+        sessionDigest: "a".repeat(64),
+        createdAt: "2026-08-29T07:00:00.000Z",
+        lastSeenAt: "2026-08-29T08:00:00.000Z",
+        idleExpiresAt: "2026-08-29T08:30:00.000Z",
+        absoluteExpiresAt: "2026-08-29T15:00:00.000Z",
+      },
+      {
+        sessionDigest: "b".repeat(64),
+        createdAt: "2026-08-29T06:00:00.000Z",
+        lastSeenAt: "2026-08-29T07:50:00.000Z",
+        idleExpiresAt: "2026-08-29T08:20:00.000Z",
+        absoluteExpiresAt: "2026-08-29T14:00:00.000Z",
+      },
+    ];
+    const service = new AuthService(repository, new FakeHasher(), config, () => now);
+
+    const result = await service.listSessions({
+      sessionDigest: "a".repeat(64),
+      userId: user.userId,
+      username: user.username,
+      displayName: user.displayName,
+      roles: ["platform_admin"],
+      absoluteExpiresAt: "2026-08-29T15:00:00.000Z",
+      idleExpiresAt: "2026-08-29T08:30:00.000Z",
+      response: {} as never,
+    });
+
+    expect(result.schemaVersion).toBe("auth-session-list-v1");
+    expect(result.sessions.map((session) => session.current)).toEqual([true, false]);
+    expect(result.sessions[0]?.sessionId).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(result)).not.toContain("a".repeat(64));
+    expect(JSON.stringify(result)).not.toContain("b".repeat(64));
+  });
+
+  it("verifies the current password before atomically changing it and revoking other sessions", async () => {
+    const repository = new FakeRepository();
+    const hasher = new FakeHasher();
+    const service = new AuthService(repository, hasher, config, () => now);
+
+    const result = await service.changePassword(
+      {
+        sessionDigest: "a".repeat(64),
+        userId: user.userId,
+        username: user.username,
+        displayName: user.displayName,
+        roles: ["platform_admin"],
+        absoluteExpiresAt: "2026-08-29T15:00:00.000Z",
+        idleExpiresAt: "2026-08-29T08:30:00.000Z",
+        response: {} as never,
+      },
+      "correct password value",
+      "new stronger password value",
+    );
+
+    expect(result).toEqual({
+      schemaVersion: "auth-password-change-v1",
+      changedAt: now.toISOString(),
+      revokedOtherSessions: 2,
+    });
+    expect(hasher.hashCalls).toEqual(["new stronger password value"]);
+    expect(repository.passwordChanges).toEqual([
+      {
+        userId: user.userId,
+        currentSessionDigest: "a".repeat(64),
+        passwordHash: "new-password-hash",
+        changedAt: now.toISOString(),
+      },
+    ]);
+  });
+
+  it("rejects an incorrect or reused current password without changing durable state", async () => {
+    const repository = new FakeRepository();
+    const hasher = new FakeHasher();
+    const service = new AuthService(repository, hasher, config, () => now);
+    const session = {
+      sessionDigest: "a".repeat(64),
+      userId: user.userId,
+      username: user.username,
+      displayName: user.displayName,
+      roles: ["platform_admin"] as ["platform_admin"],
+      absoluteExpiresAt: "2026-08-29T15:00:00.000Z",
+      idleExpiresAt: "2026-08-29T08:30:00.000Z",
+      response: {} as never,
+    };
+
+    await expect(
+      service.changePassword(session, "incorrect password value", "new stronger password value"),
+    ).rejects.toEqual(new ForbiddenException("当前密码错误"));
+    await expect(
+      service.changePassword(session, "correct password value", "correct password value"),
+    ).rejects.toEqual(new BadRequestException("新密码不能与当前密码相同"));
+    expect(hasher.hashCalls).toHaveLength(0);
+    expect(repository.passwordChanges).toHaveLength(0);
+  });
+
+  it("revokes only an opaque non-current session owned by the authenticated user", async () => {
+    const repository = new FakeRepository();
+    repository.activeSessions = [
+      {
+        sessionDigest: "a".repeat(64),
+        createdAt: "2026-08-29T07:00:00.000Z",
+        lastSeenAt: "2026-08-29T08:00:00.000Z",
+        idleExpiresAt: "2026-08-29T08:30:00.000Z",
+        absoluteExpiresAt: "2026-08-29T15:00:00.000Z",
+      },
+      {
+        sessionDigest: "b".repeat(64),
+        createdAt: "2026-08-29T06:00:00.000Z",
+        lastSeenAt: "2026-08-29T07:50:00.000Z",
+        idleExpiresAt: "2026-08-29T08:20:00.000Z",
+        absoluteExpiresAt: "2026-08-29T14:00:00.000Z",
+      },
+    ];
+    const service = new AuthService(repository, new FakeHasher(), config, () => now);
+    const session = {
+      sessionDigest: "a".repeat(64),
+      userId: user.userId,
+      username: user.username,
+      displayName: user.displayName,
+      roles: ["platform_admin"] as ["platform_admin"],
+      absoluteExpiresAt: "2026-08-29T15:00:00.000Z",
+      idleExpiresAt: "2026-08-29T08:30:00.000Z",
+      response: {} as never,
+    };
+    const listed = await service.listSessions(session);
+    const other = listed.sessions.find((candidate) => !candidate.current);
+    const current = listed.sessions.find((candidate) => candidate.current);
+
+    await expect(service.revokeManagedSession(session, other?.sessionId ?? "")).resolves.toEqual({
+      schemaVersion: "auth-session-revocation-v1",
+      revoked: true,
+    });
+    await expect(service.revokeManagedSession(session, current?.sessionId ?? "")).rejects.toEqual(
+      new BadRequestException("当前会话请使用退出登录"),
+    );
+    expect(repository.managedRevocations).toEqual([
+      {
+        userId: user.userId,
+        sessionDigest: "b".repeat(64),
+        currentSessionDigest: "a".repeat(64),
+        revokedAt: now.toISOString(),
+      },
+    ]);
   });
 });

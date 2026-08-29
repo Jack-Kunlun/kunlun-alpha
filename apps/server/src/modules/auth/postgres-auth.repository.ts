@@ -4,11 +4,13 @@ import type { Pool } from "pg";
 import type {
   AuthRepository,
   AuthSessionRecord,
+  AuthSessionSummaryRecord,
   AuthUserIdentityRecord,
   AuthUserRecord,
   LoginAttemptCounts,
   LoginAttemptOutcome,
   NewAuthSession,
+  PasswordChangeCommit,
 } from "./auth.types";
 
 interface AuthUserIdentityRow {
@@ -30,6 +32,14 @@ interface AuthSessionRow extends AuthUserIdentityRow {
   idle_expires_at: Date | string;
   absolute_expires_at: Date | string;
   revoked_at: Date | string | null;
+}
+
+interface AuthSessionSummaryRow {
+  session_digest: string;
+  created_at: Date | string;
+  last_seen_at: Date | string;
+  idle_expires_at: Date | string;
+  absolute_expires_at: Date | string;
 }
 
 function roles(value: unknown): ["platform_admin"] {
@@ -78,6 +88,19 @@ function count(value: unknown, field: string): number {
     throw new Error(`authentication ${field} is invalid`);
   }
   return parsed;
+}
+
+function sessionSummary(row: AuthSessionSummaryRow): AuthSessionSummaryRecord {
+  if (typeof row.session_digest !== "string" || !/^[0-9a-f]{64}$/.test(row.session_digest)) {
+    throw new Error("authentication session digest is invalid");
+  }
+  return {
+    sessionDigest: row.session_digest,
+    createdAt: timestamp(row.created_at, "created_at"),
+    lastSeenAt: timestamp(row.last_seen_at, "last_seen_at"),
+    idleExpiresAt: timestamp(row.idle_expires_at, "idle_expires_at"),
+    absoluteExpiresAt: timestamp(row.absolute_expires_at, "absolute_expires_at"),
+  };
 }
 
 export class PostgresAuthRepository implements AuthRepository, OnModuleDestroy {
@@ -198,6 +221,89 @@ export class PostgresAuthRepository implements AuthRepository, OnModuleDestroy {
        WHERE session_digest = $1`,
       [sessionDigest, revokedAt],
     );
+  }
+
+  async listActiveSessions(userId: string, asOf: string): Promise<AuthSessionSummaryRecord[]> {
+    const result = await this.pool.query<AuthSessionSummaryRow>(
+      `SELECT session_digest, created_at, last_seen_at, idle_expires_at, absolute_expires_at
+       FROM auth_sessions
+       WHERE user_id = $1
+         AND revoked_at IS NULL
+         AND idle_expires_at > $2::timestamptz
+         AND absolute_expires_at > $2::timestamptz
+       ORDER BY last_seen_at DESC, created_at DESC
+       LIMIT 64`,
+      [userId, asOf],
+    );
+    return result.rows.map(sessionSummary);
+  }
+
+  async replacePasswordAndRevokeOtherSessions(
+    userId: string,
+    currentSessionDigest: string,
+    passwordHash: string,
+    changedAt: string,
+  ): Promise<PasswordChangeCommit> {
+    const result = await this.pool.query<{
+      password_updated: boolean;
+      revoked_sessions: string | number;
+    }>(
+      `WITH changed AS (
+         UPDATE auth_users
+         SET password_hash = $3, updated_at = $4::timestamptz
+         WHERE user_id = $1
+           AND disabled = FALSE
+           AND EXISTS (
+             SELECT 1
+             FROM auth_sessions AS current_session
+             WHERE current_session.user_id = auth_users.user_id
+               AND current_session.session_digest = $2
+               AND current_session.revoked_at IS NULL
+               AND current_session.idle_expires_at > $4::timestamptz
+               AND current_session.absolute_expires_at > $4::timestamptz
+           )
+         RETURNING user_id
+       ), revoked AS (
+         UPDATE auth_sessions
+         SET revoked_at = COALESCE(revoked_at, $4::timestamptz)
+         WHERE user_id = (SELECT user_id FROM changed)
+           AND session_digest <> $2
+           AND revoked_at IS NULL
+         RETURNING session_digest
+       )
+       SELECT EXISTS(SELECT 1 FROM changed) AS password_updated,
+              count(*) AS revoked_sessions
+       FROM revoked`,
+      [userId, currentSessionDigest, passwordHash, changedAt],
+    );
+    const row = result.rows[0];
+    if (row === undefined || typeof row.password_updated !== "boolean") {
+      throw new Error("authentication password change result is invalid");
+    }
+    return {
+      passwordUpdated: row.password_updated,
+      revokedSessions: count(row.revoked_sessions, "revoked session count"),
+    };
+  }
+
+  async revokeUserSession(
+    userId: string,
+    sessionDigest: string,
+    currentSessionDigest: string,
+    revokedAt: string,
+  ): Promise<boolean> {
+    const result = await this.pool.query(
+      `UPDATE auth_sessions
+       SET revoked_at = COALESCE(revoked_at, $4::timestamptz)
+       WHERE user_id = $1
+         AND session_digest = $2
+         AND session_digest <> $3
+         AND revoked_at IS NULL
+         AND idle_expires_at > $4::timestamptz
+         AND absolute_expires_at > $4::timestamptz`,
+      [userId, sessionDigest, currentSessionDigest, revokedAt],
+    );
+    return result.rowCount === 1;
   }
 
   async onModuleDestroy(): Promise<void> {

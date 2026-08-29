@@ -1,9 +1,16 @@
-import type { AuthSessionResponse } from "@kunlun/shared-types";
+import type {
+  AuthPasswordChangeResponse,
+  AuthSessionListResponse,
+  AuthSessionResponse,
+  AuthSessionRevocationResponse,
+} from "@kunlun/shared-types";
 import {
+  BadRequestException,
   ForbiddenException,
   HttpException,
   Inject,
   Injectable,
+  NotFoundException,
   Optional,
   ServiceUnavailableException,
   UnauthorizedException,
@@ -22,6 +29,7 @@ import { AUTH_CONFIG, AUTH_PASSWORD_HASHER, AUTH_REPOSITORY } from "./auth.token
 const SESSION_TOKEN = /^[A-Za-z0-9_-]{43}$/;
 const CSRF_TOKEN = /^[A-Za-z0-9_-]{43}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SESSION_REFERENCE = /^[0-9a-f]{64}$/;
 
 export interface AuthLoginResult {
   sessionToken: string;
@@ -49,6 +57,10 @@ function csrfForSession(sessionToken: string): string {
   return createHmac("sha256", sessionToken)
     .update("kunlun-auth-csrf-v1", "utf8")
     .digest("base64url");
+}
+
+function referenceForSession(sessionDigest: string): string {
+  return sha256(`kunlun-auth-session-reference-v1:${sessionDigest}`);
 }
 
 function iso(value: number): string {
@@ -203,6 +215,97 @@ export class AuthService {
 
   async logout(sessionDigest: string): Promise<void> {
     await this.repository.revokeSession(sessionDigest, this.now().toISOString());
+  }
+
+  async listSessions(session: AuthenticatedSession): Promise<AuthSessionListResponse> {
+    const generatedAt = this.now().toISOString();
+    const records = await this.repository.listActiveSessions(session.userId, generatedAt);
+    return {
+      schemaVersion: "auth-session-list-v1",
+      generatedAt,
+      sessions: records.map((record) => ({
+        sessionId: referenceForSession(record.sessionDigest),
+        current: record.sessionDigest === session.sessionDigest,
+        createdAt: record.createdAt,
+        lastSeenAt: record.lastSeenAt,
+        idleExpiresAt: record.idleExpiresAt,
+        absoluteExpiresAt: record.absoluteExpiresAt,
+      })),
+    };
+  }
+
+  async changePassword(
+    session: AuthenticatedSession,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<AuthPasswordChangeResponse> {
+    try {
+      validatePassword(newPassword);
+    } catch {
+      throw new BadRequestException("新密码至少包含 12 个字符且不超过 256 字节");
+    }
+    if (newPassword === currentPassword) {
+      throw new BadRequestException("新密码不能与当前密码相同");
+    }
+
+    const user = await this.repository.findUserByUsername(session.username);
+    if (user === null || user.disabled || user.userId !== session.userId || !validUser(user)) {
+      throw new UnauthorizedException("登录会话无效或已过期");
+    }
+
+    let verified: boolean;
+    try {
+      verified = await this.passwordHasher.verify(currentPassword, user.passwordHash);
+    } catch {
+      throw new ServiceUnavailableException("密码验证资源暂时不可用");
+    }
+    if (!verified) throw new ForbiddenException("当前密码错误");
+
+    let passwordHash: string;
+    try {
+      passwordHash = await this.passwordHasher.hash(newPassword);
+    } catch {
+      throw new ServiceUnavailableException("密码更新资源暂时不可用");
+    }
+    const changedAt = this.now().toISOString();
+    const committed = await this.repository.replacePasswordAndRevokeOtherSessions(
+      session.userId,
+      session.sessionDigest,
+      passwordHash,
+      changedAt,
+    );
+    if (!committed.passwordUpdated) {
+      throw new UnauthorizedException("登录会话无效或已过期");
+    }
+    return {
+      schemaVersion: "auth-password-change-v1",
+      changedAt,
+      revokedOtherSessions: committed.revokedSessions,
+    };
+  }
+
+  async revokeManagedSession(
+    session: AuthenticatedSession,
+    sessionId: string,
+  ): Promise<AuthSessionRevocationResponse> {
+    if (!SESSION_REFERENCE.test(sessionId)) throw new NotFoundException("会话不存在或已失效");
+    const asOf = this.now().toISOString();
+    const records = await this.repository.listActiveSessions(session.userId, asOf);
+    const target = records.find(
+      (candidate) => referenceForSession(candidate.sessionDigest) === sessionId,
+    );
+    if (target === undefined) throw new NotFoundException("会话不存在或已失效");
+    if (target.sessionDigest === session.sessionDigest) {
+      throw new BadRequestException("当前会话请使用退出登录");
+    }
+    const revoked = await this.repository.revokeUserSession(
+      session.userId,
+      target.sessionDigest,
+      session.sessionDigest,
+      asOf,
+    );
+    if (!revoked) throw new NotFoundException("会话不存在或已失效");
+    return { schemaVersion: "auth-session-revocation-v1", revoked: true };
   }
 
   private response(

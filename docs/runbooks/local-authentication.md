@@ -43,6 +43,10 @@ pnpm --filter @kunlun/server auth:bootstrap -- --username admin --display-name �
 ## Cookie、会话与 CSRF
 
 - 会话闲置 30 分钟失效，绝对有效期 8 小时；退出会在 PostgreSQL 撤销会话。
+- 登录后可从页眉用户名进入“账户安全”，查看当前有效会话、撤销其他会话并修改密码。界面只展示
+  不可用于认证的派生会话引用，不返回 Cookie、原始 token 或数据库中的 token 摘要。
+- 修改密码必须再次验证当前密码；密码哈希更新和其他会话撤销在同一个 PostgreSQL 语句中提交。
+  当前会话保留，以避免更新成功后丢失结果确认；其他会话立即失效。
 - 修改类请求必须同时通过精确 Origin/Referer 检查、Fetch Metadata 检查（存在时）和绑定当前
   会话的 `X-CSRF-Token`。
 - 本地 HTTP 只能显式设置 `AUTH_ALLOW_INSECURE_COOKIE=true`，且
@@ -57,8 +61,9 @@ pnpm --filter @kunlun/server auth:bootstrap -- --username admin --display-name �
 - `403 请求来源验证失败`：检查浏览器地址是否与 `AUTH_PUBLIC_ORIGIN` 完全一致。
 - `403 CSRF 验证失败`：刷新页面重新取得会话绑定的 CSRF token，不要重放旧请求。
 - `429`：15 分钟窗口内失败次数超过限制，等待窗口结束；不要通过删除审计记录绕过限制。
-- Bootstrap 报告已有用户：当前命令不会改密。先保留数据库与会话证据，再走经批准的凭据恢复
-  流程；不要直接删除 `auth_users` 或 `auth_sessions`。
+- Bootstrap 报告已有用户：当前命令不会覆盖既有账户。能够登录时应使用“账户安全”修改密码；
+  无法登录时先保留数据库与会话证据，再走经批准的凭据恢复流程，不要直接删除 `auth_users` 或
+  `auth_sessions`。
 
 健康检查、Prometheus metrics 与 API 根路径保持公开；其他控制面路由由全局认证守卫默认拒绝
 匿名访问。登录只授予研究终端管理角色，不会增加 Broker、QMT 或真实订单能力。

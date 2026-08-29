@@ -31,6 +31,19 @@ export interface AuthSessionRecord extends AuthUserIdentityRecord {
   revokedAt: string | null;
 }
 
+export interface AuthSessionSummaryRecord {
+  sessionDigest: string;
+  createdAt: string;
+  lastSeenAt: string;
+  idleExpiresAt: string;
+  absoluteExpiresAt: string;
+}
+
+export interface PasswordChangeCommit {
+  passwordUpdated: boolean;
+  revokedSessions: number;
+}
+
 export interface LoginAttemptCounts {
   usernameFailures: number;
   globalFailures: number;
@@ -48,4 +61,17 @@ export interface AuthRepository {
   findSession(sessionDigest: string): Promise<AuthSessionRecord | null>;
   touchSession(sessionDigest: string, lastSeenAt: string, idleExpiresAt: string): Promise<boolean>;
   revokeSession(sessionDigest: string, revokedAt?: string): Promise<void>;
+  listActiveSessions(userId: string, asOf: string): Promise<AuthSessionSummaryRecord[]>;
+  replacePasswordAndRevokeOtherSessions(
+    userId: string,
+    currentSessionDigest: string,
+    passwordHash: string,
+    changedAt: string,
+  ): Promise<PasswordChangeCommit>;
+  revokeUserSession(
+    userId: string,
+    sessionDigest: string,
+    currentSessionDigest: string,
+    revokedAt: string,
+  ): Promise<boolean>;
 }

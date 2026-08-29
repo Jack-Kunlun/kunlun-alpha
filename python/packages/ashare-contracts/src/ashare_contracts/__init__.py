@@ -24,6 +24,16 @@ from ashare_contracts.alerts_watchlist_alerts import (
 )
 from ashare_contracts.auth_session import AuthSessionResponse as AuthSessionResponse
 from ashare_contracts.auth_session import AuthUser as AuthUser
+from ashare_contracts.auth_session_management import (
+    AuthPasswordChangeResponse as AuthPasswordChangeResponse,
+)
+from ashare_contracts.auth_session_management import (
+    AuthSessionListResponse as AuthSessionListResponse,
+)
+from ashare_contracts.auth_session_management import (
+    AuthSessionRevocationResponse as AuthSessionRevocationResponse,
+)
+from ashare_contracts.auth_session_management import AuthSessionSummary as AuthSessionSummary
 from ashare_contracts.backtest_regression import (
     BacktestRegressionArtifact as BacktestRegressionArtifact,
 )
@@ -628,6 +638,10 @@ __all__ = [
     "WatchlistAlertsWorkspace",
     "AuthSessionResponse",
     "AuthUser",
+    "AuthPasswordChangeResponse",
+    "AuthSessionListResponse",
+    "AuthSessionRevocationResponse",
+    "AuthSessionSummary",
     "BacktestRegressionArtifact",
     "BacktestRegressionBaseline",
     "BacktestRegressionComparison",

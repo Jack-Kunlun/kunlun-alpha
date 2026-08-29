@@ -32,6 +32,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useOptionalAuth } from "@/features/auth/auth-context";
+import { AccountSecurityDialog } from "@/features/auth/account-security-dialog";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 const routeIcons: Record<TerminalRouteId, LucideIcon> = {
@@ -183,9 +184,7 @@ export function Layout() {
                 )}
                 {auth?.session !== null && auth?.session !== undefined && (
                   <div className="hidden items-center gap-2 md:flex">
-                    <span className="max-w-40 truncate text-xs text-muted-foreground">
-                      {auth.session.user.displayName}
-                    </span>
+                    <AccountSecurityDialog displayName={auth.session.user.displayName} />
                     <Button
                       type="button"
                       variant="outline"
