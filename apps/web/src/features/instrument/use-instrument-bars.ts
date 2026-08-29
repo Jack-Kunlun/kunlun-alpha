@@ -6,6 +6,9 @@ const INSTRUMENT = /^[0-9]{6}\.(SH|SZ|BJ)$/;
 const DEFAULT_LIMIT = 250;
 const MAX_LIMIT = 500;
 
+export const INSTRUMENT_BAR_WINDOWS = [20, 60, 120, 250, 500] as const;
+export type InstrumentBarWindow = (typeof INSTRUMENT_BAR_WINDOWS)[number];
+
 export function instrumentBarsPath(instrumentId: string): string {
   return "/v1/instrument-intelligence/" + encodeURIComponent(instrumentId) + "/bars";
 }
@@ -20,15 +23,19 @@ export function instrumentBarsQuery(
     : { mode: "HISTORICAL", asOf, limit: String(boundedLimit) };
 }
 
-export function useInstrumentBars(instrumentId: string, asOf: string | null) {
+export function useInstrumentBars(
+  instrumentId: string,
+  asOf: string | null,
+  limit: InstrumentBarWindow = 250,
+) {
   const enabled = INSTRUMENT.test(instrumentId);
   return useApiObjectQuery(
     () =>
       apiClient.get<InstrumentBarsResponse>(
         instrumentBarsPath(instrumentId),
-        instrumentBarsQuery(asOf),
+        instrumentBarsQuery(asOf, limit),
       ),
-    [instrumentId, asOf],
+    [instrumentId, asOf, limit],
     enabled,
     asOf === null ? 30_000 : 0,
   );

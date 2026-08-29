@@ -1,7 +1,11 @@
 import type { InstrumentIntelligenceDetail } from "@kunlun/shared-types";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
-import { InstrumentIntelligenceView } from "./instrument-intelligence-page";
+import {
+  InstrumentDirectoryPage,
+  InstrumentIntelligenceView,
+} from "./instrument-intelligence-page";
 
 const metadata = {
   status: "EMPTY",
@@ -123,5 +127,20 @@ describe("InstrumentIntelligenceView", () => {
       />,
     );
     expect(html).toContain("600519.SH");
+  });
+
+  it("lists the four local stocks with canonical identifiers", () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <InstrumentDirectoryPage />
+      </MemoryRouter>,
+    );
+    expect(html).toContain("本地已载入股票");
+    for (const marker of ["平安银行", "宁德时代", "浦发银行", "贵州茅台"]) {
+      expect(html).toContain(marker);
+    }
+    for (const marker of ["000001.SZ", "300750.SZ", "600000.SH", "600519.SH"]) {
+      expect(html).toContain(marker);
+    }
   });
 });

@@ -27,6 +27,11 @@ RESEARCH_ONLY_NO_REAL_ORDER_PATH。它不包含账户、订单、成交、Broker
 `freshnessSeconds` 用于解释来源和新鲜度，`dataMeaning` 固定为
 `RESEARCH_ONLY_NO_REAL_ORDER_PATH`。
 
+Web 可在 20、60、120、250、500 日窗口间切换，每次都重新请求对应 `limit`，不会在
+浏览器中补造历史。摘要保留最新收盘、区间最高和区间最低的原始十进制字符串；区间涨跌
+使用整数十进制定点运算并显示到百分比小数点后两位。个股入口页列出当前本地目录的 4 只
+股票作为快捷入口，不表示全市场覆盖或实时行情订阅。
+
 历史模式不会缺省回退到最新数据。所有读模型必须同时满足各自的
 available_time 与 processing_time 门槛。
 

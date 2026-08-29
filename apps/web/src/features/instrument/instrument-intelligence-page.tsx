@@ -10,7 +10,12 @@ import { Input } from "@/components/ui/input";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
 import { isCanonicalInstrumentId, useInstrumentIntelligence } from "./use-instrument-intelligence";
 import { InstrumentKlineChart } from "./instrument-kline-chart";
-import { useInstrumentBars } from "./use-instrument-bars";
+import { summarizeInstrumentBars } from "./instrument-bars-summary";
+import {
+  INSTRUMENT_BAR_WINDOWS,
+  type InstrumentBarWindow,
+  useInstrumentBars,
+} from "./use-instrument-bars";
 
 type SectionMetadata =
   InstrumentIntelligenceDetail["sections"][keyof InstrumentIntelligenceDetail["sections"]];
@@ -92,7 +97,15 @@ function SectionFrame({
   );
 }
 
-function InstrumentBarsSection({ result }: { result: ObjectQueryResult<InstrumentBarsResponse> }) {
+function InstrumentBarsSection({
+  result,
+  selectedWindow,
+  onWindowChange,
+}: {
+  result: ObjectQueryResult<InstrumentBarsResponse>;
+  selectedWindow: InstrumentBarWindow;
+  onWindowChange?: (value: InstrumentBarWindow) => void;
+}) {
   if (result.status === "loading") {
     return (
       <Card aria-label="日 K 线">
@@ -145,6 +158,8 @@ function InstrumentBarsSection({ result }: { result: ObjectQueryResult<Instrumen
     );
   }
 
+  const summary = summarizeInstrumentBars(data.bars);
+
   return (
     <Card aria-labelledby="instrument-bars-title" className="overflow-hidden">
       <CardHeader className="border-b bg-slate-50/70 dark:bg-slate-900/50">
@@ -170,8 +185,40 @@ function InstrumentBarsSection({ result }: { result: ObjectQueryResult<Instrumen
           <span>来源版本 {data.sourceVersions.join(", ") || "暂无"}</span>
           <span className="sm:text-right">证据 {data.evidenceIds.length} 条</span>
         </div>
+        <div className="flex flex-wrap gap-2 pt-2" aria-label="日 K 线周期">
+          {INSTRUMENT_BAR_WINDOWS.map((window) => (
+            <Button
+              key={window}
+              type="button"
+              size="sm"
+              variant={window === selectedWindow ? "default" : "outline"}
+              aria-pressed={window === selectedWindow}
+              onClick={() => onWindowChange?.(window)}
+            >
+              {window} 日
+            </Button>
+          ))}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-5">
+        {summary !== null && (
+          <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              ["最新收盘", summary.latestClose],
+              ["区间涨跌", summary.periodChangePercent],
+              ["区间最高", summary.periodHigh],
+              ["区间最低", summary.periodLow],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="rounded-xl border bg-slate-50/70 p-3 dark:bg-slate-900/40"
+              >
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="mt-1 font-mono text-base font-semibold">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
         <InstrumentKlineChart bars={data.bars} />
         <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
           本图仅展示 DAILY / RAW 点时历史，价格不是实时或可成交价格；系统不会由此产生真实订单。
@@ -184,9 +231,13 @@ function InstrumentBarsSection({ result }: { result: ObjectQueryResult<Instrumen
 function DetailContent({
   detail,
   barsResult,
+  barsWindow,
+  onBarsWindowChange,
 }: {
   detail: InstrumentIntelligenceDetail;
   barsResult?: ObjectQueryResult<InstrumentBarsResponse>;
+  barsWindow: InstrumentBarWindow;
+  onBarsWindowChange?: (value: InstrumentBarWindow) => void;
 }) {
   const identity = detail.sections.identity.data;
   const market = detail.sections.market.data;
@@ -225,7 +276,13 @@ function DetailContent({
         </div>
       </header>
 
-      {barsResult !== undefined && <InstrumentBarsSection result={barsResult} />}
+      {barsResult !== undefined && (
+        <InstrumentBarsSection
+          result={barsResult}
+          selectedWindow={barsWindow}
+          onWindowChange={onBarsWindowChange}
+        />
+      )}
 
       <section className="grid gap-4 lg:grid-cols-3">
         <SectionFrame title="证券身份" eyebrow="Identity" section={detail.sections.identity}>
@@ -437,10 +494,14 @@ export function InstrumentIntelligenceView({
   instrumentId,
   result,
   barsResult,
+  barsWindow = 250,
+  onBarsWindowChange,
 }: {
   instrumentId: string;
   result: ObjectQueryResult<InstrumentIntelligenceDetail>;
   barsResult?: ObjectQueryResult<InstrumentBarsResponse>;
+  barsWindow?: InstrumentBarWindow;
+  onBarsWindowChange?: (value: InstrumentBarWindow) => void;
 }) {
   if (!isCanonicalInstrumentId(instrumentId)) {
     return (
@@ -466,8 +527,22 @@ export function InstrumentIntelligenceView({
   if (result.status === "empty" || result.data === null) {
     return <p className="text-muted-foreground">该点时没有个股 Intelligence 响应。</p>;
   }
-  return <DetailContent detail={result.data} barsResult={barsResult} />;
+  return (
+    <DetailContent
+      detail={result.data}
+      barsResult={barsResult}
+      barsWindow={barsWindow}
+      onBarsWindowChange={onBarsWindowChange}
+    />
+  );
 }
+
+const LOCAL_TERMINAL_STOCKS = [
+  { instrumentId: "000001.SZ", name: "平安银行", sector: "银行" },
+  { instrumentId: "300750.SZ", name: "宁德时代", sector: "电力设备" },
+  { instrumentId: "600000.SH", name: "浦发银行", sector: "银行" },
+  { instrumentId: "600519.SH", name: "贵州茅台", sector: "食品饮料" },
+] as const;
 
 export function InstrumentDirectoryPage() {
   const navigate = useNavigate();
@@ -504,6 +579,28 @@ export function InstrumentDirectoryPage() {
       {!valid && (
         <p className="mt-2 text-sm text-destructive">格式示例：600519.SH、000001.SZ、430047.BJ</p>
       )}
+      <div className="mt-8">
+        <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+          本地已载入股票
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {LOCAL_TERMINAL_STOCKS.map((stock) => (
+            <Button
+              key={stock.instrumentId}
+              type="button"
+              variant="outline"
+              className="h-auto justify-between px-4 py-3 text-left"
+              onClick={() => navigate(`/instruments/${stock.instrumentId}`)}
+            >
+              <span>
+                <strong className="block">{stock.name}</strong>
+                <span className="text-xs text-muted-foreground">{stock.sector}</span>
+              </span>
+              <span className="font-mono text-xs">{stock.instrumentId}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -511,13 +608,16 @@ export function InstrumentDirectoryPage() {
 export function InstrumentIntelligencePage() {
   const { instrumentId = "" } = useParams();
   const { value: filters } = useTerminalFilters();
+  const [barsWindow, setBarsWindow] = useState<InstrumentBarWindow>(250);
   const result = useInstrumentIntelligence(instrumentId, filters.asOf);
-  const barsResult = useInstrumentBars(instrumentId, filters.asOf);
+  const barsResult = useInstrumentBars(instrumentId, filters.asOf, barsWindow);
   return (
     <InstrumentIntelligenceView
       instrumentId={instrumentId}
       result={result}
       barsResult={barsResult}
+      barsWindow={barsWindow}
+      onBarsWindowChange={setBarsWindow}
     />
   );
 }

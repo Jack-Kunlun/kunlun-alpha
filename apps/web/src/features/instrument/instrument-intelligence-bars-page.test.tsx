@@ -53,7 +53,7 @@ const bars: InstrumentBarsResponse = {
   interval: "DAILY",
   priceType: "RAW",
   status: "AVAILABLE",
-  barCount: 1,
+  barCount: 2,
   dataCutoffTime: "2026-08-25T07:00:00.000Z",
   freshnessSeconds: 3600,
   bars: [
@@ -74,9 +74,26 @@ const bars: InstrumentBarsResponse = {
       availableTime: "2026-08-25T07:01:00.000Z",
       processingTime: "2026-08-25T07:02:00.000Z",
     },
+    {
+      date: "2026-08-26",
+      eventTime: "2026-08-26T07:00:00.000Z",
+      open: "10.5000",
+      high: "12.0000",
+      low: "10.0000",
+      close: "11.5000",
+      volume: "120",
+      amount: "1300.00",
+      suspended: false,
+      dataVersion: "bars-v2",
+      source: "tushare-pro",
+      sourceVersion: "tushare-v1",
+      evidenceId: "evidence-2",
+      availableTime: "2026-08-26T07:01:00.000Z",
+      processingTime: "2026-08-26T07:02:00.000Z",
+    },
   ],
   sourceVersions: ["tushare-pro@tushare-v1"],
-  evidenceIds: ["evidence-1"],
+  evidenceIds: ["evidence-1", "evidence-2"],
 };
 
 describe("InstrumentIntelligenceView daily bars region", () => {
@@ -90,7 +107,11 @@ describe("InstrumentIntelligenceView daily bars region", () => {
     );
     expect(html).toContain("历史日 K 线");
     expect(html).toContain("tushare-pro@tushare-v1");
-    expect(html).toContain("1 根");
+    expect(html).toContain("2 根");
+    expect(html).toContain("+9.52%");
+    expect(html).toContain("最新收盘");
+    expect(html).toContain("20 日");
+    expect(html).toContain("500 日");
     expect(html).toContain("不是实时或可成交价格");
   });
 
