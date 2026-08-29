@@ -101,5 +101,6 @@ function clickhouseClient(): ClickHouseJsonClient {
     InstrumentIntelligenceService,
     InstrumentBarsService,
   ],
+  exports: [InstrumentBarsService],
 })
 export class InstrumentIntelligenceModule {}

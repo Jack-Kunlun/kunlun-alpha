@@ -1,5 +1,19 @@
 /** Shared domain types. Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND. */
 /**
+ * Bounded evaluation summary for latest persisted daily market bars
+ */
+export interface WatchlistAlertEvaluationRun {
+  schemaVersion: "watchlist-alert-evaluation-run-v1";
+  generatedAt: string;
+  rulesScanned: number;
+  evaluated: number;
+  skippedUnsupported: number;
+  skippedNoData: number;
+  failed: number;
+  dataMeaning: "RESEARCH_ALERT_EVALUATION_NO_ORDER_PATH";
+}
+
+/**
  * This interface was referenced by `WatchlistAlertsWorkspace`'s JSON-Schema
  * via the `definition` "WatchlistAlertField".
  */

@@ -84,6 +84,7 @@ export class WatchlistAlertsService {
       commandHash,
       rule,
     });
+    await this.verifyCommittedCommand(ownerRef, input.clientRequestId, commandHash);
     return this.workspace();
   }
 
@@ -125,6 +126,7 @@ export class WatchlistAlertsService {
         previousRevisionId: latest.rule.revisionId,
       },
     });
+    await this.verifyCommittedCommand(ownerRef, input.clientRequestId, commandHash);
     return this.workspace();
   }
 
@@ -169,6 +171,9 @@ export class WatchlistAlertsService {
       ? this.notification(ownerRef, stored.rule, history, notificationId)
       : null;
     const appended = await this.repository.appendHistory(ownerRef, history, notification);
+    if (appended.duplicate && !sameEvaluationIdentity(appended.history, history)) {
+      throw new ConflictException("event identity was already used with different observations");
+    }
     if (!appended.duplicate && notification) await this.deliver(ownerRef, notification);
     return this.workspace();
   }
@@ -293,6 +298,33 @@ export class WatchlistAlertsService {
     if (!rule) throw new NotFoundException("watchlist alert rule not found");
     return rule;
   }
+
+  private async verifyCommittedCommand(
+    ownerRef: string,
+    commandRequestId: string,
+    commandHash: string,
+  ): Promise<void> {
+    const committed = await this.repository.findRuleByCommand(ownerRef, commandRequestId);
+    if (!committed) throw new Error("watchlist alert rule command was not persisted");
+    if (committed.commandHash !== commandHash) {
+      throw new ConflictException("clientRequestId raced with different rule content");
+    }
+  }
+}
+
+function sameEvaluationIdentity(
+  left: WatchlistAlertHistory,
+  right: WatchlistAlertHistory,
+): boolean {
+  return (
+    left.ruleId === right.ruleId &&
+    left.revisionId === right.revisionId &&
+    left.eventId === right.eventId &&
+    left.instrumentId === right.instrumentId &&
+    left.eventTime === right.eventTime &&
+    left.availableTime === right.availableTime &&
+    left.observedValue === right.observedValue
+  );
 }
 
 function isQuiet(

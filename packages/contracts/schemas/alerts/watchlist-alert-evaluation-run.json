@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/alerts/watchlist-alert-evaluation-run.json",
+  "title": "WatchlistAlertEvaluationRun",
+  "description": "Bounded evaluation summary for latest persisted daily market bars",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "rulesScanned",
+    "evaluated",
+    "skippedUnsupported",
+    "skippedNoData",
+    "failed",
+    "dataMeaning"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "watchlist-alert-evaluation-run-v1" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "rulesScanned": { "type": "integer", "minimum": 0 },
+    "evaluated": { "type": "integer", "minimum": 0 },
+    "skippedUnsupported": { "type": "integer", "minimum": 0 },
+    "skippedNoData": { "type": "integer", "minimum": 0 },
+    "failed": { "type": "integer", "minimum": 0 },
+    "dataMeaning": { "const": "RESEARCH_ALERT_EVALUATION_NO_ORDER_PATH" }
+  }
+}

@@ -1,4 +1,4 @@
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, ConflictException } from "@nestjs/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InMemoryWatchlistAlertsRepository } from "./in-memory-watchlist-alerts.repository";
 import type { WatchlistAlertNotificationDispatcher } from "./watchlist-alerts.notification";
@@ -71,6 +71,18 @@ describe("WatchlistAlertsService", () => {
     await expect(
       service.createRule({ ...createRuleBody(), expression: "process.exit()" }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("fails closed when an event identity is reused with different observations", async () => {
+    const service = createService({ deliver: vi.fn().mockResolvedValue(undefined) });
+    const ruleId = await createRule(service);
+    const first = evaluation(ruleId, "conflicting-event", "2026-08-26T01:59:00.000Z");
+    await service.evaluate(first);
+
+    await expect(service.evaluate({ ...first, observedValue: "1600.00" })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect((await service.workspace()).history).toHaveLength(1);
   });
 });
 

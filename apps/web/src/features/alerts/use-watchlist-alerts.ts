@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { WatchlistAlertsWorkspace } from "@kunlun/shared-types";
+import type { WatchlistAlertEvaluationRun, WatchlistAlertsWorkspace } from "@kunlun/shared-types";
 import { apiClient } from "../../lib/api-client";
 
 export type WatchlistAlertRule = WatchlistAlertsWorkspace["rules"][number];
@@ -121,6 +121,20 @@ export function useWatchlistAlerts() {
     );
   }, []);
 
+  const evaluateLatest = useCallback(async (): Promise<WatchlistAlertEvaluationRun> => {
+    setSubmitting(true);
+    try {
+      const result = await apiClient.post<Record<string, never>, WatchlistAlertEvaluationRun>(
+        "/v1/watchlist-alerts/evaluate-latest",
+        {},
+      );
+      await refresh();
+      return result;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [refresh]);
+
   return {
     workspace,
     state,
@@ -130,6 +144,7 @@ export function useWatchlistAlerts() {
     createRule,
     toggleRule,
     preview,
+    evaluateLatest,
   };
 }
 

@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import { AlertCircle, BellRing, Clock3, Plus, RefreshCw, ShieldCheck } from "lucide-react";
+import {
+  Activity,
+  AlertCircle,
+  BellRing,
+  Clock3,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
+import type { WatchlistAlertEvaluationRun } from "@kunlun/shared-types";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import {
@@ -40,6 +49,7 @@ const OUTCOME_LABELS: Record<string, string> = {
 export function AlertsPage() {
   const alerts = useWatchlistAlerts();
   const [preview, setPreview] = useState<AlertPreview | null>(null);
+  const [evaluationRun, setEvaluationRun] = useState<WatchlistAlertEvaluationRun | null>(null);
 
   if (alerts.state === "loading")
     return <PageState title="正在读取预警规则" detail="同步规则版本与投递历史。" />;
@@ -90,9 +100,19 @@ export function AlertsPage() {
               <h2 className="text-lg font-semibold">规则清单</h2>
               <p className="text-sm text-muted-foreground">只支持白名单字段与比较运算符。</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => void alerts.refresh()}>
-              <RefreshCw className="mr-2 h-4 w-4" /> 刷新
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={alerts.submitting || workspace.rules.length === 0}
+                onClick={() => void alerts.evaluateLatest().then(setEvaluationRun)}
+              >
+                <Activity className="mr-2 h-4 w-4" /> 立即评估最新行情
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => void alerts.refresh()}>
+                <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+              </Button>
+            </div>
           </div>
           {workspace.rules.length === 0 ? (
             <EmptyRules />
@@ -113,6 +133,15 @@ export function AlertsPage() {
             <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/30">
               <strong>{OUTCOME_LABELS[preview.outcome] ?? preview.outcome}</strong>
               <span className="ml-2 text-muted-foreground">{preview.detail}</span>
+            </div>
+          ) : null}
+          {evaluationRun ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm dark:border-emerald-900 dark:bg-emerald-950/30">
+              <strong>最新行情评估完成</strong>
+              <span className="ml-2 text-muted-foreground">
+                已评估 {evaluationRun.evaluated}，数据不足 {evaluationRun.skippedNoData}，暂不支持{" "}
+                {evaluationRun.skippedUnsupported}，失败 {evaluationRun.failed}
+              </span>
             </div>
           ) : null}
         </section>

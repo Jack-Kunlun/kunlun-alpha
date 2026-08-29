@@ -1,10 +1,13 @@
 import { Body, Controller, Get, Inject, Param, Post } from "@nestjs/common";
 import { WatchlistAlertsService } from "./watchlist-alerts.service";
+import { WatchlistAlertsEvaluationRunner } from "./watchlist-alerts.evaluation-runner";
 
 @Controller("watchlist-alerts")
 export class WatchlistAlertsController {
   constructor(
     @Inject(WatchlistAlertsService) private readonly service: WatchlistAlertsService,
+    @Inject(WatchlistAlertsEvaluationRunner)
+    private readonly evaluationRunner: WatchlistAlertsEvaluationRunner,
   ) {}
 
   @Get()
@@ -30,5 +33,10 @@ export class WatchlistAlertsController {
   @Post("evaluate")
   evaluate(@Body() body: unknown) {
     return this.service.evaluate(body);
+  }
+
+  @Post("evaluate-latest")
+  evaluateLatest() {
+    return this.evaluationRunner.runOnce();
   }
 }
