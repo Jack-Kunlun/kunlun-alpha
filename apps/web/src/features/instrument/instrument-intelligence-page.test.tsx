@@ -129,17 +129,37 @@ describe("InstrumentIntelligenceView", () => {
     expect(html).toContain("600519.SH");
   });
 
-  it("lists the four local stocks with canonical identifiers", () => {
+  it("lists the curated local stocks with canonical identifiers", () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <InstrumentDirectoryPage />
       </MemoryRouter>,
     );
     expect(html).toContain("本地已载入股票");
-    for (const marker of ["平安银行", "宁德时代", "浦发银行", "贵州茅台"]) {
+    for (const marker of [
+      "平安银行",
+      "比亚迪",
+      "宁德时代",
+      "软通动力",
+      "浦发银行",
+      "贵州茅台",
+      "中国平安",
+      "中芯国际",
+      "艾融软件",
+    ]) {
       expect(html).toContain(marker);
     }
-    for (const marker of ["000001.SZ", "300750.SZ", "600000.SH", "600519.SH"]) {
+    for (const marker of [
+      "000001.SZ",
+      "002594.SZ",
+      "300750.SZ",
+      "301236.SZ",
+      "600000.SH",
+      "600519.SH",
+      "601318.SH",
+      "688981.SH",
+      "920799.BJ",
+    ]) {
       expect(html).toContain(marker);
     }
   });

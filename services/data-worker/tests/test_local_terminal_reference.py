@@ -21,16 +21,22 @@ def test_catalog_builds_versioned_instrument_sector_and_membership_revisions() -
     catalog = load_local_reference_catalog(_catalog_path())
     plan = build_local_reference_plan(catalog)
 
-    assert catalog.catalog_version == "2026.08.30.1"
+    assert catalog.catalog_version == "2026.08.30.2"
     assert [item.instrument_id for item in catalog.instruments] == [
         "000001.SZ",
+        "002594.SZ",
         "300750.SZ",
+        "301236.SZ",
         "600000.SH",
         "600519.SH",
+        "601318.SH",
+        "688981.SH",
+        "920799.BJ",
     ]
-    assert len(plan.instrument_revisions) == 4
-    assert len(plan.sector_revisions) == 3
-    assert len(plan.membership_revisions) == 4
+    assert {item.board for item in catalog.instruments} == {"MAIN", "CHINEXT", "STAR", "BSE"}
+    assert len(plan.instrument_revisions) == 9
+    assert len(plan.sector_revisions) == 7
+    assert len(plan.membership_revisions) == 9
     assert all(item.payload_fingerprint.startswith("sha256:") for item in plan.all_revisions)
     assert all(len(item.payload_fingerprint) == 71 for item in plan.all_revisions)
     assert plan.instrument_revisions[0].payload == {

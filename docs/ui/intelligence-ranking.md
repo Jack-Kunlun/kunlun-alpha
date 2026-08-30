@@ -45,13 +45,14 @@ P6-N05 不产生 `Signal`、`OrderIntent` 或订单，不包含券商、QMT、�
 ## 本地真实行情快照
 
 本地 Compose 在 ClickHouse schema、股票目录和 quant-engine 健康后执行一次
-`ranking-terminal-materialize`。它只读取股票目录中的 4 个标准证券 ID，不读取指数、ETF
+`ranking-terminal-materialize`。它读取当前目录中的 9 个标准证券 ID，不读取指数、ETF
 或测试 fixture；查询 `bars_daily_v2` 时在 revision/source winner 选择前同时应用
 `event_time`、`available_time`、`processing_time <= read cutoff`。
 
 首版 `local-daily-bars-ranking` 使用最近 10 个唯一交易日：10 日动量 4000 bps、
-10 日平均成交额 3000 bps、10 日日内振幅 3000 bps（低者更优）。10 日窗口来自当前本地
-4 只股票共同具备的真实去重历史，不能用重复 revision 凑样本；不足 10 日的股票明确排除。
+10 日平均成交额 3000 bps、10 日日内振幅 3000 bps（低者更优）。每只股票分别使用自身
+满足点时门槛的真实去重历史，不能用重复 revision 或离线回放 fixture 凑样本；没有持久化
+Bar 或不足 10 日的股票明确排除，不会为了填满 9 行而合成行情。
 原始价格和金额、特征与排序全部使用 `Decimal`。特征来源包含输入 bar 证据摘要、算法版本
 和本地目录版本；快照 as-of 取所有实际输入（含目录）的最晚可见时间。
 

@@ -62,15 +62,20 @@ def _bars(
 def _all_bars() -> dict[str, tuple[DailyRankingBar, ...]]:
     return {
         "000001.SZ": _bars("000001.SZ", base="10", step="0.1", amount="1000", spread="0.03"),
+        "002594.SZ": _bars("002594.SZ", base="200", step="2", amount="3500", spread="0.04"),
         "300750.SZ": _bars("300750.SZ", base="100", step="3", amount="4000", spread="0.05"),
+        "301236.SZ": _bars("301236.SZ", base="50", step="1", amount="2500", spread="0.04"),
         "600000.SH": _bars("600000.SH", base="8", step="0.02", amount="1500", spread="0.02"),
         "600519.SH": _bars("600519.SH", base="1500", step="5", amount="3000", spread="0.01"),
+        "601318.SH": _bars("601318.SH", base="40", step="0.3", amount="2500", spread="0.025"),
+        "688981.SH": _bars("688981.SH", base="80", step="1.5", amount="3800", spread="0.06"),
+        "920799.BJ": _bars("920799.BJ", base="20", step="0.5", amount="800", spread="0.07"),
     }
 
 
 def test_materializer_builds_real_stock_only_point_in_time_ranking() -> None:
     catalog = load_local_reference_catalog(_catalog_path())
-    cutoff = datetime(2026, 8, 30, tzinfo=UTC)
+    cutoff = datetime(2026, 8, 30, 12, tzinfo=UTC)
 
     snapshot = build_local_ranking_snapshot(
         catalog=catalog,
@@ -81,8 +86,13 @@ def test_materializer_builds_real_stock_only_point_in_time_ranking() -> None:
 
     assert [row.instrument_id for row in snapshot.rows] == [
         "300750.SZ",
+        "688981.SH",
+        "301236.SZ",
+        "002594.SZ",
         "600519.SH",
+        "601318.SH",
         "000001.SZ",
+        "920799.BJ",
         "600000.SH",
     ]
     assert all(row.status is RankingRowStatus.INCLUDED for row in snapshot.rows)
@@ -95,9 +105,14 @@ def test_materializer_builds_real_stock_only_point_in_time_ranking() -> None:
     assert validated.source_mode == "VERSIONED_RESEARCH_SNAPSHOT"
     assert {row.instrument_id for row in validated.rows} == {
         "000001.SZ",
+        "002594.SZ",
         "300750.SZ",
+        "301236.SZ",
         "600000.SH",
         "600519.SH",
+        "601318.SH",
+        "688981.SH",
+        "920799.BJ",
     }
 
 
@@ -105,7 +120,7 @@ def test_materializer_excludes_insufficient_history_and_rejects_future_visibilit
     catalog = load_local_reference_catalog(_catalog_path())
     bars = _all_bars()
     bars["600000.SH"] = bars["600000.SH"][:9]
-    cutoff = datetime(2026, 8, 30, tzinfo=UTC)
+    cutoff = datetime(2026, 8, 30, 12, tzinfo=UTC)
 
     snapshot = build_local_ranking_snapshot(
         catalog=catalog,

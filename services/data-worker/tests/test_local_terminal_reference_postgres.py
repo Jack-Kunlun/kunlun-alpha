@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Generator
 from datetime import datetime
@@ -11,6 +12,7 @@ import psycopg
 import pytest
 from data_worker.jobs.local_reference import (
     LocalReferenceMaterializationError,
+    LocalReferenceMaterializationResult,
     PostgresLocalReferenceWriter,
     build_local_reference_plan,
     load_local_reference_catalog,
@@ -25,6 +27,27 @@ def _sql(value: str) -> LiteralString:
 
 def _catalog_path() -> Path:
     return Path(__file__).resolve().parents[3] / "data/reference/local-terminal-instruments-v1.json"
+
+
+def _legacy_catalog_path(tmp_path: Path) -> Path:
+    raw = json.loads(_catalog_path().read_text(encoding="utf-8"))
+    raw["catalogVersion"] = "2026.08.30.1"
+    raw["sourceVersion"] = "2026.08.30.1"
+    raw["effectiveFrom"] = "2026-08-30T00:00:00+08:00"
+    raw["availableTime"] = "2026-08-30T00:00:00+08:00"
+    original_instruments = {"000001.SZ", "300750.SZ", "600000.SH", "600519.SH"}
+    original_sectors = {
+        "cn-industry-bank",
+        "cn-industry-electrical-equipment",
+        "cn-industry-food-beverage",
+    }
+    raw["instruments"] = [
+        item for item in raw["instruments"] if item["instrumentId"] in original_instruments
+    ]
+    raw["sectors"] = [item for item in raw["sectors"] if item["sectorId"] in original_sectors]
+    path = tmp_path / "legacy-catalog.json"
+    path.write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
+    return path
 
 
 @pytest.fixture()
@@ -81,10 +104,10 @@ def test_postgres_writer_is_idempotent_and_preserves_point_in_time_fields(
     finally:
         writer.close()
 
-    assert first.inserted == 11
+    assert first.inserted == 25
     assert first.existing == 0
     assert second.inserted == 0
-    assert second.existing == 11
+    assert second.existing == 25
 
     with psycopg.connect(POSTGRES_DSN or "") as connection:
         row = cast(
@@ -110,6 +133,53 @@ def test_postgres_writer_is_idempotent_and_preserves_point_in_time_fields(
     )
     assert cast(str, row[7]).startswith("sha256:")
     assert cast(dict[str, object], row[8])["name"] == "贵州茅台"
+
+
+def test_postgres_writer_closes_and_links_the_previous_catalog_revision(
+    reference_schema: str,
+    tmp_path: Path,
+) -> None:
+    legacy = build_local_reference_plan(
+        load_local_reference_catalog(_legacy_catalog_path(tmp_path))
+    )
+    current = build_local_reference_plan(load_local_reference_catalog(_catalog_path()))
+    writer = PostgresLocalReferenceWriter(POSTGRES_DSN or "", schema=reference_schema)
+    try:
+        assert writer.write(legacy) == LocalReferenceMaterializationResult(inserted=11, existing=0)
+        assert writer.write(current) == LocalReferenceMaterializationResult(inserted=25, existing=0)
+        assert writer.write(current) == LocalReferenceMaterializationResult(inserted=0, existing=25)
+    finally:
+        writer.close()
+
+    with psycopg.connect(POSTGRES_DSN or "") as connection:
+        chain = cast(
+            list[tuple[object, ...]],
+            connection.execute(
+                _sql(f"""
+                SELECT revision_id, previous_revision_id, effective_from, effective_to,
+                       processing_time
+                  FROM "{reference_schema}".instrument_master_revisions
+                 WHERE instrument_id = '600519.SH'
+                 ORDER BY effective_from
+                """)
+            ).fetchall(),
+        )
+        new_root = cast(
+            tuple[object, ...] | None,
+            connection.execute(
+                _sql(f"""
+                SELECT previous_revision_id, effective_to
+                  FROM "{reference_schema}".instrument_master_revisions
+                 WHERE instrument_id = '920799.BJ'
+                """)
+            ).fetchone(),
+        )
+
+    assert len(chain) == 2
+    assert chain[0][3] == chain[1][4]
+    assert chain[1][1] == chain[0][0]
+    assert chain[1][3] is None
+    assert new_root == (None, None)
 
 
 def test_postgres_writer_fails_closed_and_rolls_back_on_conflicting_revision(
@@ -148,4 +218,4 @@ def test_postgres_writer_fails_closed_and_rolls_back_on_conflicting_revision(
                 "sector_membership_revisions",
             )
         ]
-    assert counts == [4, 3, 4]
+    assert counts == [9, 7, 9]
