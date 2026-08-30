@@ -1,0 +1,195 @@
+{
+  "schemaVersion": "offline-market-replay-fixture-v1",
+  "fixtureVersion": "2026.08.30.1",
+  "dataMeaning": "SANITIZED_OFFLINE_FIXTURE_NO_MARKET_CLAIM",
+  "captures": [
+    {
+      "captureId": "offline-daily-002594-sz",
+      "source": "akshare-tencent",
+      "apiName": "stock_zh_a_hist_tx",
+      "sourceVersion": "akshare:1.18.94:stock_zh_a_hist_tx:v2",
+      "unifiedCode": "002594.SZ",
+      "interval": "DAILY",
+      "requestedStart": "2026-08-27",
+      "requestedEnd": "2026-08-28",
+      "receivedAt": "2026-08-30T10:31:00Z",
+      "rows": [
+        {
+          "日期": "2026-08-27",
+          "股票代码": "002594",
+          "开盘": "101.20",
+          "收盘": "103.40",
+          "最高": "104.10",
+          "最低": "100.80",
+          "成交量": "120000",
+          "成交额": "12345678.90"
+        },
+        {
+          "日期": "2026-08-28",
+          "股票代码": "002594",
+          "开盘": "103.50",
+          "收盘": "102.80",
+          "最高": "105.00",
+          "最低": "102.10",
+          "成交量": "118000",
+          "成交额": "12131415.16"
+        }
+      ]
+    },
+    {
+      "captureId": "offline-daily-301236-sz",
+      "source": "akshare-tencent",
+      "apiName": "stock_zh_a_hist_tx",
+      "sourceVersion": "akshare:1.18.94:stock_zh_a_hist_tx:v2",
+      "unifiedCode": "301236.SZ",
+      "interval": "DAILY",
+      "requestedStart": "2026-08-27",
+      "requestedEnd": "2026-08-28",
+      "receivedAt": "2026-08-30T10:32:00Z",
+      "rows": [
+        {
+          "日期": "2026-08-27",
+          "股票代码": "301236",
+          "开盘": "52.10",
+          "收盘": "53.20",
+          "最高": "54.00",
+          "最低": "51.80",
+          "成交量": "86000",
+          "成交额": "4567890.12"
+        },
+        {
+          "日期": "2026-08-28",
+          "股票代码": "301236",
+          "开盘": "53.30",
+          "收盘": "54.10",
+          "最高": "55.20",
+          "最低": "52.90",
+          "成交量": "91000",
+          "成交额": "4923456.78"
+        }
+      ]
+    },
+    {
+      "captureId": "offline-daily-600519-sh",
+      "source": "akshare-tencent",
+      "apiName": "stock_zh_a_hist_tx",
+      "sourceVersion": "akshare:1.18.94:stock_zh_a_hist_tx:v2",
+      "unifiedCode": "600519.SH",
+      "interval": "DAILY",
+      "requestedStart": "2026-08-27",
+      "requestedEnd": "2026-08-28",
+      "receivedAt": "2026-08-30T10:33:00Z",
+      "rows": [
+        {
+          "日期": "2026-08-27",
+          "股票代码": "600519",
+          "开盘": "1500.00",
+          "收盘": "1512.50",
+          "最高": "1520.00",
+          "最低": "1495.00",
+          "成交量": "24000",
+          "成交额": "36240000.00"
+        },
+        {
+          "日期": "2026-08-28",
+          "股票代码": "600519",
+          "开盘": "1513.00",
+          "收盘": "1508.00",
+          "最高": "1518.00",
+          "最低": "1501.00",
+          "成交量": "22500",
+          "成交额": "33930000.00"
+        }
+      ]
+    },
+    {
+      "captureId": "offline-daily-688981-sh",
+      "source": "akshare-tencent",
+      "apiName": "stock_zh_a_hist_tx",
+      "sourceVersion": "akshare:1.18.94:stock_zh_a_hist_tx:v2",
+      "unifiedCode": "688981.SH",
+      "interval": "DAILY",
+      "requestedStart": "2026-08-27",
+      "requestedEnd": "2026-08-28",
+      "receivedAt": "2026-08-30T10:34:00Z",
+      "rows": [
+        {
+          "日期": "2026-08-27",
+          "股票代码": "688981",
+          "开盘": "86.20",
+          "收盘": "88.10",
+          "最高": "89.00",
+          "最低": "85.70",
+          "成交量": "310000",
+          "成交额": "27311000.00"
+        },
+        {
+          "日期": "2026-08-28",
+          "股票代码": "688981",
+          "开盘": "88.30",
+          "收盘": "87.60",
+          "最高": "89.40",
+          "最低": "86.90",
+          "成交量": "295000",
+          "成交额": "25842000.00"
+        }
+      ]
+    },
+    {
+      "captureId": "offline-daily-920799-bj",
+      "source": "akshare-tencent",
+      "apiName": "stock_zh_a_hist_tx",
+      "sourceVersion": "akshare:1.18.94:stock_zh_a_hist_tx:v2",
+      "unifiedCode": "920799.BJ",
+      "interval": "DAILY",
+      "requestedStart": "2026-08-27",
+      "requestedEnd": "2026-08-28",
+      "receivedAt": "2026-08-30T10:35:00Z",
+      "rows": [
+        {
+          "日期": "2026-08-27",
+          "股票代码": "920799",
+          "开盘": "28.40",
+          "收盘": "29.10",
+          "最高": "29.80",
+          "最低": "28.10",
+          "成交量": "45000",
+          "成交额": "1309500.00"
+        },
+        {
+          "日期": "2026-08-28",
+          "股票代码": "920799",
+          "开盘": "29.20",
+          "收盘": "28.90",
+          "最高": "29.60",
+          "最低": "28.50",
+          "成交量": "42000",
+          "成交额": "1213800.00"
+        }
+      ]
+    },
+    {
+      "captureId": "offline-minute-920799-bj",
+      "source": "akshare-sina",
+      "apiName": "stock_zh_a_minute",
+      "sourceVersion": "akshare:1.18.94:stock_zh_a_minute:v2",
+      "unifiedCode": "920799.BJ",
+      "interval": "MINUTE_1",
+      "requestedStart": "2026-08-28",
+      "requestedEnd": "2026-08-28",
+      "receivedAt": "2026-08-30T10:36:00Z",
+      "rows": [
+        {
+          "day": "2026-08-28 09:31:00",
+          "股票代码": "920799",
+          "开盘": "29.20",
+          "收盘": "29.30",
+          "最高": "29.35",
+          "最低": "29.10",
+          "成交量": "1500",
+          "成交额": "43950.00"
+        }
+      ]
+    }
+  ]
+}

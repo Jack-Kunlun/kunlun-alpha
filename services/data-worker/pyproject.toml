@@ -17,6 +17,7 @@ dependencies = [
 limit-pool-terminal-materialize = "data_worker.jobs.limit_pool_terminal.runtime:main"
 local-terminal-reference-materialize = "data_worker.jobs.local_reference.runtime:main"
 market-data-sync = "data_worker.jobs.market_data.runtime:main"
+offline-market-replay-check = "data_worker.jobs.offline_market_replay.runtime:main"
 ranking-snapshot-materialize = "data_worker.jobs.ranking_snapshot.runtime:main"
 
 [tool.uv.sources]

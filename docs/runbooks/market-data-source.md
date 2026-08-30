@@ -26,6 +26,24 @@ AKShare 日线调用 Tencent-backed `stock_zh_a_hist_tx`，来源元数据为
 `MARKET_DATA_MINUTE_SYMBOLS` 显式配置。自定义代码集合仍可通过 `MARKET_DATA_SYMBOLS` 提供，
 它们都是本地研究样本，不代表全市场宽度。
 
+## 离线回放验收包
+
+仓库提供 `data/fixtures/offline-market-replay-v1.json`，用于在断网且没有数据库的环境中验证
+raw manifest、内容校验和、重启后恢复以及真实 AKShare parser 路径。该文件固定声明
+`SANITIZED_OFFLINE_FIXTURE_NO_MARKET_CLAIM`；其中价格和成交量是脱敏合成值，不是历史行情，
+不得写入 ClickHouse、API 响应、排名快照或产品页面。
+
+在仓库根目录执行：
+
+```bash
+uv run --package data-worker offline-market-replay-check
+```
+
+命令只在系统临时目录中创建 content-addressed raw 对象，结束时自动清理；它不会创建网络
+客户端请求，也不会连接 PostgreSQL 或 ClickHouse。当前验收包包含 6 个 capture、11 根 Bar
+与 5 个代表性标的，覆盖沪深主板、创业板、科创板、北交所，以及 DAILY/MINUTE_1 两种
+回放 profile。输出只给出版本、数量和覆盖面，不回显价格数据。
+
 AKShare 的公开函数返回 pandas DataFrame。适配器会在任何字段解析前把 SDK 返回的表序列化
 到 raw capture；这是“适配器 payload capture”，不是上游 HTTP wire bytes。Tencent 日线和
 Sina 分钟路径均按原始返回值保留成交量；日线时间按上海时区 15:00，分钟时间按上海时区
