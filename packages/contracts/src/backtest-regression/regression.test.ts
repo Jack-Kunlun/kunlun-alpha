@@ -29,7 +29,15 @@ describe("backtest regression contracts", () => {
         candidateSha256: "a".repeat(64),
         status: "DRIFTED",
         categoryCounts: { RESULT: 1 },
-        diffs: [{ category: "UNKNOWN", pointer: "/x", status: "REPLACED", baselineValue: null, candidateValue: null }],
+        diffs: [
+          {
+            category: "UNKNOWN",
+            pointer: "/x",
+            status: "REPLACED",
+            baselineValue: null,
+            candidateValue: null,
+          },
+        ],
         diffLines: ["RESULT REPLACED /x"],
       }),
     ).toThrow();
@@ -74,11 +82,28 @@ describe("backtest regression contracts", () => {
     };
     expect(parseBacktestRegressionComparison(valid).categoryCounts.RESULT).toBe(1);
     expect(() => parseBacktestRegressionComparison({ ...valid, status: "MATCHED" })).toThrow();
-    expect(() => parseBacktestRegressionComparison({ ...valid, diffLines: ["untrusted text"] })).toThrow();
+    expect(() =>
+      parseBacktestRegressionComparison({ ...valid, diffLines: ["untrusted text"] }),
+    ).toThrow();
     expect(() => parseBacktestRegressionComparison({ ...valid, diffs: [] })).toThrow();
-    expect(() => parseBacktestRegressionComparison({ ...valid, categoryCounts: { ...valid.categoryCounts, RESULT: 0 } })).toThrow();
-    expect(() => parseBacktestRegressionComparison({ ...valid, categoryCounts: { ...valid.categoryCounts, EXTRA: 0 } })).toThrow();
-    expect(() => parseBacktestRegressionComparison({ ...valid, diffs: [{ ...valid.diffs[0], pointer: "/results/~2" }] })).toThrow();
+    expect(() =>
+      parseBacktestRegressionComparison({
+        ...valid,
+        categoryCounts: { ...valid.categoryCounts, RESULT: 0 },
+      }),
+    ).toThrow();
+    expect(() =>
+      parseBacktestRegressionComparison({
+        ...valid,
+        categoryCounts: { ...valid.categoryCounts, EXTRA: 0 },
+      }),
+    ).toThrow();
+    expect(() =>
+      parseBacktestRegressionComparison({
+        ...valid,
+        diffs: [{ ...valid.diffs[0], pointer: "/results/~2" }],
+      }),
+    ).toThrow();
   });
 
   it("rejects unsorted and duplicate diff identities", () => {
@@ -94,21 +119,48 @@ describe("backtest regression contracts", () => {
         RESULT: 2,
       },
       diffs: [
-        { category: "RESULT" as const, pointer: "/results/Z", status: "REPLACED" as const, baselineValue: 1, candidateValue: 2 },
-        { category: "RESULT" as const, pointer: "/results/a", status: "REPLACED" as const, baselineValue: 1, candidateValue: 2 },
+        {
+          category: "RESULT" as const,
+          pointer: "/results/Z",
+          status: "REPLACED" as const,
+          baselineValue: 1,
+          candidateValue: 2,
+        },
+        {
+          category: "RESULT" as const,
+          pointer: "/results/a",
+          status: "REPLACED" as const,
+          baselineValue: 1,
+          candidateValue: 2,
+        },
       ],
       diffLines: ["RESULT REPLACED /results/Z", "RESULT REPLACED /results/a"],
     };
     expect(parseBacktestRegressionComparison(base).diffLines).toHaveLength(2);
-    expect(() => parseBacktestRegressionComparison({ ...base, diffs: [...base.diffs].reverse(), diffLines: [...base.diffLines].reverse() })).toThrow();
-    expect(() => parseBacktestRegressionComparison({ ...base, diffs: [...base.diffs, base.diffs[0]], diffLines: [...base.diffLines, base.diffLines[0]], categoryCounts: { ...base.categoryCounts, RESULT: 3 } })).toThrow();
+    expect(() =>
+      parseBacktestRegressionComparison({
+        ...base,
+        diffs: [...base.diffs].reverse(),
+        diffLines: [...base.diffLines].reverse(),
+      }),
+    ).toThrow();
+    expect(() =>
+      parseBacktestRegressionComparison({
+        ...base,
+        diffs: [...base.diffs, base.diffs[0]],
+        diffLines: [...base.diffLines, base.diffLines[0]],
+        categoryCounts: { ...base.categoryCounts, RESULT: 3 },
+      }),
+    ).toThrow();
   });
 
   it("binds toolchain claims and accepts the shared cross-runtime parity fixture", () => {
     const moduleUrl = (import.meta as unknown as { url: string }).url;
-    const RuntimeURL = (globalThis as unknown as {
-      URL: new (input: string, base: string) => unknown;
-    }).URL;
+    const RuntimeURL = (
+      globalThis as unknown as {
+        URL: new (input: string, base: string) => unknown;
+      }
+    ).URL;
     const filePath = (relativePath: string): string =>
       new RuntimeURL(relativePath, moduleUrl) as string;
     const baseline = JSON.parse(
@@ -121,10 +173,7 @@ describe("backtest regression contracts", () => {
     ) as { expectedArtifact: Record<string, unknown> };
     expect(() => parseBacktestRegressionArtifact(baseline.expectedArtifact)).not.toThrow();
     const parity = JSON.parse(
-      readFileSync(
-        filePath("../../fixtures/backtest-regression-comparison-parity.json"),
-        "utf8",
-      ),
+      readFileSync(filePath("../../fixtures/backtest-regression-comparison-parity.json"), "utf8"),
     ) as Record<string, unknown>;
     expect(parseBacktestRegressionComparison(parity).diffLines).toEqual(parity.diffLines);
 
@@ -147,7 +196,10 @@ describe("backtest regression contracts", () => {
         config.push(config[0]);
       },
     ]) {
-      const forged = JSON.parse(JSON.stringify(baseline.expectedArtifact)) as Record<string, unknown>;
+      const forged = JSON.parse(JSON.stringify(baseline.expectedArtifact)) as Record<
+        string,
+        unknown
+      >;
       forge(forged);
       expect(() => parseBacktestRegressionArtifact(forged)).toThrow();
     }

@@ -10,8 +10,14 @@ import type {
   BacktestRegressionComparison,
   BacktestRegressionRunSummary,
 } from "@kunlun/shared-types";
-import { BACKTEST_REGRESSION_AUTHORIZER, BACKTEST_REGRESSION_REPOSITORY } from "./backtest-regression.tokens";
-import type { BacktestRegressionAuthorizer, BacktestRegressionRepository } from "./backtest-regression.types";
+import {
+  BACKTEST_REGRESSION_AUTHORIZER,
+  BACKTEST_REGRESSION_REPOSITORY,
+} from "./backtest-regression.tokens";
+import type {
+  BacktestRegressionAuthorizer,
+  BacktestRegressionRepository,
+} from "./backtest-regression.types";
 import {
   assertSafeId,
   parseBacktestRegressionArtifact,
@@ -24,8 +30,10 @@ import { compareBacktestArtifacts } from "./backtest-regression.comparison";
 @Injectable()
 export class BacktestRegressionService {
   constructor(
-    @Inject(BACKTEST_REGRESSION_REPOSITORY) private readonly repository: BacktestRegressionRepository,
-    @Inject(BACKTEST_REGRESSION_AUTHORIZER) private readonly authorizer: BacktestRegressionAuthorizer,
+    @Inject(BACKTEST_REGRESSION_REPOSITORY)
+    private readonly repository: BacktestRegressionRepository,
+    @Inject(BACKTEST_REGRESSION_AUTHORIZER)
+    private readonly authorizer: BacktestRegressionAuthorizer,
   ) {}
 
   private async authorize(): Promise<void> {
@@ -43,7 +51,9 @@ export class BacktestRegressionService {
     }
   }
 
-  private async approvedComparison(candidate: BacktestRegressionArtifact): Promise<BacktestRegressionComparison> {
+  private async approvedComparison(
+    candidate: BacktestRegressionArtifact,
+  ): Promise<BacktestRegressionComparison> {
     let baselinePayload;
     try {
       baselinePayload = await this.repository.getBaseline(candidate.suiteId);
@@ -81,7 +91,8 @@ export class BacktestRegressionService {
         }),
       );
     } catch (error) {
-      if (error instanceof ForbiddenException || error instanceof ServiceUnavailableException) throw error;
+      if (error instanceof ForbiddenException || error instanceof ServiceUnavailableException)
+        throw error;
       throw new ServiceUnavailableException("回测回归制品不可用");
     }
   }
@@ -92,8 +103,10 @@ export class BacktestRegressionService {
     try {
       return this.artifactOrUnavailable(await this.repository.get(safeRunId));
     } catch (error) {
-      if (error instanceof ForbiddenException || error instanceof ServiceUnavailableException) throw error;
-      if (error instanceof BacktestRegressionUnavailableError) throw new NotFoundException("回测运行不存在");
+      if (error instanceof ForbiddenException || error instanceof ServiceUnavailableException)
+        throw error;
+      if (error instanceof BacktestRegressionUnavailableError)
+        throw new NotFoundException("回测运行不存在");
       throw new ServiceUnavailableException("回测回归制品不可用");
     }
   }
@@ -106,7 +119,8 @@ export class BacktestRegressionService {
     try {
       candidate = this.artifactOrUnavailable(await this.repository.get(safeRunId));
     } catch (error) {
-      if (error instanceof BacktestRegressionUnavailableError) throw new NotFoundException("回测运行不存在");
+      if (error instanceof BacktestRegressionUnavailableError)
+        throw new NotFoundException("回测运行不存在");
       throw error;
     }
     let baselinePayload;

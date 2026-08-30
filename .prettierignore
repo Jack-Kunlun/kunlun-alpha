@@ -16,3 +16,6 @@ apps/server/src/**/*.js
 *.d.ts
 *.map
 *.tsbuildinfo
+
+# Canonical compact JSON; validated by pnpm backtest:regression.
+services/quant-engine/fixtures/regression/p5-core-chain.baseline.json

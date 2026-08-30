@@ -14,9 +14,7 @@
         "sources": [
           {
             "as_of": "2026-08-06T01:00:00Z",
-            "entity_ids": [
-              "518880.SH"
-            ],
+            "entity_ids": ["518880.SH"],
             "event_end": "2026-08-05T01:00:00Z",
             "event_start": "2026-08-02T01:00:00Z",
             "feature_fingerprint": "sha256:2ad562319767157087dda0dec6391f4479f8a04869ab0cc8d3a9c3637dae73b5",
@@ -34,9 +32,7 @@
       "source_lineage_checksums": [
         "sha256:5594aef2902b3fec5750026485abff245bda1139e147c83c9a8a6c6c554a1132"
       ],
-      "source_snapshot_versions": [
-        "precious-metals-fixture-v1"
-      ]
+      "source_snapshot_versions": ["precious-metals-fixture-v1"]
     },
     {
       "content_checksum": "sha256:5649a00ebc1dce34de1eefcfd617819ce5b322eb05edc52514f161179e310982",
@@ -47,9 +43,7 @@
         "sources": [
           {
             "as_of": "2026-08-06T01:00:00Z",
-            "entity_ids": [
-              "518880.SH"
-            ],
+            "entity_ids": ["518880.SH"],
             "event_end": "2026-08-02T01:00:00Z",
             "event_start": "2026-07-31T01:00:00Z",
             "feature_fingerprint": "sha256:2ad562319767157087dda0dec6391f4479f8a04869ab0cc8d3a9c3637dae73b5",
@@ -67,9 +61,7 @@
       "source_lineage_checksums": [
         "sha256:04797ed30ba619a26db8df4cc1e1229d0434803eb48d4849ccc5760c9d18a61d"
       ],
-      "source_snapshot_versions": [
-        "precious-metals-fixture-v1"
-      ]
+      "source_snapshot_versions": ["precious-metals-fixture-v1"]
     }
   ],
   "rebuild_command": [

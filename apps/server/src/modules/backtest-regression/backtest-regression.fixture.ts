@@ -1,7 +1,4 @@
-import type {
-  BacktestRegressionArtifact,
-  BacktestRegressionBaseline,
-} from "@kunlun/shared-types";
+import type { BacktestRegressionArtifact, BacktestRegressionBaseline } from "@kunlun/shared-types";
 import { toolchainEvidenceSha256 } from "@kunlun/contracts/backtest-regression";
 import { sha256Json } from "./backtest-regression.validation";
 
@@ -44,13 +41,19 @@ function previewArtifact(): BacktestRegressionArtifact {
     trust: {
       mode: "FIXTURE_SELF_CONTAINED" as const,
       evidenceIntegrityConfidence: "HIGH" as const,
-      evidenceRefs: [{ kind: "OPAQUE_EXTERNAL" as const, namespace: "preview", value: "local-preview" }],
+      evidenceRefs: [
+        { kind: "OPAQUE_EXTERNAL" as const, namespace: "preview", value: "local-preview" },
+      ],
     },
     manifest: { json: manifestJson, sha256: digest(manifestJson) },
     inputs: {
       fixtureSha256: digest("local-preview-fixture"),
       executionInputDigests: [digest("execution")],
-      portfolioHistoryRef: { tapeId: "local-preview-history", eventTapeDigest: digest("history"), eventCount: 3 },
+      portfolioHistoryRef: {
+        tapeId: "local-preview-history",
+        eventTapeDigest: digest("history"),
+        eventCount: 3,
+      },
       valuationLineage: {
         valuationPolicyId: "raw-accounting-mark",
         valuationPolicyVersion: "1.0.0",
@@ -78,11 +81,22 @@ function previewArtifact(): BacktestRegressionArtifact {
       },
     },
     provenance: {
-      code: { allowlist: [{ path: "fixture/local-preview.json", sha256: digest("fixture") }], treeSha256: digest("fixture-tree") },
+      code: {
+        allowlist: [{ path: "fixture/local-preview.json", sha256: digest("fixture") }],
+        treeSha256: digest("fixture-tree"),
+      },
       config: [
         { name: "preview", version: "1.0.0", sha256: digest("config") },
-        { name: "quant-engine-pyproject.toml", version: "0.0.0", sha256: toolchain.servicePyprojectSha256 },
-        { name: "root-pyproject.toml", version: "repo-root", sha256: toolchain.rootPyprojectSha256 },
+        {
+          name: "quant-engine-pyproject.toml",
+          version: "0.0.0",
+          sha256: toolchain.servicePyprojectSha256,
+        },
+        {
+          name: "root-pyproject.toml",
+          version: "repo-root",
+          sha256: toolchain.rootPyprojectSha256,
+        },
       ],
       dependencies: [
         { name: "uv.lock", version: "repo-root", sha256: toolchain.uvLockSha256 },
@@ -104,7 +118,15 @@ function previewArtifact(): BacktestRegressionArtifact {
       fixture: "local-preview-fixture",
     },
     results: {
-      counts: { events: 2, intents: 2, orders: 2, fills: 2, navObservations: 4, tPlusOneRejected: 1, nextDaySellFills: 1 },
+      counts: {
+        events: 2,
+        intents: 2,
+        orders: 2,
+        fills: 2,
+        navObservations: 4,
+        tPlusOneRejected: 1,
+        nextDaySellFills: 1,
+      },
       pnl: { realized: "0", unrealized: "600", total: "600", fees: "2" },
       finalNav: "100600",
       finalValuation: {

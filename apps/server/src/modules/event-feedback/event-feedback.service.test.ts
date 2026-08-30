@@ -2,10 +2,7 @@ import { ConflictException, ForbiddenException } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
 import type { EventFeedbackAuthorizer } from "./event-feedback-authorizer";
 import { InMemoryEventFeedbackRepository } from "./in-memory-event-feedback.repository";
-import {
-  type EventFeedbackClock,
-  EventFeedbackService,
-} from "./event-feedback.service";
+import { type EventFeedbackClock, EventFeedbackService } from "./event-feedback.service";
 
 const EVENT_ID = "a".repeat(64);
 const CONFIG = "b".repeat(64);

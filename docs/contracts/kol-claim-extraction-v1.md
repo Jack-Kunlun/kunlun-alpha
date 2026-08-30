@@ -24,6 +24,7 @@
 The candidate records algorithm, prompt/model/configuration/policy/run fingerprints and all selected source revisions. Pipeline audits contain only opaque SHA-256 fingerprints, status/reason codes and timestamps; raw prompt, model output, source text and secrets are never logged. Fake extractor/store ports are used in tests; no network or model SDK is part of this node.
 
 Generated DTOs under `python/packages/ashare-contracts` and `packages/shared-types` are transport shapes. Untrusted payloads must pass the TypeScript runtime validators or Python `parse_claim_*_payload` functions before entering the frozen domain.
+
 ## Runtime and trust boundary
 
 `ClaimExtractionCandidate` generated DTOs are transport shapes, not the

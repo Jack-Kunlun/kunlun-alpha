@@ -62,7 +62,8 @@ export class DashboardService {
     const times = dataTimes(data).sort();
     if (
       times.some(
-        (value) => !Number.isFinite(Date.parse(value)) || Date.parse(value) > Date.parse(query.asOf),
+        (value) =>
+          !Number.isFinite(Date.parse(value)) || Date.parse(value) > Date.parse(query.asOf),
       )
     ) {
       throw new Error("dashboard repository violated point-in-time cutoff");

@@ -1,10 +1,4 @@
-import {
-  createContext,
-  type PropsWithChildren,
-  useCallback,
-  useContext,
-  useMemo,
-} from "react";
+import { createContext, type PropsWithChildren, useCallback, useContext, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 
 const SECURITY_ID = /^[0-9]{6}\.(?:SH|SZ|BJ)$/;
@@ -81,7 +75,9 @@ export function parseTerminalFilters(search: string): ParsedTerminalFilters {
   const asOf = rawAsOf === null ? null : canonicalAsOf(rawAsOf);
   if (rawAsOf !== null && asOf === null) rejected.push("asOf");
 
-  const instrumentIds = [...new Set(params.getAll("instrument").map((value) => value.toUpperCase()))]
+  const instrumentIds = [
+    ...new Set(params.getAll("instrument").map((value) => value.toUpperCase())),
+  ]
     .filter((value) => {
       const valid = SECURITY_ID.test(value);
       if (!valid) rejected.push(`instrument:${value}`);
@@ -135,7 +131,10 @@ export function TerminalFilterProvider({ children }: PropsWithChildren) {
   const replaceFilters = useCallback(
     (next: TerminalFilterContextV1) => {
       const search = serializeTerminalFilters(next);
-      void navigate({ pathname: location.pathname, search: search ? `?${search}` : "" }, { replace: true });
+      void navigate(
+        { pathname: location.pathname, search: search ? `?${search}` : "" },
+        { replace: true },
+      );
     },
     [location.pathname, navigate],
   );

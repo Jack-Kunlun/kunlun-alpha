@@ -15,7 +15,12 @@
     "contentType": { "$ref": "#/definitions/KolContentType" },
     "title": { "type": "string", "minLength": 1, "maxLength": 10000 },
     "body": { "type": "string", "minLength": 1, "maxLength": 1000000 },
-    "contentFingerprint": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+    "contentFingerprint": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "contentFingerprintAlgorithmVersion": {
       "$ref": "#/definitions/KolContentFingerprintAlgorithmVersion"
     },

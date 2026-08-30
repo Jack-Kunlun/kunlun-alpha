@@ -16,7 +16,12 @@
     "kolId": { "type": "string", "minLength": 1, "maxLength": 256 },
     "statement": { "type": "string", "minLength": 1, "maxLength": 10000 },
     "statementKind": { "$ref": "#/definitions/KolClaimStatementKind" },
-    "instrumentId": { "type": "string", "minLength": 9, "maxLength": 9, "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+    "instrumentId": {
+      "type": "string",
+      "minLength": 9,
+      "maxLength": 9,
+      "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$"
+    },
     "direction": { "$ref": "#/definitions/KolClaimDirection" },
     "attribution": { "$ref": "#/definitions/KolClaimAttribution" },
     "uncertainty": { "$ref": "#/definitions/KolClaimUncertainty" },
@@ -123,7 +128,9 @@
     },
     {
       "if": { "properties": { "statementKind": { "const": "AMBIGUOUS" } } },
-      "then": { "properties": { "uncertainty": { "enum": ["AMBIGUOUS", "CONDITIONAL", "UNVERIFIED"] } } }
+      "then": {
+        "properties": { "uncertainty": { "enum": ["AMBIGUOUS", "CONDITIONAL", "UNVERIFIED"] } }
+      }
     },
     {
       "if": { "properties": { "deleted": { "const": true } } },

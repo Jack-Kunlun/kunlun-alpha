@@ -5,7 +5,12 @@ import { ClaimReviewController } from "./claim-review.controller";
 import type { ClaimReviewRepository } from "./claim-review-repository";
 import { ClaimReviewService, SystemClaimReviewClock } from "./claim-review.service";
 import { ClaimCandidateMaterializer } from "./claim-candidate-materializer";
-import { CLAIM_CANDIDATE_PROJECTION_STORE, CLAIM_REVIEW_AUTHORIZER, CLAIM_REVIEW_CLOCK, CLAIM_REVIEW_REPOSITORY } from "./claim-review.tokens";
+import {
+  CLAIM_CANDIDATE_PROJECTION_STORE,
+  CLAIM_REVIEW_AUTHORIZER,
+  CLAIM_REVIEW_CLOCK,
+  CLAIM_REVIEW_REPOSITORY,
+} from "./claim-review.tokens";
 import { PostgresClaimReviewRepository } from "./postgres-claim-review.repository";
 
 function buildRepository(): ClaimReviewRepository {
@@ -14,5 +19,16 @@ function buildRepository(): ClaimReviewRepository {
   return new PostgresClaimReviewRepository(new Pool({ connectionString: dsn }));
 }
 
-@Module({ controllers: [ClaimReviewController], providers: [{ provide: CLAIM_REVIEW_REPOSITORY, useFactory: buildRepository }, { provide: CLAIM_CANDIDATE_PROJECTION_STORE, useExisting: CLAIM_REVIEW_REPOSITORY }, { provide: CLAIM_REVIEW_AUTHORIZER, useClass: DenyAllClaimReviewAuthorizer }, { provide: CLAIM_REVIEW_CLOCK, useClass: SystemClaimReviewClock }, ClaimCandidateMaterializer, ClaimReviewService], exports: [ClaimReviewService, ClaimCandidateMaterializer] })
+@Module({
+  controllers: [ClaimReviewController],
+  providers: [
+    { provide: CLAIM_REVIEW_REPOSITORY, useFactory: buildRepository },
+    { provide: CLAIM_CANDIDATE_PROJECTION_STORE, useExisting: CLAIM_REVIEW_REPOSITORY },
+    { provide: CLAIM_REVIEW_AUTHORIZER, useClass: DenyAllClaimReviewAuthorizer },
+    { provide: CLAIM_REVIEW_CLOCK, useClass: SystemClaimReviewClock },
+    ClaimCandidateMaterializer,
+    ClaimReviewService,
+  ],
+  exports: [ClaimReviewService, ClaimCandidateMaterializer],
+})
 export class ClaimReviewModule {}

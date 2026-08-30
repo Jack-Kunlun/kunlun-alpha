@@ -63,9 +63,19 @@ const artifact: RegressionArtifact = {
     fixtureSha256: digest,
     executionInputDigests: [digest],
     portfolioHistoryRef: { tapeId: "tape", eventTapeDigest: digest, eventCount: 0 },
-    valuationLineage: { valuationPolicyId: "policy", valuationPolicyVersion: "1", valuationPolicyDigest: digest, valuations: [] },
+    valuationLineage: {
+      valuationPolicyId: "policy",
+      valuationPolicyVersion: "1",
+      valuationPolicyDigest: digest,
+      valuations: [],
+    },
     navObservations: [observation, observation, observation, observation],
-    riskFreeObservations: [riskFreeObservation, riskFreeObservation, riskFreeObservation, riskFreeObservation],
+    riskFreeObservations: [
+      riskFreeObservation,
+      riskFreeObservation,
+      riskFreeObservation,
+      riskFreeObservation,
+    ],
     tPlusOne: {
       buyOrderId: "buy",
       sellOrderId: "sell",
@@ -93,10 +103,25 @@ const artifact: RegressionArtifact = {
     },
   },
   results: {
-    counts: { events: 2, intents: 2, orders: 2, fills: 2, navObservations: 4, tPlusOneRejected: 1, nextDaySellFills: 1 },
+    counts: {
+      events: 2,
+      intents: 2,
+      orders: 2,
+      fills: 2,
+      navObservations: 4,
+      tPlusOneRejected: 1,
+      nextDaySellFills: 1,
+    },
     pnl: { realized: "600", unrealized: "0", total: "600", fees: "0" },
     finalNav: "100600",
-    finalValuation: { cutoffTime: "2026-06-03T01:00:00.000000Z", nav: "100600", totalPnl: "600", stateDigest: digest, inputDigest: digest, sampleCount: 4 },
+    finalValuation: {
+      cutoffTime: "2026-06-03T01:00:00.000000Z",
+      nav: "100600",
+      totalPnl: "600",
+      stateDigest: digest,
+      inputDigest: digest,
+      sampleCount: 4,
+    },
     metrics: {
       cumulativeChainedReturn: { status: "AVAILABLE", value: "0.006" },
       annualizedReturn: { status: "AVAILABLE", value: "0.006" },
@@ -108,11 +133,41 @@ const artifact: RegressionArtifact = {
     },
     observations: [observation, observation, observation, observation],
     tPlusOne: {
-      sameDay: { orderId: "sell", status: "REJECTED", rejectReason: "T_PLUS_ONE_NOT_SELLABLE", fillCount: 0, batchDigest: digest, resultDigest: digest, tradingDate: "2026-05-29", sellabilityDigest: digest },
-      nextDay: { orderId: "sell", status: "FILLED", rejectReason: null, fillCount: 1, batchDigest: digest, resultDigest: digest, tradingDate: "2026-06-01", sellabilityDigest: digest },
+      sameDay: {
+        orderId: "sell",
+        status: "REJECTED",
+        rejectReason: "T_PLUS_ONE_NOT_SELLABLE",
+        fillCount: 0,
+        batchDigest: digest,
+        resultDigest: digest,
+        tradingDate: "2026-05-29",
+        sellabilityDigest: digest,
+      },
+      nextDay: {
+        orderId: "sell",
+        status: "FILLED",
+        rejectReason: null,
+        fillCount: 1,
+        batchDigest: digest,
+        resultDigest: digest,
+        tradingDate: "2026-06-01",
+        sellabilityDigest: digest,
+      },
     },
   },
-  versions: { engine: "1.0.0", manifest: "1.0.0", eventOrder: "1.0.0", execution: "1.0.0", matching: "1.0.0", portfolio: "1.0.0", valuation: "1.0.0", metrics: "1.0.0", strategy: "1.0.0", policy: "1.0.0", fixture: "1.0.0" },
+  versions: {
+    engine: "1.0.0",
+    manifest: "1.0.0",
+    eventOrder: "1.0.0",
+    execution: "1.0.0",
+    matching: "1.0.0",
+    portfolio: "1.0.0",
+    valuation: "1.0.0",
+    metrics: "1.0.0",
+    strategy: "1.0.0",
+    policy: "1.0.0",
+    fixture: "1.0.0",
+  },
   artifactSha256: digest,
 };
 
@@ -170,7 +225,7 @@ describe("BacktestRegressionPage", () => {
     expect(matchedHtml).toContain("LOCAL_PREVIEW");
     expect(matchedHtml).toContain("没有差异");
     expect(matchedHtml).toContain("基线不会自动更新");
-    expect(matchedHtml).toContain("<caption data-slot=\"table-caption\"");
+    expect(matchedHtml).toContain('<caption data-slot="table-caption"');
     expect(matchedHtml).not.toMatch(/accept|update|接受基线|更新基线/i);
 
     mockedComparison.mockReturnValue({ status: "success", data: drifted, error: null });

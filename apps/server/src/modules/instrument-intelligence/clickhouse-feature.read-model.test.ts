@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type ClickHouseIntelligenceConfig,
-  ClickHouseJsonClient,
-} from "./clickhouse-json-client";
+import { type ClickHouseIntelligenceConfig, ClickHouseJsonClient } from "./clickhouse-json-client";
 import { ClickHouseInstrumentFeatureRepository } from "./clickhouse-feature.read-model";
 
 const config: ClickHouseIntelligenceConfig = {
@@ -24,7 +21,7 @@ describe("ClickHouse instrument feature read model", () => {
           feature_fingerprint: "sha256:" + "1".repeat(64),
           algorithm_version: "momentum-v1",
           value_type: "DECIMAL",
-          value_json: "\"0.125\"",
+          value_json: '"0.125"',
           event_time: "2026-08-25T07:00:00.000000Z",
           available_time: "2026-08-25T07:01:00.000000Z",
           processing_time: "2026-08-25T07:02:00.000000Z",

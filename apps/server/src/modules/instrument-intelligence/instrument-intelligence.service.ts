@@ -1,8 +1,4 @@
-import type {
-  InstrumentIntelligenceDetail,
-  KolEvidence,
-  MarketEvent,
-} from "@kunlun/shared-types";
+import type { InstrumentIntelligenceDetail, KolEvidence, MarketEvent } from "@kunlun/shared-types";
 import { ForbiddenException, Inject, Injectable } from "@nestjs/common";
 import {
   parseInstrumentId,
@@ -32,9 +28,7 @@ export interface InstrumentIntelligenceAuthorizer {
   canRead(): Promise<boolean>;
 }
 
-export class AllowAllInstrumentIntelligenceAuthorizer
-  implements InstrumentIntelligenceAuthorizer
-{
+export class AllowAllInstrumentIntelligenceAuthorizer implements InstrumentIntelligenceAuthorizer {
   async canRead(): Promise<true> {
     return true;
   }
@@ -63,7 +57,7 @@ function unique(values: readonly string[]): string[] {
 function latest(values: readonly string[]): string | null {
   return values.length === 0
     ? null
-    : [...values].sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null;
+    : ([...values].sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null);
 }
 
 function visible(records: readonly PitRecord<unknown>[], asOf: string): void {
@@ -99,10 +93,7 @@ function section<T>(
     freshnessSeconds:
       dataCutoffTime === null
         ? null
-        : Math.max(
-            0,
-            Math.floor((Date.parse(effectiveAsOf) - Date.parse(dataCutoffTime)) / 1000),
-          ),
+        : Math.max(0, Math.floor((Date.parse(effectiveAsOf) - Date.parse(dataCutoffTime)) / 1000)),
     unavailableReason: null,
     sourceVersions: unique(records.flatMap((record) => record.sourceVersions)),
     evidenceIds: unique(records.flatMap((record) => record.evidenceIds)),
@@ -218,9 +209,7 @@ function evidenceLinks(
       });
     }
   }
-  return [...links.values()].sort((left, right) =>
-    left.evidenceId.localeCompare(right.evidenceId),
-  );
+  return [...links.values()].sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
 }
 
 function eventItem(event: MarketEvent) {
@@ -265,16 +254,14 @@ export class InstrumentIntelligenceService {
     const instrumentId = parseInstrumentId(rawInstrumentId);
     const query = parseInstrumentIntelligenceQuery(rawQuery, this.clock);
     const asOf = query.effectiveAsOf;
-    const [postgresResult, marketResult, emotionResult, featureResult] =
-      await Promise.allSettled([
-        this.postgres.load(instrumentId, asOf),
-        this.market.load(instrumentId, asOf),
-        this.emotion.load(asOf),
-        this.features.load(instrumentId, asOf),
-      ]);
+    const [postgresResult, marketResult, emotionResult, featureResult] = await Promise.allSettled([
+      this.postgres.load(instrumentId, asOf),
+      this.market.load(instrumentId, asOf),
+      this.emotion.load(asOf),
+      this.features.load(instrumentId, asOf),
+    ]);
 
-    const postgres =
-      postgresResult.status === "fulfilled" ? postgresResult.value : null;
+    const postgres = postgresResult.status === "fulfilled" ? postgresResult.value : null;
     const identity =
       postgres === null
         ? unavailable(null, query.requestedAsOf, asOf, "POSTGRES_QUERY_FAILED")

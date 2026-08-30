@@ -36,7 +36,9 @@ export class ClickHouseJsonClient {
         signal: controller.signal,
       });
       if (!response.ok) {
-        throw new Error("ClickHouse instrument intelligence query failed (" + response.status + ")");
+        throw new Error(
+          "ClickHouse instrument intelligence query failed (" + response.status + ")",
+        );
       }
       const body = await response.text();
       if (body.trim() === "") return [];

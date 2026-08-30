@@ -44,7 +44,10 @@ describe("PostgresEventFeedbackRepository", () => {
       },
     } as unknown as Pool;
     const repository = new PostgresEventFeedbackRepository(pool);
-    const result = await repository.append({ ...feedback, comment: "'); DROP TABLE event_feedback; --" });
+    const result = await repository.append({
+      ...feedback,
+      comment: "'); DROP TABLE event_feedback; --",
+    });
     expect(result.disposition).toBe("INSERTED");
     expect(calls[0]?.sql).not.toContain("DROP TABLE");
     expect(calls[0]?.params).toContain("'); DROP TABLE event_feedback; --");

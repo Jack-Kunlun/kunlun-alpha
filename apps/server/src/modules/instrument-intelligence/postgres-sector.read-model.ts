@@ -1,9 +1,6 @@
 import type { PoolClient, QueryResultRow } from "pg";
 import { pgInstant, pgText, sourceVersion } from "./pg-row";
-import {
-  validateSectorMembershipPayload,
-  validateSectorPayload,
-} from "./pit-validation";
+import { validateSectorMembershipPayload, validateSectorPayload } from "./pit-validation";
 import type { PitRecord, SectorContext } from "./read-model.types";
 
 interface SectorRow extends QueryResultRow {
@@ -74,10 +71,7 @@ export async function loadSectorContext(
       throw new Error("visible sector membership has no visible sector master");
     }
     const membershipSource = pgText(row.membership_source, "membership_source");
-    const membershipVersion = pgText(
-      row.membership_source_version,
-      "membership_source_version",
-    );
+    const membershipVersion = pgText(row.membership_source_version, "membership_source_version");
     const sectorSource = pgText(row.sector_source, "sector_source");
     const sectorVersion = pgText(row.sector_source_version, "sector_source_version");
     const membershipAvailable = pgInstant(
@@ -89,10 +83,7 @@ export async function loadSectorContext(
       row.membership_processing_time,
       "membership_processing_time",
     );
-    const sectorProcessing = pgInstant(
-      row.sector_processing_time,
-      "sector_processing_time",
-    );
+    const sectorProcessing = pgInstant(row.sector_processing_time, "sector_processing_time");
     return {
       data: {
         membership: validateSectorMembershipPayload(row.membership_payload),

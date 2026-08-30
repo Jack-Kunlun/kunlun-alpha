@@ -28,11 +28,7 @@ function protectedPage(routeId: TerminalRouteId, children: ReactNode) {
   return <ProtectedRoute routeId={routeId}>{children}</ProtectedRoute>;
 }
 
-export function App({
-  roles = ANONYMOUS_TERMINAL_ROLES,
-}: {
-  roles?: readonly TerminalRole[];
-}) {
+export function App({ roles = ANONYMOUS_TERMINAL_ROLES }: { roles?: readonly TerminalRole[] }) {
   return (
     <TerminalAccessProvider roles={roles}>
       <BrowserRouter>
@@ -46,7 +42,11 @@ export function App({
           >
             {terminalRoutes.map((route) =>
               route.path === "/" ? (
-                <Route key={route.id} index element={protectedPage(route.id, terminalRouteElements[route.id])} />
+                <Route
+                  key={route.id}
+                  index
+                  element={protectedPage(route.id, terminalRouteElements[route.id])}
+                />
               ) : (
                 <Route
                   key={route.id}

@@ -44,9 +44,12 @@ describe("DataQualityController", () => {
     })
     class DataQualityControllerTestModule {}
 
-    const application = await NestFactory.createApplicationContext(DataQualityControllerTestModule, {
-      logger: false,
-    });
+    const application = await NestFactory.createApplicationContext(
+      DataQualityControllerTestModule,
+      {
+        logger: false,
+      },
+    );
     try {
       expect(await application.get(DataQualityController).list({})).toEqual(records);
     } finally {

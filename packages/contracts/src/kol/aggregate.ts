@@ -59,7 +59,11 @@ function validateRevisionGraph(
 ): void {
   const groups = new Map<string, JsonRecord[]>();
   records.forEach((recordValue, index) => {
-    const entityId = stringValue(recordValue[entityIdField], `${entityName}[${index}].${entityIdField}`, errors);
+    const entityId = stringValue(
+      recordValue[entityIdField],
+      `${entityName}[${index}].${entityIdField}`,
+      errors,
+    );
     if (entityId === undefined) return;
     const group = groups.get(entityId);
     if (group === undefined) groups.set(entityId, [recordValue]);
@@ -70,7 +74,11 @@ function validateRevisionGraph(
     const byRevision = new Map<string, JsonRecord>();
     const roots: string[] = [];
     group.forEach((recordValue, index) => {
-      const revisionId = stringValue(recordValue.revisionId, `${entityName}[${index}].revisionId`, errors);
+      const revisionId = stringValue(
+        recordValue.revisionId,
+        `${entityName}[${index}].revisionId`,
+        errors,
+      );
       if (revisionId === undefined) return;
       if (byRevision.has(revisionId)) {
         errors.push(`${entityName} has duplicate logical id and revision`);
@@ -109,9 +117,21 @@ function validateRevisionGraph(
       }
       childByRevision.set(previous, revisionId);
       parentByRevision.set(revisionId, previous);
-      const parentAvailable = instant(parent.availableTime, `${entityName}.${previous}.availableTime`, errors);
-      const childAvailable = instant(recordValue.availableTime, `${entityName}.${revisionId}.availableTime`, errors);
-      if (parentAvailable !== undefined && childAvailable !== undefined && childAvailable <= parentAvailable) {
+      const parentAvailable = instant(
+        parent.availableTime,
+        `${entityName}.${previous}.availableTime`,
+        errors,
+      );
+      const childAvailable = instant(
+        recordValue.availableTime,
+        `${entityName}.${revisionId}.availableTime`,
+        errors,
+      );
+      if (
+        parentAvailable !== undefined &&
+        childAvailable !== undefined &&
+        childAvailable <= parentAvailable
+      ) {
         errors.push(`${entityName} revisions must have strictly increasing availableTime`);
       }
     }
@@ -184,7 +204,8 @@ function validateLinks(
   const contents = new Map<string, JsonRecord>();
   for (const item of content) {
     const contentId = typeof item.contentId === "string" ? item.contentId : undefined;
-    const contentVersion = typeof item.contentVersion === "string" ? item.contentVersion : undefined;
+    const contentVersion =
+      typeof item.contentVersion === "string" ? item.contentVersion : undefined;
     if (contentId === undefined || contentVersion === undefined) continue;
     const key = contentKey(contentId, contentVersion);
     if (contents.has(key)) errors.push("content has duplicate contentId/contentVersion");
@@ -196,7 +217,8 @@ function validateLinks(
     const evidenceId = typeof item.evidenceId === "string" ? item.evidenceId : undefined;
     const revisionId = typeof item.revisionId === "string" ? item.revisionId : undefined;
     const contentId = typeof item.contentId === "string" ? item.contentId : undefined;
-    const contentVersion = typeof item.contentVersion === "string" ? item.contentVersion : undefined;
+    const contentVersion =
+      typeof item.contentVersion === "string" ? item.contentVersion : undefined;
     if (evidenceId === undefined || revisionId === undefined) continue;
     evidences.set(entityKey(evidenceId, revisionId), item);
     if (contentId === undefined || contentVersion === undefined) continue;
@@ -206,7 +228,11 @@ function validateLinks(
       continue;
     }
     const contentAvailable = instant(linkedContent.availableTime, "content.availableTime", errors);
-    const evidenceContentAvailable = instant(item.contentAvailableTime, "evidence.contentAvailableTime", errors);
+    const evidenceContentAvailable = instant(
+      item.contentAvailableTime,
+      "evidence.contentAvailableTime",
+      errors,
+    );
     if (
       contentAvailable !== undefined &&
       evidenceContentAvailable !== undefined &&
@@ -214,7 +240,10 @@ function validateLinks(
     ) {
       errors.push("evidence contentAvailableTime must match the actual content revision");
     }
-    if (item.source !== linkedContent.source || item.sourceVersion !== linkedContent.sourceVersion) {
+    if (
+      item.source !== linkedContent.source ||
+      item.sourceVersion !== linkedContent.sourceVersion
+    ) {
       errors.push("evidence source does not match the actual content revision");
     }
     const evidenceAvailable = instant(item.availableTime, "evidence.availableTime", errors);
@@ -232,7 +261,8 @@ function validateLinks(
     const claimId = typeof item.claimId === "string" ? item.claimId : undefined;
     const revisionId = typeof item.revisionId === "string" ? item.revisionId : undefined;
     const contentId = typeof item.contentId === "string" ? item.contentId : undefined;
-    const contentVersion = typeof item.contentVersion === "string" ? item.contentVersion : undefined;
+    const contentVersion =
+      typeof item.contentVersion === "string" ? item.contentVersion : undefined;
     if (claimId === undefined || revisionId === undefined) continue;
     claimsByKey.set(entityKey(claimId, revisionId), item);
     if (contentId === undefined || contentVersion === undefined) continue;
@@ -240,8 +270,16 @@ function validateLinks(
     if (linkedContent === undefined) {
       errors.push("claim must bind to an actual content id and version");
     } else {
-      const contentAvailable = instant(linkedContent.availableTime, "content.availableTime", errors);
-      const claimContentAvailable = instant(item.contentAvailableTime, "claim.contentAvailableTime", errors);
+      const contentAvailable = instant(
+        linkedContent.availableTime,
+        "content.availableTime",
+        errors,
+      );
+      const claimContentAvailable = instant(
+        item.contentAvailableTime,
+        "claim.contentAvailableTime",
+        errors,
+      );
       if (
         contentAvailable !== undefined &&
         claimContentAvailable !== undefined &&
@@ -263,21 +301,33 @@ function validateLinks(
       const ref = record(reference);
       if (ref === null) return;
       const evidenceId = typeof ref.evidenceId === "string" ? ref.evidenceId : undefined;
-      const evidenceRevisionId = typeof ref.evidenceRevisionId === "string" ? ref.evidenceRevisionId : undefined;
+      const evidenceRevisionId =
+        typeof ref.evidenceRevisionId === "string" ? ref.evidenceRevisionId : undefined;
       if (evidenceId === undefined || evidenceRevisionId === undefined) return;
       const linkedEvidence = evidences.get(entityKey(evidenceId, evidenceRevisionId));
       if (linkedEvidence === undefined) {
         errors.push(`claim evidence[${index}] must bind to an actual evidence revision`);
         return;
       }
-      if (ref.contentId !== linkedEvidence.contentId || ref.contentVersion !== linkedEvidence.contentVersion) {
+      if (
+        ref.contentId !== linkedEvidence.contentId ||
+        ref.contentVersion !== linkedEvidence.contentVersion
+      ) {
         errors.push(`claim evidence[${index}] content identity does not match evidence`);
       }
       if (ref.contentId !== contentId || ref.contentVersion !== contentVersion) {
         errors.push(`claim evidence[${index}] content identity does not match claim`);
       }
-      const refContentAvailable = instant(ref.contentAvailableTime, `claim evidence[${index}].contentAvailableTime`, errors);
-      const evidenceContentAvailable = instant(linkedEvidence.contentAvailableTime, "evidence.contentAvailableTime", errors);
+      const refContentAvailable = instant(
+        ref.contentAvailableTime,
+        `claim evidence[${index}].contentAvailableTime`,
+        errors,
+      );
+      const evidenceContentAvailable = instant(
+        linkedEvidence.contentAvailableTime,
+        "evidence.contentAvailableTime",
+        errors,
+      );
       if (
         refContentAvailable !== undefined &&
         evidenceContentAvailable !== undefined &&
@@ -285,8 +335,16 @@ function validateLinks(
       ) {
         errors.push(`claim evidence[${index}] content availability does not match evidence`);
       }
-      const refEvidenceAvailable = instant(ref.evidenceAvailableTime, `claim evidence[${index}].evidenceAvailableTime`, errors);
-      const evidenceAvailable = instant(linkedEvidence.availableTime, "evidence.availableTime", errors);
+      const refEvidenceAvailable = instant(
+        ref.evidenceAvailableTime,
+        `claim evidence[${index}].evidenceAvailableTime`,
+        errors,
+      );
+      const evidenceAvailable = instant(
+        linkedEvidence.availableTime,
+        "evidence.availableTime",
+        errors,
+      );
       if (
         refEvidenceAvailable !== undefined &&
         evidenceAvailable !== undefined &&
@@ -294,7 +352,10 @@ function validateLinks(
       ) {
         errors.push(`claim evidence[${index}] availability does not match evidence`);
       }
-      if (ref.source !== linkedEvidence.source || ref.sourceVersion !== linkedEvidence.sourceVersion) {
+      if (
+        ref.source !== linkedEvidence.source ||
+        ref.sourceVersion !== linkedEvidence.sourceVersion
+      ) {
         errors.push(`claim evidence[${index}] source does not match evidence`);
       }
       const claimAvailable = instant(item.availableTime, "claim.availableTime", errors);
@@ -310,7 +371,8 @@ function validateLinks(
 
   for (const [index, item] of positions.entries()) {
     const claimId = typeof item.claimId === "string" ? item.claimId : undefined;
-    const claimRevisionId = typeof item.claimRevisionId === "string" ? item.claimRevisionId : undefined;
+    const claimRevisionId =
+      typeof item.claimRevisionId === "string" ? item.claimRevisionId : undefined;
     if (claimId === undefined || claimRevisionId === undefined) continue;
     const linkedClaim = claimsByKey.get(entityKey(claimId, claimRevisionId));
     if (linkedClaim === undefined) {
@@ -352,16 +414,25 @@ export function validateKolDomainSnapshotPayload(input: unknown): ValidationResu
   if (payload === null) return { valid: false, errors: ["snapshot must be an object"] };
   const errors: string[] = [];
   for (const key of Object.keys(payload).sort()) {
-    if (!SNAPSHOT_FIELDS.includes(key as (typeof SNAPSHOT_FIELDS)[number])) errors.push(`unknown field: ${key}`);
+    if (!SNAPSHOT_FIELDS.includes(key as (typeof SNAPSHOT_FIELDS)[number]))
+      errors.push(`unknown field: ${key}`);
   }
   const content = collection(payload, "content", errors);
   const evidence = collection(payload, "evidence", errors);
   const claims = collection(payload, "claims", errors);
   const positions = collection(payload, "positionClaims", errors);
-  content.forEach((item, index) => prefixed(validateKolContentPayload(item), `content[${index}]`, errors));
-  evidence.forEach((item, index) => prefixed(validateKolEvidencePayload(item), `evidence[${index}]`, errors));
-  claims.forEach((item, index) => prefixed(validateKolClaimPayload(item), `claims[${index}]`, errors));
-  positions.forEach((item, index) => prefixed(validateKolPositionClaimPayload(item), `positionClaims[${index}]`, errors));
+  content.forEach((item, index) =>
+    prefixed(validateKolContentPayload(item), `content[${index}]`, errors),
+  );
+  evidence.forEach((item, index) =>
+    prefixed(validateKolEvidencePayload(item), `evidence[${index}]`, errors),
+  );
+  claims.forEach((item, index) =>
+    prefixed(validateKolClaimPayload(item), `claims[${index}]`, errors),
+  );
+  positions.forEach((item, index) =>
+    prefixed(validateKolPositionClaimPayload(item), `positionClaims[${index}]`, errors),
+  );
   validateRevisionGraph(content, "content", "contentId", errors);
   validateRevisionGraph(evidence, "evidence", "evidenceId", errors);
   validateRevisionGraph(claims, "claims", "claimId", errors);
@@ -412,7 +483,8 @@ function snapshotFromRecords(
 
 export function parseKolDomainSnapshotPayload(input: unknown): KolDomainSnapshot {
   const validation = validateKolDomainSnapshotPayload(input);
-  if (!validation.valid) throw new Error(`invalid KOL domain snapshot: ${validation.errors.join("; ")}`);
+  if (!validation.valid)
+    throw new Error(`invalid KOL domain snapshot: ${validation.errors.join("; ")}`);
   const payload = record(input);
   if (payload === null) throw new TypeError("snapshot must be an object");
   return snapshotFromRecords(
@@ -432,17 +504,29 @@ function latestVisible(
   for (const item of records) {
     const entityId = typeof item[entityIdField] === "string" ? item[entityIdField] : undefined;
     const availableMilliseconds = instant(item.availableTime, "availableTime", []);
-    if (entityId === undefined || availableMilliseconds === undefined || availableMilliseconds > decisionMilliseconds) continue;
+    if (
+      entityId === undefined ||
+      availableMilliseconds === undefined ||
+      availableMilliseconds > decisionMilliseconds
+    )
+      continue;
     const previous = latest.get(entityId);
-    const previousMilliseconds = previous === undefined ? undefined : instant(previous.availableTime, "availableTime", []);
-    if (previousMilliseconds === undefined || availableMilliseconds > previousMilliseconds) latest.set(entityId, item);
+    const previousMilliseconds =
+      previous === undefined ? undefined : instant(previous.availableTime, "availableTime", []);
+    if (previousMilliseconds === undefined || availableMilliseconds > previousMilliseconds)
+      latest.set(entityId, item);
   }
-  return Object.freeze([...latest.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([, value]) => value));
+  return Object.freeze(
+    [...latest.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([, value]) => value),
+  );
 }
 
 export function selectKolDomainSnapshotAt(input: unknown, decisionTime: string): KolDomainSnapshot {
   const decisionMilliseconds = instant(decisionTime, "decisionTime", []);
-  if (decisionMilliseconds === undefined) throw new TypeError("decisionTime must be timezone-aware");
+  if (decisionMilliseconds === undefined)
+    throw new TypeError("decisionTime must be timezone-aware");
   const snapshot = parseKolDomainSnapshotPayload(input);
   return snapshotFromRecords(
     latestVisible(snapshot.content, "contentId", decisionMilliseconds),

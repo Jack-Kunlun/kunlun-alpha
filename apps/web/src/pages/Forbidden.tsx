@@ -24,7 +24,8 @@ export function Forbidden() {
         </CardHeader>
         <CardContent className="space-y-5">
           <p className="text-sm leading-6 text-muted-foreground">
-            当前身份没有访问 <code className="rounded bg-muted px-1.5 py-0.5">{location.pathname}</code>
+            当前身份没有访问{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5">{location.pathname}</code>
             的权限。前端限制只用于清晰反馈，服务端权限仍是最终边界。
           </p>
           <Button asChild>

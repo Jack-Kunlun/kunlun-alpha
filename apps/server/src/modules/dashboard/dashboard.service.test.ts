@@ -1,9 +1,6 @@
 import { ForbiddenException } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
-import {
-  PublicReadDashboardAuthorizer,
-  type DashboardAuthorizer,
-} from "./dashboard-authorizer";
+import { PublicReadDashboardAuthorizer, type DashboardAuthorizer } from "./dashboard-authorizer";
 import type { DashboardRepository, MarketOverviewRepositoryData } from "./dashboard-repository";
 import { DashboardService } from "./dashboard.service";
 
@@ -156,10 +153,9 @@ describe("DashboardService", () => {
       loadMarketOverview: async (asOf) => dataAt(new Date(Date.parse(asOf) + 1_000).toISOString()),
     };
     await expect(
-      new DashboardService(
-        futureRepository,
-        new PublicReadDashboardAuthorizer(),
-      ).marketOverview({}),
+      new DashboardService(futureRepository, new PublicReadDashboardAuthorizer()).marketOverview(
+        {},
+      ),
     ).rejects.toThrow("point-in-time cutoff");
   });
 });

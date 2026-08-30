@@ -1,13 +1,7 @@
 import type { EventFeedback } from "@kunlun/shared-types";
 import type { Pool } from "pg";
-import type {
-  AppendFeedbackResult,
-  EventFeedbackRepository,
-} from "./event-feedback-repository";
-import {
-  type EventFeedbackQuery,
-  validateFeedbackRecord,
-} from "./event-feedback-validation";
+import type { AppendFeedbackResult, EventFeedbackRepository } from "./event-feedback-repository";
+import { type EventFeedbackQuery, validateFeedbackRecord } from "./event-feedback-validation";
 
 interface FeedbackRow {
   feedback_id: string;

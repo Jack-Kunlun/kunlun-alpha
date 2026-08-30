@@ -10,10 +10,8 @@ import {
 
 const BASE_CANDIDATE = {
   schemaVersion: "claim-extraction-candidate-v1",
-  candidateId:
-    "1c266a9849669f02ba9b06c42377e8f517a62f7adf74ff7df31d4024b2e2602d",
-  revisionId:
-    "cc1b71cf97cd8ff1aa5160b3a2bb6adfdd9e6fdd95e4ef2c5a8ba0c08ec74b41",
+  candidateId: "1c266a9849669f02ba9b06c42377e8f517a62f7adf74ff7df31d4024b2e2602d",
+  revisionId: "cc1b71cf97cd8ff1aa5160b3a2bb6adfdd9e6fdd95e4ef2c5a8ba0c08ec74b41",
   previousRevisionId: null,
   semanticLabel: "PUBLIC_SPEECH_CANDIDATE_NOT_FACT_OR_EXECUTION",
   statement: "公开表述",
@@ -94,9 +92,7 @@ describe("Claim extraction candidate canonicalization", () => {
 
     expect(offsetCandidate.candidateId).toBe(BASE_CANDIDATE.candidateId);
     expect(offsetCandidate.revisionId).toBe(BASE_CANDIDATE.revisionId);
-    expect(
-      computeClaimExtractionCandidatePayloadFingerprint(offsetCandidate),
-    ).toBe(
+    expect(computeClaimExtractionCandidatePayloadFingerprint(offsetCandidate)).toBe(
       computeClaimExtractionCandidatePayloadFingerprint(BASE_CANDIDATE),
     );
     expect(parseClaimExtractionCandidatePayload(offsetCandidate)).toEqual(
@@ -111,9 +107,7 @@ describe("Claim extraction candidate canonicalization", () => {
       attribution: "SELF",
     });
 
-    expect(() => parseClaimExtractionCandidatePayload(invalid)).toThrow(
-      /AMBIGUOUS.*SELF/,
-    );
+    expect(() => parseClaimExtractionCandidatePayload(invalid)).toThrow(/AMBIGUOUS.*SELF/);
   });
 
   it("rejects rolling calendar dates instead of silently rewriting them", () => {

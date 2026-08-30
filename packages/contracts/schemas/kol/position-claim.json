@@ -13,7 +13,12 @@
     "claimId": { "type": "string", "minLength": 1, "maxLength": 256 },
     "claimRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
     "kolId": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "instrumentId": { "type": "string", "minLength": 9, "maxLength": 9, "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+    "instrumentId": {
+      "type": "string",
+      "minLength": 9,
+      "maxLength": 9,
+      "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$"
+    },
     "position": { "$ref": "#/definitions/KolPositionDirection" },
     "timeHorizon": { "$ref": "#/definitions/KolPositionTimeHorizon" },
     "executionSemantics": { "$ref": "#/definitions/KolExecutionSemantics" },

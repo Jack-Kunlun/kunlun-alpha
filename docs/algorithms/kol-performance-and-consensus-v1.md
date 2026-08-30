@@ -22,7 +22,7 @@ prices and cannot place a real order.
   than the feature `decision_time`. The highest visible `replacement_version`
   wins even if an older version is ingested again later. Each instrument must
   use exactly one `{source, source_version, data_version, interval, session,
-  adjustment}` series; cross-series input and duplicate highest versions fail
+adjustment}` series; cross-series input and duplicate highest versions fail
   closed rather than competing by replacement number.
 - Calculation requires one visible, versioned `TradingCalendarSnapshot` per
   affected market. Its coverage must include Claim availability through the

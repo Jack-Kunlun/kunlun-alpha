@@ -18,13 +18,15 @@ export class InMemoryBacktestRegressionRepository implements BacktestRegressionR
 
   async get(runId: string): Promise<BacktestRegressionArtifact> {
     const artifact = this.artifacts.find((candidate) => candidate["runId"] === runId);
-    if (artifact === undefined) throw new BacktestRegressionUnavailableError("regression run is missing");
+    if (artifact === undefined)
+      throw new BacktestRegressionUnavailableError("regression run is missing");
     return structuredClone(artifact);
   }
 
   async getBaseline(baselineId: string): Promise<BacktestRegressionBaseline> {
     const baseline = this.baselines.get(baselineId);
-    if (baseline === undefined) throw new BacktestRegressionUnavailableError("regression baseline is missing");
+    if (baseline === undefined)
+      throw new BacktestRegressionUnavailableError("regression baseline is missing");
     return structuredClone(baseline);
   }
 

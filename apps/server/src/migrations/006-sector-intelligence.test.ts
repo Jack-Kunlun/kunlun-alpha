@@ -8,9 +8,7 @@ describe("sector intelligence migration", () => {
     await new MigrationRunner(driver).migrate(migrations);
     const migration = migrations.find((item) => item.version === 6);
     const names = migration?.up.map((table) => table.name);
-    const membership = migration?.up.find(
-      (table) => table.name === "sector_membership_revisions",
-    );
+    const membership = migration?.up.find((table) => table.name === "sector_membership_revisions");
 
     expect(names).toEqual(
       expect.arrayContaining(["sector_master_revisions", "sector_membership_revisions"]),

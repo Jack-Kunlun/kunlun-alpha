@@ -10,10 +10,7 @@ import type { RegressionArtifact, RegressionComparison, RegressionRunSummary } f
 const API_PATH = "/v1/backtest/regressions";
 
 export function useBacktestRegressionRuns(): QueryResult<RegressionRunSummary> {
-  return useApiQuery(
-    () => apiClient.get<RegressionRunSummary[]>(API_PATH),
-    [],
-  );
+  return useApiQuery(() => apiClient.get<RegressionRunSummary[]>(API_PATH), []);
 }
 
 export function useBacktestRegression(runId: string): ObjectQueryResult<RegressionArtifact> {
@@ -30,10 +27,9 @@ export function useBacktestRegressionComparison(
 ): ObjectQueryResult<RegressionComparison> {
   return useApiObjectQuery(
     () =>
-      apiClient.get<RegressionComparison>(
-        `${API_PATH}/${encodeURIComponent(runId)}/comparison`,
-        { baselineId },
-      ),
+      apiClient.get<RegressionComparison>(`${API_PATH}/${encodeURIComponent(runId)}/comparison`, {
+        baselineId,
+      }),
     [runId, baselineId],
     runId.length > 0 && baselineId.length > 0,
   );

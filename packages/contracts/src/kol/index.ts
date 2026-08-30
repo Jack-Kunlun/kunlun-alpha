@@ -52,4 +52,8 @@ export {
   compareClaimExtractionInstants,
   computeClaimExtractionCandidatePayloadFingerprint,
 } from "./claim-extraction.js";
-export type { ClaimExtractionCandidatePayload, ClaimReviewPayload, ClaimReviewSubmissionPayload } from "./claim-extraction.js";
+export type {
+  ClaimExtractionCandidatePayload,
+  ClaimReviewPayload,
+  ClaimReviewSubmissionPayload,
+} from "./claim-extraction.js";

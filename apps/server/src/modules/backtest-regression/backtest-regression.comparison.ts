@@ -6,7 +6,13 @@ import type {
 } from "@kunlun/shared-types";
 import { parseBacktestRegressionComparison } from "@kunlun/contracts/backtest-regression";
 
-const CATEGORY_ORDER = ["SCHEMA", "MANIFEST_INPUT", "ALGORITHM_CONFIG", "DEPENDENCY_TOOLCHAIN", "RESULT"] as const;
+const CATEGORY_ORDER = [
+  "SCHEMA",
+  "MANIFEST_INPUT",
+  "ALGORITHM_CONFIG",
+  "DEPENDENCY_TOOLCHAIN",
+  "RESULT",
+] as const;
 type DiffCategory = (typeof CATEGORY_ORDER)[number];
 
 function compareAscii(left: string, right: string): number {
@@ -22,10 +28,13 @@ function compareAscii(left: string, right: string): number {
 function category(pointer: string): DiffCategory {
   const first = pointer.split("/")[1] ?? "";
   if (first === "schemaVersion" || first === "canonicalizationVersion") return "SCHEMA";
-  if (["manifest", "inputs", "suiteId", "runId", "fixtureId"].includes(first)) return "MANIFEST_INPUT";
+  if (["manifest", "inputs", "suiteId", "runId", "fixtureId"].includes(first))
+    return "MANIFEST_INPUT";
   if (first === "provenance") {
     const second = pointer.split("/")[2] ?? "";
-    return second === "dependencies" || second === "toolchain" ? "DEPENDENCY_TOOLCHAIN" : "ALGORITHM_CONFIG";
+    return second === "dependencies" || second === "toolchain"
+      ? "DEPENDENCY_TOOLCHAIN"
+      : "ALGORITHM_CONFIG";
   }
   if (first === "versions" || first === "trust") return "ALGORITHM_CONFIG";
   if (first === "results") return "RESULT";
@@ -37,13 +46,32 @@ function escapeSegment(value: string): string {
 }
 
 function diffTree(baseline: unknown, candidate: unknown, pointer = ""): BacktestRegressionDiff[] {
-  if (baseline !== null && candidate !== null && typeof baseline === "object" && typeof candidate === "object") {
+  if (
+    baseline !== null &&
+    candidate !== null &&
+    typeof baseline === "object" &&
+    typeof candidate === "object"
+  ) {
     if (Array.isArray(baseline) && Array.isArray(candidate)) {
       const result: BacktestRegressionDiff[] = [];
       for (let index = 0; index < Math.max(baseline.length, candidate.length); index += 1) {
         const child = `${pointer}/${index}`;
-        if (index >= baseline.length) result.push({ category: category(child), pointer: child, status: "ADDED", baselineValue: null, candidateValue: candidate[index] });
-        else if (index >= candidate.length) result.push({ category: category(child), pointer: child, status: "REMOVED", baselineValue: baseline[index], candidateValue: null });
+        if (index >= baseline.length)
+          result.push({
+            category: category(child),
+            pointer: child,
+            status: "ADDED",
+            baselineValue: null,
+            candidateValue: candidate[index],
+          });
+        else if (index >= candidate.length)
+          result.push({
+            category: category(child),
+            pointer: child,
+            status: "REMOVED",
+            baselineValue: baseline[index],
+            candidateValue: null,
+          });
         else result.push(...diffTree(baseline[index], candidate[index], child));
       }
       return result;
@@ -55,14 +83,38 @@ function diffTree(baseline: unknown, candidate: unknown, pointer = ""): Backtest
       for (const key of Object.keys({ ...left, ...right }).sort(compareAscii)) {
         if (pointer === "" && key === "artifactSha256") continue;
         const child = `${pointer}/${escapeSegment(key)}`;
-        if (!(key in left)) result.push({ category: category(child), pointer: child, status: "ADDED", baselineValue: null, candidateValue: right[key] });
-        else if (!(key in right)) result.push({ category: category(child), pointer: child, status: "REMOVED", baselineValue: left[key], candidateValue: null });
+        if (!(key in left))
+          result.push({
+            category: category(child),
+            pointer: child,
+            status: "ADDED",
+            baselineValue: null,
+            candidateValue: right[key],
+          });
+        else if (!(key in right))
+          result.push({
+            category: category(child),
+            pointer: child,
+            status: "REMOVED",
+            baselineValue: left[key],
+            candidateValue: null,
+          });
         else result.push(...diffTree(left[key], right[key], child));
       }
       return result;
     }
   }
-  return Object.is(baseline, candidate) ? [] : [{ category: category(pointer), pointer: pointer || "/", status: "REPLACED", baselineValue: baseline, candidateValue: candidate }];
+  return Object.is(baseline, candidate)
+    ? []
+    : [
+        {
+          category: category(pointer),
+          pointer: pointer || "/",
+          status: "REPLACED",
+          baselineValue: baseline,
+          candidateValue: candidate,
+        },
+      ];
 }
 
 export function compareBacktestArtifacts(
@@ -70,7 +122,9 @@ export function compareBacktestArtifacts(
   candidate: BacktestRegressionArtifact,
 ): BacktestRegressionComparison {
   const diffs = diffTree(baseline, candidate).sort((left, right) => {
-    const categoryDelta = CATEGORY_ORDER.indexOf(left["category"] as DiffCategory) - CATEGORY_ORDER.indexOf(right["category"] as DiffCategory);
+    const categoryDelta =
+      CATEGORY_ORDER.indexOf(left["category"] as DiffCategory) -
+      CATEGORY_ORDER.indexOf(right["category"] as DiffCategory);
     return categoryDelta || compareAscii(String(left["pointer"]), String(right["pointer"]));
   });
   const categoryCounts: BacktestRegressionComparison["categoryCounts"] = {

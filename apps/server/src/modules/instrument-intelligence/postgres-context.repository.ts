@@ -16,9 +16,7 @@ function unique(values: readonly string[]): string[] {
   return [...new Set(values)].sort();
 }
 
-export class PostgresInstrumentContextRepository
-  implements PostgresInstrumentContextReadModel
-{
+export class PostgresInstrumentContextRepository implements PostgresInstrumentContextReadModel {
   constructor(private readonly pool: Pool) {}
 
   async load(instrumentId: string, asOf: string): Promise<PostgresInstrumentContext> {

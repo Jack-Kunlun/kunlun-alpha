@@ -13,10 +13,11 @@ describe("ClaimReviewController authorization boundary", () => {
   });
 
   it("accepts a trusted injected principal through the service port, not a client header", async () => {
-    const service = new ClaimReviewService(
-      new InMemoryClaimReviewRepository(),
-      { currentReviewerRef: async () => "trusted-internal-reviewer" },
+    const service = new ClaimReviewService(new InMemoryClaimReviewRepository(), {
+      currentReviewerRef: async () => "trusted-internal-reviewer",
+    });
+    await expect(new ClaimReviewController(service).submit({})).rejects.toBeInstanceOf(
+      BadRequestException,
     );
-    await expect(new ClaimReviewController(service).submit({})).rejects.toBeInstanceOf(BadRequestException);
   });
 });

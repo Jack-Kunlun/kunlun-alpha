@@ -134,16 +134,18 @@ describe("P4-N06 repair regressions", () => {
     expect(validateKolEvidencePayload({ ...EVIDENCE, evidenceGrade: "UNKNOWN" })).toMatchObject({
       valid: false,
     });
-    expect(
-      validateKolContentPayload({ ...CONTENT, body: "tampered body" }),
-    ).toMatchObject({ valid: false });
+    expect(validateKolContentPayload({ ...CONTENT, body: "tampered body" })).toMatchObject({
+      valid: false,
+    });
   });
 
   it("rejects exchange-prefix mismatches and overlong fields", () => {
     expect(validateKolClaimPayload({ ...CLAIM, instrumentId: "600519.SZ" })).toMatchObject({
       valid: false,
     });
-    expect(validateKolPositionClaimPayload({ ...POSITION_CLAIM, instrumentId: "000001.SH" })).toMatchObject({
+    expect(
+      validateKolPositionClaimPayload({ ...POSITION_CLAIM, instrumentId: "000001.SH" }),
+    ).toMatchObject({
       valid: false,
     });
     expect(validateKolClaimPayload({ ...CLAIM, statement: "x".repeat(10001) })).toMatchObject({
@@ -158,14 +160,20 @@ describe("P4-N06 repair regressions", () => {
   });
 
   it("locks the quote/reported/ambiguous combination matrix", () => {
-    expect(validateKolClaimPayload({ ...CLAIM, statementKind: "QUOTE", attribution: "SELF" })).toMatchObject({
+    expect(
+      validateKolClaimPayload({ ...CLAIM, statementKind: "QUOTE", attribution: "SELF" }),
+    ).toMatchObject({
       valid: false,
     });
-    expect(validateKolClaimPayload({ ...CLAIM, statementKind: "PARAPHRASE", attribution: "REPORTED" })).toEqual({
+    expect(
+      validateKolClaimPayload({ ...CLAIM, statementKind: "PARAPHRASE", attribution: "REPORTED" }),
+    ).toEqual({
       valid: true,
       errors: [],
     });
-    expect(validateKolClaimPayload({ ...CLAIM, statementKind: "AMBIGUOUS", uncertainty: "NONE" })).toMatchObject({
+    expect(
+      validateKolClaimPayload({ ...CLAIM, statementKind: "AMBIGUOUS", uncertainty: "NONE" }),
+    ).toMatchObject({
       valid: false,
     });
   });
@@ -177,7 +185,10 @@ describe("P4-N06 repair regressions", () => {
       revisionId: "content-revision-2",
       previousRevisionId: CONTENT.revisionId,
       body: "A corrected public statement about an instrument.",
-      contentFingerprint: fingerprint("A public statement", "A corrected public statement about an instrument."),
+      contentFingerprint: fingerprint(
+        "A public statement",
+        "A corrected public statement about an instrument.",
+      ),
       availableTime: "2026-08-24T08:10:00Z",
     };
     const snapshot = parseKolDomainSnapshotPayload({
@@ -187,7 +198,9 @@ describe("P4-N06 repair regressions", () => {
       positionClaims: [POSITION_CLAIM],
     });
     expect(selectKolDomainSnapshotAt(snapshot, "2026-08-24T08:05:00Z").content[0]).toEqual(CONTENT);
-    expect(selectKolDomainSnapshotAt(snapshot, "2026-08-24T08:10:00Z").content[0]).toEqual(futureContent);
+    expect(selectKolDomainSnapshotAt(snapshot, "2026-08-24T08:10:00Z").content[0]).toEqual(
+      futureContent,
+    );
     expect(() =>
       parseKolDomainSnapshotPayload({
         content: [CONTENT],
@@ -245,8 +258,12 @@ describe("P4-N06 repair regressions", () => {
       });
 
     expect(() => parse({ evidence: { ...EVIDENCE, source: "other-source" } })).toThrow(/source/);
-    expect(() => parse({ evidence: { ...EVIDENCE, sourceVersion: "other-version" } })).toThrow(/source/);
-    expect(() => parse({ claim: { ...CLAIM, contentAvailableTime: "2026-08-24T08:02:00Z" } })).toThrow(/contentAvailableTime/);
+    expect(() => parse({ evidence: { ...EVIDENCE, sourceVersion: "other-version" } })).toThrow(
+      /source/,
+    );
+    expect(() =>
+      parse({ claim: { ...CLAIM, contentAvailableTime: "2026-08-24T08:02:00Z" } }),
+    ).toThrow(/contentAvailableTime/);
     expect(() =>
       parse({
         claim: {
@@ -282,10 +299,33 @@ describe("P4-N06 repair regressions", () => {
   });
 
   it("rejects invalid tombstones across all KOL runtime validators", () => {
-    expect(validateKolContentPayload({ ...CONTENT, deleted: true, deletedAt: CONTENT.availableTime, deletionReason: null })).toMatchObject({ valid: false });
-    expect(validateKolClaimPayload({ ...CLAIM, deleted: true, deletedAt: CLAIM.availableTime, deletionReason: null })).toMatchObject({ valid: false });
-    expect(validateKolPositionClaimPayload({ ...POSITION_CLAIM, deleted: true, deletedAt: POSITION_CLAIM.availableTime, deletionReason: null })).toMatchObject({ valid: false });
-    expect(validateKolClaimPayload({ ...CLAIM, deletionReason: "x".repeat(1001) })).toMatchObject({ valid: false });
+    expect(
+      validateKolContentPayload({
+        ...CONTENT,
+        deleted: true,
+        deletedAt: CONTENT.availableTime,
+        deletionReason: null,
+      }),
+    ).toMatchObject({ valid: false });
+    expect(
+      validateKolClaimPayload({
+        ...CLAIM,
+        deleted: true,
+        deletedAt: CLAIM.availableTime,
+        deletionReason: null,
+      }),
+    ).toMatchObject({ valid: false });
+    expect(
+      validateKolPositionClaimPayload({
+        ...POSITION_CLAIM,
+        deleted: true,
+        deletedAt: POSITION_CLAIM.availableTime,
+        deletionReason: null,
+      }),
+    ).toMatchObject({ valid: false });
+    expect(validateKolClaimPayload({ ...CLAIM, deletionReason: "x".repeat(1001) })).toMatchObject({
+      valid: false,
+    });
   });
 
   it("deep-freezes aggregate records and nested evidence references", () => {

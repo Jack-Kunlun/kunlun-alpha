@@ -180,7 +180,12 @@ describe("KOL runtime validators", () => {
   it("does point-in-time visibility without allowing future payloads", () => {
     expect(isKolClaimVisibleAt(CLAIM, "2026-08-24T08:05:00Z")).toBe(true);
     expect(isKolClaimVisibleAt(CLAIM, "2026-08-24T08:04:59Z")).toBe(false);
-    expect(isKolClaimVisibleAt({ ...CLAIM, availableTime: "2026-08-24T08:06:00Z" }, "2026-08-24T08:05:00Z")).toBe(false);
+    expect(
+      isKolClaimVisibleAt(
+        { ...CLAIM, availableTime: "2026-08-24T08:06:00Z" },
+        "2026-08-24T08:05:00Z",
+      ),
+    ).toBe(false);
   });
 
   it("rejects self revisions and deletion inconsistencies while preserving non-execution semantics", () => {

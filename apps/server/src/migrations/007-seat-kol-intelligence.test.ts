@@ -8,9 +8,7 @@ describe("seat and KOL intelligence migration", () => {
     await new MigrationRunner(driver).migrate(migrations);
     const migration = migrations.find((item) => item.version === 7);
     const names = migration?.up.map((table) => table.name);
-    const claim = migration?.up.find(
-      (table) => table.name === "kol_claim_intelligence_revisions",
-    );
+    const claim = migration?.up.find((table) => table.name === "kol_claim_intelligence_revisions");
 
     expect(names).toEqual(
       expect.arrayContaining([

@@ -58,13 +58,7 @@
     "PaperPosition": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "instrumentId",
-        "quantity",
-        "availableQuantity",
-        "costAmount",
-        "averageCost"
-      ],
+      "required": ["instrumentId", "quantity", "availableQuantity", "costAmount", "averageCost"],
       "properties": {
         "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
         "quantity": { "type": "integer", "minimum": 1 },

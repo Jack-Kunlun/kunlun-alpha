@@ -7,7 +7,11 @@ import { LOCAL_PREVIEW_ARTIFACT, LOCAL_PREVIEW_BASELINE } from "./backtest-regre
 import { FileBacktestRegressionRepository } from "./file-backtest-regression.repository";
 import { canonicalJson } from "./backtest-regression.validation";
 
-async function writeIdentity(root: string, artifactSha256: string, runId = "local-preview-run"): Promise<void> {
+async function writeIdentity(
+  root: string,
+  artifactSha256: string,
+  runId = "local-preview-run",
+): Promise<void> {
   const suiteId = "p5-core-chain";
   const identityDir = join(root, "identities", suiteId);
   await mkdir(identityDir, { recursive: true });
@@ -60,7 +64,9 @@ describe("P5-N13 file repository safety", () => {
     const outsideBaseline = join(outside, "outside.baseline.json");
     await writeFile(outsideBaseline, canonicalJson(LOCAL_PREVIEW_BASELINE));
     await symlink(outsideBaseline, join(root, "baselines", "p5-core-chain.baseline.json"));
-    await expect(new FileBacktestRegressionRepository(root).getBaseline("p5-core-chain")).rejects.toThrow();
+    await expect(
+      new FileBacktestRegressionRepository(root).getBaseline("p5-core-chain"),
+    ).rejects.toThrow();
   });
 
   it("rejects suite and digest-prefix symlinks while listing identities", async () => {
@@ -90,7 +96,10 @@ describe("P5-N13 file repository safety", () => {
     const wrongDigest = "b".repeat(64);
     const wrongObjectDir = join(mismatchRoot, "objects", "sha256", wrongDigest.slice(0, 2));
     await mkdir(wrongObjectDir, { recursive: true });
-    await writeFile(join(wrongObjectDir, `${wrongDigest}.json`), canonicalJson(LOCAL_PREVIEW_ARTIFACT));
+    await writeFile(
+      join(wrongObjectDir, `${wrongDigest}.json`),
+      canonicalJson(LOCAL_PREVIEW_ARTIFACT),
+    );
     await writeIdentity(mismatchRoot, wrongDigest);
     expect(objectDigest).not.toBe(wrongDigest);
     await expect(new FileBacktestRegressionRepository(mismatchRoot).list()).rejects.toThrow();

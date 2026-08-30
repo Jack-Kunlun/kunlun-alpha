@@ -6,7 +6,10 @@ import { LOCAL_PREVIEW_ARTIFACT, LOCAL_PREVIEW_BASELINE } from "./backtest-regre
 import { FileBacktestRegressionRepository } from "./file-backtest-regression.repository";
 import { InMemoryBacktestRegressionRepository } from "./in-memory-backtest-regression.repository";
 import { BacktestRegressionService } from "./backtest-regression.service";
-import { BACKTEST_REGRESSION_AUTHORIZER, BACKTEST_REGRESSION_REPOSITORY } from "./backtest-regression.tokens";
+import {
+  BACKTEST_REGRESSION_AUTHORIZER,
+  BACKTEST_REGRESSION_REPOSITORY,
+} from "./backtest-regression.tokens";
 import type { BacktestRegressionRepository } from "./backtest-regression.types";
 
 function buildRepository(): BacktestRegressionRepository {

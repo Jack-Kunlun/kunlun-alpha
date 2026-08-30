@@ -96,9 +96,7 @@ describe("KOL V1 schemas", () => {
     const position = properties(positionClaimSchema);
     const executionSemantics = (positionClaimSchema.definitions as JsonObject)
       .KolExecutionSemantics as JsonObject;
-    expect(executionSemantics.enum).toEqual([
-      "NON_EXECUTABLE_POSITION_CLAIM",
-    ]);
+    expect(executionSemantics.enum).toEqual(["NON_EXECUTABLE_POSITION_CLAIM"]);
     expect(position.claimId).toBeDefined();
     expect(position.claimRevisionId).toBeDefined();
     expect(position.deleted).toBeDefined();

@@ -4,25 +4,157 @@
   "normalization_policy_version": "seat-normalization-v1",
   "sample_count": 20,
   "samples": [
-    {"id": "golden-exact-alpha", "raw_name": "Alpha Securities营业部", "decision_time": "2026-08-24T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "AUTO", "expected_identity_key": "broker:alpha-001"},
-    {"id": "golden-fullwidth-alpha", "raw_name": "ＡＬＰＨＡ　ＳＥＣＵＲＩＴＩＥＳ营业部", "decision_time": "2026-08-24T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "AUTO", "expected_identity_key": "broker:alpha-001"},
-    {"id": "golden-case-space-beta", "raw_name": "  bEtA   CaPiTaL营业厅 ", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "AUTO", "expected_identity_key": "broker:beta-002"},
-    {"id": "golden-suffix-beta", "raw_name": "Beta Capital证券营业部", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "AUTO", "expected_identity_key": "broker:beta-002"},
-    {"id": "golden-institution", "raw_name": "Institution Desk", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "INSTITUTION", "expected_status": "AUTO", "expected_identity_key": "exchange:institution-001"},
-    {"id": "golden-institution-conflict", "raw_name": "Institution Desk", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "REVIEW", "expected_identity_key": "exchange:institution-001"},
-    {"id": "golden-unknown-seat", "raw_name": "Unknown Seat", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "UNKNOWN", "expected_status": "REVIEW", "expected_identity_key": "source:unknown:row-001"},
-    {"id": "golden-unrelated", "raw_name": "Unrelated Name", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "REVIEW"},
-    {"id": "golden-collision-one", "raw_name": "Shared Securities营业部", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "REVIEW"},
-    {"id": "golden-collision-width", "raw_name": "ＳＨＡＲＥＤ　ＳＥＣＵＲＩＴＩＥＳ营业部", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "REVIEW"},
-    {"id": "golden-missing-hint", "raw_name": "Alpha Securities营业厅", "decision_time": "2026-08-26T08:00:00+00:00", "expected_status": "REVIEW", "expected_identity_key": "broker:alpha-001"},
-    {"id": "golden-typo", "raw_name": "Alpha Securities BranchX", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "REVIEW", "expected_identity_key": "broker:alpha-001"},
-    {"id": "golden-name-change", "raw_name": "Alpha Securities营业厅", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "AUTO", "expected_identity_key": "broker:alpha-001"},
-    {"id": "golden-former-name", "raw_name": "Alpha Former营业部", "decision_time": "2026-08-24T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "AUTO", "expected_identity_key": "broker:alpha-001"},
-    {"id": "golden-expired-alias", "raw_name": "Expired Branch", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "REVIEW"},
-    {"id": "golden-future-alias", "raw_name": "Future Branch", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "REVIEW"},
-    {"id": "golden-future-profile", "raw_name": "Future Profile Branch", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "REVIEW"},
-    {"id": "golden-expired-profile", "raw_name": "Expired Profile Branch", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "REVIEW"},
-    {"id": "golden-exact-gamma", "raw_name": "Gamma Securities营业部", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "BROKER_BRANCH", "expected_status": "AUTO", "expected_identity_key": "broker:gamma-003"},
-    {"id": "golden-beta-type-conflict", "raw_name": "Beta Capital营业厅", "decision_time": "2026-08-26T08:00:00+00:00", "seat_kind_hint": "INSTITUTION", "expected_status": "REVIEW", "expected_identity_key": "broker:beta-002"}
+    {
+      "id": "golden-exact-alpha",
+      "raw_name": "Alpha Securities营业部",
+      "decision_time": "2026-08-24T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "AUTO",
+      "expected_identity_key": "broker:alpha-001"
+    },
+    {
+      "id": "golden-fullwidth-alpha",
+      "raw_name": "ＡＬＰＨＡ　ＳＥＣＵＲＩＴＩＥＳ营业部",
+      "decision_time": "2026-08-24T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "AUTO",
+      "expected_identity_key": "broker:alpha-001"
+    },
+    {
+      "id": "golden-case-space-beta",
+      "raw_name": "  bEtA   CaPiTaL营业厅 ",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "AUTO",
+      "expected_identity_key": "broker:beta-002"
+    },
+    {
+      "id": "golden-suffix-beta",
+      "raw_name": "Beta Capital证券营业部",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "AUTO",
+      "expected_identity_key": "broker:beta-002"
+    },
+    {
+      "id": "golden-institution",
+      "raw_name": "Institution Desk",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "INSTITUTION",
+      "expected_status": "AUTO",
+      "expected_identity_key": "exchange:institution-001"
+    },
+    {
+      "id": "golden-institution-conflict",
+      "raw_name": "Institution Desk",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "REVIEW",
+      "expected_identity_key": "exchange:institution-001"
+    },
+    {
+      "id": "golden-unknown-seat",
+      "raw_name": "Unknown Seat",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "UNKNOWN",
+      "expected_status": "REVIEW",
+      "expected_identity_key": "source:unknown:row-001"
+    },
+    {
+      "id": "golden-unrelated",
+      "raw_name": "Unrelated Name",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "REVIEW"
+    },
+    {
+      "id": "golden-collision-one",
+      "raw_name": "Shared Securities营业部",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "REVIEW"
+    },
+    {
+      "id": "golden-collision-width",
+      "raw_name": "ＳＨＡＲＥＤ　ＳＥＣＵＲＩＴＩＥＳ营业部",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "REVIEW"
+    },
+    {
+      "id": "golden-missing-hint",
+      "raw_name": "Alpha Securities营业厅",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "expected_status": "REVIEW",
+      "expected_identity_key": "broker:alpha-001"
+    },
+    {
+      "id": "golden-typo",
+      "raw_name": "Alpha Securities BranchX",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "REVIEW",
+      "expected_identity_key": "broker:alpha-001"
+    },
+    {
+      "id": "golden-name-change",
+      "raw_name": "Alpha Securities营业厅",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "AUTO",
+      "expected_identity_key": "broker:alpha-001"
+    },
+    {
+      "id": "golden-former-name",
+      "raw_name": "Alpha Former营业部",
+      "decision_time": "2026-08-24T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "AUTO",
+      "expected_identity_key": "broker:alpha-001"
+    },
+    {
+      "id": "golden-expired-alias",
+      "raw_name": "Expired Branch",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "REVIEW"
+    },
+    {
+      "id": "golden-future-alias",
+      "raw_name": "Future Branch",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "REVIEW"
+    },
+    {
+      "id": "golden-future-profile",
+      "raw_name": "Future Profile Branch",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "REVIEW"
+    },
+    {
+      "id": "golden-expired-profile",
+      "raw_name": "Expired Profile Branch",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "REVIEW"
+    },
+    {
+      "id": "golden-exact-gamma",
+      "raw_name": "Gamma Securities营业部",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "BROKER_BRANCH",
+      "expected_status": "AUTO",
+      "expected_identity_key": "broker:gamma-003"
+    },
+    {
+      "id": "golden-beta-type-conflict",
+      "raw_name": "Beta Capital营业厅",
+      "decision_time": "2026-08-26T08:00:00+00:00",
+      "seat_kind_hint": "INSTITUTION",
+      "expected_status": "REVIEW",
+      "expected_identity_key": "broker:beta-002"
+    }
   ]
 }

@@ -7,12 +7,12 @@ can reach `ExtractionStore.commit_validated`; every model/provider failure remai
 
 ## Queue dispositions
 
-| Status            | Queue action | Meaning |
-| ----------------- | ------------ | ------- |
-| `STORED`          | Ack          | Event and success audit were committed atomically. |
-| `DUPLICATE`       | Ack          | The derived idempotency key already has a committed event. |
-| `RETRY_SCHEDULED` | Retry at time | Classified transient failure, still below the bounded attempt limit. |
-| `REJECTED`        | Ack + review | Permanent or exhausted failure persisted in the isolated outcome store. |
+| Status            | Queue action  | Meaning                                                                 |
+| ----------------- | ------------- | ----------------------------------------------------------------------- |
+| `STORED`          | Ack           | Event and success audit were committed atomically.                      |
+| `DUPLICATE`       | Ack           | The derived idempotency key already has a committed event.              |
+| `RETRY_SCHEDULED` | Retry at time | Classified transient failure, still below the bounded attempt limit.    |
+| `REJECTED`        | Ack + review  | Permanent or exhausted failure persisted in the isolated outcome store. |
 
 Never acknowledge a message when the store cannot persist the returned retry/rejection audit outcome.
 

@@ -14,23 +14,20 @@ describe("instrument intelligence query", () => {
       effectiveAsOf: "2026-08-26T08:00:00.000Z",
       generatedAt: "2026-08-26T08:00:00.000Z",
     });
-    expect(() =>
-      parseInstrumentIntelligenceQuery({ mode: "HISTORICAL" }, clock),
-    ).toThrow(InstrumentIntelligenceValidationError);
+    expect(() => parseInstrumentIntelligenceQuery({ mode: "HISTORICAL" }, clock)).toThrow(
+      InstrumentIntelligenceValidationError,
+    );
   });
 
   it("rejects future, unzoned and CURRENT asOf values", () => {
+    expect(() => parseInstrumentIntelligenceQuery({ asOf: "2026-08-26T08:00:01Z" }, clock)).toThrow(
+      "future",
+    );
+    expect(() => parseInstrumentIntelligenceQuery({ asOf: "2026-08-26T08:00:00" }, clock)).toThrow(
+      "timezone-aware",
+    );
     expect(() =>
-      parseInstrumentIntelligenceQuery({ asOf: "2026-08-26T08:00:01Z" }, clock),
-    ).toThrow("future");
-    expect(() =>
-      parseInstrumentIntelligenceQuery({ asOf: "2026-08-26T08:00:00" }, clock),
-    ).toThrow("timezone-aware");
-    expect(() =>
-      parseInstrumentIntelligenceQuery(
-        { mode: "CURRENT", asOf: "2026-08-25T08:00:00Z" },
-        clock,
-      ),
+      parseInstrumentIntelligenceQuery({ mode: "CURRENT", asOf: "2026-08-25T08:00:00Z" }, clock),
     ).toThrow("must not provide");
   });
 });

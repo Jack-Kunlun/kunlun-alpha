@@ -21,8 +21,8 @@
     {
       "file": "dataset/dataset-manifest.json",
       "recordCount": 1,
-      "sha256": "sha256:16c27ab72bcbc20c1a15cbd393af1861bbaff55314b0fb8abd934acc16b236a0",
-      "sizeBytes": 3475
+      "sha256": "sha256:d578a9d99b277a3b0999d9708f8bba4c0d4f4b5c6329cec7464b36085ba75396",
+      "sizeBytes": 3387
     },
     {
       "file": "dataset/rebuild-command.json",

@@ -86,10 +86,7 @@
       "title": "ContentDigestReference",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "kind",
-        "sha256"
-      ],
+      "required": ["kind", "sha256"],
       "properties": {
         "kind": {
           "const": "CONTENT_SHA256"
@@ -103,11 +100,7 @@
       "title": "OpaqueExternalDigestReference",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "kind",
-        "namespace",
-        "value"
-      ],
+      "required": ["kind", "namespace", "value"],
       "properties": {
         "kind": {
           "const": "OPAQUE_EXTERNAL"
@@ -136,24 +129,13 @@
     "RegressionTrust": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "mode",
-        "evidenceIntegrityConfidence",
-        "evidenceRefs"
-      ],
+      "required": ["mode", "evidenceIntegrityConfidence", "evidenceRefs"],
       "properties": {
         "mode": {
-          "enum": [
-            "FIXTURE_SELF_CONTAINED",
-            "VERIFIED"
-          ]
+          "enum": ["FIXTURE_SELF_CONTAINED", "VERIFIED"]
         },
         "evidenceIntegrityConfidence": {
-          "enum": [
-            "LOW",
-            "MEDIUM",
-            "HIGH"
-          ]
+          "enum": ["LOW", "MEDIUM", "HIGH"]
         },
         "evidenceRefs": {
           "type": "array",
@@ -166,10 +148,7 @@
     "RegressionManifest": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "json",
-        "sha256"
-      ],
+      "required": ["json", "sha256"],
       "properties": {
         "json": {
           "type": "object"
@@ -182,11 +161,7 @@
     "PortfolioHistoryRef": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "tapeId",
-        "eventTapeDigest",
-        "eventCount"
-      ],
+      "required": ["tapeId", "eventTapeDigest", "eventCount"],
       "properties": {
         "tapeId": {
           "$ref": "#/$defs/SafeId"
@@ -204,11 +179,7 @@
     "Observation": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "observationTime",
-        "nav",
-        "provenanceDigest"
-      ],
+      "required": ["observationTime", "nav", "provenanceDigest"],
       "properties": {
         "observationTime": {
           "$ref": "#/$defs/Timestamp"
@@ -224,11 +195,7 @@
     "RiskFreeObservation": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "observationTime",
-        "rate",
-        "provenanceDigest"
-      ],
+      "required": ["observationTime", "rate", "provenanceDigest"],
       "properties": {
         "observationTime": {
           "$ref": "#/$defs/Timestamp"
@@ -244,13 +211,7 @@
     "ValuationLineageItem": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "observationTime",
-        "inputDigest",
-        "markDigest",
-        "stateDigest",
-        "nav"
-      ],
+      "required": ["observationTime", "inputDigest", "markDigest", "stateDigest", "nav"],
       "properties": {
         "observationTime": {
           "$ref": "#/$defs/Timestamp"
@@ -348,11 +309,7 @@
     "DigestEntry": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "version",
-        "sha256"
-      ],
+      "required": ["name", "version", "sha256"],
       "properties": {
         "name": {
           "type": "string",
@@ -370,10 +327,7 @@
     "CodeDigestEntry": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "path",
-        "sha256"
-      ],
+      "required": ["path", "sha256"],
       "properties": {
         "path": {
           "type": "string",
@@ -387,10 +341,7 @@
     "CodeProvenance": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "allowlist",
-        "treeSha256"
-      ],
+      "required": ["allowlist", "treeSha256"],
       "properties": {
         "allowlist": {
           "type": "array",
@@ -443,12 +394,7 @@
     "RegressionProvenance": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "code",
-        "config",
-        "dependencies",
-        "toolchain"
-      ],
+      "required": ["code", "config", "dependencies", "toolchain"],
       "properties": {
         "code": {
           "$ref": "#/$defs/CodeProvenance"
@@ -536,34 +482,21 @@
     "MetricValue": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "status",
-        "value"
-      ],
+      "required": ["status", "value"],
       "properties": {
         "status": {
           "type": "string",
           "minLength": 1
         },
         "value": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         }
       }
     },
     "FinalValuation": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "cutoffTime",
-        "nav",
-        "totalPnl",
-        "stateDigest",
-        "inputDigest",
-        "sampleCount"
-      ],
+      "required": ["cutoffTime", "nav", "totalPnl", "stateDigest", "inputDigest", "sampleCount"],
       "properties": {
         "cutoffTime": {
           "$ref": "#/$defs/Timestamp"
@@ -646,12 +579,7 @@
         "pnl": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "realized",
-            "unrealized",
-            "total",
-            "fees"
-          ],
+          "required": ["realized", "unrealized", "total", "fees"],
           "properties": {
             "realized": {
               "$ref": "#/$defs/Decimal"
@@ -828,10 +756,7 @@
           "$ref": "#/$defs/SafeId"
         },
         "status": {
-          "enum": [
-            "MATCHED",
-            "DRIFTED"
-          ]
+          "enum": ["MATCHED", "DRIFTED"]
         },
         "candidateSha256": {
           "$ref": "#/$defs/Sha256"
@@ -850,11 +775,7 @@
           "minLength": 1
         },
         "evidenceIntegrityConfidence": {
-          "enum": [
-            "LOW",
-            "MEDIUM",
-            "HIGH"
-          ]
+          "enum": ["LOW", "MEDIUM", "HIGH"]
         },
         "preview": {
           "type": "boolean",
@@ -866,22 +787,10 @@
       "title": "BacktestRegressionDiff",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "category",
-        "pointer",
-        "status",
-        "baselineValue",
-        "candidateValue"
-      ],
+      "required": ["category", "pointer", "status", "baselineValue", "candidateValue"],
       "properties": {
         "category": {
-          "enum": [
-            "SCHEMA",
-            "MANIFEST_INPUT",
-            "ALGORITHM_CONFIG",
-            "DEPENDENCY_TOOLCHAIN",
-            "RESULT"
-          ]
+          "enum": ["SCHEMA", "MANIFEST_INPUT", "ALGORITHM_CONFIG", "DEPENDENCY_TOOLCHAIN", "RESULT"]
         },
         "pointer": {
           "type": "string",
@@ -889,11 +798,7 @@
           "pattern": "^(?:/(?:[^~]|~[01])*)+$"
         },
         "status": {
-          "enum": [
-            "ADDED",
-            "REMOVED",
-            "REPLACED"
-          ]
+          "enum": ["ADDED", "REMOVED", "REPLACED"]
         },
         "baselineValue": {},
         "candidateValue": {}
@@ -924,10 +829,7 @@
           "$ref": "#/$defs/Sha256"
         },
         "status": {
-          "enum": [
-            "MATCHED",
-            "DRIFTED"
-          ]
+          "enum": ["MATCHED", "DRIFTED"]
         },
         "categoryCounts": {
           "$ref": "#/$defs/CategoryCounts"
@@ -1031,16 +933,10 @@
         },
         "status": {
           "type": "string",
-          "enum": [
-            "REJECTED",
-            "FILLED"
-          ]
+          "enum": ["REJECTED", "FILLED"]
         },
         "rejectReason": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "fillCount": {
           "type": "integer",
@@ -1089,10 +985,7 @@
           "$ref": "#/$defs/TPlusOneObservation"
         }
       },
-      "required": [
-        "sameDay",
-        "nextDay"
-      ]
+      "required": ["sameDay", "nextDay"]
     }
   },
   "type": "object",

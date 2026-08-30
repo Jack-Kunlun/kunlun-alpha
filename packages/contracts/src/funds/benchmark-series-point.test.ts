@@ -82,8 +82,7 @@ describe("BenchmarkSeriesPoint v1", () => {
     expect(priceBasis).toMatchObject({ type: "string", minLength: 1, maxLength: 64 });
     expect(referenceValue).toMatchObject({
       type: "string",
-      pattern:
-        "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)$",
+      pattern: "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)$",
       "x-python-decimal": true,
     });
     for (const property of [source, sourceRevision, rawObjectId]) {
@@ -130,26 +129,14 @@ describe("BenchmarkSeriesPoint v1", () => {
     expect(validateBenchmarkSeriesPoint(point())).toEqual({ valid: true, errors: [] });
   });
 
-  it.each([
-    0,
-    -1,
-    0.1,
-    true,
-    "0",
-    "0.0",
-    "-1",
-    "+1",
-    " 1",
-    "1 ",
-    "1e3",
-    "01.0",
-    "NaN",
-    "Infinity",
-  ])("rejects non-canonical referenceValue %p", (referenceValue) => {
-    expect(
-      validateBenchmarkSeriesPoint(point({ referenceValue: referenceValue as never })).valid,
-    ).toBe(false);
-  });
+  it.each([0, -1, 0.1, true, "0", "0.0", "-1", "+1", " 1", "1 ", "1e3", "01.0", "NaN", "Infinity"])(
+    "rejects non-canonical referenceValue %p",
+    (referenceValue) => {
+      expect(
+        validateBenchmarkSeriesPoint(point({ referenceValue: referenceValue as never })).valid,
+      ).toBe(false);
+    },
+  );
 
   it.each(["0.1", "0.10", "1", "1.2300"])(
     "accepts canonical referenceValue %s",
@@ -170,9 +157,9 @@ describe("BenchmarkSeriesPoint v1", () => {
     "benchmark:v1:-gold:key",
     "benchmark:v1:gold:-key",
   ])("rejects non-canonical benchmarkId %s", (benchmarkId) => {
-    expect(
-      validateBenchmarkSeriesPoint(point({ benchmarkId: benchmarkId as never })).valid,
-    ).toBe(false);
+    expect(validateBenchmarkSeriesPoint(point({ benchmarkId: benchmarkId as never })).valid).toBe(
+      false,
+    );
   });
 
   it("enforces the canonical benchmarkId length boundary", () => {
@@ -195,12 +182,14 @@ describe("BenchmarkSeriesPoint v1", () => {
       const atMax = "x".repeat(maxLength);
       const overMax = "x".repeat(maxLength + 1);
       expect(
-        validateBenchmarkSeriesPoint(point({ [field]: atMin } as Partial<BenchmarkSeriesPointInput>))
-          .valid,
+        validateBenchmarkSeriesPoint(
+          point({ [field]: atMin } as Partial<BenchmarkSeriesPointInput>),
+        ).valid,
       ).toBe(true);
       expect(
-        validateBenchmarkSeriesPoint(point({ [field]: atMax } as Partial<BenchmarkSeriesPointInput>))
-          .valid,
+        validateBenchmarkSeriesPoint(
+          point({ [field]: atMax } as Partial<BenchmarkSeriesPointInput>),
+        ).valid,
       ).toBe(true);
       expect(
         validateBenchmarkSeriesPoint(
@@ -235,9 +224,7 @@ describe("BenchmarkSeriesPoint v1", () => {
 
   it("enforces the payloadDigest exact hex pattern", () => {
     expect(
-      validateBenchmarkSeriesPoint(
-        point({ payloadDigest: `sha256:${"a".repeat(64)}` }),
-      ).valid,
+      validateBenchmarkSeriesPoint(point({ payloadDigest: `sha256:${"a".repeat(64)}` })).valid,
     ).toBe(true);
     for (const payloadDigest of [
       `sha256:${"a".repeat(63)}`,
@@ -250,9 +237,9 @@ describe("BenchmarkSeriesPoint v1", () => {
 
   it("enforces schemaVersion and referenceOnly constants", () => {
     expect(validateBenchmarkSeriesPoint(point()).valid).toBe(true);
-    expect(
-      validateBenchmarkSeriesPoint(point({ schemaVersion: "other-v1" as never })).valid,
-    ).toBe(false);
+    expect(validateBenchmarkSeriesPoint(point({ schemaVersion: "other-v1" as never })).valid).toBe(
+      false,
+    );
     expect(validateBenchmarkSeriesPoint(point({ schemaVersion: undefined })).valid).toBe(false);
   });
 
@@ -274,12 +261,12 @@ describe("BenchmarkSeriesPoint v1", () => {
   });
 
   it("rejects year 0000 and accepts year 0001", () => {
-    expect(
-      validateBenchmarkSeriesPoint(point({ eventTime: "0000-01-01T00:00:00Z" })).valid,
-    ).toBe(false);
-    expect(
-      validateBenchmarkSeriesPoint(point({ eventTime: "0001-01-01T00:00:00Z" })).valid,
-    ).toBe(true);
+    expect(validateBenchmarkSeriesPoint(point({ eventTime: "0000-01-01T00:00:00Z" })).valid).toBe(
+      false,
+    );
+    expect(validateBenchmarkSeriesPoint(point({ eventTime: "0001-01-01T00:00:00Z" })).valid).toBe(
+      true,
+    );
   });
 
   it.each([
@@ -318,9 +305,9 @@ describe("explicit fund benchmark binding", () => {
     const bound = fund({ benchmarkSeriesId: CANONICAL_BENCHMARK_ID });
     expect(validatePreciousMetalFund(bound)).toEqual({ valid: true, errors: [] });
     expect(benchmarkSeriesMatches(bound, point())).toBe(true);
-    expect(
-      benchmarkSeriesMatches(bound, point({ benchmarkId: "benchmark:v1:gold:other" })),
-    ).toBe(false);
+    expect(benchmarkSeriesMatches(bound, point({ benchmarkId: "benchmark:v1:gold:other" }))).toBe(
+      false,
+    );
     expect(
       benchmarkSeriesMatches(fund({ benchmarkOrTrackingIndex: CANONICAL_BENCHMARK_ID }), point()),
     ).toBe(false);

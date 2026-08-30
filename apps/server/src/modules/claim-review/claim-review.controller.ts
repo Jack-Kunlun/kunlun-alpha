@@ -9,6 +9,11 @@ export class ClaimReviewController {
 
   @Post()
   async submit(@Body() body: unknown): Promise<KolClaimReview> {
-    try { return await this.service.submit(body); } catch (error) { if (error instanceof ClaimReviewValidationError) throw new BadRequestException(error.message); throw error; }
+    try {
+      return await this.service.submit(body);
+    } catch (error) {
+      if (error instanceof ClaimReviewValidationError) throw new BadRequestException(error.message);
+      throw error;
+    }
   }
 }

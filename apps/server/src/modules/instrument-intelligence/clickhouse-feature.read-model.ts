@@ -1,8 +1,5 @@
 import type { ClickHouseJsonClient } from "./clickhouse-json-client";
-import type {
-  InstrumentFeatureReadModel,
-  InstrumentFeatureValue,
-} from "./read-model.types";
+import type { InstrumentFeatureReadModel, InstrumentFeatureValue } from "./read-model.types";
 
 const SQL = [
   "SELECT feature_name, feature_version, feature_fingerprint, algorithm_version,",

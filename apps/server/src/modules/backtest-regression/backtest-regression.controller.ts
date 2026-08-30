@@ -13,7 +13,9 @@ import { BacktestRegressionValidationError } from "./backtest-regression.validat
 @ApiExtraModels(BacktestRegressionComparisonQueryDto)
 @Controller("backtest/regressions")
 export class BacktestRegressionController {
-  constructor(@Inject(BacktestRegressionService) private readonly service: BacktestRegressionService) {}
+  constructor(
+    @Inject(BacktestRegressionService) private readonly service: BacktestRegressionService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: "List read-only backtest regression run summaries" })
@@ -21,7 +23,8 @@ export class BacktestRegressionController {
     try {
       return await this.service.list();
     } catch (error) {
-      if (error instanceof BacktestRegressionValidationError) throw new BadRequestException(error.message);
+      if (error instanceof BacktestRegressionValidationError)
+        throw new BadRequestException(error.message);
       throw error;
     }
   }
@@ -32,18 +35,23 @@ export class BacktestRegressionController {
     try {
       return await this.service.get(runId);
     } catch (error) {
-      if (error instanceof BacktestRegressionValidationError) throw new BadRequestException(error.message);
+      if (error instanceof BacktestRegressionValidationError)
+        throw new BadRequestException(error.message);
       throw error;
     }
   }
 
   @Get(":runId/comparison")
   @ApiOperation({ summary: "Compare one run with an approved baseline" })
-  async comparison(@Param("runId") runId: string, @Query() query: BacktestRegressionComparisonQueryDto): Promise<BacktestRegressionComparison> {
+  async comparison(
+    @Param("runId") runId: string,
+    @Query() query: BacktestRegressionComparisonQueryDto,
+  ): Promise<BacktestRegressionComparison> {
     try {
       return await this.service.comparison(runId, query.baselineId);
     } catch (error) {
-      if (error instanceof BacktestRegressionValidationError) throw new BadRequestException(error.message);
+      if (error instanceof BacktestRegressionValidationError)
+        throw new BadRequestException(error.message);
       throw error;
     }
   }

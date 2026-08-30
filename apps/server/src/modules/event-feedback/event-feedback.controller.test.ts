@@ -16,14 +16,10 @@ function controller(): EventFeedbackController {
 
 describe("EventFeedbackController", () => {
   it("maps malformed bodies to 400", async () => {
-    await expect(controller().submit({ action: "CONFIRM" })).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(controller().submit({ action: "CONFIRM" })).rejects.toThrow(BadRequestException);
   });
 
   it("maps unknown query filters to 400", async () => {
-    await expect(controller().list({ rawSql: "DROP TABLE" })).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(controller().list({ rawSql: "DROP TABLE" })).rejects.toThrow(BadRequestException);
   });
 });

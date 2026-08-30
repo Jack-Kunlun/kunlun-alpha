@@ -1,8 +1,5 @@
 import type { EventFeedback } from "@kunlun/shared-types";
-import type {
-  AppendFeedbackResult,
-  EventFeedbackRepository,
-} from "./event-feedback-repository";
+import type { AppendFeedbackResult, EventFeedbackRepository } from "./event-feedback-repository";
 import type { EventFeedbackQuery } from "./event-feedback-validation";
 
 export class InMemoryEventFeedbackRepository implements EventFeedbackRepository {
@@ -29,7 +26,8 @@ export class InMemoryEventFeedbackRepository implements EventFeedbackRepository 
       )
       .sort(
         (left, right) =>
-          right.createdAt.localeCompare(left.createdAt) || left.feedbackId.localeCompare(right.feedbackId),
+          right.createdAt.localeCompare(left.createdAt) ||
+          left.feedbackId.localeCompare(right.feedbackId),
       )
       .slice(0, query.limit);
   }

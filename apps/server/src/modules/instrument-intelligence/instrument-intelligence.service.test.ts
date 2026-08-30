@@ -93,9 +93,7 @@ describe("InstrumentIntelligenceService", () => {
     const response = await service.detail("600519.SH", {});
 
     expect(response.sections.market.status).toBe("UNAVAILABLE");
-    expect(response.sections.market.unavailableReason).toBe(
-      "CLICKHOUSE_MARKET_QUERY_FAILED",
-    );
+    expect(response.sections.market.unavailableReason).toBe("CLICKHOUSE_MARKET_QUERY_FAILED");
     expect(response.sections.emotion.status).toBe("EMPTY");
   });
 

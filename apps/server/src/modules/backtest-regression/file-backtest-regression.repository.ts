@@ -52,7 +52,8 @@ async function assertContained(root: string, target: string): Promise<void> {
     current = join(current, part);
     try {
       const stat = await lstat(current);
-      if (stat.isSymbolicLink()) throw new BacktestRegressionUnavailableError("artifact path contains a symlink");
+      if (stat.isSymbolicLink())
+        throw new BacktestRegressionUnavailableError("artifact path contains a symlink");
       if (current !== targetPath && !stat.isDirectory()) {
         throw new BacktestRegressionUnavailableError("artifact path ancestor is not a directory");
       }
@@ -87,7 +88,9 @@ async function readJson(root: string, path: string): Promise<Record<string, unkn
     return parseCanonicalBacktestRegressionJson(text);
   } catch (error) {
     if (error instanceof BacktestRegressionUnavailableError) throw error;
-    throw new BacktestRegressionUnavailableError(`artifact file is unavailable or corrupt: ${path}`);
+    throw new BacktestRegressionUnavailableError(
+      `artifact file is unavailable or corrupt: ${path}`,
+    );
   }
 }
 
@@ -95,7 +98,8 @@ export class FileBacktestRegressionRepository implements BacktestRegressionRepos
   private readonly root: string;
 
   constructor(root: string) {
-    if (root.trim().length === 0) throw new BacktestRegressionUnavailableError("artifact root is empty");
+    if (root.trim().length === 0)
+      throw new BacktestRegressionUnavailableError("artifact root is empty");
     this.root = resolve(root);
   }
 
@@ -104,7 +108,10 @@ export class FileBacktestRegressionRepository implements BacktestRegressionRepos
     return join(this.root, "objects", "sha256", safeDigest.slice(0, 2), `${safeDigest}.json`);
   }
 
-  private async artifactFromRef(suiteId: string, refName: string): Promise<BacktestRegressionArtifact> {
+  private async artifactFromRef(
+    suiteId: string,
+    refName: string,
+  ): Promise<BacktestRegressionArtifact> {
     const runId = refName.endsWith(".ref.json") ? refName.slice(0, -".ref.json".length) : "";
     assertSafeId(suiteId, "suiteId");
     assertSafeId(runId, "runId");
@@ -114,12 +121,22 @@ export class FileBacktestRegressionRepository implements BacktestRegressionRepos
       ["schemaVersion", "suiteId", "runId", "artifactSha256"],
       "identity ref",
     );
-    if (ref.schemaVersion !== "backtest-regression-ref-v1" || ref.suiteId !== suiteId || ref.runId !== runId) {
+    if (
+      ref.schemaVersion !== "backtest-regression-ref-v1" ||
+      ref.suiteId !== suiteId ||
+      ref.runId !== runId
+    ) {
       throw new BacktestRegressionUnavailableError("identity ref is invalid");
     }
     const digest = assertSha256(ref.artifactSha256, "identity ref artifactSha256");
-    const artifact = parseBacktestRegressionArtifact(await readJson(this.root, this.objectPath(digest)));
-    if (artifact.suiteId !== suiteId || artifact.runId !== runId || artifact.artifactSha256 !== digest) {
+    const artifact = parseBacktestRegressionArtifact(
+      await readJson(this.root, this.objectPath(digest)),
+    );
+    if (
+      artifact.suiteId !== suiteId ||
+      artifact.runId !== runId ||
+      artifact.artifactSha256 !== digest
+    ) {
       throw new BacktestRegressionUnavailableError("artifact ref/object binding is invalid");
     }
     return artifact;
@@ -132,7 +149,8 @@ export class FileBacktestRegressionRepository implements BacktestRegressionRepos
       const suites = await readdir(identities, { withFileTypes: true });
       const artifacts: BacktestRegressionArtifact[] = [];
       for (const suite of suites.sort((left, right) => compareAscii(left.name, right.name))) {
-        if (suite.isSymbolicLink() || !suite.isDirectory()) throw new BacktestRegressionUnavailableError("identity directory is invalid");
+        if (suite.isSymbolicLink() || !suite.isDirectory())
+          throw new BacktestRegressionUnavailableError("identity directory is invalid");
         assertSafeId(suite.name, "suiteId");
         const suitePath = join(identities, suite.name);
         await assertContained(this.root, suitePath);
@@ -155,7 +173,8 @@ export class FileBacktestRegressionRepository implements BacktestRegressionRepos
     assertSafeId(runId, "runId");
     const artifacts = await this.list();
     const artifact = artifacts.find((candidate) => candidate.runId === runId);
-    if (artifact === undefined) throw new BacktestRegressionUnavailableError("regression run is missing");
+    if (artifact === undefined)
+      throw new BacktestRegressionUnavailableError("regression run is missing");
     return artifact;
   }
 

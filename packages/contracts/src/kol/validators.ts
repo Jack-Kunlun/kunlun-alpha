@@ -126,7 +126,12 @@ function revisionChain(payload: JsonRecord, errors: string[]): void {
 function timeChain(
   payload: JsonRecord,
   errors: string[],
-): { publish: number | undefined; ingest: number | undefined; processing: number | undefined; available: number | undefined } {
+): {
+  publish: number | undefined;
+  ingest: number | undefined;
+  processing: number | undefined;
+  available: number | undefined;
+} {
   const publish = instant(payload.publishTime, "publishTime", errors);
   const ingest = instant(payload.ingestTime, "ingestTime", errors);
   const processing = instant(payload.processingTime, "processingTime", errors);
@@ -143,11 +148,7 @@ function timeChain(
   return { publish, ingest, processing, available };
 }
 
-function deletion(
-  payload: JsonRecord,
-  available: number | undefined,
-  errors: string[],
-): void {
+function deletion(payload: JsonRecord, available: number | undefined, errors: string[]): void {
   const deleted = payload.deleted;
   if (typeof deleted !== "boolean") errors.push("deleted must be a boolean");
   const deletedAt = optionalInstant(payload, "deletedAt", errors);
@@ -186,7 +187,13 @@ const MEDIA_MIME_PREFIX: Record<string, string> = {
   IMAGE: "image/",
 };
 
-function strictInteger(value: unknown, field: string, errors: string[], min: number, max: number): number | undefined {
+function strictInteger(
+  value: unknown,
+  field: string,
+  errors: string[],
+  min: number,
+  max: number,
+): number | undefined {
   if (typeof value !== "number" || !Number.isInteger(value) || !Number.isFinite(value)) {
     errors.push(`${field} must be an integer`);
     return undefined;
@@ -195,7 +202,11 @@ function strictInteger(value: unknown, field: string, errors: string[], min: num
   return value;
 }
 
-function mediaBBox(value: unknown, field: string, errors: string[]): { x: number; y: number; width: number; height: number } | null | undefined {
+function mediaBBox(
+  value: unknown,
+  field: string,
+  errors: string[],
+): { x: number; y: number; width: number; height: number } | null | undefined {
   if (value === null) return null;
   const bbox = record(value);
   if (bbox === null) {
@@ -207,7 +218,8 @@ function mediaBBox(value: unknown, field: string, errors: string[]): { x: number
   const y = strictInteger(bbox.y, `${field}.y`, errors, 0, 100000);
   const width = strictInteger(bbox.width, `${field}.width`, errors, 1, 100000);
   const height = strictInteger(bbox.height, `${field}.height`, errors, 1, 100000);
-  if (x === undefined || y === undefined || width === undefined || height === undefined) return undefined;
+  if (x === undefined || y === undefined || width === undefined || height === undefined)
+    return undefined;
   return { x, y, width, height };
 }
 
@@ -220,10 +232,28 @@ function validateMediaManifest(value: unknown, errors: string[]): JsonRecord | n
   closed(
     manifest,
     [
-      "contentId", "contentVersion", "mediaId", "mediaVersion", "revisionId", "previousRevisionId",
-      "rawSha256", "mimeType", "byteSize", "mediaKind", "source", "sourceVersion", "licenseId",
-      "usageRestriction", "authorized", "inputAvailableTime", "width", "height", "durationMs",
-      "deleted", "deletedAt", "deletionReason",
+      "contentId",
+      "contentVersion",
+      "mediaId",
+      "mediaVersion",
+      "revisionId",
+      "previousRevisionId",
+      "rawSha256",
+      "mimeType",
+      "byteSize",
+      "mediaKind",
+      "source",
+      "sourceVersion",
+      "licenseId",
+      "usageRestriction",
+      "authorized",
+      "inputAvailableTime",
+      "width",
+      "height",
+      "durationMs",
+      "deleted",
+      "deletedAt",
+      "deletionReason",
     ],
     errors,
   );
@@ -233,11 +263,14 @@ function validateMediaManifest(value: unknown, errors: string[]): JsonRecord | n
   requiredString(manifest, "mediaVersion", errors);
   revisionChain(manifest, errors);
   const digest = requiredString(manifest, "rawSha256", errors, 64);
-  if (digest !== undefined && !FINGERPRINT_PATTERN.test(digest)) errors.push("rawSha256 must be lowercase SHA-256");
+  if (digest !== undefined && !FINGERPRINT_PATTERN.test(digest))
+    errors.push("rawSha256 must be lowercase SHA-256");
   const mime = requiredString(manifest, "mimeType", errors, 128);
   const kind = enumString(manifest, "mediaKind", MEDIA_KINDS, errors);
-  const mimePrefix = kind === "AUDIO" || kind === "VIDEO" || kind === "IMAGE" ? MEDIA_MIME_PREFIX[kind] : undefined;
-  if (mime !== undefined && mimePrefix !== undefined && !mime.startsWith(mimePrefix)) errors.push("mimeType does not match mediaKind");
+  const mimePrefix =
+    kind === "AUDIO" || kind === "VIDEO" || kind === "IMAGE" ? MEDIA_MIME_PREFIX[kind] : undefined;
+  if (mime !== undefined && mimePrefix !== undefined && !mime.startsWith(mimePrefix))
+    errors.push("mimeType does not match mediaKind");
   strictInteger(manifest.byteSize, "byteSize", errors, 1, 1_000_000_000);
   requiredString(manifest, "source", errors);
   requiredString(manifest, "sourceVersion", errors);
@@ -245,12 +278,20 @@ function validateMediaManifest(value: unknown, errors: string[]): JsonRecord | n
   requiredString(manifest, "usageRestriction", errors, 1000);
   if (typeof manifest.authorized !== "boolean") errors.push("authorized must be a boolean");
   const inputAvailable = instant(manifest.inputAvailableTime, "inputAvailableTime", errors);
-  const width = manifest.width === null ? null : strictInteger(manifest.width, "width", errors, 1, 100000);
-  const height = manifest.height === null ? null : strictInteger(manifest.height, "height", errors, 1, 100000);
-  if ((width === null) !== (height === null)) errors.push("width and height must be both null or present");
-  const duration = manifest.durationMs === null ? null : strictInteger(manifest.durationMs, "durationMs", errors, 1, 864000000);
-  if (kind === "IMAGE" && (width === null || height === null)) errors.push("image media requires dimensions");
-  if ((kind === "AUDIO" || kind === "VIDEO") && duration === null) errors.push("audio/video media requires durationMs");
+  const width =
+    manifest.width === null ? null : strictInteger(manifest.width, "width", errors, 1, 100000);
+  const height =
+    manifest.height === null ? null : strictInteger(manifest.height, "height", errors, 1, 100000);
+  if ((width === null) !== (height === null))
+    errors.push("width and height must be both null or present");
+  const duration =
+    manifest.durationMs === null
+      ? null
+      : strictInteger(manifest.durationMs, "durationMs", errors, 1, 864000000);
+  if (kind === "IMAGE" && (width === null || height === null))
+    errors.push("image media requires dimensions");
+  if ((kind === "AUDIO" || kind === "VIDEO") && duration === null)
+    errors.push("audio/video media requires durationMs");
   deletion(manifest, inputAvailable, errors);
   return manifest;
 }
@@ -262,33 +303,70 @@ export function validateKolMediaTextEvidencePayload(input: unknown): ValidationR
   closed(
     payload,
     [
-      "schemaVersion", "evidenceId", "revisionId", "previousRevisionId", "mediaManifest", "processorKind",
-      "text", "language", "segments", "confidenceBps", "qualityBps", "eventTime", "publishTime",
-      "ingestTime", "processingTime", "availableTime", "provenance", "deleted", "deletedAt", "deletionReason",
+      "schemaVersion",
+      "evidenceId",
+      "revisionId",
+      "previousRevisionId",
+      "mediaManifest",
+      "processorKind",
+      "text",
+      "language",
+      "segments",
+      "confidenceBps",
+      "qualityBps",
+      "eventTime",
+      "publishTime",
+      "ingestTime",
+      "processingTime",
+      "availableTime",
+      "provenance",
+      "deleted",
+      "deletedAt",
+      "deletionReason",
     ],
     errors,
   );
-  if (payload.schemaVersion !== KOL_MEDIA_TEXT_EVIDENCE_SCHEMA_VERSION) errors.push("unsupported media evidence schema version");
+  if (payload.schemaVersion !== KOL_MEDIA_TEXT_EVIDENCE_SCHEMA_VERSION)
+    errors.push("unsupported media evidence schema version");
   requiredString(payload, "evidenceId", errors);
   revisionChain(payload, errors);
   const manifest = validateMediaManifest(payload.mediaManifest, errors);
   const processor = enumString(payload, "processorKind", MEDIA_PROCESSORS, errors);
   const text = requiredString(payload, "text", errors, 2_000_000);
   const language = requiredString(payload, "language", errors, 35);
-  if (language !== undefined && !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(language)) errors.push("language must be BCP-47");
+  if (language !== undefined && !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(language))
+    errors.push("language must be BCP-47");
   strictInteger(payload.confidenceBps, "confidenceBps", errors, 0, 10000);
   strictInteger(payload.qualityBps, "qualityBps", errors, 0, 10000);
   optionalInstant(payload, "eventTime", errors);
   const chain = timeChain(payload, errors);
   if (manifest !== null && chain.available !== undefined && chain.processing !== undefined) {
     const manifestAvailable = instant(manifest.inputAvailableTime, "inputAvailableTime", errors);
-    if (manifestAvailable !== undefined && chain.available !== Math.max(manifestAvailable, chain.processing)) errors.push("availableTime must equal max(inputAvailableTime, processingTime)");
+    if (
+      manifestAvailable !== undefined &&
+      chain.available !== Math.max(manifestAvailable, chain.processing)
+    )
+      errors.push("availableTime must equal max(inputAvailableTime, processingTime)");
   }
   deletion(payload, chain.available, errors);
   const provenance = record(payload.provenance);
   if (provenance === null) errors.push("provenance must be an object");
   else {
-    closed(provenance, ["pipelineVersion", "processorKind", "provider", "model", "modelVersion", "promptVersion", "configurationFingerprint", "policyFingerprint", "recognitionRunId"], errors);
+    closed(
+      provenance,
+      [
+        "pipelineVersion",
+        "processorKind",
+        "provider",
+        "model",
+        "modelVersion",
+        "promptVersion",
+        "configurationFingerprint",
+        "policyFingerprint",
+        "recognitionRunId",
+      ],
+      errors,
+    );
     requiredString(provenance, "pipelineVersion", errors, 128);
     enumString(provenance, "processorKind", MEDIA_PROCESSORS, errors);
     requiredString(provenance, "provider", errors);
@@ -296,55 +374,111 @@ export function validateKolMediaTextEvidencePayload(input: unknown): ValidationR
     requiredString(provenance, "modelVersion", errors);
     requiredString(provenance, "promptVersion", errors);
     const config = requiredString(provenance, "configurationFingerprint", errors, 64);
-    if (config !== undefined && !FINGERPRINT_PATTERN.test(config)) errors.push("configurationFingerprint must be lowercase SHA-256");
+    if (config !== undefined && !FINGERPRINT_PATTERN.test(config))
+      errors.push("configurationFingerprint must be lowercase SHA-256");
     const policy = requiredString(provenance, "policyFingerprint", errors, 64);
-    if (policy !== undefined && !FINGERPRINT_PATTERN.test(policy)) errors.push("policyFingerprint must be lowercase SHA-256");
+    if (policy !== undefined && !FINGERPRINT_PATTERN.test(policy))
+      errors.push("policyFingerprint must be lowercase SHA-256");
     requiredString(provenance, "recognitionRunId", errors);
-    if (processor !== undefined && provenance.processorKind !== processor) errors.push("provenance processorKind must match");
+    if (processor !== undefined && provenance.processorKind !== processor)
+      errors.push("provenance processorKind must match");
   }
   const segments = payload.segments;
-  if (!Array.isArray(segments) || segments.length === 0) errors.push("segments must be a non-empty array");
+  if (!Array.isArray(segments) || segments.length === 0)
+    errors.push("segments must be a non-empty array");
   else if (segments.length > 100000) errors.push("segments exceeds maximum length 100000");
-  if (Array.isArray(segments) && text !== undefined && manifest !== null && processor !== undefined) {
+  if (
+    Array.isArray(segments) &&
+    text !== undefined &&
+    manifest !== null &&
+    processor !== undefined
+  ) {
     for (const [index, rawSegment] of segments.entries()) {
       const segment = record(rawSegment);
       if (segment === null) {
         errors.push(`segments[${index}] must be an object`);
         continue;
       }
-      closed(segment, ["text", "startOffset", "endOffset", "startMs", "endMs", "bbox", "frameIdentity", "confidenceBps", "qualityBps"], errors);
+      closed(
+        segment,
+        [
+          "text",
+          "startOffset",
+          "endOffset",
+          "startMs",
+          "endMs",
+          "bbox",
+          "frameIdentity",
+          "confidenceBps",
+          "qualityBps",
+        ],
+        errors,
+      );
       const segmentText = requiredString(segment, "text", errors, 200000);
-      const startOffset = strictInteger(segment.startOffset, `segments[${index}].startOffset`, errors, 0, 2000000);
-      const endOffset = strictInteger(segment.endOffset, `segments[${index}].endOffset`, errors, 1, 2000000);
+      const startOffset = strictInteger(
+        segment.startOffset,
+        `segments[${index}].startOffset`,
+        errors,
+        0,
+        2000000,
+      );
+      const endOffset = strictInteger(
+        segment.endOffset,
+        `segments[${index}].endOffset`,
+        errors,
+        1,
+        2000000,
+      );
       if (segmentText !== undefined && startOffset !== undefined && endOffset !== undefined) {
         const codePoints = Array.from(text);
-        if (endOffset > codePoints.length || endOffset <= startOffset || codePoints.slice(startOffset, endOffset).join("") !== segmentText) errors.push(`segments[${index}] offsets do not match text`);
+        if (
+          endOffset > codePoints.length ||
+          endOffset <= startOffset ||
+          codePoints.slice(startOffset, endOffset).join("") !== segmentText
+        )
+          errors.push(`segments[${index}] offsets do not match text`);
       }
-      const startMs = segment.startMs === null ? null : strictInteger(segment.startMs, `segments[${index}].startMs`, errors, 0, 864000000);
-      const endMs = segment.endMs === null ? null : strictInteger(segment.endMs, `segments[${index}].endMs`, errors, 1, 864000000);
+      const startMs =
+        segment.startMs === null
+          ? null
+          : strictInteger(segment.startMs, `segments[${index}].startMs`, errors, 0, 864000000);
+      const endMs =
+        segment.endMs === null
+          ? null
+          : strictInteger(segment.endMs, `segments[${index}].endMs`, errors, 1, 864000000);
       if (
-        (startMs === null) !== (endMs === null)
-        || (typeof startMs === "number" && typeof endMs === "number" && endMs <= startMs)
-      ) errors.push(`segments[${index}] invalid time range`);
+        (startMs === null) !== (endMs === null) ||
+        (typeof startMs === "number" && typeof endMs === "number" && endMs <= startMs)
+      )
+        errors.push(`segments[${index}] invalid time range`);
       const bbox = mediaBBox(segment.bbox, `segments[${index}].bbox`, errors);
       if (
-        segment.frameIdentity !== null
-        && segment.frameIdentity !== undefined
-        && (typeof segment.frameIdentity !== "string" || !FINGERPRINT_PATTERN.test(segment.frameIdentity))
-      ) errors.push(`segments[${index}].frameIdentity must be lowercase SHA-256`);
+        segment.frameIdentity !== null &&
+        segment.frameIdentity !== undefined &&
+        (typeof segment.frameIdentity !== "string" ||
+          !FINGERPRINT_PATTERN.test(segment.frameIdentity))
+      )
+        errors.push(`segments[${index}].frameIdentity must be lowercase SHA-256`);
       strictInteger(segment.confidenceBps, `segments[${index}].confidenceBps`, errors, 0, 10000);
       strictInteger(segment.qualityBps, `segments[${index}].qualityBps`, errors, 0, 10000);
       if (
-        bbox !== undefined
-        && bbox !== null
-        && typeof manifest.width === "number"
-        && typeof manifest.height === "number"
-        && (bbox.x + bbox.width > manifest.width || bbox.y + bbox.height > manifest.height)
-      ) errors.push(`segments[${index}] bbox is outside media dimensions`);
+        bbox !== undefined &&
+        bbox !== null &&
+        typeof manifest.width === "number" &&
+        typeof manifest.height === "number" &&
+        (bbox.x + bbox.width > manifest.width || bbox.y + bbox.height > manifest.height)
+      )
+        errors.push(`segments[${index}] bbox is outside media dimensions`);
       const kind = manifest.mediaKind;
-      if (processor === "ASR" && (kind !== "AUDIO" && kind !== "VIDEO" || startMs === null || endMs === null)) errors.push(`segments[${index}] ASR requires audio/video timecode`);
-      if (processor === "OCR" && kind === "IMAGE" && bbox === null) errors.push(`segments[${index}] image OCR requires bbox`);
-      if (processor === "OCR" && kind === "VIDEO" && startMs === null && bbox === null) errors.push(`segments[${index}] video OCR requires time or bbox`);
+      if (
+        processor === "ASR" &&
+        ((kind !== "AUDIO" && kind !== "VIDEO") || startMs === null || endMs === null)
+      )
+        errors.push(`segments[${index}] ASR requires audio/video timecode`);
+      if (processor === "OCR" && kind === "IMAGE" && bbox === null)
+        errors.push(`segments[${index}] image OCR requires bbox`);
+      if (processor === "OCR" && kind === "VIDEO" && startMs === null && bbox === null)
+        errors.push(`segments[${index}] video OCR requires time or bbox`);
     }
   }
   return result(errors);
@@ -406,19 +540,18 @@ export function computeKolContentFingerprint(title: string, body: string): strin
   }
 
   const state = new Uint32Array([
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
   ]);
   for (let offset = 0; offset < padded.length; offset += 64) {
     const schedule = new Uint32Array(64);
     for (let index = 0; index < 16; index += 1) {
       const position = offset + index * 4;
-      schedule[index] = (
-        ((padded[position] ?? 0) << 24) |
-        ((padded[position + 1] ?? 0) << 16) |
-        ((padded[position + 2] ?? 0) << 8) |
-        (padded[position + 3] ?? 0)
-      ) >>> 0;
+      schedule[index] =
+        (((padded[position] ?? 0) << 24) |
+          ((padded[position + 1] ?? 0) << 16) |
+          ((padded[position + 2] ?? 0) << 8) |
+          (padded[position + 3] ?? 0)) >>>
+        0;
     }
     for (let index = 16; index < 64; index += 1) {
       const previous15 = schedule[index - 15] ?? 0;
@@ -457,10 +590,27 @@ export function computeKolContentFingerprint(title: string, body: string): strin
 }
 
 const CONTENT_FIELDS = [
-  "schemaVersion", "contentId", "contentVersion", "revisionId", "previousRevisionId", "kolId",
-  "contentType", "title", "body", "contentFingerprint", "contentFingerprintAlgorithmVersion",
-  "eventTime", "publishTime", "ingestTime", "processingTime", "availableTime", "source",
-  "sourceVersion", "deleted", "deletedAt", "deletionReason",
+  "schemaVersion",
+  "contentId",
+  "contentVersion",
+  "revisionId",
+  "previousRevisionId",
+  "kolId",
+  "contentType",
+  "title",
+  "body",
+  "contentFingerprint",
+  "contentFingerprintAlgorithmVersion",
+  "eventTime",
+  "publishTime",
+  "ingestTime",
+  "processingTime",
+  "availableTime",
+  "source",
+  "sourceVersion",
+  "deleted",
+  "deletedAt",
+  "deletionReason",
 ] as const;
 
 export function validateKolContentPayload(input: unknown): ValidationResult {
@@ -473,10 +623,18 @@ export function validateKolContentPayload(input: unknown): ValidationResult {
   requiredString(payload, "contentVersion", errors);
   revisionChain(payload, errors);
   requiredString(payload, "kolId", errors);
-  enumString(payload, "contentType", new Set(["POST", "ARTICLE", "VIDEO", "AUDIO", "COMMENT", "OTHER"]), errors);
+  enumString(
+    payload,
+    "contentType",
+    new Set(["POST", "ARTICLE", "VIDEO", "AUDIO", "COMMENT", "OTHER"]),
+    errors,
+  );
   const title = requiredString(payload, "title", errors, 10000);
   const body = requiredString(payload, "body", errors, 1000000);
-  if (typeof payload.contentFingerprint !== "string" || !FINGERPRINT_PATTERN.test(payload.contentFingerprint)) {
+  if (
+    typeof payload.contentFingerprint !== "string" ||
+    !FINGERPRINT_PATTERN.test(payload.contentFingerprint)
+  ) {
     errors.push("contentFingerprint must be lowercase SHA-256 hex");
   } else if (payload.contentFingerprint !== computeKolContentFingerprint(title ?? "", body ?? "")) {
     errors.push("contentFingerprint does not match title and body");
@@ -493,8 +651,19 @@ export function validateKolContentPayload(input: unknown): ValidationResult {
 }
 
 const MENTION_FIELDS = [
-  "schemaVersion", "mentionId", "revisionId", "previousRevisionId", "contentId", "contentVersion",
-  "kolId", "mentionType", "surfaceText", "startOffset", "endOffset", "availableTime", "source",
+  "schemaVersion",
+  "mentionId",
+  "revisionId",
+  "previousRevisionId",
+  "contentId",
+  "contentVersion",
+  "kolId",
+  "mentionType",
+  "surfaceText",
+  "startOffset",
+  "endOffset",
+  "availableTime",
+  "source",
   "sourceVersion",
 ] as const;
 
@@ -509,12 +678,25 @@ export function validateKolMentionPayload(input: unknown): ValidationResult {
   requiredString(payload, "contentId", errors);
   requiredString(payload, "contentVersion", errors);
   requiredString(payload, "kolId", errors);
-  enumString(payload, "mentionType", new Set(["INSTRUMENT", "PERSON", "ORGANIZATION", "TOPIC", "OTHER"]), errors);
+  enumString(
+    payload,
+    "mentionType",
+    new Set(["INSTRUMENT", "PERSON", "ORGANIZATION", "TOPIC", "OTHER"]),
+    errors,
+  );
   requiredString(payload, "surfaceText", errors, 1000);
-  if (typeof payload.startOffset !== "number" || !Number.isInteger(payload.startOffset) || payload.startOffset < 0) {
+  if (
+    typeof payload.startOffset !== "number" ||
+    !Number.isInteger(payload.startOffset) ||
+    payload.startOffset < 0
+  ) {
     errors.push("startOffset must be a non-negative integer");
   }
-  if (typeof payload.endOffset !== "number" || !Number.isInteger(payload.endOffset) || payload.endOffset < 1) {
+  if (
+    typeof payload.endOffset !== "number" ||
+    !Number.isInteger(payload.endOffset) ||
+    payload.endOffset < 1
+  ) {
     errors.push("endOffset must be a positive integer");
   }
   if (typeof payload.startOffset === "number" && payload.startOffset > 1000000) {
@@ -523,7 +705,11 @@ export function validateKolMentionPayload(input: unknown): ValidationResult {
   if (typeof payload.endOffset === "number" && payload.endOffset > 1000000) {
     errors.push("endOffset exceeds maximum 1000000");
   }
-  if (typeof payload.startOffset === "number" && typeof payload.endOffset === "number" && payload.endOffset <= payload.startOffset) {
+  if (
+    typeof payload.startOffset === "number" &&
+    typeof payload.endOffset === "number" &&
+    payload.endOffset <= payload.startOffset
+  ) {
     errors.push("endOffset must be greater than startOffset");
   }
   instant(payload.availableTime, "availableTime", errors);
@@ -532,10 +718,22 @@ export function validateKolMentionPayload(input: unknown): ValidationResult {
   return result(errors);
 }
 
-  const EVIDENCE_FIELDS = [
-  "schemaVersion", "evidenceId", "revisionId", "previousRevisionId", "contentId", "contentVersion",
-  "contentAvailableTime", "source", "sourceVersion", "locatorType", "locator", "excerpt",
-  "evidenceGrade", "evidenceGradeVersion", "availableTime",
+const EVIDENCE_FIELDS = [
+  "schemaVersion",
+  "evidenceId",
+  "revisionId",
+  "previousRevisionId",
+  "contentId",
+  "contentVersion",
+  "contentAvailableTime",
+  "source",
+  "sourceVersion",
+  "locatorType",
+  "locator",
+  "excerpt",
+  "evidenceGrade",
+  "evidenceGradeVersion",
+  "availableTime",
 ] as const;
 
 export function validateKolEvidencePayload(input: unknown): ValidationResult {
@@ -566,8 +764,14 @@ export function validateKolEvidencePayload(input: unknown): ValidationResult {
 }
 
 const EVIDENCE_REFERENCE_FIELDS = [
-  "evidenceId", "evidenceRevisionId", "contentId", "contentVersion", "contentAvailableTime",
-  "evidenceAvailableTime", "source", "sourceVersion",
+  "evidenceId",
+  "evidenceRevisionId",
+  "contentId",
+  "contentVersion",
+  "contentAvailableTime",
+  "evidenceAvailableTime",
+  "source",
+  "sourceVersion",
 ] as const;
 
 function validateEvidenceReference(
@@ -588,32 +792,78 @@ function validateEvidenceReference(
   requiredString(reference, "evidenceRevisionId", errors);
   const contentId = requiredString(reference, "contentId", errors);
   const contentVersion = requiredString(reference, "contentVersion", errors);
-  const contentAvailable = instant(reference.contentAvailableTime, `evidence[${index}].contentAvailableTime`, errors);
-  const evidenceAvailable = instant(reference.evidenceAvailableTime, `evidence[${index}].evidenceAvailableTime`, errors);
+  const contentAvailable = instant(
+    reference.contentAvailableTime,
+    `evidence[${index}].contentAvailableTime`,
+    errors,
+  );
+  const evidenceAvailable = instant(
+    reference.evidenceAvailableTime,
+    `evidence[${index}].evidenceAvailableTime`,
+    errors,
+  );
   requiredString(reference, "source", errors);
   requiredString(reference, "sourceVersion", errors);
   if (contentId !== undefined && claimContentId !== undefined && contentId !== claimContentId) {
     errors.push(`evidence[${index}] contentId must match claim contentId`);
   }
-  if (contentVersion !== undefined && claimContentVersion !== undefined && contentVersion !== claimContentVersion) {
+  if (
+    contentVersion !== undefined &&
+    claimContentVersion !== undefined &&
+    contentVersion !== claimContentVersion
+  ) {
     errors.push(`evidence[${index}] contentVersion must match claim contentVersion`);
   }
-  if (contentAvailable !== undefined && evidenceAvailable !== undefined && contentAvailable > evidenceAvailable) {
+  if (
+    contentAvailable !== undefined &&
+    evidenceAvailable !== undefined &&
+    contentAvailable > evidenceAvailable
+  ) {
     errors.push(`evidence[${index}] contentAvailableTime must be <= evidenceAvailableTime`);
   }
-  if (contentAvailable !== undefined && claimAvailable !== undefined && contentAvailable > claimAvailable) {
+  if (
+    contentAvailable !== undefined &&
+    claimAvailable !== undefined &&
+    contentAvailable > claimAvailable
+  ) {
     errors.push(`evidence[${index}] is not available at claim availableTime`);
   }
-  if (evidenceAvailable !== undefined && claimAvailable !== undefined && evidenceAvailable > claimAvailable) {
+  if (
+    evidenceAvailable !== undefined &&
+    claimAvailable !== undefined &&
+    evidenceAvailable > claimAvailable
+  ) {
     errors.push(`evidence[${index}] is not available at claim availableTime`);
   }
 }
 
 const CLAIM_FIELDS = [
-  "schemaVersion", "claimId", "revisionId", "previousRevisionId", "contentId", "contentVersion",
-  "contentAvailableTime", "kolId", "statement", "statementKind", "instrumentId", "direction",
-  "attribution", "uncertainty", "confidenceBps", "reviewStatus", "eventTime", "publishTime", "ingestTime",
-  "processingTime", "availableTime", "source", "sourceVersion", "evidence", "deleted", "deletedAt",
+  "schemaVersion",
+  "claimId",
+  "revisionId",
+  "previousRevisionId",
+  "contentId",
+  "contentVersion",
+  "contentAvailableTime",
+  "kolId",
+  "statement",
+  "statementKind",
+  "instrumentId",
+  "direction",
+  "attribution",
+  "uncertainty",
+  "confidenceBps",
+  "reviewStatus",
+  "eventTime",
+  "publishTime",
+  "ingestTime",
+  "processingTime",
+  "availableTime",
+  "source",
+  "sourceVersion",
+  "evidence",
+  "deleted",
+  "deletedAt",
   "deletionReason",
 ] as const;
 
@@ -636,7 +886,12 @@ export function validateKolClaimPayload(input: unknown): ValidationResult {
   enumString(payload, "direction", CLAIM_DIRECTIONS, errors);
   const attribution = enumString(payload, "attribution", ATTRIBUTIONS, errors);
   const uncertainty = enumString(payload, "uncertainty", UNCERTAINTIES, errors);
-  if (typeof payload.confidenceBps !== "number" || !Number.isInteger(payload.confidenceBps) || payload.confidenceBps < 0 || payload.confidenceBps > 10000) {
+  if (
+    typeof payload.confidenceBps !== "number" ||
+    !Number.isInteger(payload.confidenceBps) ||
+    payload.confidenceBps < 0 ||
+    payload.confidenceBps > 10000
+  ) {
     errors.push("confidenceBps must be an integer between 0 and 10000");
   }
   const statementKind = enumString(payload, "statementKind", CLAIM_STATEMENT_KINDS, errors);
@@ -659,7 +914,8 @@ export function validateKolClaimPayload(input: unknown): ValidationResult {
       const reference = record(value);
       if (reference !== null) {
         const evidenceId = typeof reference.evidenceId === "string" ? reference.evidenceId : "";
-        const revisionId = typeof reference.evidenceRevisionId === "string" ? reference.evidenceRevisionId : "";
+        const revisionId =
+          typeof reference.evidenceRevisionId === "string" ? reference.evidenceRevisionId : "";
         const identity = `${evidenceId}\u0000${revisionId}`;
         if (identities.has(identity)) errors.push("evidence references must be unique");
         identities.add(identity);
@@ -668,17 +924,40 @@ export function validateKolClaimPayload(input: unknown): ValidationResult {
     });
   }
   deletion(payload, chain.available, errors);
-  if (contentAvailable !== undefined && chain.available !== undefined && contentAvailable > chain.available) {
+  if (
+    contentAvailable !== undefined &&
+    chain.available !== undefined &&
+    contentAvailable > chain.available
+  ) {
     errors.push("claim availableTime must include contentAvailableTime");
   }
   return result(errors);
 }
 
 const POSITION_FIELDS = [
-  "schemaVersion", "positionClaimId", "revisionId", "previousRevisionId", "claimId", "claimRevisionId",
-  "kolId", "instrumentId", "position", "timeHorizon", "executionSemantics", "confidenceBps", "reviewStatus",
-  "eventTime", "publishTime", "ingestTime", "processingTime", "availableTime", "source", "sourceVersion",
-  "deleted", "deletedAt", "deletionReason",
+  "schemaVersion",
+  "positionClaimId",
+  "revisionId",
+  "previousRevisionId",
+  "claimId",
+  "claimRevisionId",
+  "kolId",
+  "instrumentId",
+  "position",
+  "timeHorizon",
+  "executionSemantics",
+  "confidenceBps",
+  "reviewStatus",
+  "eventTime",
+  "publishTime",
+  "ingestTime",
+  "processingTime",
+  "availableTime",
+  "source",
+  "sourceVersion",
+  "deleted",
+  "deletedAt",
+  "deletionReason",
 ] as const;
 
 export function validateKolPositionClaimPayload(input: unknown): ValidationResult {
@@ -686,7 +965,8 @@ export function validateKolPositionClaimPayload(input: unknown): ValidationResul
   if (payload === null) return result(["payload must be an object"]);
   const errors: string[] = [];
   closed(payload, POSITION_FIELDS, errors);
-  if (payload.schemaVersion !== KOL_POSITION_CLAIM_SCHEMA_VERSION) errors.push("invalid schemaVersion");
+  if (payload.schemaVersion !== KOL_POSITION_CLAIM_SCHEMA_VERSION)
+    errors.push("invalid schemaVersion");
   requiredString(payload, "positionClaimId", errors);
   revisionChain(payload, errors);
   requiredString(payload, "claimId", errors);
@@ -696,11 +976,21 @@ export function validateKolPositionClaimPayload(input: unknown): ValidationResul
     errors.push("instrumentId must use canonical unified code form");
   }
   enumString(payload, "position", new Set(["LONG", "SHORT", "FLAT"]), errors);
-  enumString(payload, "timeHorizon", new Set(["INTRADAY", "SWING", "LONG_TERM", "UNSPECIFIED"]), errors);
+  enumString(
+    payload,
+    "timeHorizon",
+    new Set(["INTRADAY", "SWING", "LONG_TERM", "UNSPECIFIED"]),
+    errors,
+  );
   if (payload.executionSemantics !== NON_EXECUTABLE_POSITION_CLAIM) {
     errors.push("executionSemantics must remain non-executable");
   }
-  if (typeof payload.confidenceBps !== "number" || !Number.isInteger(payload.confidenceBps) || payload.confidenceBps < 0 || payload.confidenceBps > 10000) {
+  if (
+    typeof payload.confidenceBps !== "number" ||
+    !Number.isInteger(payload.confidenceBps) ||
+    payload.confidenceBps < 0 ||
+    payload.confidenceBps > 10000
+  ) {
     errors.push("confidenceBps must be an integer between 0 and 10000");
   }
   enumString(payload, "reviewStatus", REVIEW_STATUSES, errors);
@@ -720,7 +1010,12 @@ export function isKolClaimVisibleAt(input: unknown, decisionTime: string): boole
   const errors: string[] = [];
   const available = instant(payload.availableTime, "availableTime", errors);
   const decision = instant(decisionTime, "decisionTime", errors);
-  return available !== undefined && decision !== undefined && available <= decision && payload.deleted === false;
+  return (
+    available !== undefined &&
+    decision !== undefined &&
+    available <= decision &&
+    payload.deleted === false
+  );
 }
 
 export function isKolContentVisibleAt(input: unknown, decisionTime: string): boolean {
@@ -731,5 +1026,10 @@ export function isKolContentVisibleAt(input: unknown, decisionTime: string): boo
   const errors: string[] = [];
   const available = instant(payload.availableTime, "availableTime", errors);
   const decision = instant(decisionTime, "decisionTime", errors);
-  return available !== undefined && decision !== undefined && available <= decision && payload.deleted === false;
+  return (
+    available !== undefined &&
+    decision !== undefined &&
+    available <= decision &&
+    payload.deleted === false
+  );
 }

@@ -21,10 +21,16 @@ export interface AppendClaimReviewResult {
 
 export interface ClaimReviewRepository {
   findCandidate(candidateId: string, revisionId: string): Promise<ClaimCandidateProjection | null>;
-  latestCandidate(candidateId: string, decisionTime: string): Promise<ClaimCandidateProjection | null>;
+  latestCandidate(
+    candidateId: string,
+    decisionTime: string,
+  ): Promise<ClaimCandidateProjection | null>;
   latestReview(candidateId: string, revisionId: string): Promise<KolClaimReview | null>;
   findReviewById(reviewId: string): Promise<KolClaimReview | null>;
-  appendReview(review: KolClaimReview, expectedPreviousReviewId: string | null): Promise<AppendClaimReviewResult>;
+  appendReview(
+    review: KolClaimReview,
+    expectedPreviousReviewId: string | null,
+  ): Promise<AppendClaimReviewResult>;
 }
 
 /** Internal server-owned projection sink; no controller exposes candidate upsert. */

@@ -71,16 +71,18 @@ describe("KolMediaTextEvidence schema", () => {
       processorKind: "ASR",
       text: "test",
       language: "en-US",
-      segments: [{
-        text: "test",
-        startOffset: 0,
-        endOffset: 4,
-        startMs: 0,
-        endMs: 100,
-        bbox: null,
-        confidenceBps: 9000,
-        qualityBps: 9000,
-      }],
+      segments: [
+        {
+          text: "test",
+          startOffset: 0,
+          endOffset: 4,
+          startMs: 0,
+          endMs: 100,
+          bbox: null,
+          confidenceBps: 9000,
+          qualityBps: 9000,
+        },
+      ],
       confidenceBps: 9000,
       qualityBps: 9000,
       eventTime: null,
@@ -104,7 +106,10 @@ describe("KolMediaTextEvidence schema", () => {
       deletionReason: null,
     };
     expect(validateKolMediaTextEvidencePayload(valid).valid).toBe(true);
-    expect(validateKolMediaTextEvidencePayload({ ...valid, availableTime: "2026-08-25T01:00:00Z" }).valid).toBe(false);
+    expect(
+      validateKolMediaTextEvidencePayload({ ...valid, availableTime: "2026-08-25T01:00:00Z" })
+        .valid,
+    ).toBe(false);
     expect(validateKolMediaTextEvidencePayload({ ...valid, unknown: true }).valid).toBe(false);
   });
 });

@@ -13,15 +13,7 @@ import {
   symlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import {
-  delimiter,
-  dirname,
-  isAbsolute,
-  join,
-  relative,
-  resolve,
-  sep,
-} from "node:path";
+import { delimiter, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const CLOSURE_ENTRIES = [
   "pyproject.toml",
@@ -148,9 +140,7 @@ function run() {
   const args = process.argv.slice(2);
   const sourceRoot = resolve(parseOption(args, "--root", process.cwd()));
   assertRepoRoot(sourceRoot);
-  const uvProjectRoot = resolve(
-    process.env.KUNLUN_ORIGINAL_REPO_ROOT ?? process.cwd(),
-  );
+  const uvProjectRoot = resolve(process.env.KUNLUN_ORIGINAL_REPO_ROOT ?? process.cwd());
   assertRepoRoot(uvProjectRoot);
   const baselineInput = parseOption(
     args,

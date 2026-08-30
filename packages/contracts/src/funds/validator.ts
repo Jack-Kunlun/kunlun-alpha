@@ -80,8 +80,7 @@ const UNIFIED_CODE_PATTERN = /^\d{6}\.(SH|SZ|BJ)$/;
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;
 const CANONICAL_BENCHMARK_ID_PATTERN =
   /^benchmark:v1:[a-z0-9][a-z0-9._-]{0,31}:[a-z0-9][a-z0-9._-]{0,127}$/;
-const CANONICAL_DECIMAL_PATTERN =
-  /^(?:0\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\.[0-9]+)?)$/;
+const CANONICAL_DECIMAL_PATTERN = /^(?:0\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\.[0-9]+)?)$/;
 const BENCHMARK_ID_MAX_LENGTH = 174;
 const PRICE_BASIS_MAX_LENGTH = 64;
 const REFERENCE_VALUE_MAX_LENGTH = 64;
@@ -231,7 +230,10 @@ export function validateBenchmarkSeriesPoint(point: BenchmarkSeriesPoint): Valid
   if (!isNonEmptyBoundedString(point.rawObjectId, PROVENANCE_STRING_MAX_LENGTH)) {
     errors.push("rawObjectId must be non-empty and no longer than 256 characters");
   }
-  if (typeof point.payloadDigest !== "string" || !PAYLOAD_DIGEST_PATTERN.test(point.payloadDigest)) {
+  if (
+    typeof point.payloadDigest !== "string" ||
+    !PAYLOAD_DIGEST_PATTERN.test(point.payloadDigest)
+  ) {
     errors.push("payloadDigest must be a sha256 digest");
   }
 
@@ -250,7 +252,11 @@ export function validateBenchmarkSeriesPoint(point: BenchmarkSeriesPoint): Valid
     for (let index = 1; index < timestampValues.length; index += 1) {
       const previous = timestampValues[index - 1];
       const current = timestampValues[index];
-      if (previous !== undefined && current !== undefined && compareInstants(previous, current) > 0) {
+      if (
+        previous !== undefined &&
+        current !== undefined &&
+        compareInstants(previous, current) > 0
+      ) {
         errors.push("event/ingest/available/processing order invalid");
         break;
       }

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { ConflictException } from "@nestjs/common";
-import { computeCandidateIdFromPayload, computeCandidateRevisionIdFromPayload } from "@kunlun/contracts/kol";
+import {
+  computeCandidateIdFromPayload,
+  computeCandidateRevisionIdFromPayload,
+} from "@kunlun/contracts/kol";
 import { InMemoryClaimReviewRepository } from "./in-memory-claim-review.repository";
 import { ClaimCandidateMaterializer } from "./claim-candidate-materializer";
 import { ClaimReviewService } from "./claim-review.service";
@@ -24,21 +27,23 @@ function candidatePayload(overrides: Record<string, unknown> = {}): Record<strin
     eventTime: null,
     eventDate: null,
     instrumentId: "600519.SH",
-    anchors: [{
-      anchorType: "CONTENT",
-      sourceIndex: 0,
-      contentId: "content-1",
-      contentVersion: "v1",
-      contentRevisionId: "content-r1",
-      contentAvailableTime: "2025-01-01T00:00:00Z",
-      source: "test",
-      sourceVersion: "v1",
-      startOffset: 0,
-      endOffset: 4,
-      excerpt: "公开表述",
-      evidenceGrade: "PRIMARY_SOURCE",
-      evidenceGradeVersion: "evidence-grade-v1",
-    }],
+    anchors: [
+      {
+        anchorType: "CONTENT",
+        sourceIndex: 0,
+        contentId: "content-1",
+        contentVersion: "v1",
+        contentRevisionId: "content-r1",
+        contentAvailableTime: "2025-01-01T00:00:00Z",
+        source: "test",
+        sourceVersion: "v1",
+        startOffset: 0,
+        endOffset: 4,
+        excerpt: "公开表述",
+        evidenceGrade: "PRIMARY_SOURCE",
+        evidenceGradeVersion: "evidence-grade-v1",
+      },
+    ],
     evidenceGrade: "PRIMARY_SOURCE",
     evidenceGradeVersion: "evidence-grade-v1",
     confidenceBps: 8000,
@@ -98,18 +103,32 @@ describe("ClaimReviewService", () => {
     expect(replay.reviewId).toBe(first.reviewId);
     expect(first.reviewerRef).toBe("reviewer-from-auth");
     expect(first.createdAt).toBe("2025-01-01T01:00:00.000Z");
-    await expect(service.submit({ ...submission, reason: "改写审核理由" })).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.submit({ ...submission, reason: "改写审核理由" })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
   it("does not trust a client projection integrity flag", async () => {
     const repository = new InMemoryClaimReviewRepository();
-    await expect(new ClaimCandidateMaterializer(repository).materialize(candidatePayload({ integrityValid: false }))).rejects.toThrow();
-    await expect(new ClaimCandidateMaterializer(repository).materialize(candidatePayload({ integrityValid: true }))).rejects.toThrow();
+    await expect(
+      new ClaimCandidateMaterializer(repository).materialize(
+        candidatePayload({ integrityValid: false }),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      new ClaimCandidateMaterializer(repository).materialize(
+        candidatePayload({ integrityValid: true }),
+      ),
+    ).rejects.toThrow();
   });
 
   it("rejects a materialized candidate whose canonical identity was altered", async () => {
     const repository = new InMemoryClaimReviewRepository();
-    await expect(new ClaimCandidateMaterializer(repository).materialize(candidatePayload({ candidateId: "candidate-2" }))).rejects.toThrow();
+    await expect(
+      new ClaimCandidateMaterializer(repository).materialize(
+        candidatePayload({ candidateId: "candidate-2" }),
+      ),
+    ).rejects.toThrow();
   });
 
   it("replays the durable review after a later candidate tombstone", async () => {
@@ -132,18 +151,24 @@ describe("ClaimReviewService", () => {
       reason: "公开措辞已审核",
     };
     const first = await service.submit(submission);
-    await materializer.materialize(candidatePayload({
-      previousRevisionId: root.revisionId,
-      availableTime: "2025-01-01T02:00:00Z",
-      deleted: true,
-      deletedAt: "2025-01-01T03:00:00Z",
-      deletionReason: "source_corrected",
-    }));
+    await materializer.materialize(
+      candidatePayload({
+        previousRevisionId: root.revisionId,
+        availableTime: "2025-01-01T02:00:00Z",
+        deleted: true,
+        deletedAt: "2025-01-01T03:00:00Z",
+        deletionReason: "source_corrected",
+      }),
+    );
     currentTime = new Date("2025-01-01T04:00:00.000Z");
     const replay = await service.submit(submission);
     expect(replay).toEqual(first);
-    await expect(service.submit({ ...submission, reason: "篡改后的重放" })).rejects.toBeInstanceOf(ConflictException);
-    await expect(service.submit({ ...submission, clientRequestId: "fresh-stale-request" })).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.submit({ ...submission, reason: "篡改后的重放" })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    await expect(
+      service.submit({ ...submission, clientRequestId: "fresh-stale-request" }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it("rejects review of a superseded candidate head", async () => {
@@ -151,26 +176,30 @@ describe("ClaimReviewService", () => {
     const materializer = new ClaimCandidateMaterializer(repository);
     const root = candidatePayload();
     await materializer.materialize(root);
-    await materializer.materialize(candidatePayload({
-      previousRevisionId: root.revisionId,
-      availableTime: "2025-01-01T02:00:00Z",
-      deleted: true,
-      deletedAt: "2025-01-01T02:00:00Z",
-      deletionReason: "source_corrected",
-    }));
+    await materializer.materialize(
+      candidatePayload({
+        previousRevisionId: root.revisionId,
+        availableTime: "2025-01-01T02:00:00Z",
+        deleted: true,
+        deletedAt: "2025-01-01T02:00:00Z",
+        deletionReason: "source_corrected",
+      }),
+    );
     const service = new ClaimReviewService(
       repository,
       { currentReviewerRef: async () => "reviewer-from-auth" },
       { now: () => new Date("2025-01-01T03:00:00.000Z") },
     );
-    await expect(service.submit({
-      schemaVersion: "claim-review-submission-v1",
-      clientRequestId: "client-request-old",
-      candidateId: root.candidateId,
-      candidateRevisionId: root.revisionId,
-      decision: "APPROVED",
-      reason: "旧版本",
-    })).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.submit({
+        schemaVersion: "claim-review-submission-v1",
+        clientRequestId: "client-request-old",
+        candidateId: root.candidateId,
+        candidateRevisionId: root.revisionId,
+        decision: "APPROVED",
+        reason: "旧版本",
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it("rechecks the candidate head atomically during append", async () => {
@@ -180,12 +209,14 @@ describe("ClaimReviewService", () => {
     await materializer.materialize(root);
     const append = repository.appendReview.bind(repository);
     repository.appendReview = async (review, expectedPreviousReviewId) => {
-      await materializer.materialize(candidatePayload({
-        previousRevisionId: root.revisionId,
-        processingTime: "2025-01-01T02:00:00Z",
-        availableTime: "2025-01-01T02:00:00Z",
-        recognitionRunId: "interleaved-successor",
-      }));
+      await materializer.materialize(
+        candidatePayload({
+          previousRevisionId: root.revisionId,
+          processingTime: "2025-01-01T02:00:00Z",
+          availableTime: "2025-01-01T02:00:00Z",
+          recognitionRunId: "interleaved-successor",
+        }),
+      );
       return append(review, expectedPreviousReviewId);
     };
     const service = new ClaimReviewService(
@@ -194,14 +225,16 @@ describe("ClaimReviewService", () => {
       { now: () => new Date("2025-01-01T03:00:00.000Z") },
     );
 
-    await expect(service.submit({
-      schemaVersion: "claim-review-submission-v1",
-      clientRequestId: "client-request-interleaved",
-      candidateId: root.candidateId,
-      candidateRevisionId: root.revisionId,
-      decision: "APPROVED",
-      reason: "并发审核",
-    })).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.submit({
+        schemaVersion: "claim-review-submission-v1",
+        clientRequestId: "client-request-interleaved",
+        candidateId: root.candidateId,
+        candidateRevisionId: root.revisionId,
+        decision: "APPROVED",
+        reason: "并发审核",
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it("uses strict microsecond RFC3339 validation for persisted reviews", () => {
@@ -221,7 +254,11 @@ describe("ClaimReviewService", () => {
       reviewMeaning: "PUBLIC_WORDING_REVIEWED_NOT_FACT_OR_EXECUTION",
     };
     expect(validateClaimReview(base).availableAt).toBe(base.availableAt);
-    expect(() => validateClaimReview({ ...base, createdAt: "2025-02-30T00:00:00Z" })).toThrow(/valid timezone-aware RFC3339/);
-    expect(() => validateClaimReview({ ...base, createdAt: "2025-01-01T00:00:00.123458Z" })).toThrow(/createdAt/);
+    expect(() => validateClaimReview({ ...base, createdAt: "2025-02-30T00:00:00Z" })).toThrow(
+      /valid timezone-aware RFC3339/,
+    );
+    expect(() =>
+      validateClaimReview({ ...base, createdAt: "2025-01-01T00:00:00.123458Z" }),
+    ).toThrow(/createdAt/);
   });
 });

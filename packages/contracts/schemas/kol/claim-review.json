@@ -17,10 +17,29 @@
     "reviewerRef": { "type": "string", "minLength": 1, "maxLength": 256 },
     "createdAt": { "type": "string", "format": "date-time" },
     "availableAt": { "type": "string", "format": "date-time" },
-    "submissionFingerprint": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+    "submissionFingerprint": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "previousReviewId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
     "reviewMeaning": { "type": "string", "enum": ["PUBLIC_WORDING_REVIEWED_NOT_FACT_OR_EXECUTION"] }
   },
-  "required": ["schemaVersion", "reviewId", "candidateId", "candidateRevisionId", "decision", "reason", "comment", "reviewerRef", "createdAt", "availableAt", "submissionFingerprint", "previousReviewId", "reviewMeaning"],
+  "required": [
+    "schemaVersion",
+    "reviewId",
+    "candidateId",
+    "candidateRevisionId",
+    "decision",
+    "reason",
+    "comment",
+    "reviewerRef",
+    "createdAt",
+    "availableAt",
+    "submissionFingerprint",
+    "previousReviewId",
+    "reviewMeaning"
+  ],
   "additionalProperties": false
 }

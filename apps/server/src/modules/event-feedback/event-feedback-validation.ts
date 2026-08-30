@@ -79,7 +79,10 @@ function stringArray(value: unknown, field: string, pattern?: RegExp): string[] 
     throw new EventFeedbackValidationError(`${field} must be a string array`);
   }
   const result = value as string[];
-  if (new Set(result).size !== result.length || result.some((item) => !item || (pattern && !pattern.test(item)))) {
+  if (
+    new Set(result).size !== result.length ||
+    result.some((item) => !item || (pattern && !pattern.test(item)))
+  ) {
     throw new EventFeedbackValidationError(`${field} contains invalid or duplicate values`);
   }
   return [...result].sort();
@@ -96,13 +99,19 @@ function correction(value: unknown): NonNullable<EventFeedbackSubmission["correc
     if (typeof input.eventType !== "string" || !EVENT_TYPES.has(input.eventType)) {
       throw new EventFeedbackValidationError("eventType is invalid");
     }
-    output.eventType = input.eventType as NonNullable<EventFeedbackSubmission["correction"]>["eventType"];
+    output.eventType = input.eventType as NonNullable<
+      EventFeedbackSubmission["correction"]
+    >["eventType"];
   }
-  if (input.headline !== undefined) output.headline = requiredString(input.headline, "headline", undefined, 500);
-  if (input.summary !== undefined) output.summary = requiredString(input.summary, "summary", undefined, 5000);
-  if (input.instrumentIds !== undefined) output.instrumentIds = stringArray(input.instrumentIds, "instrumentIds", INSTRUMENT);
+  if (input.headline !== undefined)
+    output.headline = requiredString(input.headline, "headline", undefined, 500);
+  if (input.summary !== undefined)
+    output.summary = requiredString(input.summary, "summary", undefined, 5000);
+  if (input.instrumentIds !== undefined)
+    output.instrumentIds = stringArray(input.instrumentIds, "instrumentIds", INSTRUMENT);
   if (input.sectorIds !== undefined) output.sectorIds = stringArray(input.sectorIds, "sectorIds");
-  if (input.evidenceIds !== undefined) output.evidenceIds = stringArray(input.evidenceIds, "evidenceIds", HEX_64);
+  if (input.evidenceIds !== undefined)
+    output.evidenceIds = stringArray(input.evidenceIds, "evidenceIds", HEX_64);
   return output;
 }
 
@@ -118,11 +127,15 @@ export function validateFeedbackSubmission(value: unknown): EventFeedbackSubmiss
   if (typeof input.reasonCode !== "string" || !REASONS.has(input.reasonCode)) {
     throw new EventFeedbackValidationError("reasonCode is invalid");
   }
-  const parsedCorrection = input.correction === undefined ? undefined : correction(input.correction);
+  const parsedCorrection =
+    input.correction === undefined ? undefined : correction(input.correction);
   if ((input.action === "CORRECT") !== (parsedCorrection !== undefined)) {
     throw new EventFeedbackValidationError("only CORRECT feedback requires correction");
   }
-  const comment = input.comment === undefined ? undefined : requiredString(input.comment, "comment", undefined, 1000);
+  const comment =
+    input.comment === undefined
+      ? undefined
+      : requiredString(input.comment, "comment", undefined, 1000);
   return {
     schemaVersion: "event-feedback-submission-v1",
     clientRequestId: requiredString(input.clientRequestId, "clientRequestId", REFERENCE),
@@ -155,12 +168,19 @@ export function validateFeedbackQuery(value: unknown): EventFeedbackQuery {
     throw new EventFeedbackValidationError("limit must be an integer string from 1 to 200");
   }
   const limit = Number(limitValue);
-  if (limit > 200) throw new EventFeedbackValidationError("limit must be an integer string from 1 to 200");
-  const eventId = input.eventId === undefined ? undefined : requiredString(input.eventId, "eventId", HEX_64, 64);
+  if (limit > 200)
+    throw new EventFeedbackValidationError("limit must be an integer string from 1 to 200");
+  const eventId =
+    input.eventId === undefined ? undefined : requiredString(input.eventId, "eventId", HEX_64, 64);
   const fingerprint =
     input.modelConfigurationFingerprint === undefined
       ? undefined
-      : requiredString(input.modelConfigurationFingerprint, "modelConfigurationFingerprint", HEX_64, 64);
+      : requiredString(
+          input.modelConfigurationFingerprint,
+          "modelConfigurationFingerprint",
+          HEX_64,
+          64,
+        );
   return {
     limit,
     ...(eventId === undefined ? {} : { eventId }),
@@ -200,7 +220,12 @@ export function validateFeedbackRecord(value: unknown): EventFeedback {
     ...(submission.correction === undefined ? {} : { correction: submission.correction }),
     ...(submission.comment === undefined ? {} : { comment: submission.comment }),
     reviewerRef: validateReviewerRef(input.reviewerRef),
-    submissionFingerprint: requiredString(input.submissionFingerprint, "submissionFingerprint", HEX_64, 64),
+    submissionFingerprint: requiredString(
+      input.submissionFingerprint,
+      "submissionFingerprint",
+      HEX_64,
+      64,
+    ),
     createdAt,
     availableAt,
   };

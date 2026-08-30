@@ -6,33 +6,33 @@
 
 ## 站点地图
 
-| 视野 | 路径 | 模块 | 节点 | 当前状态 |
-| --- | --- | --- | --- | --- |
-| 决策视野 | `/` | 决策总览 | P6-N01 | 已就绪 |
-| 决策视野 | `/market-overview` | 市场总览 | P6-N02 | 页面就绪 |
-| 决策视野 | `/limit-pool` | 涨跌停与连板 | P6-N03 | 路由就绪 |
-| 决策视野 | `/rotation` | 轮动与热点 | P6-N04 | 路由就绪 |
-| 决策视野 | `/ranking` | Intelligence 排行 | P6-N05 | 路由就绪 |
-| 决策视野 | `/instruments`、`/instruments/:instrumentId` | 个股 Intelligence | P6-N06 | 路由就绪 |
-| 决策视野 | `/precious-metals` | 贵金属基金 | P6-N13 | 路由就绪 |
-| 行动工作台 | `/watchlists` | 自选与预警 | P6-N07 | 路由就绪 |
-| 行动工作台 | `/paper` | 模拟组合 | P6-N08–P6-N12 | 路由就绪 |
-| 研究与审计 | `/market-regime` | 市场状态回放 | P2-N10 | 已就绪 |
-| 研究与审计 | `/event-workbench` | 事件证据台 | P3-N06 | 已就绪 |
-| 研究与审计 | `/seat-kol` | 席位与 KOL | P4-N10 | 已就绪 |
-| 研究与审计 | `/backtest/regressions` | 回测回归 | P5-N13 | 已就绪 |
-| 研究与审计 | `/data-quality` | 数据质量 | P1-N12 | 已就绪 |
+| 视野       | 路径                                         | 模块              | 节点          | 当前状态 |
+| ---------- | -------------------------------------------- | ----------------- | ------------- | -------- |
+| 决策视野   | `/`                                          | 决策总览          | P6-N01        | 已就绪   |
+| 决策视野   | `/market-overview`                           | 市场总览          | P6-N02        | 页面就绪 |
+| 决策视野   | `/limit-pool`                                | 涨跌停与连板      | P6-N03        | 路由就绪 |
+| 决策视野   | `/rotation`                                  | 轮动与热点        | P6-N04        | 路由就绪 |
+| 决策视野   | `/ranking`                                   | Intelligence 排行 | P6-N05        | 路由就绪 |
+| 决策视野   | `/instruments`、`/instruments/:instrumentId` | 个股 Intelligence | P6-N06        | 路由就绪 |
+| 决策视野   | `/precious-metals`                           | 贵金属基金        | P6-N13        | 路由就绪 |
+| 行动工作台 | `/watchlists`                                | 自选与预警        | P6-N07        | 路由就绪 |
+| 行动工作台 | `/paper`                                     | 模拟组合          | P6-N08–P6-N12 | 路由就绪 |
+| 研究与审计 | `/market-regime`                             | 市场状态回放      | P2-N10        | 已就绪   |
+| 研究与审计 | `/event-workbench`                           | 事件证据台        | P3-N06        | 已就绪   |
+| 研究与审计 | `/seat-kol`                                  | 席位与 KOL        | P4-N10        | 已就绪   |
+| 研究与审计 | `/backtest/regressions`                      | 回测回归          | P5-N13        | 已就绪   |
+| 研究与审计 | `/data-quality`                              | 数据质量          | P1-N12        | 已就绪   |
 
 规划路由只显示节点边界和模块说明，不得展示伪造行情、排名、组合或交易状态。
 
 ## 权限矩阵
 
-| 角色 | `terminal:read` | `research:read` | `paper:read` | `operations:read` |
-| --- | --- | --- | --- | --- |
-| `viewer` | 是 | 否 | 否 | 否 |
-| `researcher` | 是 | 是 | 否 | 否 |
-| `paper_operator` | 是 | 否 | 是 | 否 |
-| `platform_admin` | 是 | 是 | 是 | 是 |
+| 角色             | `terminal:read` | `research:read` | `paper:read` | `operations:read` |
+| ---------------- | --------------- | --------------- | ------------ | ----------------- |
+| `viewer`         | 是              | 否              | 否           | 否                |
+| `researcher`     | 是              | 是              | 否           | 否                |
+| `paper_operator` | 是              | 否              | 是           | 否                |
+| `platform_admin` | 是              | 是              | 是           | 是                |
 
 - 前端矩阵控制导航可见性并为直接深链接提供明确 forbidden 状态。
 - 服务端授权仍是最终安全边界，前端角色不得替代 API 权限校验。

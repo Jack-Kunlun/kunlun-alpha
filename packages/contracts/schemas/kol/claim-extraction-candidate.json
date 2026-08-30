@@ -6,7 +6,11 @@
   "description": "An unreviewed public-speech extraction candidate. It is not a fact, Trade, order, fill, account or executable position.",
   "$comment": "The model response is a separate closed raw shape and may only select a request-provided sourceIndex plus offsets. The trusted candidate resolver supplies exact content/media identities and provenance. Runtime invariants include revision append-only ordering, event-time matrix, anchor exactness, source PIT authorization, and confidence no higher than selected evidence.",
   "x-python-validation": [
-    { "when": { "field": "statementKind", "equals": "AMBIGUOUS" }, "forbid": { "field": "attribution", "equals": "SELF" }, "message": "AMBIGUOUS cannot be SELF attributed" }
+    {
+      "when": { "field": "statementKind", "equals": "AMBIGUOUS" },
+      "forbid": { "field": "attribution", "equals": "SELF" },
+      "message": "AMBIGUOUS cannot be SELF attributed"
+    }
   ],
   "type": "object",
   "properties": {
@@ -14,7 +18,10 @@
     "candidateId": { "type": "string", "minLength": 1, "maxLength": 256 },
     "revisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
     "previousRevisionId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
-    "semanticLabel": { "type": "string", "enum": ["PUBLIC_SPEECH_CANDIDATE_NOT_FACT_OR_EXECUTION"] },
+    "semanticLabel": {
+      "type": "string",
+      "enum": ["PUBLIC_SPEECH_CANDIDATE_NOT_FACT_OR_EXECUTION"]
+    },
     "statement": { "type": "string", "minLength": 1, "maxLength": 10000 },
     "action": { "$ref": "#/definitions/ClaimAction" },
     "polarity": { "$ref": "#/definitions/ClaimPolarity" },
@@ -24,15 +31,22 @@
     "eventTimeStatus": { "$ref": "#/definitions/EventTimeStatus" },
     "eventTime": { "type": ["string", "null"], "format": "date-time" },
     "eventDate": { "type": ["string", "null"], "format": "date" },
-    "instrumentId": { "type": "string", "minLength": 9, "maxLength": 9, "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+    "instrumentId": {
+      "type": "string",
+      "minLength": 9,
+      "maxLength": 9,
+      "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$"
+    },
     "anchors": {
       "type": "array",
       "minItems": 1,
       "maxItems": 32,
-      "items": { "oneOf": [
-        { "$ref": "#/definitions/ContentExactAnchor" },
-        { "$ref": "#/definitions/MediaExactAnchor" }
-      ] }
+      "items": {
+        "oneOf": [
+          { "$ref": "#/definitions/ContentExactAnchor" },
+          { "$ref": "#/definitions/MediaExactAnchor" }
+        ]
+      }
     },
     "evidenceGrade": { "$ref": "#/definitions/EvidenceGrade" },
     "evidenceGradeVersion": { "type": "string", "enum": ["evidence-grade-v1"] },
@@ -43,8 +57,18 @@
     "promptVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
     "modelProvider": { "type": "string", "minLength": 1, "maxLength": 256 },
     "modelVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "configurationFingerprint": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
-    "policyFingerprint": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+    "configurationFingerprint": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "policyFingerprint": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "recognitionRunId": { "type": "string", "minLength": 1, "maxLength": 256 },
     "publishTime": { "type": "string", "format": "date-time" },
     "ingestTime": { "type": "string", "format": "date-time" },
@@ -56,36 +80,86 @@
     "deletionReason": { "type": ["string", "null"], "minLength": 1, "maxLength": 1000 }
   },
   "required": [
-    "schemaVersion", "candidateId", "revisionId", "previousRevisionId", "semanticLabel",
-    "statement", "action", "polarity", "conditionality", "statementKind", "attribution",
-    "eventTimeStatus", "eventTime", "eventDate", "instrumentId", "anchors", "evidenceGrade",
-    "evidenceGradeVersion", "confidenceBps", "source", "sourceVersion", "algorithmVersion",
-    "promptVersion", "modelProvider", "modelVersion", "configurationFingerprint",
-    "policyFingerprint", "recognitionRunId", "publishTime", "ingestTime", "processingTime",
-    "availableTime", "reviewStatus", "deleted", "deletedAt", "deletionReason"
+    "schemaVersion",
+    "candidateId",
+    "revisionId",
+    "previousRevisionId",
+    "semanticLabel",
+    "statement",
+    "action",
+    "polarity",
+    "conditionality",
+    "statementKind",
+    "attribution",
+    "eventTimeStatus",
+    "eventTime",
+    "eventDate",
+    "instrumentId",
+    "anchors",
+    "evidenceGrade",
+    "evidenceGradeVersion",
+    "confidenceBps",
+    "source",
+    "sourceVersion",
+    "algorithmVersion",
+    "promptVersion",
+    "modelProvider",
+    "modelVersion",
+    "configurationFingerprint",
+    "policyFingerprint",
+    "recognitionRunId",
+    "publishTime",
+    "ingestTime",
+    "processingTime",
+    "availableTime",
+    "reviewStatus",
+    "deleted",
+    "deletedAt",
+    "deletionReason"
   ],
   "additionalProperties": false,
   "definitions": {
     "ClaimAction": { "type": "string", "enum": ["BUY", "SELL", "HOLDING", "WATCH"] },
     "ClaimPolarity": { "type": "string", "enum": ["AFFIRMED", "NEGATED"] },
     "ClaimConditionality": { "type": "string", "enum": ["UNCONDITIONAL", "CONDITIONAL"] },
-    "ClaimStatementKind": { "type": "string", "enum": ["DIRECT", "QUOTE", "PARAPHRASE", "AMBIGUOUS"] },
+    "ClaimStatementKind": {
+      "type": "string",
+      "enum": ["DIRECT", "QUOTE", "PARAPHRASE", "AMBIGUOUS"]
+    },
     "ClaimAttribution": { "type": "string", "enum": ["SELF", "QUOTED", "REPORTED", "UNKNOWN"] },
     "EventTimeStatus": { "type": "string", "enum": ["EXACT", "DATE_ONLY", "UNKNOWN"] },
-    "EvidenceGrade": { "type": "string", "enum": ["PRIMARY_SOURCE", "SECONDARY_SOURCE", "TERTIARY_SOURCE", "UNCLASSIFIED"] },
+    "EvidenceGrade": {
+      "type": "string",
+      "enum": ["PRIMARY_SOURCE", "SECONDARY_SOURCE", "TERTIARY_SOURCE", "UNCLASSIFIED"]
+    },
     "AnchorBase": {
       "type": "object",
       "properties": {
         "anchorType": { "type": "string", "enum": ["CONTENT", "MEDIA"] },
-        "sourceIndex": { "type": "integer", "minimum": 0, "maximum": 100000, "x-python-strict": true },
+        "sourceIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000,
+          "x-python-strict": true
+        },
         "contentId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "contentVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
         "contentRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "contentAvailableTime": { "type": "string", "format": "date-time" },
         "source": { "type": "string", "minLength": 1, "maxLength": 256 },
         "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "startOffset": { "type": "integer", "minimum": 0, "maximum": 10000000, "x-python-strict": true },
-        "endOffset": { "type": "integer", "minimum": 1, "maximum": 10000000, "x-python-strict": true },
+        "startOffset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000,
+          "x-python-strict": true
+        },
+        "endOffset": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000,
+          "x-python-strict": true
+        },
         "excerpt": { "type": "string", "minLength": 1, "maxLength": 10000 },
         "evidenceGrade": { "$ref": "#/definitions/EvidenceGrade" },
         "evidenceGradeVersion": { "type": "string", "enum": ["evidence-grade-v1"] },
@@ -95,44 +169,107 @@
         "mediaId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "mediaVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
         "mediaManifestRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "segmentIndexes": { "type": "array", "minItems": 1, "maxItems": 1000, "uniqueItems": true, "items": { "type": "integer", "minimum": 0, "maximum": 100000, "x-python-strict": true } }
+        "segmentIndexes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 0, "maximum": 100000, "x-python-strict": true }
+        }
       },
-      "required": ["sourceIndex", "contentId", "contentVersion", "contentRevisionId", "contentAvailableTime", "source", "sourceVersion", "startOffset", "endOffset", "excerpt", "evidenceGrade", "evidenceGradeVersion"],
+      "required": [
+        "sourceIndex",
+        "contentId",
+        "contentVersion",
+        "contentRevisionId",
+        "contentAvailableTime",
+        "source",
+        "sourceVersion",
+        "startOffset",
+        "endOffset",
+        "excerpt",
+        "evidenceGrade",
+        "evidenceGradeVersion"
+      ],
       "additionalProperties": false
     },
     "ContentExactAnchor": {
       "type": "object",
       "properties": {
         "anchorType": { "const": "CONTENT" },
-        "sourceIndex": { "type": "integer", "minimum": 0, "maximum": 100000, "x-python-strict": true },
+        "sourceIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000,
+          "x-python-strict": true
+        },
         "contentId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "contentVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
         "contentRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "contentAvailableTime": { "type": "string", "format": "date-time" },
         "source": { "type": "string", "minLength": 1, "maxLength": 256 },
         "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "startOffset": { "type": "integer", "minimum": 0, "maximum": 10000000, "x-python-strict": true },
-        "endOffset": { "type": "integer", "minimum": 1, "maximum": 10000000, "x-python-strict": true },
+        "startOffset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000,
+          "x-python-strict": true
+        },
+        "endOffset": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000,
+          "x-python-strict": true
+        },
         "excerpt": { "type": "string", "minLength": 1, "maxLength": 10000 },
         "evidenceGrade": { "$ref": "#/definitions/EvidenceGrade" },
         "evidenceGradeVersion": { "type": "string", "enum": ["evidence-grade-v1"] }
       },
-      "required": ["anchorType", "sourceIndex", "contentId", "contentVersion", "contentRevisionId", "contentAvailableTime", "source", "sourceVersion", "startOffset", "endOffset", "excerpt", "evidenceGrade", "evidenceGradeVersion"],
+      "required": [
+        "anchorType",
+        "sourceIndex",
+        "contentId",
+        "contentVersion",
+        "contentRevisionId",
+        "contentAvailableTime",
+        "source",
+        "sourceVersion",
+        "startOffset",
+        "endOffset",
+        "excerpt",
+        "evidenceGrade",
+        "evidenceGradeVersion"
+      ],
       "additionalProperties": false
     },
     "MediaExactAnchor": {
       "type": "object",
       "properties": {
         "anchorType": { "const": "MEDIA" },
-        "sourceIndex": { "type": "integer", "minimum": 0, "maximum": 100000, "x-python-strict": true },
+        "sourceIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000,
+          "x-python-strict": true
+        },
         "contentId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "contentVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
         "contentRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "contentAvailableTime": { "type": "string", "format": "date-time" },
         "source": { "type": "string", "minLength": 1, "maxLength": 256 },
         "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "startOffset": { "type": "integer", "minimum": 0, "maximum": 10000000, "x-python-strict": true },
-        "endOffset": { "type": "integer", "minimum": 1, "maximum": 10000000, "x-python-strict": true },
+        "startOffset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000,
+          "x-python-strict": true
+        },
+        "endOffset": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000,
+          "x-python-strict": true
+        },
         "excerpt": { "type": "string", "minLength": 1, "maxLength": 10000 },
         "evidenceGrade": { "$ref": "#/definitions/EvidenceGrade" },
         "evidenceGradeVersion": { "type": "string", "enum": ["evidence-grade-v1"] },
@@ -142,19 +279,88 @@
         "mediaId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "mediaVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
         "mediaManifestRevisionId": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "segmentIndexes": { "type": "array", "minItems": 1, "maxItems": 1000, "uniqueItems": true, "items": { "type": "integer", "minimum": 0, "maximum": 100000, "x-python-strict": true } }
+        "segmentIndexes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 0, "maximum": 100000, "x-python-strict": true }
+        }
       },
-      "required": ["anchorType", "sourceIndex", "contentId", "contentVersion", "contentRevisionId", "contentAvailableTime", "source", "sourceVersion", "startOffset", "endOffset", "excerpt", "evidenceGrade", "evidenceGradeVersion", "evidenceId", "evidenceRevisionId", "evidenceAvailableTime", "mediaId", "mediaVersion", "mediaManifestRevisionId", "segmentIndexes"],
+      "required": [
+        "anchorType",
+        "sourceIndex",
+        "contentId",
+        "contentVersion",
+        "contentRevisionId",
+        "contentAvailableTime",
+        "source",
+        "sourceVersion",
+        "startOffset",
+        "endOffset",
+        "excerpt",
+        "evidenceGrade",
+        "evidenceGradeVersion",
+        "evidenceId",
+        "evidenceRevisionId",
+        "evidenceAvailableTime",
+        "mediaId",
+        "mediaVersion",
+        "mediaManifestRevisionId",
+        "segmentIndexes"
+      ],
       "additionalProperties": false
     }
   },
   "allOf": [
-    { "if": { "properties": { "eventTimeStatus": { "const": "EXACT" } } }, "then": { "required": ["eventTime"], "properties": { "eventTime": { "type": "string", "format": "date-time" }, "eventDate": { "type": "null" } } } },
-    { "if": { "properties": { "eventTimeStatus": { "const": "DATE_ONLY" } } }, "then": { "required": ["eventDate"], "properties": { "eventTime": { "type": "null" }, "eventDate": { "type": "string", "format": "date" } } } },
-    { "if": { "properties": { "eventTimeStatus": { "const": "UNKNOWN" } } }, "then": { "properties": { "eventTime": { "type": "null" }, "eventDate": { "type": "null" } } } },
-    { "if": { "properties": { "statementKind": { "const": "QUOTE" } } }, "then": { "properties": { "attribution": { "enum": ["QUOTED", "REPORTED"] } } } },
-    { "if": { "properties": { "statementKind": { "const": "PARAPHRASE" } } }, "then": { "properties": { "attribution": { "enum": ["REPORTED", "SELF", "QUOTED"] } } } },
-    { "if": { "properties": { "statementKind": { "const": "AMBIGUOUS" } } }, "then": { "properties": { "attribution": { "not": { "const": "SELF" } } } } },
-    { "if": { "properties": { "deleted": { "const": true } } }, "then": { "required": ["deletedAt", "deletionReason"], "properties": { "deletedAt": { "type": "string", "format": "date-time" }, "deletionReason": { "type": "string", "minLength": 1, "maxLength": 1000 } } }, "else": { "properties": { "deletedAt": { "type": "null" }, "deletionReason": { "type": "null" } } } }
+    {
+      "if": { "properties": { "eventTimeStatus": { "const": "EXACT" } } },
+      "then": {
+        "required": ["eventTime"],
+        "properties": {
+          "eventTime": { "type": "string", "format": "date-time" },
+          "eventDate": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "eventTimeStatus": { "const": "DATE_ONLY" } } },
+      "then": {
+        "required": ["eventDate"],
+        "properties": {
+          "eventTime": { "type": "null" },
+          "eventDate": { "type": "string", "format": "date" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "eventTimeStatus": { "const": "UNKNOWN" } } },
+      "then": { "properties": { "eventTime": { "type": "null" }, "eventDate": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "statementKind": { "const": "QUOTE" } } },
+      "then": { "properties": { "attribution": { "enum": ["QUOTED", "REPORTED"] } } }
+    },
+    {
+      "if": { "properties": { "statementKind": { "const": "PARAPHRASE" } } },
+      "then": { "properties": { "attribution": { "enum": ["REPORTED", "SELF", "QUOTED"] } } }
+    },
+    {
+      "if": { "properties": { "statementKind": { "const": "AMBIGUOUS" } } },
+      "then": { "properties": { "attribution": { "not": { "const": "SELF" } } } }
+    },
+    {
+      "if": { "properties": { "deleted": { "const": true } } },
+      "then": {
+        "required": ["deletedAt", "deletionReason"],
+        "properties": {
+          "deletedAt": { "type": "string", "format": "date-time" },
+          "deletionReason": { "type": "string", "minLength": 1, "maxLength": 1000 }
+        }
+      },
+      "else": {
+        "properties": { "deletedAt": { "type": "null" }, "deletionReason": { "type": "null" } }
+      }
+    }
   ]
 }

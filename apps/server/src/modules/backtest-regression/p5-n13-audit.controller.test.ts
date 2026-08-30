@@ -32,10 +32,7 @@ describe("P5-N13 audit regressions", () => {
 
   it("fails closed with 503 when the approved baseline is unavailable", async () => {
     const service = new BacktestRegressionService(
-      new InMemoryBacktestRegressionRepository(
-        [clone(LOCAL_PREVIEW_ARTIFACT)],
-        new Map(),
-      ),
+      new InMemoryBacktestRegressionRepository([clone(LOCAL_PREVIEW_ARTIFACT)], new Map()),
       { canAccess: async () => true },
     );
 

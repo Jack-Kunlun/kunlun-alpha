@@ -15,6 +15,13 @@
     "comment": { "type": ["string", "null"], "minLength": 1, "maxLength": 4000 },
     "expectedPreviousReviewId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 }
   },
-  "required": ["schemaVersion", "clientRequestId", "candidateId", "candidateRevisionId", "decision", "reason"],
+  "required": [
+    "schemaVersion",
+    "clientRequestId",
+    "candidateId",
+    "candidateRevisionId",
+    "decision",
+    "reason"
+  ],
   "additionalProperties": false
 }
