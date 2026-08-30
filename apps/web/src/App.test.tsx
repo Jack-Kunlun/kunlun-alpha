@@ -1,8 +1,8 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import type * as ReactRouter from "react-router";
 import { describe, expect, it, vi } from "vitest";
-import { terminalRoutes } from "./app/route-contract";
+import { terminalRoutes, type TerminalRole } from "./app/route-contract";
 
 let route = "/data-quality";
 
@@ -38,45 +38,50 @@ vi.mock("./components/ui/sonner", () => ({ Toaster: () => null }));
 
 import { App } from "./App";
 
+async function renderApp(roles?: readonly TerminalRole[]): Promise<string> {
+  const stream = await renderToReadableStream(<App roles={roles} />);
+  await stream.allReady;
+  return new Response(stream).text();
+}
+
 describe("App routing", () => {
-  it("serves the data-quality page", () => {
+  it("renders an accessible loading state while a route chunk resolves", () => {
     route = "/data-quality";
-    expect(renderToStaticMarkup(<App roles={["platform_admin"]} />)).toContain(
-      "DATA_QUALITY_PAGE_MARKER",
-    );
+    const html = renderToStaticMarkup(<App roles={["platform_admin"]} />);
+    expect(html).toContain('role="status"');
+    expect(html).toContain("正在加载终端模块");
   });
 
-  it("serves the persisted market-regime replay page", () => {
+  it("serves the data-quality page", async () => {
+    route = "/data-quality";
+    expect(await renderApp(["platform_admin"])).toContain("DATA_QUALITY_PAGE_MARKER");
+  });
+
+  it("serves the persisted market-regime replay page", async () => {
     route = "/market-regime";
-    expect(renderToStaticMarkup(<App roles={["platform_admin"]} />)).toContain(
-      "MARKET_REGIME_PAGE_MARKER",
-    );
+    expect(await renderApp(["platform_admin"])).toContain("MARKET_REGIME_PAGE_MARKER");
   });
 
-  it("serves the Phase 3 event workbench", () => {
+  it("serves the Phase 3 event workbench", async () => {
     route = "/event-workbench";
-    expect(renderToStaticMarkup(<App roles={["platform_admin"]} />)).toContain(
-      "EVENT_WORKBENCH_PAGE_MARKER",
-    );
+    expect(await renderApp(["platform_admin"])).toContain("EVENT_WORKBENCH_PAGE_MARKER");
   });
 
-  it("serves the Phase 4 Seat and KOL workbench", () => {
+  it("serves the Phase 4 Seat and KOL workbench", async () => {
     route = "/seat-kol";
-    expect(renderToStaticMarkup(<App roles={["platform_admin"]} />)).toContain(
-      "SEAT_KOL_WORKBENCH_MARKER",
-    );
+    expect(await renderApp(["platform_admin"])).toContain("SEAT_KOL_WORKBENCH_MARKER");
   });
 
-  it("serves the precious-metals funds terminal", () => {
+  it("serves the precious-metals funds terminal", async () => {
     route = "/precious-metals";
-    const html = renderToStaticMarkup(<App />);
+    const html = await renderApp();
     expect(html).toContain("PRECIOUS_METALS_TERMINAL_MARKER");
     expect(html).not.toContain("ROUTE_PLACEHOLDER:precious-metals");
   });
 
-  it("supports dynamic instrument deep links", () => {
+  it("supports dynamic instrument deep links", async () => {
     route = "/instruments/600519.SH";
-    const html = renderToStaticMarkup(<App />);
+    const html = await renderApp();
     expect(html).toContain("正在装配个股 Intelligence");
     expect(html).not.toContain("ROUTE_PLACEHOLDER:instrument-detail");
   });
@@ -102,10 +107,10 @@ describe("App routing", () => {
     expect(renderToStaticMarkup(<App />)).toContain("404");
   });
 
-  it("registers every route contract through the generated router", () => {
+  it("registers every route contract through the generated router", async () => {
     for (const contract of terminalRoutes) {
       route = contract.href.replace("600519.SH", "000001.SZ");
-      expect(renderToStaticMarkup(<App roles={["platform_admin"]} />)).not.toContain("页面不存在");
+      expect(await renderApp(["platform_admin"])).not.toContain("页面不存在");
     }
   });
 
