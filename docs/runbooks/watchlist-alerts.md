@@ -19,6 +19,12 @@
 - 同一 `ruleId + revisionId + eventId` 只产生一条评估历史和一条通知。
 - 评估按 `availableTime` 执行免打扰和节流，展示时区固定为 `Asia/Shanghai`。
 - 通知失败保留为 `FAILED`，不会删除已触发历史。恢复投递前应先核对 `notificationId`，避免重复展示。
+- 站内通知读取通过 `GET /api/v1/watchlist-alerts/notifications` 完成，最多返回最近 100 条；
+  `unreadCount` 对所有持久通知计数，不受返回窗口截断影响。
+- 单条和全部已读分别使用 `POST /api/v1/watchlist-alerts/notifications/:notificationId/read`
+  与 `POST /api/v1/watchlist-alerts/notifications/read-all`。迁移版本 10 把首次已读时间写入独立的
+  `watchlist_notification_receipts`，重复操作幂等，不覆盖 outbox、评估历史或首次已读时间。
+- 通知列表、未读计数和已读写入都由服务端 `owner_ref` 限定；客户端不能提交或切换 owner。
 - 后台和页面“立即评估最新行情”只自动处理 `LAST_PRICE` 与 `CHANGE_BPS`；每个证券只读取
   最近两根严格点时日线。`eventId` 绑定证券、最新 bar 证据和字段，相同 bar 重跑保持幂等。
 - `EMOTION_SCORE_BPS` 与 `FEATURE_VALUE` 保留为受控规则/预览能力，但当前不会由日线调度器
@@ -28,11 +34,12 @@
 ## 故障排查
 
 1. 接口返回 `403`：检查 `WATCHLIST_ALERTS_OWNER_REF` 是否已配置。
-2. 服务启动失败：检查数据库连接串是否存在，以及迁移版本 8 是否已执行。
+2. 服务启动失败：检查数据库连接串是否存在，以及迁移版本 8、10 是否已执行。
 3. 事件未触发：核对规则版本、证券代码、指标字段、免打扰时段和节流窗口。
 4. 通知为 `FAILED`：保留历史证据，恢复站内投递端后按 `notificationId` 做幂等重试。
 5. 自动评估没有记录：检查间隔配置、规则是否启用，以及对应证券是否至少有 1 根
    `LAST_PRICE` 日线或 2 根 `CHANGE_BPS` 日线。
+6. 通知中心不可用：检查 read-receipt 迁移是否存在；不要删除 outbox 行来清除未读状态。
 
 ## 安全说明
 

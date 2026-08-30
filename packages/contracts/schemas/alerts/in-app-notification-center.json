@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/alerts/in-app-notification-center.json",
+  "title": "InAppNotificationCenter",
+  "description": "Owner-scoped durable in-app research notifications and read receipts",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "unreadCount", "notifications", "dataMeaning"],
+  "properties": {
+    "schemaVersion": { "const": "in-app-notification-center-v1" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "unreadCount": { "type": "integer", "minimum": 0 },
+    "notifications": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/InAppNotification" }
+    },
+    "dataMeaning": { "const": "RESEARCH_IN_APP_ALERTS_NO_ORDER_PATH" }
+  },
+  "$defs": {
+    "InAppNotification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "notificationId",
+        "historyId",
+        "ruleId",
+        "instrumentId",
+        "title",
+        "body",
+        "availableAt",
+        "deliveryStatus",
+        "deliveryAttempts",
+        "readAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "in-app-notification-v1" },
+        "notificationId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "historyId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "ruleId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "instrumentId": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "availableAt": { "type": "string", "format": "date-time" },
+        "deliveryStatus": { "enum": ["PENDING", "DELIVERED", "FAILED"] },
+        "deliveryAttempts": { "type": "integer", "minimum": 0 },
+        "readAt": {
+          "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+        }
+      }
+    }
+  }
+}

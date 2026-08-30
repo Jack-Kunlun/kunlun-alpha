@@ -15,6 +15,21 @@ export class WatchlistAlertsController {
     return this.service.workspace();
   }
 
+  @Get("notifications")
+  notifications() {
+    return this.service.notificationCenter();
+  }
+
+  @Post("notifications/read-all")
+  readAllNotifications() {
+    return this.service.readAllNotifications();
+  }
+
+  @Post("notifications/:notificationId/read")
+  readNotification(@Param("notificationId") notificationId: string) {
+    return this.service.readNotification(notificationId);
+  }
+
   @Post("rules")
   createRule(@Body() body: unknown) {
     return this.service.createRule(body);

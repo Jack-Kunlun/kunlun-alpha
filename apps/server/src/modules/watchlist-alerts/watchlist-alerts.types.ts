@@ -1,4 +1,4 @@
-import type { WatchlistAlertsWorkspace } from "@kunlun/shared-types";
+import type { InAppNotificationCenter, WatchlistAlertsWorkspace } from "@kunlun/shared-types";
 
 export type WatchlistAlertRule = WatchlistAlertsWorkspace["rules"][number];
 export type WatchlistAlertHistory = WatchlistAlertsWorkspace["history"][number];
@@ -46,6 +46,22 @@ export interface NotificationEnvelope {
   title: string;
   body: string;
   availableAt: string;
+}
+
+export type InAppNotificationItem = InAppNotificationCenter["notifications"][number];
+
+export interface StoredInAppNotification {
+  envelope: NotificationEnvelope;
+  ruleId: string;
+  instrumentId: string;
+  deliveryStatus: InAppNotificationItem["deliveryStatus"];
+  deliveryAttempts: number;
+  readAt: string | null;
+}
+
+export interface InAppNotificationList {
+  notifications: StoredInAppNotification[];
+  unreadCount: number;
 }
 
 export interface AppendHistoryResult {

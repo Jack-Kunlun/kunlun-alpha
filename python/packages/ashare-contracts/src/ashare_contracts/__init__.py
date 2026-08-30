@@ -1,5 +1,12 @@
 # Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND.
 
+from ashare_contracts.alerts_in_app_notification_center import DeliveryStatus as DeliveryStatus
+from ashare_contracts.alerts_in_app_notification_center import (
+    InAppNotification as InAppNotification,
+)
+from ashare_contracts.alerts_in_app_notification_center import (
+    InAppNotificationCenter as InAppNotificationCenter,
+)
 from ashare_contracts.alerts_watchlist_alert_evaluation_run import (
     WatchlistAlertEvaluationRun as WatchlistAlertEvaluationRun,
 )
@@ -625,6 +632,9 @@ from ashare_contracts.strategy_strategy_descriptor import StrategyDescriptor as 
 from ashare_contracts.strategy_strategy_descriptor import StringParameterSpec as StringParameterSpec
 
 __all__ = [
+    "DeliveryStatus",
+    "InAppNotification",
+    "InAppNotificationCenter",
     "WatchlistAlertEvaluationRun",
     "FeatureName",
     "InstrumentId",

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException } from "@nestjs/common";
+import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InMemoryWatchlistAlertsRepository } from "./in-memory-watchlist-alerts.repository";
 import type { WatchlistAlertNotificationDispatcher } from "./watchlist-alerts.notification";
@@ -83,6 +83,67 @@ describe("WatchlistAlertsService", () => {
       ConflictException,
     );
     expect((await service.workspace()).history).toHaveLength(1);
+  });
+
+  it("keeps delivered notifications across service restarts and records an idempotent read receipt", async () => {
+    const repository = new InMemoryWatchlistAlertsRepository();
+    const deliver = vi.fn().mockResolvedValue(undefined);
+    const service = new WatchlistAlertsService(repository, { deliver }, "local-research-user");
+    const ruleId = await createRule(service);
+    await service.evaluate(evaluation(ruleId, "persistent-event", "2026-08-26T01:59:00.000Z"));
+
+    const restarted = new WatchlistAlertsService(repository, { deliver }, "local-research-user");
+    const before = await restarted.notificationCenter();
+    const notificationId = before.notifications[0]?.notificationId;
+
+    expect(before).toMatchObject({
+      schemaVersion: "in-app-notification-center-v1",
+      unreadCount: 1,
+      dataMeaning: "RESEARCH_IN_APP_ALERTS_NO_ORDER_PATH",
+      notifications: [
+        {
+          instrumentId: "600519.SH",
+          deliveryStatus: "DELIVERED",
+          deliveryAttempts: 1,
+          readAt: null,
+        },
+      ],
+    });
+    expect(notificationId).toBeTypeOf("string");
+    if (!notificationId) throw new Error("expected notification id");
+
+    const firstRead = await restarted.readNotification(notificationId);
+    const firstReadAt = firstRead.notifications[0]?.readAt;
+    vi.setSystemTime(new Date("2026-08-26T02:05:00.000Z"));
+    const repeatedRead = await restarted.readNotification(notificationId);
+
+    expect(firstRead.unreadCount).toBe(0);
+    expect(firstReadAt).toBe(NOW);
+    expect(repeatedRead.notifications[0]?.readAt).toBe(firstReadAt);
+    await expect(restarted.readNotification("f".repeat(64))).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    const otherOwner = new WatchlistAlertsService(repository, { deliver }, "another-owner");
+    expect((await otherOwner.notificationCenter()).notifications).toEqual([]);
+    await expect(otherOwner.readNotification(notificationId)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it("marks every persisted notification read without deleting delivery evidence", async () => {
+    const service = createService({ deliver: vi.fn().mockResolvedValue(undefined) });
+    const ruleId = await createRule(service, { throttleSeconds: 0 });
+    await service.evaluate(evaluation(ruleId, "event-one", "2026-08-26T01:58:00.000Z"));
+    await service.evaluate(evaluation(ruleId, "event-two", "2026-08-26T01:59:00.000Z"));
+
+    expect((await service.notificationCenter()).unreadCount).toBe(2);
+    const after = await service.readAllNotifications();
+
+    expect(after.unreadCount).toBe(0);
+    expect(after.notifications).toHaveLength(2);
+    expect(after.notifications.every((item) => item.readAt === NOW)).toBe(true);
+    expect((await service.workspace()).history).toHaveLength(2);
   });
 });
 

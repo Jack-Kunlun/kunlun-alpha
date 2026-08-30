@@ -1,6 +1,7 @@
 import type { WatchlistAlertsRepository } from "./watchlist-alerts.repository";
 import type {
   AppendHistoryResult,
+  InAppNotificationList,
   NotificationEnvelope,
   StoredWatchlistAlertRule,
   WatchlistAlertHistory,
@@ -11,8 +12,14 @@ export class InMemoryWatchlistAlertsRepository implements WatchlistAlertsReposit
   private readonly history = new Map<string, { ownerRef: string; item: WatchlistAlertHistory }>();
   private readonly notifications = new Map<
     string,
-    { ownerRef: string; envelope: NotificationEnvelope; status: "PENDING" | "DELIVERED" | "FAILED" }
+    {
+      ownerRef: string;
+      envelope: NotificationEnvelope;
+      status: "PENDING" | "DELIVERED" | "FAILED";
+      attempts: number;
+    }
   >();
+  private readonly notificationReadReceipts = new Map<string, string>();
 
   async listLatestRules(ownerRef: string): Promise<StoredWatchlistAlertRule[]> {
     const latest = new Map<string, StoredWatchlistAlertRule>();
@@ -80,6 +87,7 @@ export class InMemoryWatchlistAlertsRepository implements WatchlistAlertsReposit
         ownerRef,
         envelope: structuredClone(notification),
         status: "PENDING",
+        attempts: 0,
       });
     }
     return { history: structuredClone(history), duplicate: false };
@@ -112,6 +120,64 @@ export class InMemoryWatchlistAlertsRepository implements WatchlistAlertsReposit
     _updatedAt: string,
   ): Promise<void> {
     const notification = this.notifications.get(notificationId);
-    if (notification?.ownerRef === ownerRef) notification.status = status;
+    if (notification?.ownerRef === ownerRef && notification.status === "PENDING") {
+      notification.status = status;
+      notification.attempts += 1;
+    }
+  }
+
+  async listNotifications(ownerRef: string, limit: number): Promise<InAppNotificationList> {
+    const all = [...this.notifications.values()]
+      .filter((item) => item.ownerRef === ownerRef)
+      .flatMap((item) => {
+        const history = this.history.get(item.envelope.historyId)?.item;
+        if (!history) return [];
+        return [
+          {
+            envelope: structuredClone(item.envelope),
+            ruleId: history.ruleId,
+            instrumentId: history.instrumentId,
+            deliveryStatus: item.status,
+            deliveryAttempts: item.attempts,
+            readAt: this.notificationReadReceipts.get(item.envelope.notificationId) ?? null,
+          },
+        ];
+      })
+      .sort(
+        (left, right) =>
+          right.envelope.availableAt.localeCompare(left.envelope.availableAt) ||
+          right.envelope.notificationId.localeCompare(left.envelope.notificationId),
+      );
+    return {
+      notifications: all.slice(0, limit),
+      unreadCount: all.filter((item) => item.readAt === null).length,
+    };
+  }
+
+  async markNotificationRead(
+    ownerRef: string,
+    notificationId: string,
+    readAt: string,
+  ): Promise<boolean> {
+    const notification = this.notifications.get(notificationId);
+    if (notification?.ownerRef !== ownerRef) return false;
+    if (!this.notificationReadReceipts.has(notificationId)) {
+      this.notificationReadReceipts.set(notificationId, readAt);
+    }
+    return true;
+  }
+
+  async markAllNotificationsRead(ownerRef: string, readAt: string): Promise<number> {
+    let inserted = 0;
+    for (const [notificationId, notification] of this.notifications) {
+      if (
+        notification.ownerRef === ownerRef &&
+        !this.notificationReadReceipts.has(notificationId)
+      ) {
+        this.notificationReadReceipts.set(notificationId, readAt);
+        inserted += 1;
+      }
+    }
+    return inserted;
   }
 }

@@ -2,6 +2,7 @@ import { Pool } from "pg";
 import type { WatchlistAlertsRepository } from "./watchlist-alerts.repository";
 import type {
   AppendHistoryResult,
+  InAppNotificationList,
   NotificationEnvelope,
   StoredWatchlistAlertRule,
   WatchlistAlertHistory,
@@ -193,4 +194,88 @@ export class PostgresWatchlistAlertsRepository implements WatchlistAlertsReposit
       [status, error, updatedAt, ownerRef, notificationId],
     );
   }
+
+  async listNotifications(ownerRef: string, limit: number): Promise<InAppNotificationList> {
+    const [notifications, count] = await Promise.all([
+      this.pool.query<{
+        payload: NotificationEnvelope;
+        history_payload: WatchlistAlertHistory;
+        status: "PENDING" | "DELIVERED" | "FAILED";
+        attempts: number;
+        read_at: Date | string | null;
+      }>(
+        `SELECT notification.payload, history.payload AS history_payload,
+                notification.status, notification.attempts, receipt.read_at
+         FROM watchlist_notification_outbox AS notification
+         JOIN watchlist_alert_history AS history
+           ON history.history_id = notification.history_id
+         LEFT JOIN watchlist_notification_receipts AS receipt
+           ON receipt.notification_id = notification.notification_id
+         WHERE notification.owner_ref = $1
+         ORDER BY notification.available_at DESC, notification.notification_id DESC
+         LIMIT $2`,
+        [ownerRef, limit],
+      ),
+      this.pool.query<{ unread_count: number | string }>(
+        `SELECT COUNT(*) FILTER (WHERE receipt.notification_id IS NULL) AS unread_count
+         FROM watchlist_notification_outbox AS notification
+         LEFT JOIN watchlist_notification_receipts AS receipt
+           ON receipt.notification_id = notification.notification_id
+         WHERE notification.owner_ref = $1`,
+        [ownerRef],
+      ),
+    ]);
+    return {
+      notifications: notifications.rows.map((row) => ({
+        envelope: row.payload,
+        ruleId: row.history_payload.ruleId,
+        instrumentId: row.history_payload.instrumentId,
+        deliveryStatus: row.status,
+        deliveryAttempts: Number(row.attempts),
+        readAt: timestamp(row.read_at),
+      })),
+      unreadCount: Number(count.rows[0]?.unread_count ?? 0),
+    };
+  }
+
+  async markNotificationRead(
+    ownerRef: string,
+    notificationId: string,
+    readAt: string,
+  ): Promise<boolean> {
+    const result = await this.pool.query<{ notification_id: string }>(
+      `WITH target AS (
+         SELECT notification_id, owner_ref
+         FROM watchlist_notification_outbox
+         WHERE owner_ref = $1 AND notification_id = $2
+       ), inserted AS (
+         INSERT INTO watchlist_notification_receipts (notification_id, owner_ref, read_at)
+         SELECT notification_id, owner_ref, $3 FROM target
+         ON CONFLICT (notification_id) DO NOTHING
+         RETURNING notification_id
+       )
+       SELECT notification_id FROM target`,
+      [ownerRef, notificationId, readAt],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async markAllNotificationsRead(ownerRef: string, readAt: string): Promise<number> {
+    const result = await this.pool.query(
+      `INSERT INTO watchlist_notification_receipts (notification_id, owner_ref, read_at)
+       SELECT notification.notification_id, notification.owner_ref, $2
+       FROM watchlist_notification_outbox AS notification
+       LEFT JOIN watchlist_notification_receipts AS receipt
+         ON receipt.notification_id = notification.notification_id
+       WHERE notification.owner_ref = $1 AND receipt.notification_id IS NULL
+       ON CONFLICT (notification_id) DO NOTHING`,
+      [ownerRef, readAt],
+    );
+    return result.rowCount ?? 0;
+  }
+}
+
+function timestamp(value: Date | string | null): string | null {
+  if (value === null) return null;
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }

@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import {
   ConflictException,
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import type { WatchlistAlertsWorkspace } from "@kunlun/shared-types";
+import type { InAppNotificationCenter, WatchlistAlertsWorkspace } from "@kunlun/shared-types";
 import type { WatchlistAlertNotificationDispatcher } from "./watchlist-alerts.notification";
 import type { WatchlistAlertsRepository } from "./watchlist-alerts.repository";
 import {
@@ -178,6 +179,48 @@ export class WatchlistAlertsService {
     return this.workspace();
   }
 
+  async notificationCenter(): Promise<InAppNotificationCenter> {
+    const ownerRef = this.ownerRef();
+    const result = await this.repository.listNotifications(ownerRef, 100);
+    return {
+      schemaVersion: "in-app-notification-center-v1",
+      generatedAt: new Date().toISOString(),
+      unreadCount: result.unreadCount,
+      notifications: result.notifications.map((item) => ({
+        schemaVersion: "in-app-notification-v1",
+        notificationId: item.envelope.notificationId,
+        historyId: item.envelope.historyId,
+        ruleId: item.ruleId,
+        instrumentId: item.instrumentId,
+        title: item.envelope.title,
+        body: item.envelope.body,
+        availableAt: item.envelope.availableAt,
+        deliveryStatus: item.deliveryStatus,
+        deliveryAttempts: item.deliveryAttempts,
+        readAt: item.readAt,
+      })),
+      dataMeaning: "RESEARCH_IN_APP_ALERTS_NO_ORDER_PATH",
+    };
+  }
+
+  async readNotification(notificationId: string): Promise<InAppNotificationCenter> {
+    this.validateNotificationId(notificationId);
+    const ownerRef = this.ownerRef();
+    const found = await this.repository.markNotificationRead(
+      ownerRef,
+      notificationId,
+      new Date().toISOString(),
+    );
+    if (!found) throw new NotFoundException("in-app notification not found");
+    return this.notificationCenter();
+  }
+
+  async readAllNotifications(): Promise<InAppNotificationCenter> {
+    const ownerRef = this.ownerRef();
+    await this.repository.markAllNotificationsRead(ownerRef, new Date().toISOString());
+    return this.notificationCenter();
+  }
+
   private buildRule(
     input: CreateWatchlistAlertRuleInput,
     ruleId: string,
@@ -291,6 +334,12 @@ export class WatchlistAlertsService {
     const ownerRef = this.configuredOwnerRef.trim();
     if (!ownerRef) throw new ForbiddenException("watchlist alerts owner is not configured");
     return ownerRef;
+  }
+
+  private validateNotificationId(notificationId: string): void {
+    if (!/^[0-9a-f]{64}$/.test(notificationId)) {
+      throw new BadRequestException("notificationId must be a lowercase SHA-256 digest");
+    }
   }
 
   private async requireRule(ownerRef: string, ruleId: string): Promise<StoredWatchlistAlertRule> {

@@ -1,5 +1,36 @@
 /** Shared domain types. Generated from packages/contracts/schemas/. DO NOT EDIT BY HAND. */
 /**
+ * Owner-scoped durable in-app research notifications and read receipts
+ */
+export interface InAppNotificationCenter {
+  schemaVersion: "in-app-notification-center-v1";
+  generatedAt: string;
+  unreadCount: number;
+  /**
+   * @maxItems 100
+   */
+  notifications: InAppNotification[];
+  dataMeaning: "RESEARCH_IN_APP_ALERTS_NO_ORDER_PATH";
+}
+/**
+ * This interface was referenced by `InAppNotificationCenter`'s JSON-Schema
+ * via the `definition` "InAppNotification".
+ */
+export interface InAppNotification {
+  schemaVersion: "in-app-notification-v1";
+  notificationId: string;
+  historyId: string;
+  ruleId: string;
+  instrumentId: string;
+  title: string;
+  body: string;
+  availableAt: string;
+  deliveryStatus: "PENDING" | "DELIVERED" | "FAILED";
+  deliveryAttempts: number;
+  readAt: string | null;
+}
+
+/**
  * Bounded evaluation summary for latest persisted daily market bars
  */
 export interface WatchlistAlertEvaluationRun {

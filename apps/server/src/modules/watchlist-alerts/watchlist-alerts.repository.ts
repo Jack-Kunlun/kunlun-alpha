@@ -1,5 +1,6 @@
 import type {
   AppendHistoryResult,
+  InAppNotificationList,
   NotificationEnvelope,
   StoredWatchlistAlertRule,
   WatchlistAlertHistory,
@@ -31,4 +32,7 @@ export interface WatchlistAlertsRepository {
     error: string | null,
     updatedAt: string,
   ): Promise<void>;
+  listNotifications(ownerRef: string, limit: number): Promise<InAppNotificationList>;
+  markNotificationRead(ownerRef: string, notificationId: string, readAt: string): Promise<boolean>;
+  markAllNotificationsRead(ownerRef: string, readAt: string): Promise<number>;
 }
