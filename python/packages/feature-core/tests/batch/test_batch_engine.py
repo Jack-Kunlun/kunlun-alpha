@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 from feature_core.batch import (
+    BatchCalculator,
     BatchCheckpoint,
     BatchFeatureEngine,
     BatchInputBatch,
@@ -126,7 +127,7 @@ def _batch(
     )
 
 
-def _identified(calculator: object) -> object:
+def _identified[CalculatorT: BatchCalculator](calculator: CalculatorT) -> CalculatorT:
     vars(calculator)["identity"] = CalculatorIdentity(
         algorithm_version="v1",
         implementation_fingerprint=canonical_checksum(

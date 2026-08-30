@@ -53,21 +53,6 @@ from ashare_contracts.backtest_regression import (
 from ashare_contracts.backtest_regression import (
     BacktestRegressionComparison as BacktestRegressionComparison,
 )
-from ashare_contracts.backtest_regression import (
-    BacktestRegressionComparison1 as BacktestRegressionComparison1,
-)
-from ashare_contracts.backtest_regression import (
-    BacktestRegressionComparison2 as BacktestRegressionComparison2,
-)
-from ashare_contracts.backtest_regression import (
-    BacktestRegressionComparison3 as BacktestRegressionComparison3,
-)
-from ashare_contracts.backtest_regression import (
-    BacktestRegressionComparison4 as BacktestRegressionComparison4,
-)
-from ashare_contracts.backtest_regression import (
-    BacktestRegressionComparison5 as BacktestRegressionComparison5,
-)
 from ashare_contracts.backtest_regression import BacktestRegressionDiff as BacktestRegressionDiff
 from ashare_contracts.backtest_regression import (
     BacktestRegressionRunSummary as BacktestRegressionRunSummary,
@@ -104,7 +89,7 @@ from ashare_contracts.backtest_regression import Sha256 as Sha256
 from ashare_contracts.backtest_regression import Status as Status
 from ashare_contracts.backtest_regression import Status1 as Status1
 from ashare_contracts.backtest_regression import Status2 as Status2
-from ashare_contracts.backtest_regression import Status5 as Status5
+from ashare_contracts.backtest_regression import Status3 as Status3
 from ashare_contracts.backtest_regression import ToolchainEvidence as ToolchainEvidence
 from ashare_contracts.backtest_regression import TPlusOneInputs as TPlusOneInputs
 from ashare_contracts.backtest_regression import TPlusOneObservation as TPlusOneObservation
@@ -538,7 +523,7 @@ from ashare_contracts.paper_paper_terminal_workspace import Side as Side_2
 from ashare_contracts.paper_paper_terminal_workspace import Status as Status_9
 from ashare_contracts.paper_paper_terminal_workspace import Status1 as Status1_1
 from ashare_contracts.paper_paper_terminal_workspace import Status2 as Status2_1
-from ashare_contracts.paper_paper_terminal_workspace import Status3 as Status3
+from ashare_contracts.paper_paper_terminal_workspace import Status3 as Status3_1
 from ashare_contracts.paper_paper_terminal_workspace import Status4 as Status4
 from ashare_contracts.ranking_ranking_terminal_snapshot import Direction as Direction_1
 from ashare_contracts.ranking_ranking_terminal_snapshot import ExclusionReason as ExclusionReason
@@ -659,11 +644,6 @@ __all__ = [
     "BacktestRegressionArtifact",
     "BacktestRegressionBaseline",
     "BacktestRegressionComparison",
-    "BacktestRegressionComparison1",
-    "BacktestRegressionComparison2",
-    "BacktestRegressionComparison3",
-    "BacktestRegressionComparison4",
-    "BacktestRegressionComparison5",
     "BacktestRegressionDiff",
     "BacktestRegressionRunSummary",
     "BaselineApproval",
@@ -694,7 +674,7 @@ __all__ = [
     "Status",
     "Status1",
     "Status2",
-    "Status5",
+    "Status3",
     "TPlusOneInputs",
     "TPlusOneObservation",
     "TPlusOneResults",
@@ -1018,7 +998,7 @@ __all__ = [
     "Status_9",
     "Status1_1",
     "Status2_1",
-    "Status3",
+    "Status3_1",
     "Status4",
     "Direction_1",
     "ExclusionReason",

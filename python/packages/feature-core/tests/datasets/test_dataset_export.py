@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from importlib import import_module
 from pathlib import Path
+from typing import Protocol, cast
 
-import pyarrow.parquet as pq
 import pytest
 from feature_core import (
     BatchRunMetadata,
@@ -35,6 +36,25 @@ INPUT_CHECKSUM = "sha256:" + "c" * 64
 CALCULATOR_FINGERPRINT = "sha256:" + "d" * 64
 MANIFEST_CHECKSUM = "sha256:" + "e" * 64
 OUTPUT_CHECKSUM = "sha256:" + "f" * 64
+
+
+class _ArrowColumn(Protocol):
+    def to_pylist(self) -> list[object]: ...
+
+
+class _ArrowTable(Protocol):
+    def column(self, name: str) -> _ArrowColumn: ...
+
+
+class _ParquetModule(Protocol):
+    def read_table(self, where: Path) -> _ArrowTable: ...
+
+
+_PARQUET = cast(_ParquetModule, import_module("pyarrow.parquet"))
+
+
+def _read_parquet(path: Path) -> _ArrowTable:
+    return _PARQUET.read_table(path)
 
 
 def _record(
@@ -221,8 +241,8 @@ def test_export_writes_real_parquet_manifest_and_rebuild_command(
         (root / "dataset-manifest.json").read_text(encoding="utf-8")
     )
     command = json.loads((root / "rebuild-command.json").read_text(encoding="utf-8"))
-    train = pq.read_table(root / "partitions/train/train-2026-01.parquet")
-    evaluation = pq.read_table(root / "partitions/evaluation/evaluation-2026-02.parquet")
+    train = _read_parquet(root / "partitions/train/train-2026-01.parquet")
+    evaluation = _read_parquet(root / "partitions/evaluation/evaluation-2026-02.parquet")
 
     assert persisted.manifest_checksum == manifest.manifest_checksum
     assert command["argv"] == list(manifest.rebuild_command)
@@ -315,7 +335,7 @@ def test_point_in_time_export_excludes_future_revision(
         for artifact in manifest.partitions
         if artifact.partition.role is DatasetPartitionRole.TRAIN
     )
-    table = pq.read_table(root / train_artifact.relative_path)
+    table = _read_parquet(root / train_artifact.relative_path)
 
     assert table.column("value_json").to_pylist() == ['"0.01"']
 

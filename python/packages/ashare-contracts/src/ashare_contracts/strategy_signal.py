@@ -37,13 +37,13 @@ class Signal(BaseModel):
     def validate_strategy_signal(self) -> Signal:
         if self.data_cutoff_time > self.decision_time:
             raise ValueError("dataCutoffTime must not exceed decisionTime")
-        evidence_values = tuple(getattr(item, "root", item) for item in self.evidence_ids)
+        evidence_values = tuple(item.root for item in self.evidence_ids)
         if evidence_values != tuple(sorted(evidence_values)):
             raise ValueError("evidenceIds must be deterministically sorted")
         if len(set(evidence_values)) != len(evidence_values):
             raise ValueError("evidenceIds must not contain duplicates")
-        score = Decimal(getattr(self.score, "root", self.score))
-        confidence = Decimal(getattr(self.confidence, "root", self.confidence))
+        score = Decimal(self.score)
+        confidence = Decimal(self.confidence)
         if not score.is_finite() or score < Decimal("-1") or score > Decimal("1"):
             raise ValueError("score must be finite and between -1 and 1")
         if not confidence.is_finite() or confidence < Decimal("0") or confidence > Decimal("1"):

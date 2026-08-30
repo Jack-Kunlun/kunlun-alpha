@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BacktestRegressionArtifact",
+  "x-python-import-known-first-party": true,
   "$defs": {
     "SafeId": {
       "type": "string",
@@ -812,6 +813,7 @@
         "module": "ashare_contracts.backtest_regression_semantics",
         "function": "validate_backtest_regression_comparison"
       },
+      "x-python-strip-semantic-branches": true,
       "x-typescript-strip-semantic-branches": true,
       "required": [
         "baselineSha256",

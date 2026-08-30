@@ -74,7 +74,7 @@ class KolPositionClaim(BaseModel):
                         input=self.deleted_at,
                         ctx={
                             "error": ValueError(
-                                "non-deleted record must not have deletion metadata"
+                                "non-deleted record must not have deletedAt or deletionReason"
                             )
                         },
                     )

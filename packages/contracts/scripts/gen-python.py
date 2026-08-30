@@ -609,11 +609,10 @@ def _collect_strict_bool_fields(schema: JsonObject) -> dict[str, set[str]]:
 
     def add_model(model_name: str, props: JsonObject) -> None:
         for name, prop in props.items():
-            if (
-                isinstance(prop, dict)
-                and prop.get("x-python-strict") is True
-                and prop.get("type") == "boolean"
-            ):
+            if not isinstance(prop, dict) or prop.get("x-python-strict") is not True:
+                continue
+            prop_type = prop.get("type")
+            if prop_type == "boolean" or (isinstance(prop_type, list) and "boolean" in prop_type):
                 result.setdefault(model_name, set()).add(_snake_case(name))
 
     props = schema.get("properties")
@@ -692,10 +691,12 @@ def inject_strict_bool(schema_file: Path, generated_file: Path) -> None:
         end = next_class if next_class != -1 else len(content)
         block = content[start:end]
         for field_name in sorted(fields):
-            old = f"    {field_name}: bool\n"
-            new = f"    {field_name}: StrictBool\n"
-            if old in block:
-                block = block.replace(old, new, 1)
+            pattern = re.compile(
+                rf"(^    {re.escape(field_name)}: )bool( \| None)?",
+                re.MULTILINE,
+            )
+            block, count = pattern.subn(r"\1StrictBool\2", block, count=1)
+            if count == 1:
                 replaced_strict_bool = True
             elif field_name in literal_true_by_model.get(model_name, set()) and re.search(
                 rf"^    {re.escape(field_name)}: Literal\[True\]",
@@ -904,8 +905,16 @@ def inject_deleted_condition(schema_file: Path, generated_file: Path) -> None:
     condition = "self.deleted_at is None"
     if has_reason:
         condition = "self.deleted_at is None or self.deletion_reason is None"
-    invalid_deleted_message = "deleted record must have deletedAt and deletionReason"
-    invalid_not_deleted = "non-deleted record must not have deletion metadata"
+    invalid_deleted_message = (
+        "deleted record must have deletedAt and deletionReason"
+        if has_reason
+        else "deleted record must have deletedAt"
+    )
+    invalid_not_deleted = (
+        "non-deleted record must not have deletedAt or deletionReason"
+        if has_reason
+        else "non-deleted record must not have deletedAt"
+    )
     lines = [
         class_marker,
         '    @model_validator(mode="after")\n',
@@ -1143,16 +1152,13 @@ def inject_strategy_contract_validators(schema_file: Path, generated_file: Path)
             + "    def validate_strategy_signal(self) -> Signal:\n"
             + "        if self.data_cutoff_time > self.decision_time:\n"
             + '            raise ValueError("dataCutoffTime must not exceed decisionTime")\n'
-            + "        evidence_values = tuple(\n"
-            + '            getattr(item, "root", item)\n'
-            + "            for item in self.evidence_ids\n"
-            + "        )\n"
+            + "        evidence_values = tuple(item.root for item in self.evidence_ids)\n"
             + "        if evidence_values != tuple(sorted(evidence_values)):\n"
             + '            raise ValueError("evidenceIds must be deterministically sorted")\n'
             + "        if len(set(evidence_values)) != len(evidence_values):\n"
             + '            raise ValueError("evidenceIds must not contain duplicates")\n'
-            + '        score = Decimal(getattr(self.score, "root", self.score))\n'
-            + '        confidence = Decimal(getattr(self.confidence, "root", self.confidence))\n'
+            + "        score = Decimal(self.score)\n"
+            + "        confidence = Decimal(self.confidence)\n"
             + '        if not score.is_finite() or score < Decimal("-1") or score > Decimal("1"):\n'
             + '            raise ValueError("score must be finite and between -1 and 1")\n'
             + "        if (\n"
@@ -1207,7 +1213,7 @@ def inject_strategy_contract_validators(schema_file: Path, generated_file: Path)
             + "    def validate_strategy_descriptor(self) -> StrategyDescriptor:\n"
             + "        required_features = tuple(self.required_features)\n"
             + "        required_feature_values = tuple(\n"
-            + '            getattr(item, "root", item) for item in required_features\n'
+            + "            item.root for item in required_features\n"
             + "        )\n"
             + "        if required_feature_values != tuple(sorted(required_feature_values)):\n"
             + '            raise ValueError("requiredFeatures must be deterministically sorted")\n'
@@ -1219,23 +1225,16 @@ def inject_strategy_contract_validators(schema_file: Path, generated_file: Path)
             + '            raise ValueError("parameterSpecs must be deterministically sorted")\n'
             + "        if len(set(names)) != len(names):\n"
             + '            raise ValueError("parameterSpecs must not contain duplicate names")\n'
-            + "        hooks = tuple(\n"
-            + '            getattr(item, "root", getattr(item, "value", item))\n'
-            + "            for item in self.lifecycle_hooks\n"
-            + "        )\n"
+            + "        hooks = tuple(self.lifecycle_hooks)\n"
             + '        if hooks != ("initialize", "onDecision", "finalize"):\n'
             + "            raise ValueError(\n"
             + '                "lifecycleHooks must be initialize/onDecision/finalize"\n'
             + "            )\n"
             + "        for spec in parameter_specs:\n"
-            + '            value_type = getattr(spec.value_type, "value", spec.value_type)\n'
-            + '            default_raw = getattr(spec, "default_value", None)\n'
-            + '            minimum_raw = getattr(spec, "minimum", None)\n'
-            + '            maximum_raw = getattr(spec, "maximum", None)\n'
-            + '            default = getattr(default_raw, "root", default_raw)\n'
-            + '            minimum = getattr(minimum_raw, "root", minimum_raw)\n'
-            + '            maximum = getattr(maximum_raw, "root", maximum_raw)\n'
-            + '            if value_type == "INTEGER":\n'
+            + "            if isinstance(spec, IntegerParameterSpec):\n"
+            + "                default = spec.default_value\n"
+            + "                minimum = spec.minimum\n"
+            + "                maximum = spec.maximum\n"
             + "                values = (default, minimum, maximum)\n"
             + "                if any(\n"
             + "                    value is not None and type(value) is not int\n"
@@ -1244,35 +1243,47 @@ def inject_strategy_contract_validators(schema_file: Path, generated_file: Path)
             + "                    raise ValueError(\n"
             + '                        f"{spec.name} INTEGER values must be exact integers"\n'
             + "                    )\n"
-            + '            elif value_type == "DECIMAL":\n'
+            + "                if minimum is not None and maximum is not None "
+            + "and minimum > maximum:\n"
+            + "                    raise ValueError(\n"
+            + '                        f"{spec.name} minimum must not exceed maximum"\n'
+            + "                    )\n"
+            + "                if default is not None and minimum is not None "
+            + "and default < minimum:\n"
+            + '                    raise ValueError(f"{spec.name} default is below minimum")\n'
+            + "                if default is not None and maximum is not None "
+            + "and default > maximum:\n"
+            + '                    raise ValueError(f"{spec.name} default exceeds maximum")\n'
+            + "            elif isinstance(spec, DecimalParameterSpec):\n"
+            + "                default = (\n"
+            + "                    Decimal(spec.default_value)\n"
+            + "                    if spec.default_value is not None\n"
+            + "                    else None\n"
+            + "                )\n"
+            + "                minimum = (\n"
+            + "                    Decimal(spec.minimum) if spec.minimum is not None else None\n"
+            + "                )\n"
+            + "                maximum = (\n"
+            + "                    Decimal(spec.maximum) if spec.maximum is not None else None\n"
+            + "                )\n"
             + "                values = tuple(\n"
-            + "                    Decimal(value)\n"
+            + "                    value\n"
             + "                    for value in (default, minimum, maximum)\n"
             + "                    if value is not None\n"
             + "                )\n"
             + "                if any(not value.is_finite() for value in values):\n"
             + '                    raise ValueError(f"{spec.name} DECIMAL values must be finite")\n'
-            + "                default = Decimal(default) if default is not None else None\n"
-            + "                minimum = Decimal(minimum) if minimum is not None else None\n"
-            + "                maximum = Decimal(maximum) if maximum is not None else None\n"
-            + "            elif (\n"
-            + '                value_type == "BOOLEAN"\n'
-            + "                and default is not None\n"
-            + "                and type(default) is not bool\n"
-            + "            ):\n"
-            + '                raise ValueError(f"{spec.name} BOOLEAN default must be boolean")\n'
-            + "            elif (\n"
-            + '                value_type == "STRING"\n'
-            + "                and default is not None\n"
-            + "                and not isinstance(default, str)\n"
-            + "            ):\n"
-            + '                raise ValueError(f"{spec.name} STRING default must be string")\n'
-            + "            if minimum is not None and maximum is not None and minimum > maximum:\n"
-            + '                raise ValueError(f"{spec.name} minimum must not exceed maximum")\n'
-            + "            if default is not None and minimum is not None and default < minimum:\n"
-            + '                raise ValueError(f"{spec.name} default is below minimum")\n'
-            + "            if default is not None and maximum is not None and default > maximum:\n"
-            + '                raise ValueError(f"{spec.name} default exceeds maximum")\n'
+            + "                if minimum is not None and maximum is not None "
+            + "and minimum > maximum:\n"
+            + "                    raise ValueError(\n"
+            + '                        f"{spec.name} minimum must not exceed maximum"\n'
+            + "                    )\n"
+            + "                if default is not None and minimum is not None "
+            + "and default < minimum:\n"
+            + '                    raise ValueError(f"{spec.name} default is below minimum")\n'
+            + "                if default is not None and maximum is not None "
+            + "and default > maximum:\n"
+            + '                    raise ValueError(f"{spec.name} default exceeds maximum")\n'
             + '        object.__setattr__(self, "required_features", required_features)\n'
             + '        object.__setattr__(self, "parameter_specs", parameter_specs)\n'
             + '        object.__setattr__(self, "lifecycle_hooks", hooks)\n'
@@ -1281,6 +1292,42 @@ def inject_strategy_contract_validators(schema_file: Path, generated_file: Path)
         content = content.replace(class_marker, validator, 1)
 
     generated_file.write_text(content, encoding="utf-8", newline="\n")
+
+
+def prepare_python_codegen_schema(schema_file: Path, tmp_dir: Path) -> Path:
+    """Remove schema branches enforced by trusted Python semantic validators."""
+    schema = cast(JsonObject, json.loads(schema_file.read_text(encoding="utf-8")))
+    changed = False
+    for _, model_schema in _iter_model_schemas(schema):
+        if model_schema.get("x-python-strip-semantic-branches") is not True:
+            continue
+        model_schema.pop("allOf", None)
+        changed = True
+    if not changed:
+        return schema_file
+    prepared_file = tmp_dir / schema_file.name
+    prepared_file.write_text(
+        json.dumps(schema, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return prepared_file
+
+
+def inject_strenum_member_conflicts(schema_file: Path, generated_file: Path) -> None:
+    """Rename generated StrEnum members that shadow inherited ``str`` methods."""
+    relative_schema = schema_file.relative_to(SCHEMAS_DIR).as_posix()
+    if relative_schema != "seat/seat-profile.json":
+        return
+    content = generated_file.read_text(encoding="utf-8")
+    member = '    split = "SPLIT"\n'
+    if member not in content:
+        raise RuntimeError("Seat profile enum output changed; split member was not found")
+    generated_file.write_text(
+        content.replace(member, '    split_ = "SPLIT"\n', 1),
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
@@ -1293,7 +1340,7 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     """
     tmp_dir = Path(tempfile.mkdtemp(prefix="gen-python-"))
     tmp_file = tmp_dir / f"{output_file.stem}.py"
-    input_schema = schema_file
+    input_schema = prepare_python_codegen_schema(schema_file, tmp_dir)
     cmd = [
         sys.executable,
         "-m",
@@ -1345,6 +1392,7 @@ def run_datamodel_codegen(schema_file: Path, output_file: Path) -> None:
     inject_schema_validation(schema_file, tmp_file)
     inject_semantic_validators(schema_file, tmp_file)
     inject_strategy_contract_validators(schema_file, tmp_file)
+    inject_strenum_member_conflicts(schema_file, tmp_file)
     format_result = subprocess.run(
         [sys.executable, "-m", "ruff", "format", "--quiet", str(tmp_file)],
         capture_output=True,

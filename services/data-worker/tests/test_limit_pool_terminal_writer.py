@@ -65,9 +65,17 @@ def test_writer_posts_canonical_projection_to_v2_table() -> None:
 
 
 def test_writer_sanitizes_provider_failures() -> None:
+    def failing_transport(
+        _url: str,
+        _headers: Mapping[str, str],
+        _body: bytes,
+        _timeout_seconds: float,
+    ) -> tuple[int, bytes]:
+        return 500, b"secret backend diagnostics"
+
     writer = ClickHouseLimitPoolTerminalWriter(
         ClickHouseTerminalConfig(url="http://clickhouse:8123", database="kunlun", user="writer"),
-        transport=lambda *_args: (500, b"secret backend diagnostics"),
+        transport=failing_transport,
     )
     try:
         writer.write(_projection())

@@ -10,7 +10,20 @@ import hashlib
 import json
 import math
 from functools import cmp_to_key
-from typing import Any
+from typing import TypedDict, TypeGuard, cast
+
+type JsonScalar = str | int | float | bool | None
+type JsonObject = dict[str, "JsonValue"]
+type JsonValue = JsonScalar | list["JsonValue"] | JsonObject
+
+
+class RegressionDiff(TypedDict):
+    baselineValue: JsonValue
+    candidateValue: JsonValue
+    category: str
+    pointer: str
+    status: str
+
 
 DIFF_CATEGORIES = (
     "SCHEMA",
@@ -28,34 +41,35 @@ UV_LOCK_ENTRY = "uv.lock"
 def compare_ascii(left: str, right: str) -> int:
     """Compare ASCII strings by code point without locale dependence."""
 
-    for left_code, right_code in zip(map(ord, left), map(ord, right)):
+    for left_code, right_code in zip(map(ord, left), map(ord, right), strict=False):
         if left_code != right_code:
             return -1 if left_code < right_code else 1
     return (len(left) > len(right)) - (len(left) < len(right))
 
 
-def _canonical_json(value: Any) -> str:
-    return json.dumps(
-        value,
-        ensure_ascii=True,
-        separators=(",", ":"),
-        sort_keys=True,
-        allow_nan=False,
-    ) + "\n"
+def _canonical_json(value: JsonValue) -> str:
+    return (
+        json.dumps(
+            value,
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+            allow_nan=False,
+        )
+        + "\n"
+    )
 
 
-def _is_json_value(value: Any) -> bool:
+def _is_json_value(value: object) -> TypeGuard[JsonValue]:
     if value is None or isinstance(value, (str, bool, int)):
         return True
     if isinstance(value, float):
         return math.isfinite(value)
     if isinstance(value, list):
-        return all(_is_json_value(item) for item in value)
+        return all(_is_json_value(item) for item in cast(list[object], value))
     if isinstance(value, dict):
-        return all(
-            isinstance(key, str) and _is_json_value(item)
-            for key, item in value.items()
-        )
+        mapping = cast(dict[object, object], value)
+        return all(isinstance(key, str) and _is_json_value(item) for key, item in mapping.items())
     return False
 
 
@@ -75,7 +89,7 @@ def _valid_pointer(pointer: object) -> bool:
     return True
 
 
-def _compare_diff(left: dict[str, Any], right: dict[str, Any]) -> int:
+def _compare_diff(left: RegressionDiff, right: RegressionDiff) -> int:
     category_result = DIFF_CATEGORIES.index(left["category"]) - DIFF_CATEGORIES.index(
         right["category"]
     )
@@ -84,12 +98,12 @@ def _compare_diff(left: dict[str, Any], right: dict[str, Any]) -> int:
     return compare_ascii(left["pointer"], right["pointer"])
 
 
-def format_diff_line(diff: dict[str, Any]) -> str:
-    return f'{diff["category"]} {diff["status"]} {diff["pointer"]}'
+def format_diff_line(diff: RegressionDiff) -> str:
+    return f"{diff['category']} {diff['status']} {diff['pointer']}"
 
 
 def toolchain_evidence_sha256(toolchain: dict[str, str]) -> str:
-    payload = {
+    payload: JsonObject = {
         "hatchling": toolchain["hatchling"],
         "python": toolchain["python"],
         "rootPyprojectSha256": toolchain["rootPyprojectSha256"],
@@ -100,34 +114,38 @@ def toolchain_evidence_sha256(toolchain: dict[str, str]) -> str:
     return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
 
 
-def _require_exact_keys(value: dict[str, Any], expected: set[str], context: str) -> None:
+def _object(value: object, context: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{context} must be an object")
+    return cast(dict[str, object], value)
+
+
+def _require_exact_keys(value: dict[str, object], expected: set[str], context: str) -> None:
     if set(value) != expected:
         raise ValueError(f"{context} must contain exactly {sorted(expected)}")
 
 
 def _validate_counts(value: object) -> dict[str, int]:
-    if not isinstance(value, dict):
-        raise ValueError("categoryCounts must be an object")
-    if set(value) != set(DIFF_CATEGORIES):
+    counts_object = _object(value, "categoryCounts")
+    if set(counts_object) != set(DIFF_CATEGORIES):
         raise ValueError("categoryCounts must contain exactly the five diff categories")
     counts: dict[str, int] = {}
     for category in DIFF_CATEGORIES:
-        count = value[category]
+        count = counts_object[category]
         if isinstance(count, bool) or not isinstance(count, int) or count < 0:
             raise ValueError(f"categoryCounts.{category} must be a non-negative integer")
         counts[category] = count
     return counts
 
 
-def validate_backtest_regression_comparison(value: object) -> dict[str, Any]:
+def validate_backtest_regression_comparison(value: object) -> dict[str, object]:
     """Validate and return a canonical comparison payload.
 
     JSON Schema validates field shapes; this function validates all cross-field
     invariants and is the sole trusted semantic boundary for consumers.
     """
 
-    if not isinstance(value, dict):
-        raise ValueError("comparison must be an object")
+    payload = _object(value, "comparison")
     expected_keys = {
         "baselineSha256",
         "candidateSha256",
@@ -136,27 +154,26 @@ def validate_backtest_regression_comparison(value: object) -> dict[str, Any]:
         "diffs",
         "status",
     }
-    _require_exact_keys(value, expected_keys, "comparison")
+    _require_exact_keys(payload, expected_keys, "comparison")
     for field in ("baselineSha256", "candidateSha256"):
-        digest = value[field]
+        digest = payload[field]
         if (
             not isinstance(digest, str)
             or len(digest) != 64
             or any(character not in "0123456789abcdef" for character in digest)
         ):
             raise ValueError(f"{field} must be a lowercase SHA-256 digest")
-    status = value["status"]
-    if status not in ("MATCHED", "DRIFTED"):
+    status = payload["status"]
+    if not isinstance(status, str) or status not in ("MATCHED", "DRIFTED"):
         raise ValueError("comparison.status is invalid")
-    counts = _validate_counts(value["categoryCounts"])
-    raw_diffs = value["diffs"]
+    counts = _validate_counts(payload["categoryCounts"])
+    raw_diffs = payload["diffs"]
     if not isinstance(raw_diffs, list):
         raise ValueError("diffs must be an array")
-    diffs: list[dict[str, Any]] = []
+    diffs: list[RegressionDiff] = []
     identities: set[tuple[str, str]] = set()
-    for raw_diff in raw_diffs:
-        if not isinstance(raw_diff, dict):
-            raise ValueError("each diff must be an object")
+    for raw_diff_value in cast(list[object], raw_diffs):
+        raw_diff = _object(raw_diff_value, "each diff")
         _require_exact_keys(
             raw_diff,
             {
@@ -171,11 +188,11 @@ def validate_backtest_regression_comparison(value: object) -> dict[str, Any]:
         category = raw_diff["category"]
         diff_status = raw_diff["status"]
         pointer = raw_diff["pointer"]
-        if category not in DIFF_CATEGORIES:
+        if not isinstance(category, str) or category not in DIFF_CATEGORIES:
             raise ValueError("diff category is invalid")
-        if diff_status not in DIFF_STATUSES:
+        if not isinstance(diff_status, str) or diff_status not in DIFF_STATUSES:
             raise ValueError("diff status is invalid")
-        if not _valid_pointer(pointer):
+        if not isinstance(pointer, str) or not _valid_pointer(pointer):
             raise ValueError("diff pointer is not a valid ASCII RFC 6901 pointer")
         identity = (category, pointer)
         if identity in identities:
@@ -208,22 +225,26 @@ def validate_backtest_regression_comparison(value: object) -> dict[str, Any]:
         expected_counts[diff["category"]] += 1
     if counts != expected_counts:
         raise ValueError("categoryCounts does not match diffs")
-    raw_lines = value["diffLines"]
-    if not isinstance(raw_lines, list) or not all(isinstance(line, str) for line in raw_lines):
+    raw_lines = payload["diffLines"]
+    if not isinstance(raw_lines, list):
         raise ValueError("diffLines must be an array of strings")
+    raw_line_values = cast(list[object], raw_lines)
+    if not all(isinstance(line, str) for line in raw_line_values):
+        raise ValueError("diffLines must be an array of strings")
+    lines = cast(list[str], raw_line_values)
     expected_lines = [format_diff_line(diff) for diff in diffs]
-    if raw_lines != expected_lines:
+    if lines != expected_lines:
         raise ValueError("diffLines does not match canonical diffs")
     if status == "MATCHED":
-        if diffs or raw_lines or any(counts.values()):
+        if diffs or lines or any(counts.values()):
             raise ValueError("MATCHED comparison must have no diffs or diff lines")
     elif not diffs:
         raise ValueError("DRIFTED comparison must have at least one diff")
     return {
-        "baselineSha256": value["baselineSha256"],
-        "candidateSha256": value["candidateSha256"],
+        "baselineSha256": payload["baselineSha256"],
+        "candidateSha256": payload["candidateSha256"],
         "categoryCounts": counts,
-        "diffLines": raw_lines,
+        "diffLines": lines,
         "diffs": diffs,
         "status": status,
     }

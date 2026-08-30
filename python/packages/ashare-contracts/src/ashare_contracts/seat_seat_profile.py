@@ -25,7 +25,7 @@ class SeatProfileSeatKind(StrEnum):
 
 class SeatProfileLineageRelation(StrEnum):
     merge = "MERGE"
-    split = "SPLIT"
+    split_ = "SPLIT"
 
 
 class PredecessorSeatId(RootModel[str]):

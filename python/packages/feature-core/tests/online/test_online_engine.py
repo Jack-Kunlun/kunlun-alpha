@@ -4,10 +4,12 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Protocol, overload
 
 import pytest
 from feature_core.batch import CalculatorIdentity, RegisteredFeature, canonical_checksum
 from feature_core.online import (
+    EventTimeWindow,
     HmacOnlineStateIntegrity,
     InMemoryOnlineStateStore,
     OnlineCalculatorArtifact,
@@ -22,6 +24,9 @@ from feature_core.online import (
     OnlineFreshness,
     OnlineIntegrityError,
     OnlineProcessDisposition,
+    OnlineProcessResult,
+    OnlineStateEnvelope,
+    OnlineStateStore,
     OnlineValidationError,
     OnlineWindowPolicy,
     StaticOnlineCalculatorTrust,
@@ -38,6 +43,18 @@ from feature_core.registry import (
 
 T0 = datetime(2026, 8, 24, 10, tzinfo=UTC)
 TEST_HMAC_KEY = b"p5-n03-test-integrity-key-32-bytes-minimum"
+
+
+class _TrustedCalculator(Protocol):
+    identity: CalculatorIdentity
+
+    def __call__(
+        self,
+        _spec: FeatureSpec,
+        _window: EventTimeWindow,
+        events: tuple[OnlineFeatureEvent, ...],
+        /,
+    ) -> object: ...
 
 
 def _feature(
@@ -121,22 +138,42 @@ class _SumCalculator:
     def __call__(
         self,
         _spec: FeatureSpec,
-        _window: object,
+        _window: EventTimeWindow,
         events: tuple[OnlineFeatureEvent, ...],
     ) -> str:
         return str(sum(Decimal(str(event.payload["value"])) for event in events))
 
 
+@overload
 def _engine(
-    store: object | None = None,
+    store: None = None,
     *,
     feature: RegisteredFeature | None = None,
     policy: OnlineWindowPolicy | None = None,
-    trusted_calculator: object | None = None,
-) -> tuple[OnlineFeatureEngine, InMemoryOnlineStateStore]:
+    trusted_calculator: _TrustedCalculator | None = None,
+) -> tuple[OnlineFeatureEngine, InMemoryOnlineStateStore]: ...
+
+
+@overload
+def _engine[StoreT: OnlineStateStore](
+    store: StoreT,
+    *,
+    feature: RegisteredFeature | None = None,
+    policy: OnlineWindowPolicy | None = None,
+    trusted_calculator: _TrustedCalculator | None = None,
+) -> tuple[OnlineFeatureEngine, StoreT]: ...
+
+
+def _engine(
+    store: OnlineStateStore | None = None,
+    *,
+    feature: RegisteredFeature | None = None,
+    policy: OnlineWindowPolicy | None = None,
+    trusted_calculator: _TrustedCalculator | None = None,
+) -> tuple[OnlineFeatureEngine, OnlineStateStore]:
     resolved_feature = feature or _feature()
-    resolved_store = store or InMemoryOnlineStateStore()
-    calculator = trusted_calculator or _SumCalculator()
+    resolved_store = store if store is not None else InMemoryOnlineStateStore()
+    calculator = trusted_calculator if trusted_calculator is not None else _SumCalculator()
     identity = calculator.identity
     return (
         OnlineFeatureEngine(
@@ -162,7 +199,7 @@ def _process(
     *,
     feature: RegisteredFeature | None = None,
     processing_time: datetime | None = None,
-):
+) -> OnlineProcessResult:
     return engine.process(
         feature or _feature(),
         event,
@@ -353,7 +390,12 @@ def test_nondeterministic_calculator_fails_before_state_write() -> None:
         def __init__(self) -> None:
             self.calls = 0
 
-        def __call__(self, _spec: object, _window: object, _events: object) -> str:
+        def __call__(
+            self,
+            _spec: FeatureSpec,
+            _window: EventTimeWindow,
+            _events: tuple[OnlineFeatureEvent, ...],
+        ) -> str:
             self.calls += 1
             return str(self.calls)
 
@@ -366,15 +408,16 @@ def test_nondeterministic_calculator_fails_before_state_write() -> None:
 
 def test_cas_must_be_durable_and_read_back() -> None:
     class PhantomStore:
-        def load(self, _stream_key: str):
+        def load(self, stream_key: str) -> OnlineStateEnvelope | None:
+            del stream_key
             return None
 
         def compare_and_set(
             self,
             *,
             expected_revision: int | None,
-            candidate,
-        ):
+            candidate: OnlineStateEnvelope,
+        ) -> OnlineCasResult:
             assert expected_revision is None
             return OnlineCasResult(OnlineCasStatus.CREATED, candidate)
 
@@ -388,17 +431,15 @@ def test_parallel_events_retry_cas_without_losing_window_input() -> None:
     engine, _ = _engine(store)
     events = (_event("parallel-a", 20, "1"), _event("parallel-b", 21, "2"))
 
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        results = tuple(
-            pool.map(
-                lambda event: _process(
-                    engine,
-                    event,
-                    processing_time=T0 + timedelta(minutes=23),
-                ),
-                events,
-            ),
+    def process_event(event: OnlineFeatureEvent) -> OnlineProcessResult:
+        return _process(
+            engine,
+            event,
+            processing_time=T0 + timedelta(minutes=23),
         )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = tuple(pool.map(process_event, events))
 
     assert all(result.disposition is OnlineProcessDisposition.COMMITTED for result in results)
     latest = engine.read(_feature(), "600519.SH", as_of=T0 + timedelta(minutes=25))
@@ -452,7 +493,7 @@ def test_calculator_behavior_drift_under_same_artifact_is_rejected() -> None:
         def __call__(
             self,
             spec: FeatureSpec,
-            window: object,
+            window: EventTimeWindow,
             events: tuple[OnlineFeatureEvent, ...],
         ) -> str:
             if self.override is not None:
@@ -484,8 +525,18 @@ def test_hmac_detects_tampered_online_value() -> None:
     )
 
     class TamperedStore:
-        def load(self, _stream_key: str):
+        def load(self, stream_key: str) -> OnlineStateEnvelope | None:
+            del stream_key
             return tampered
+
+        def compare_and_set(
+            self,
+            *,
+            expected_revision: int | None,
+            candidate: OnlineStateEnvelope,
+        ) -> OnlineCasResult:
+            del expected_revision, candidate
+            raise AssertionError("read-only test store must not be mutated")
 
     tampered_engine, _ = _engine(TamperedStore())
     with pytest.raises(OnlineIntegrityError, match="integrity verification"):
@@ -515,8 +566,18 @@ def test_signed_isolated_receipt_cannot_suppress_event() -> None:
     )
 
     class ForgedStore:
-        def load(self, _stream_key: str):
+        def load(self, stream_key: str) -> OnlineStateEnvelope | None:
+            del stream_key
             return forged
+
+        def compare_and_set(
+            self,
+            *,
+            expected_revision: int | None,
+            candidate: OnlineStateEnvelope,
+        ) -> OnlineCasResult:
+            del expected_revision, candidate
+            raise AssertionError("read-only test store must not be mutated")
 
     forged_engine, _ = _engine(ForgedStore())
     with pytest.raises(OnlineIntegrityError, match="lacks matching"):
@@ -575,8 +636,18 @@ def test_signed_canonical_value_must_match_trusted_calculator() -> None:
     signed = integrity.seal(changed_state, retain_until=envelope.retain_until)
 
     class SignedTamperedStore:
-        def load(self, _stream_key: str):
+        def load(self, stream_key: str) -> OnlineStateEnvelope | None:
+            del stream_key
             return signed
+
+        def compare_and_set(
+            self,
+            *,
+            expected_revision: int | None,
+            candidate: OnlineStateEnvelope,
+        ) -> OnlineCasResult:
+            del expected_revision, candidate
+            raise AssertionError("read-only test store must not be mutated")
 
     signed_engine, _ = _engine(SignedTamperedStore())
     with pytest.raises(OnlineIntegrityError, match="trusted calculator output"):

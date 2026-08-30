@@ -9,16 +9,10 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 
 import pytest
-from ashare_contracts import (
-    Board_1 as Board,
-)
-from ashare_contracts import (
-    Currency_1 as Currency,
-)
-from ashare_contracts import (
-    Exchange_7 as Exchange,
-)
-from ashare_contracts import (
+from ashare_contracts.instrument_instrument import (
+    Board,
+    Currency,
+    Exchange,
     Instrument,
     TradingStatus,
     Type,

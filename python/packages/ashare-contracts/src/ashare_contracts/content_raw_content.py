@@ -76,11 +76,7 @@ class RawContent(BaseModel):
                         type="value_error",
                         loc=("deletedAt",),
                         input=None,
-                        ctx={
-                            "error": ValueError(
-                                "deleted record must have deletedAt and deletionReason"
-                            )
-                        },
+                        ctx={"error": ValueError("deleted record must have deletedAt")},
                     )
                 ],
             )
@@ -92,11 +88,7 @@ class RawContent(BaseModel):
                         type="value_error",
                         loc=("deletedAt",),
                         input=self.deleted_at,
-                        ctx={
-                            "error": ValueError(
-                                "non-deleted record must not have deletion metadata"
-                            )
-                        },
+                        ctx={"error": ValueError("non-deleted record must not have deletedAt")},
                     )
                 ],
             )

@@ -18,12 +18,16 @@ from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from typing import overload
 
-from ashare_contracts import SeatAlias as AliasDTO
-from ashare_contracts import SeatLineage as SeatLineageDTO
-from ashare_contracts import SeatPerformance as PerformanceDTO
-from ashare_contracts import SeatPreference as PreferenceDTO
-from ashare_contracts import SeatProfile as SeatProfileDTO
-from ashare_contracts import SeatTrade as TradeDTO
+from ashare_contracts.seat_alias import SeatAlias as AliasDTO
+from ashare_contracts.seat_performance import SeatPerformance as PerformanceDTO
+from ashare_contracts.seat_preference import SeatPreference as PreferenceDTO
+from ashare_contracts.seat_seat_profile import (
+    SeatLineage as SeatLineageDTO,
+)
+from ashare_contracts.seat_seat_profile import (
+    SeatProfile as SeatProfileDTO,
+)
+from ashare_contracts.seat_trade import SeatTrade as TradeDTO
 
 SEAT_ID_ALGORITHM_VERSION = "seat-id-v1"
 SEAT_ID_NAMESPACE = "kunlun-seat-id-v1"

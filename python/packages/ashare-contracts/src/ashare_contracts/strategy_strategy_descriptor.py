@@ -54,7 +54,7 @@ class BooleanParameterSpec(BaseModel):
     value_type: Literal["BOOLEAN"] = Field(..., alias="valueType")
     required: StrictBool
     description: str = Field(..., max_length=1000, min_length=1)
-    default_value: bool | None = Field(None, alias="defaultValue")
+    default_value: StrictBool | None = Field(None, alias="defaultValue")
 
 
 class StringParameterSpec(BaseModel):
@@ -73,7 +73,7 @@ class StrategyDescriptor(BaseModel):
     @model_validator(mode="after")
     def validate_strategy_descriptor(self) -> StrategyDescriptor:
         required_features = tuple(self.required_features)
-        required_feature_values = tuple(getattr(item, "root", item) for item in required_features)
+        required_feature_values = tuple(item.root for item in required_features)
         if required_feature_values != tuple(sorted(required_feature_values)):
             raise ValueError("requiredFeatures must be deterministically sorted")
         if len(set(required_feature_values)) != len(required_feature_values):
@@ -84,42 +84,36 @@ class StrategyDescriptor(BaseModel):
             raise ValueError("parameterSpecs must be deterministically sorted")
         if len(set(names)) != len(names):
             raise ValueError("parameterSpecs must not contain duplicate names")
-        hooks = tuple(
-            getattr(item, "root", getattr(item, "value", item)) for item in self.lifecycle_hooks
-        )
+        hooks = tuple(self.lifecycle_hooks)
         if hooks != ("initialize", "onDecision", "finalize"):
             raise ValueError("lifecycleHooks must be initialize/onDecision/finalize")
         for spec in parameter_specs:
-            value_type = getattr(spec.value_type, "value", spec.value_type)
-            default_raw = getattr(spec, "default_value", None)
-            minimum_raw = getattr(spec, "minimum", None)
-            maximum_raw = getattr(spec, "maximum", None)
-            default = getattr(default_raw, "root", default_raw)
-            minimum = getattr(minimum_raw, "root", minimum_raw)
-            maximum = getattr(maximum_raw, "root", maximum_raw)
-            if value_type == "INTEGER":
+            if isinstance(spec, IntegerParameterSpec):
+                default = spec.default_value
+                minimum = spec.minimum
+                maximum = spec.maximum
                 values = (default, minimum, maximum)
                 if any(value is not None and type(value) is not int for value in values):
                     raise ValueError(f"{spec.name} INTEGER values must be exact integers")
-            elif value_type == "DECIMAL":
-                values = tuple(
-                    Decimal(value) for value in (default, minimum, maximum) if value is not None
-                )
+                if minimum is not None and maximum is not None and minimum > maximum:
+                    raise ValueError(f"{spec.name} minimum must not exceed maximum")
+                if default is not None and minimum is not None and default < minimum:
+                    raise ValueError(f"{spec.name} default is below minimum")
+                if default is not None and maximum is not None and default > maximum:
+                    raise ValueError(f"{spec.name} default exceeds maximum")
+            elif isinstance(spec, DecimalParameterSpec):
+                default = Decimal(spec.default_value) if spec.default_value is not None else None
+                minimum = Decimal(spec.minimum) if spec.minimum is not None else None
+                maximum = Decimal(spec.maximum) if spec.maximum is not None else None
+                values = tuple(value for value in (default, minimum, maximum) if value is not None)
                 if any(not value.is_finite() for value in values):
                     raise ValueError(f"{spec.name} DECIMAL values must be finite")
-                default = Decimal(default) if default is not None else None
-                minimum = Decimal(minimum) if minimum is not None else None
-                maximum = Decimal(maximum) if maximum is not None else None
-            elif value_type == "BOOLEAN" and default is not None and type(default) is not bool:
-                raise ValueError(f"{spec.name} BOOLEAN default must be boolean")
-            elif value_type == "STRING" and default is not None and not isinstance(default, str):
-                raise ValueError(f"{spec.name} STRING default must be string")
-            if minimum is not None and maximum is not None and minimum > maximum:
-                raise ValueError(f"{spec.name} minimum must not exceed maximum")
-            if default is not None and minimum is not None and default < minimum:
-                raise ValueError(f"{spec.name} default is below minimum")
-            if default is not None and maximum is not None and default > maximum:
-                raise ValueError(f"{spec.name} default exceeds maximum")
+                if minimum is not None and maximum is not None and minimum > maximum:
+                    raise ValueError(f"{spec.name} minimum must not exceed maximum")
+                if default is not None and minimum is not None and default < minimum:
+                    raise ValueError(f"{spec.name} default is below minimum")
+                if default is not None and maximum is not None and default > maximum:
+                    raise ValueError(f"{spec.name} default exceeds maximum")
         object.__setattr__(self, "required_features", required_features)
         object.__setattr__(self, "parameter_specs", parameter_specs)
         object.__setattr__(self, "lifecycle_hooks", hooks)

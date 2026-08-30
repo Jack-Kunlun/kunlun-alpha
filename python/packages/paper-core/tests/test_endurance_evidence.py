@@ -253,7 +253,13 @@ def test_complete_report_rejects_digest_tampering() -> None:
 
 def test_cli_reads_progress_without_modifying_evidence(tmp_path: Path) -> None:
     progress_path = tmp_path / "progress.json"
-    progress_path.write_text(json.dumps(running_progress()), encoding="utf-8")
+    progress = running_progress()
+    cli_now = datetime.now(UTC)
+    progress["startedAt"] = (
+        (cli_now - timedelta(seconds=113_685)).isoformat().replace("+00:00", "Z")
+    )
+    progress["updatedAt"] = cli_now.isoformat().replace("+00:00", "Z")
+    progress_path.write_text(json.dumps(progress), encoding="utf-8")
     before = progress_path.read_bytes()
     repository_root = Path(__file__).resolve().parents[4]
 

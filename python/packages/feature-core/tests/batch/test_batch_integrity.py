@@ -8,6 +8,7 @@ from typing import cast
 import pytest
 from feature_core.batch import (
     BatchCheckpoint,
+    BatchCheckpointStore,
     BatchConflictError,
     BatchFeatureEngine,
     BatchInputBatch,
@@ -16,15 +17,18 @@ from feature_core.batch import (
     BatchInputRow,
     BatchIntegrityError,
     BatchPartition,
+    BatchPartitionResult,
     BatchValidationError,
     CalculatedFeature,
     CalculatorIdentity,
     CommitResult,
     CommitStatus,
+    FeaturePartitionStore,
     InMemoryBatchCheckpointStore,
     InMemoryFeaturePartitionStore,
     InputOrigin,
     PartitionInputManifest,
+    PartitionReadRequest,
     RegisteredFeature,
     SourceKind,
     canonical_checksum,
@@ -107,7 +111,8 @@ class _Source:
     def __init__(self, batch: BatchInputBatch) -> None:
         self.batch = batch
 
-    def read_partition(self, _request: object) -> BatchInputBatch:
+    def read_partition(self, request: PartitionReadRequest) -> BatchInputBatch:
+        del request
         return self.batch
 
 
@@ -123,8 +128,8 @@ class _Calculator:
 
     def __call__(
         self,
-        _spec: object,
-        _partition: object,
+        _spec: FeatureSpec,
+        _partition: BatchPartition,
         rows: tuple[BatchInputRow, ...],
     ) -> tuple[CalculatedFeature, ...]:
         return (
@@ -140,11 +145,11 @@ class _Calculator:
 def _engine(
     batch: BatchInputBatch,
     *,
-    outputs: object | None = None,
-    checkpoints: object | None = None,
-) -> tuple[BatchFeatureEngine, object, object]:
-    output_store = outputs or InMemoryFeaturePartitionStore()
-    checkpoint_store = checkpoints or InMemoryBatchCheckpointStore()
+    outputs: FeaturePartitionStore | None = None,
+    checkpoints: BatchCheckpointStore | None = None,
+) -> tuple[BatchFeatureEngine, FeaturePartitionStore, BatchCheckpointStore]:
+    output_store = outputs if outputs is not None else InMemoryFeaturePartitionStore()
+    checkpoint_store = checkpoints if checkpoints is not None else InMemoryBatchCheckpointStore()
     return (
         BatchFeatureEngine(
             source=_Source(batch),
@@ -182,8 +187,8 @@ def test_nondeterministic_calculator_fails_before_commit() -> None:
 
         def __call__(
             self,
-            _spec: object,
-            _partition: object,
+            _spec: FeatureSpec,
+            _partition: BatchPartition,
             rows: tuple[BatchInputRow, ...],
         ) -> tuple[CalculatedFeature, ...]:
             self.calls += 1
@@ -203,7 +208,7 @@ def test_replay_revalidates_persisted_rows() -> None:
     class TamperingStore(InMemoryFeaturePartitionStore):
         tampered = False
 
-        def get(self, run_id: str):
+        def get(self, run_id: str) -> BatchPartitionResult | None:
             result = super().get(run_id)
             if result is None or not self.tampered:
                 return result
@@ -221,10 +226,11 @@ def test_replay_revalidates_persisted_rows() -> None:
 
 def test_output_commit_conflict_never_creates_checkpoint() -> None:
     class ConflictStore:
-        def get(self, _run_id: str):
+        def get(self, run_id: str) -> BatchPartitionResult | None:
+            del run_id
             return None
 
-        def commit(self, result):
+        def commit(self, result: BatchPartitionResult) -> CommitResult[BatchPartitionResult]:
             return CommitResult(CommitStatus.CONFLICT, result)
 
     checkpoints = InMemoryBatchCheckpointStore()
@@ -240,10 +246,11 @@ def test_output_commit_conflict_never_creates_checkpoint() -> None:
 
 def test_checkpoint_commit_conflict_is_not_reported_as_success() -> None:
     class ConflictCheckpointStore:
-        def get(self, _run_id: str):
+        def get(self, run_id: str) -> BatchCheckpoint | None:
+            del run_id
             return None
 
-        def commit(self, checkpoint: BatchCheckpoint):
+        def commit(self, checkpoint: BatchCheckpoint) -> CommitResult[BatchCheckpoint]:
             different = replace(
                 checkpoint,
                 output_checksum=canonical_checksum("different"),
@@ -274,18 +281,23 @@ def test_in_memory_output_commit_is_linearizable() -> None:
     engine, _, _ = _engine(_batch(_row()))
     result = engine.run(_feature(), _partition(), _Calculator()).result
     store = InMemoryFeaturePartitionStore()
+
+    def commit_once(_index: int) -> CommitStatus:
+        return store.commit(result).status
+
     with ThreadPoolExecutor(max_workers=8) as pool:
-        statuses = tuple(pool.map(lambda _: store.commit(result).status, range(8)))
+        statuses = tuple(pool.map(commit_once, range(8)))
     assert statuses.count(CommitStatus.CREATED) == 1
     assert statuses.count(CommitStatus.EXISTING_SAME) == 7
 
 
 def test_output_commit_requires_durable_read_back() -> None:
     class PhantomOutputStore:
-        def get(self, _run_id: str):
+        def get(self, run_id: str) -> BatchPartitionResult | None:
+            del run_id
             return None
 
-        def commit(self, result):
+        def commit(self, result: BatchPartitionResult) -> CommitResult[BatchPartitionResult]:
             return CommitResult(CommitStatus.CREATED, result)
 
     engine, _, _ = _engine(_batch(_row()), outputs=PhantomOutputStore())
@@ -295,10 +307,11 @@ def test_output_commit_requires_durable_read_back() -> None:
 
 def test_checkpoint_commit_requires_durable_read_back() -> None:
     class PhantomCheckpointStore:
-        def get(self, _run_id: str):
+        def get(self, run_id: str) -> BatchCheckpoint | None:
+            del run_id
             return None
 
-        def commit(self, checkpoint: BatchCheckpoint):
+        def commit(self, checkpoint: BatchCheckpoint) -> CommitResult[BatchCheckpoint]:
             return CommitResult(CommitStatus.CREATED, checkpoint)
 
     engine, _, _ = _engine(
@@ -311,11 +324,15 @@ def test_checkpoint_commit_requires_durable_read_back() -> None:
 
 def test_unknown_commit_status_fails_closed() -> None:
     class UnknownStatusStore:
-        def get(self, _run_id: str):
+        def get(self, run_id: str) -> BatchPartitionResult | None:
+            del run_id
             return None
 
-        def commit(self, result):
-            forged = object.__new__(CommitResult)
+        def commit(self, result: BatchPartitionResult) -> CommitResult[BatchPartitionResult]:
+            forged = cast(
+                CommitResult[BatchPartitionResult],
+                object.__new__(CommitResult),
+            )
             object.__setattr__(forged, "status", "UNKNOWN")
             object.__setattr__(forged, "persisted", result)
             return forged
@@ -327,15 +344,15 @@ def test_unknown_commit_status_fails_closed() -> None:
 
 def test_coordinated_output_and_checkpoint_tampering_is_not_replayed() -> None:
     class SwitchingOutputStore(InMemoryFeaturePartitionStore):
-        override = None
+        override: BatchPartitionResult | None = None
 
-        def get(self, run_id: str):
+        def get(self, run_id: str) -> BatchPartitionResult | None:
             return self.override or super().get(run_id)
 
     class SwitchingCheckpointStore(InMemoryBatchCheckpointStore):
-        override = None
+        override: BatchCheckpoint | None = None
 
-        def get(self, run_id: str):
+        def get(self, run_id: str) -> BatchCheckpoint | None:
             return self.override or super().get(run_id)
 
     outputs = SwitchingOutputStore()

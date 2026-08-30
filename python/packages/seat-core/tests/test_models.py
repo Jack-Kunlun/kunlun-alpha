@@ -5,8 +5,8 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
-from ashare_contracts import Alias as SectorAlias
-from ashare_contracts import SeatAlias as SeatAliasDTO
+from ashare_contracts.seat_alias import SeatAlias as SeatAliasDTO
+from ashare_contracts.sector_sector import Alias as SectorAlias
 from seat_core import (
     Alias,
     AliasCatalog,

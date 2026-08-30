@@ -104,3 +104,19 @@ def test_generated_descriptor_preserves_research_only_contract() -> None:
     ]
     with pytest.raises(ValidationError, match="INTEGER"):
         StrategyDescriptor.model_validate(payload)
+
+
+def test_generated_descriptor_rejects_coerced_boolean_parameter_defaults() -> None:
+    payload = _descriptor_payload()
+    payload["parameterSpecs"] = [
+        {
+            "name": "enabled",
+            "valueType": "BOOLEAN",
+            "required": True,
+            "description": "Whether the research branch is enabled",
+            "defaultValue": "true",
+        }
+    ]
+
+    with pytest.raises(ValidationError):
+        StrategyDescriptor.model_validate(payload)

@@ -6,8 +6,9 @@ from __future__ import annotations
 from enum import Enum, StrEnum
 from typing import Any, Literal
 
-from ashare_contracts.backtest_regression_semantics import validate_backtest_regression_comparison
 from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
+
+from ashare_contracts.backtest_regression_semantics import validate_backtest_regression_comparison
 
 
 class Sha256(RootModel[str]):
@@ -363,70 +364,26 @@ class BacktestRegressionDiff(BaseModel):
     candidate_value: Any = Field(..., alias="candidateValue")
 
 
-class BacktestRegressionComparison1(BaseModel):
-    status: Literal["MATCHED"] | None = None
-    category_counts: ZeroCategoryCounts | None = Field(None, alias="categoryCounts")
-    diffs: Any | None = Field(None, max_length=0)
-    diff_lines: Any | None = Field(None, alias="diffLines", max_length=0)
-
-
-class BacktestRegressionComparison2(BaseModel):
-    status: Literal["DRIFTED"] | None = None
-    diffs: Any | None = Field(None, min_length=1)
-
-
 class Status2(Enum):
     matched = "MATCHED"
     drifted = "DRIFTED"
 
 
-class BacktestRegressionComparison3(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    baseline_sha256: str = Field(..., alias="baselineSha256", pattern="^[0-9a-f]{64}$")
-    candidate_sha256: str = Field(..., alias="candidateSha256", pattern="^[0-9a-f]{64}$")
-    status: Status2
-    category_counts: CategoryCounts = Field(..., alias="categoryCounts")
-    diffs: list[BacktestRegressionDiff]
-    diff_lines: list[str] = Field(..., alias="diffLines")
-
-
-class BacktestRegressionComparison4(BacktestRegressionComparison1, BacktestRegressionComparison3):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    baseline_sha256: str = Field(..., alias="baselineSha256", pattern="^[0-9a-f]{64}$")
-    candidate_sha256: str = Field(..., alias="candidateSha256", pattern="^[0-9a-f]{64}$")
-    status: Status2
-    category_counts: CategoryCounts = Field(..., alias="categoryCounts")
-    diffs: list[BacktestRegressionDiff]
-    diff_lines: list[str] = Field(..., alias="diffLines")
-
-
-class BacktestRegressionComparison5(BacktestRegressionComparison2, BacktestRegressionComparison3):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    baseline_sha256: str = Field(..., alias="baselineSha256", pattern="^[0-9a-f]{64}$")
-    candidate_sha256: str = Field(..., alias="candidateSha256", pattern="^[0-9a-f]{64}$")
-    status: Status2
-    category_counts: CategoryCounts = Field(..., alias="categoryCounts")
-    diffs: list[BacktestRegressionDiff]
-    diff_lines: list[str] = Field(..., alias="diffLines")
-
-
-class BacktestRegressionComparison(
-    RootModel[BacktestRegressionComparison4 | BacktestRegressionComparison5]
-):
+class BacktestRegressionComparison(BaseModel):
     @model_validator(mode="after")
     def _validate_validate_backtest_regression_comparison(self):
         validate_backtest_regression_comparison(self.model_dump(by_alias=True, mode="json"))
         return self
 
-    root: BacktestRegressionComparison4 | BacktestRegressionComparison5 = Field(
-        ..., title="BacktestRegressionComparison"
+    model_config = ConfigDict(
+        extra="forbid",
     )
+    baseline_sha256: str = Field(..., alias="baselineSha256", pattern="^[0-9a-f]{64}$")
+    candidate_sha256: str = Field(..., alias="candidateSha256", pattern="^[0-9a-f]{64}$")
+    status: Status2
+    category_counts: CategoryCounts = Field(..., alias="categoryCounts")
+    diffs: list[BacktestRegressionDiff]
+    diff_lines: list[str] = Field(..., alias="diffLines")
 
 
 class TPlusOneInputs(BaseModel):
@@ -458,7 +415,7 @@ class TPlusOneInputs(BaseModel):
     )
 
 
-class Status5(StrEnum):
+class Status3(StrEnum):
     rejected = "REJECTED"
     filled = "FILLED"
 
@@ -468,7 +425,7 @@ class TPlusOneObservation(BaseModel):
         extra="forbid",
     )
     order_id: str = Field(..., alias="orderId", pattern="^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
-    status: Status5
+    status: Status3
     reject_reason: str | None = Field(..., alias="rejectReason")
     fill_count: int = Field(..., alias="fillCount", ge=0)
     batch_digest: str = Field(..., alias="batchDigest", pattern="^[0-9a-f]{64}$")

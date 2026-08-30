@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 import pytest
 from feature_core import (
@@ -23,6 +24,7 @@ from feature_core import (
     RegistrySnapshotRef,
     SourceKind,
 )
+from feature_core.batch.models import JsonValue
 
 BASE = datetime(2026, 1, 5, 1, tzinfo=UTC)
 FINGERPRINT = "sha256:" + "a" * 64
@@ -69,7 +71,7 @@ def _record(
         event_time=event_time,
         available_time=visible_at,
         decision_time=visible_at,
-        value=value,
+        value=cast(JsonValue, value),
         input_row_ids=("bar-20260105",),
         input_lineage=(),
         input_checksum=input_checksum,
