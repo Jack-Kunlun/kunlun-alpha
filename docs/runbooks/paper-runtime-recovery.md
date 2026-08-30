@@ -88,6 +88,21 @@ runner 默认生成带不可预测 UUID 的全新隔离数据库；显式传入�
 运行日志。适配器和快速 PostgreSQL 故障矩阵通过不等于 72 小时门禁通过；墙钟报告生成前，
 P6-N12 继续保持待验收。
 
+可在不连接证据数据库、不发送信号且不改写进度或报告文件的前提下运行只读检查器：
+
+```bash
+uv run --package paper-core python scripts/check-paper-soak-evidence.py \
+  --progress /var/tmp/kunlun-paper-endurance-progress.json \
+  --report /var/tmp/kunlun-paper-endurance-wall.json \
+  --expected-source-version 'git:COMMIT;source-sha256:DIGEST'
+```
+
+检查器对进行中的合规运行返回 `IN_PROGRESS` 和退出码 3；只有报告摘要、墙钟时长、四类故障、
+资源释放、执行能力、持久化范围、源码指纹及进度/报告绑定全部通过时才返回 `QUALIFIED` 和
+退出码 0。`INVALID` 使用退出码 2。进行中没有最终报告是正常状态，不能据此宣称门禁通过；
+可预测的证据库名称、陈旧进度或已退出进程均失败关闭。检查器没有 DSN 参数，也不会停止门禁
+进程、查询或修改 PostgreSQL。
+
 若进程在数据库连接被禁用的极短窗口内遭遇不可捕获终止，不得按数据库名前缀手工执行
 `ALTER DATABASE`、`DROP DATABASE` 或拼接中断前后的时长。ownership marker 只由本次 harness
 保存在进程内，无法由报告或命令行重建；应将该数据库交给管理员按 catalog marker 做人工隔离
