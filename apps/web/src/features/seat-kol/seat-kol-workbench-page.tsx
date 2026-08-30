@@ -300,7 +300,7 @@ export function SeatKolWorkbenchPage() {
             <Fingerprint />
             PHASE 4 · PUBLIC INTELLIGENCE
           </span>
-          <h1>席位 × KOL 情报台</h1>
+          <h2>席位 × KOL 情报台</h2>
           <p>把公开席位事实与 KOL 公开表述放在同一条可审计时间线上，不把相关性包装成成交事实。</p>
         </div>
         <div className="seat-kol-hero-meta">
@@ -401,7 +401,7 @@ export function SeatKolWorkbenchPage() {
         <StateCard title="无权访问席位与 KOL 工作台" detail="请申请公开情报读取权限。" />
       )}
       {result.status === "success" && snapshot && (
-        <main className="space-y-8">
+        <section className="space-y-8" aria-label="席位与 KOL 审计结果">
           <div className="seat-kol-audit-strip">
             <span>决策时点 {shanghaiTime(snapshot.decisionTime)}</span>
             <span>数据截止 {shanghaiTime(snapshot.dataCutoffTime)}</span>
@@ -412,7 +412,7 @@ export function SeatKolWorkbenchPage() {
             <KolProfiles snapshot={snapshot} />
           </div>
           <RelationsAndReview snapshot={snapshot} />
-        </main>
+        </section>
       )}
     </div>
   );

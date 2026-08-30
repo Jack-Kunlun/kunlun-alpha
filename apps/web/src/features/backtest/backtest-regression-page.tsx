@@ -36,7 +36,7 @@ export function BacktestRegressionReport({
     <div className="space-y-6" data-testid="backtest-regression-report">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">回测回归 · 证据账本</h1>
+          <h2 className="text-2xl font-semibold tracking-tight">回测回归 · 证据账本</h2>
           <Badge variant={statusMatched ? "default" : "destructive"}>
             {statusMatched ? "MATCHED" : "DRIFTED"}
           </Badge>

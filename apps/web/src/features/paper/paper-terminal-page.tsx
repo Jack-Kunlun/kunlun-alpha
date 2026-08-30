@@ -25,7 +25,10 @@ function StateCard({
   retry?: () => void;
 }) {
   return (
-    <main className="min-h-[75vh] bg-[radial-gradient(circle_at_top_left,rgba(217,119,6,0.14),transparent_36%),linear-gradient(145deg,#fffaf0,#f8fafc)] p-6 dark:from-slate-950 dark:to-slate-900">
+    <section
+      aria-label={title}
+      className="min-h-[75vh] bg-[radial-gradient(circle_at_top_left,rgba(217,119,6,0.14),transparent_36%),linear-gradient(145deg,#fffaf0,#f8fafc)] p-6 dark:from-slate-950 dark:to-slate-900"
+    >
       <Card className="mx-auto mt-20 max-w-xl border-amber-200" role="status">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
@@ -37,7 +40,7 @@ function StateCard({
           </CardContent>
         ) : null}
       </Card>
-    </main>
+    </section>
   );
 }
 
@@ -115,7 +118,10 @@ export function PaperTerminalPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_12%_0%,rgba(245,158,11,0.18),transparent_32%),radial-gradient(circle_at_90%_20%,rgba(15,118,110,0.12),transparent_30%),linear-gradient(145deg,#fffaf0,#f8fafc_55%,#ecfdf5)] p-4 text-slate-950 dark:bg-slate-950 dark:text-slate-50 sm:p-8">
+    <section
+      aria-labelledby="paper-terminal-title"
+      className="min-h-screen bg-[radial-gradient(circle_at_12%_0%,rgba(245,158,11,0.18),transparent_32%),radial-gradient(circle_at_90%_20%,rgba(15,118,110,0.12),transparent_30%),linear-gradient(145deg,#fffaf0,#f8fafc_55%,#ecfdf5)] p-4 text-slate-950 dark:bg-slate-950 dark:text-slate-50 sm:p-8"
+    >
       <div className="mx-auto max-w-[1480px] space-y-6">
         <header className="rounded-3xl border border-amber-200 bg-white/90 p-6 shadow-[0_24px_70px_-42px_rgba(180,83,9,0.65)] dark:border-amber-900 dark:bg-slate-900/90 sm:p-8">
           <div className="flex flex-col justify-between gap-6 xl:flex-row xl:items-end">
@@ -128,9 +134,12 @@ export function PaperTerminalPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-700">
                 Paper Portfolio
               </p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">
+              <h2
+                id="paper-terminal-title"
+                className="mt-2 text-3xl font-black tracking-tight sm:text-5xl"
+              >
                 模拟组合控制台
-              </h1>
+              </h2>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base">
                 从信号分配、服务端风控、模拟订单、全额成交到双账簿对账，所有步骤均保留事件摘要。
               </p>
@@ -350,6 +359,6 @@ export function PaperTerminalPage() {
           </>
         )}
       </div>
-    </main>
+    </section>
   );
 }

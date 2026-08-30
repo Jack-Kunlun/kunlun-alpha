@@ -33,7 +33,9 @@ export function LoginPage({ onLogin, pending, error }: LoginPageProps) {
             <p className="text-xs font-semibold tracking-[0.22em] text-amber-300 uppercase">
               观势 · 知势 · 策势
             </p>
-            <CardTitle className="mt-2 text-2xl">登录昆仑智策</CardTitle>
+            <CardTitle className="mt-2 text-2xl">
+              <h1>登录昆仑智策</h1>
+            </CardTitle>
             <CardDescription className="mt-2 text-slate-400">
               使用本机初始化的管理员账户进入研究终端
             </CardDescription>

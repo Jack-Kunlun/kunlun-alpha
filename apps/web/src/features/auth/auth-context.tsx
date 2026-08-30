@@ -171,6 +171,7 @@ export function AuthenticatedTerminal() {
   if (auth.status === "loading") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-200">
+        <h1 className="sr-only">昆仑智策登录状态</h1>
         <p role="status">正在确认登录状态…</p>
       </main>
     );
@@ -178,6 +179,7 @@ export function AuthenticatedTerminal() {
   if (auth.status === "error") {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-950 px-4 text-center text-slate-200">
+        <h1 className="sr-only">昆仑智策登录状态</h1>
         <p role="alert">{auth.message}</p>
         <Button type="button" onClick={() => void auth.refresh()}>
           重试

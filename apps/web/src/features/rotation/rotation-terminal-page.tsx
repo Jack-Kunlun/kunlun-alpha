@@ -414,14 +414,16 @@ export function RotationTerminalPage() {
   const replayLabel = useMemo(() => formatShanghaiTime(applied.asOf), [applied.asOf]);
 
   return (
-    <main className="space-y-6">
+    <section className="space-y-6" aria-labelledby="rotation-terminal-title">
       <header className="overflow-hidden rounded-2xl border bg-gradient-to-br from-amber-500/10 via-background to-cyan-500/10 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
               观势 · 知势 · 策势
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight">轮动与热点终端</h1>
+            <h2 id="rotation-terminal-title" className="mt-2 text-3xl font-semibold tracking-tight">
+              轮动与热点终端
+            </h2>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
               以同一回放点连接热点生命周期、板块交叉事件和结构化事件证据。
             </p>
@@ -537,6 +539,6 @@ export function RotationTerminalPage() {
       </form>
 
       <RotationTerminalView result={result} />
-    </main>
+    </section>
   );
 }

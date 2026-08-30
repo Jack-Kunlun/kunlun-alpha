@@ -448,15 +448,15 @@ export function LimitPoolTerminalPage() {
     }));
 
   return (
-    <main className="space-y-6" aria-labelledby="limit-pool-title">
+    <section className="space-y-6" aria-labelledby="limit-pool-title">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
             Decision Terminal · Point-in-time
           </p>
-          <h1 id="limit-pool-title" className="mt-2 text-3xl font-semibold tracking-tight">
+          <h2 id="limit-pool-title" className="mt-2 text-3xl font-semibold tracking-tight">
             涨跌停与连板终端
-          </h1>
+          </h2>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             查看版本化证券池、连板梯队、晋级率与逐股证据。所有结果仅供研究。
           </p>
@@ -560,6 +560,6 @@ export function LimitPoolTerminalPage() {
           onSelect={setSelected}
         />
       )}
-    </main>
+    </section>
   );
 }

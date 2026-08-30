@@ -295,12 +295,12 @@ function RankingSuccess({
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
                 Intelligence Ranking
               </p>
-              <h1
+              <h2
                 id="ranking-page-title"
                 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl"
               >
                 股票智能排序
-              </h1>
+              </h2>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
                 将点时特征组合为可解释排名，逐项展示标准化分、有效权重、贡献与缺失原因。
               </p>

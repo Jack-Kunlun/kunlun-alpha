@@ -6,6 +6,7 @@ describe("LoginPage", () => {
   it("renders a password-manager-friendly local administrator form", () => {
     const html = renderToStaticMarkup(<LoginPage onLogin={vi.fn()} pending={false} error={null} />);
     expect(html).toContain("登录昆仑智策");
+    expect(html).toContain("<h1");
     expect(html).toContain('autoComplete="username"');
     expect(html).toContain('autoComplete="current-password"');
     expect(html).toContain("研究与模拟环境");

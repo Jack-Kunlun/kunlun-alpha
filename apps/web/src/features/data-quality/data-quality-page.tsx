@@ -50,7 +50,7 @@ export function DataQualityPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold">数据质量</h1>
+        <h2 className="text-xl font-semibold">数据质量</h2>
         <p className="text-sm text-muted-foreground">
           按交易日、来源、证券（如 600519.SH）定位数据质量问题
         </p>

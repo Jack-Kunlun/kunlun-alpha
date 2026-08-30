@@ -81,7 +81,7 @@ export function AlertsPage() {
           <Badge variant="outline" className="w-fit gap-1">
             <ShieldCheck className="h-3.5 w-3.5" /> 研究提醒
           </Badge>
-          <h1 className="text-3xl font-semibold tracking-tight">自选规则与预警</h1>
+          <h2 className="text-3xl font-semibold tracking-tight">自选规则与预警</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
             用固定指标和比较条件监控自选证券。规则版本、抑制原因与通知结果均保留历史。
           </p>
@@ -439,7 +439,7 @@ function PageState({
     <div className="flex min-h-[420px] items-center justify-center">
       <div className="max-w-md rounded-2xl border bg-card p-8 text-center shadow-sm">
         <AlertCircle className="mx-auto mb-4 h-9 w-9 text-muted-foreground" />
-        <h1 className="text-xl font-semibold">{title}</h1>
+        <h2 className="text-xl font-semibold">{title}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
         {action ? <div className="mt-5">{action}</div> : null}
       </div>

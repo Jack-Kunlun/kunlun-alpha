@@ -340,7 +340,7 @@ export function EventWorkbenchPage() {
         </div>
         <div className="event-hero-copy">
           <div>
-            <h1>事件观势台</h1>
+            <h2>事件观势台</h2>
             <p>从原文证据到热点生命周期，每一条判断都带着时间、版本与置信度。</p>
           </div>
           <div className="event-asof">

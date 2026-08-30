@@ -205,9 +205,9 @@ function TerminalContent({ snapshot }: { snapshot: PreciousMetalsTerminalSnapsho
             <p className="mt-6 text-xs font-semibold tracking-[0.28em] text-amber-300 uppercase">
               Exchange-listed precious metals
             </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">
+            <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">
               贵金属基金观察台
-            </h1>
+            </h2>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
               同屏比较交易所价格、NAV/iNAV、溢折价、流动性、版本化特征与公开事件。只读取决策时点前已可见的数据。
             </p>

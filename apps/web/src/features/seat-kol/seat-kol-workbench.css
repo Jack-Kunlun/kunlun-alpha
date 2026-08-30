@@ -56,7 +56,7 @@
   width: 1rem;
   height: 1rem;
 }
-.seat-kol-hero h1 {
+.seat-kol-hero h2 {
   margin-top: 0.8rem;
   font-family: Georgia, "Noto Serif SC", serif;
   font-size: clamp(2.2rem, 5vw, 4.5rem);

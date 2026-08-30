@@ -87,7 +87,7 @@ export function MarketRegimePage() {
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           观势 · 知势 · 策势
         </p>
-        <h1 className="text-2xl font-semibold">市场情绪与板块轮动</h1>
+        <h2 className="text-2xl font-semibold">市场情绪与板块轮动</h2>
         <p className="text-sm text-muted-foreground">
           按交易日、算法版本和板块回放已持久化的分钟快照与轮动证据
         </p>
