@@ -4,14 +4,30 @@ import { toInstrumentKlineData } from "./instrument-kline-chart";
 
 const chartMocks = vi.hoisted(() => {
   const series = { setData: vi.fn() };
+  const timeScale = { fitContent: vi.fn() };
+  let crosshairMoveHandler: ((params: unknown) => void) | null = null;
   const chart = {
     addSeries: vi.fn(() => series),
     applyOptions: vi.fn(),
+    clearCrosshairPosition: vi.fn(),
     resize: vi.fn(),
     remove: vi.fn(),
-    timeScale: vi.fn(() => ({ fitContent: vi.fn() })),
+    setCrosshairPosition: vi.fn(),
+    subscribeCrosshairMove: vi.fn((handler: (params: unknown) => void) => {
+      crosshairMoveHandler = handler;
+    }),
+    unsubscribeCrosshairMove: vi.fn(),
+    timeScale: vi.fn(() => timeScale),
   };
-  return { chart, series, createChart: vi.fn(() => chart) };
+  return {
+    chart,
+    series,
+    timeScale,
+    createChart: vi.fn(() => chart),
+    emitCrosshairMove(params: unknown) {
+      crosshairMoveHandler?.(params);
+    },
+  };
 });
 
 vi.mock("lightweight-charts", () => ({
@@ -43,8 +59,13 @@ describe("instrument Kline chart adapter", () => {
     chartMocks.createChart.mockClear();
     chartMocks.chart.addSeries.mockClear();
     chartMocks.chart.applyOptions.mockClear();
+    chartMocks.chart.clearCrosshairPosition.mockClear();
     chartMocks.chart.resize.mockClear();
     chartMocks.chart.remove.mockClear();
+    chartMocks.chart.setCrosshairPosition.mockClear();
+    chartMocks.chart.subscribeCrosshairMove.mockClear();
+    chartMocks.chart.unsubscribeCrosshairMove.mockClear();
+    chartMocks.timeScale.fitContent.mockClear();
     chartMocks.series.setData.mockClear();
   });
 
@@ -82,5 +103,40 @@ describe("instrument Kline chart adapter", () => {
     handle.destroy();
     handle.destroy();
     expect(chartMocks.chart.remove).toHaveBeenCalledOnce();
+  });
+
+  it("reports exact hovered bars and supports keyboard-oriented view control", async () => {
+    const { createInstrumentKlineChart } = await import("./instrument-kline-chart");
+    const container = { clientWidth: 640, clientHeight: 300 } as unknown as HTMLElement;
+    const onBarChange = vi.fn();
+    const handle = createInstrumentKlineChart(container, [bar], {
+      theme: "light",
+      onBarChange,
+    });
+
+    expect(chartMocks.createChart).toHaveBeenCalledWith(
+      container,
+      expect.objectContaining({ width: 640, height: 300 }),
+    );
+    chartMocks.emitCrosshairMove({ time: bar.date });
+    expect(onBarChange).toHaveBeenLastCalledWith(bar);
+    chartMocks.emitCrosshairMove({ time: { year: 2026, month: 8, day: 25 } });
+    expect(onBarChange).toHaveBeenLastCalledWith(bar);
+    chartMocks.emitCrosshairMove({});
+    expect(onBarChange).toHaveBeenLastCalledWith(null);
+
+    expect(handle.focusBar(0)).toBe(bar);
+    expect(chartMocks.chart.setCrosshairPosition).toHaveBeenCalledWith(
+      10.5,
+      bar.date,
+      chartMocks.series,
+    );
+    expect(handle.focusBar(5)).toBeNull();
+
+    handle.resetView();
+    expect(chartMocks.chart.clearCrosshairPosition).toHaveBeenCalledOnce();
+    expect(chartMocks.timeScale.fitContent).toHaveBeenCalledTimes(2);
+    handle.destroy();
+    expect(chartMocks.chart.unsubscribeCrosshairMove).toHaveBeenCalledOnce();
   });
 });

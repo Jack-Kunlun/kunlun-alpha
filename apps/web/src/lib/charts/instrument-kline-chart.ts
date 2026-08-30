@@ -19,11 +19,14 @@ export type InstrumentKlineTheme = "light" | "dark";
 export interface InstrumentKlineChartOptions {
   theme?: InstrumentKlineTheme;
   height?: number;
+  onBarChange?: (bar: InstrumentDailyBar | null) => void;
 }
 
 export interface InstrumentKlineChartHandle {
   setData(bars: readonly InstrumentDailyBar[]): void;
   setTheme(theme: InstrumentKlineTheme): void;
+  focusBar(index: number): InstrumentDailyBar | null;
+  resetView(): void;
   resize(): void;
   destroy(): void;
 }
@@ -113,6 +116,18 @@ function heightOf(container: HTMLElement, fallback: number): number {
   return Number.isFinite(height) && height > 0 ? height : fallback;
 }
 
+function timeKey(time: Time | undefined): string | null {
+  if (typeof time === "string") return time;
+  if (typeof time !== "object" || time === null) return null;
+  const month = String(time.month).padStart(2, "0");
+  const day = String(time.day).padStart(2, "0");
+  return `${time.year}-${month}-${day}`;
+}
+
+function indexBars(bars: readonly InstrumentDailyBar[]): ReadonlyMap<string, InstrumentDailyBar> {
+  return new Map(bars.map((bar) => [bar.date, bar]));
+}
+
 function mediaQuery(): MediaQueryList | null {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
     return null;
@@ -144,7 +159,7 @@ export function createInstrumentKlineChart(
   const reducedMotionQuery = mediaQuery();
   const chart: IChartApi = createChart(container, {
     width: widthOf(container),
-    height: fallbackHeight,
+    height: heightOf(container, fallbackHeight),
     autoSize: false,
     ...themeOptions(initialTheme),
     ...interactionOptions(reducedMotionQuery?.matches ?? false),
@@ -158,6 +173,14 @@ export function createInstrumentKlineChart(
   });
   series.setData(data);
   chart.timeScale().fitContent();
+
+  let currentBars = [...bars];
+  let barsByDate = indexBars(currentBars);
+  const crosshairMove = (event: { time?: Time }) => {
+    const key = timeKey(event.time);
+    options.onBarChange?.(key === null ? null : (barsByDate.get(key) ?? null));
+  };
+  chart.subscribeCrosshairMove(crosshairMove);
 
   let destroyed = false;
   const resize = (width = widthOf(container), height = heightOf(container, fallbackHeight)) => {
@@ -199,12 +222,28 @@ export function createInstrumentKlineChart(
     setData(nextBars) {
       const nextData = toInstrumentKlineData(nextBars);
       if (destroyed) return;
+      currentBars = [...nextBars];
+      barsByDate = indexBars(currentBars);
       series.setData(nextData);
       chart.timeScale().fitContent();
     },
     setTheme(theme) {
       if (destroyed) return;
       chart.applyOptions(themeOptions(theme));
+    },
+    focusBar(index) {
+      if (destroyed) return null;
+      const bar = currentBars[index];
+      if (bar === undefined) return null;
+      chart.setCrosshairPosition(finiteNonNegative(bar.close, "close"), bar.date, series);
+      options.onBarChange?.(bar);
+      return bar;
+    },
+    resetView() {
+      if (destroyed) return;
+      chart.clearCrosshairPosition();
+      chart.timeScale().fitContent();
+      options.onBarChange?.(null);
     },
     resize() {
       resize();
@@ -214,6 +253,7 @@ export function createInstrumentKlineChart(
       destroyed = true;
       resizeObserver?.disconnect();
       themeObserver?.disconnect();
+      chart.unsubscribeCrosshairMove(crosshairMove);
       reducedMotionQuery?.removeEventListener?.("change", updateMotion);
       if (resizeObserver === null && typeof window !== "undefined") {
         window.removeEventListener("resize", windowResize);

@@ -112,6 +112,11 @@ describe("InstrumentIntelligenceView daily bars region", () => {
     expect(html).toContain("最新收盘");
     expect(html).toContain("20 日");
     expect(html).toContain("500 日");
+    expect(html).toContain("当前指针");
+    expect(html).toContain("成交量");
+    expect(html).toContain("成交额");
+    expect(html).toContain("左右方向键");
+    expect(html).toContain("重置视图");
     expect(html).toContain("不是实时或可成交价格");
   });
 
