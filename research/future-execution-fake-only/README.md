@@ -33,7 +33,7 @@ deterministic payload digest ── key: (account_ref, client_order_id)
     └── any failed check      → REJECTED  + ledger unchanged
 ```
 
-`reference_price` 必须是有限、正的 `Decimal`；float、NaN、Infinity、零和负数都会失败关闭。没有 wall clock、随机数或 UUID，摘要使用固定字段和 SHA-256 生成，因此相同输入在独立 ledger 上产生相同摘要。账本只记录成功的首次模拟，不会被拒绝、重复或冲突请求增加或覆盖。
+`reference_price` 必须是有限、正的 `Decimal`；float、NaN、Infinity、零和负数都会失败关闭。`quantity` 必须是正整数，且必须能在当前 Python 整数字符串安全限制内完成确定性序列化；超出限制时返回 `REJECTED`，不抛出异常或写入账本。没有 wall clock、随机数或 UUID，摘要使用固定字段和 SHA-256 生成，因此相同输入在独立 ledger 上产生相同摘要。账本只记录成功的首次模拟，不会被拒绝、重复或冲突请求增加或覆盖。
 
 ### 威胁与失败关闭边界
 
@@ -117,10 +117,10 @@ assert receipt.execution_capability == "PAPER_ONLY"
 在本目录使用 PATH 中的 Python 3.12 运行以下命令，不调用 `uv`、`pnpm`、Docker 或网络；`-B` 用于避免测试在源码目录写入字节码缓存：
 
 ```text
-python -B -m unittest -v test_fake_only_execution.py
+python -B -m unittest discover -v -p "test_fake_only*.py"
 ```
 
-测试覆盖成功模拟、三类正向环境门禁失败、Kill Switch 失败关闭、非法策略、重复和幂等冲突、线程并发幂等、Decimal 等值规范化与上下文精度、float/NaN/Infinity、字符串 price、fixture account 与 canonical instrument 边界、确定性摘要、导入前 AST allowlist，以及运行时禁止文件 I/O 的边界。测试本身是离线单元测试，不调用真实外部服务、账户或 broker。
+测试覆盖成功模拟、完整环境门禁真值表、Kill Switch 失败关闭、非法策略、短序列 first-write-wins 性质、拒绝请求不占用或覆盖幂等 key、账户级幂等隔离、相同和冲突 payload 的线程并发原子性、Decimal 等值规范化与上下文精度、超大整数序列化失败关闭、float/NaN/Infinity、字符串 price、fixture account 与 canonical instrument 边界、所有 receipt 的 fake-only 不变量、确定性摘要、导入前 AST allowlist，以及运行时禁止文件 I/O 的边界。测试本身是离线单元测试，不调用真实外部服务、账户或 broker。
 
 ## 非目标
 

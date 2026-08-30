@@ -188,7 +188,7 @@ def _validate_intent(intent: FakeOnlyIntent) -> str | None:
         return "side_invalid"
 
     quantity = getattr(intent, "quantity", _MISSING)
-    if type(quantity) is not int or quantity <= 0:
+    if not _is_serializable_positive_integer(quantity):
         return "quantity_invalid"
 
     reference_price = getattr(intent, "reference_price", _MISSING)
@@ -274,6 +274,16 @@ def _is_finite_positive_decimal(value: object) -> bool:
     return value > Decimal("0")
 
 
+def _is_serializable_positive_integer(value: object) -> bool:
+    if type(value) is not int or value <= 0:
+        return False
+    try:
+        str(value)
+    except ValueError:
+        return False
+    return True
+
+
 def _payload_text(intent: FakeOnlyIntent) -> str:
     return "|".join(
         (
@@ -357,7 +367,9 @@ def _rejection(
             instrument = candidate_instrument
         if type(candidate_side) is str and candidate_side in _ALLOWED_SIDES:
             side = candidate_side
-        if type(candidate_quantity) is int and candidate_quantity > 0:
+        if type(candidate_quantity) is int and _is_serializable_positive_integer(
+            candidate_quantity
+        ):
             quantity = candidate_quantity
         if type(candidate_price) is Decimal and _is_finite_positive_decimal(candidate_price):
             reference_price = candidate_price
