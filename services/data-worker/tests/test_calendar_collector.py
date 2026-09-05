@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import cast
 
 import pytest
+from ashare_contracts.calendar_holiday import Exchange as HolidayExchange
 from ashare_contracts.calendar_holiday import Holiday
 from ashare_contracts.providers import Capability, Cursor, Page
 from data_worker.jobs.calendars.collector import CalendarCollector, detect_alerts
@@ -17,8 +18,15 @@ from market_core.providers import ProviderDataError
 from market_core.providers.interfaces import CalendarProvider
 
 
-def _holiday(date: str, reason: str = "PUBLIC_HOLIDAY", note: str | None = None) -> Holiday:
-    return Holiday.model_validate({"date": date, "exchange": "SH", "reason": reason, "note": note})
+def _holiday(
+    date: str,
+    reason: str = "PUBLIC_HOLIDAY",
+    note: str | None = None,
+    exchange: str = "SH",
+) -> Holiday:
+    return Holiday.model_validate(
+        {"date": date, "exchange": exchange, "reason": reason, "note": note}
+    )
 
 
 def _page(items: list[Holiday], next_cursor: Cursor | None = None) -> Page[Holiday]:
@@ -47,6 +55,7 @@ class PagedCalendarProvider(CalendarProvider):
         self._pages = pages
         self._errors = errors or {}
         self.calls: list[Cursor | None] = []
+        self.request_calls: list[tuple[str, int, Cursor | None]] = []
 
     def capabilities(self) -> frozenset[Capability]:
         return frozenset({Capability.FETCH_CALENDAR})
@@ -54,11 +63,164 @@ class PagedCalendarProvider(CalendarProvider):
     def fetch_holidays(
         self, exchange: str, year: int, cursor: Cursor | None = None
     ) -> Page[Holiday]:
-        del exchange, year
+        self.request_calls.append((exchange, year, cursor))
         self.calls.append(cursor)
         if cursor is not None and cursor in self._errors:
             raise self._errors[cursor]
         return self._pages[cursor]
+
+
+@pytest.mark.parametrize(
+    ("exchange", "year", "holiday_date"),
+    [("SH", 2026, "2026-01-01"), ("SZ", 2026, "2026-12-31"), ("BJ", 2024, "2024-02-29")],
+)
+def test_supported_exchange_requests_are_canonical_and_accept_boundary_dates(
+    exchange: str, year: int, holiday_date: str
+) -> None:
+    provider = PagedCalendarProvider({None: _page([_holiday(holiday_date, exchange=exchange)])})
+    repo = InMemoryCalendarRepository()
+
+    result = CalendarCollector(provider, repo, source="exchange-a").collect(exchange, year)
+
+    assert provider.request_calls == [(HolidayExchange(exchange).value, year, None)]
+    assert result.holiday_count == 1
+    assert [item.date.isoformat() for item in repo.source_holidays("exchange-a")] == [holiday_date]
+
+
+def test_valid_multi_page_response_is_saved_once_with_canonical_request() -> None:
+    provider = PagedCalendarProvider(
+        {
+            None: _page([_holiday("2026-01-01")], "page-2"),
+            "page-2": _page([_holiday("2026-12-31")]),
+        }
+    )
+    repo = InMemoryCalendarRepository()
+
+    CalendarCollector(provider, repo, source="exchange-a").collect("SH", 2026)
+
+    assert provider.request_calls == [("SH", 2026, None), ("SH", 2026, "page-2")]
+    assert sum(line.startswith("SAVE ") for line in repo.audit_log()) == 1
+
+
+@pytest.mark.parametrize(
+    ("exchange", "year", "bad_holiday"),
+    [
+        ("SH", 2026, _holiday("2026-01-01", exchange="SZ", note="secret-note")),
+        ("SH", 2026, _holiday("2025-12-31", note="secret-note")),
+    ],
+)
+def test_first_page_identity_mismatch_fails_before_next_fetch_or_saving(
+    exchange: str, year: int, bad_holiday: Holiday
+) -> None:
+    provider = PagedCalendarProvider(
+        {None: _page([bad_holiday], "secret-cursor"), "secret-cursor": _page([])}
+    )
+    repo = InMemoryCalendarRepository()
+
+    with pytest.raises(ProviderDataError, match="calendar holiday does not match request") as error:
+        CalendarCollector(provider, repo, source="exchange-a").collect(exchange, year)
+
+    assert str(error.value) == "calendar holiday does not match request"
+    assert provider.calls == [None]
+    assert repo.source_holidays("exchange-a") == []
+    assert repo.audit_log() == []
+    assert "secret-cursor" not in str(error.value)
+    assert "secret-note" not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "bad_holiday",
+    [
+        _holiday("2025-03-02", note="secret-note"),
+        _holiday("2026-03-02", exchange="SZ", note="secret-note"),
+    ],
+)
+def test_subsequent_mixed_page_identity_mismatch_preserves_snapshot_audit_and_correction(
+    bad_holiday: Holiday,
+) -> None:
+    repo = InMemoryCalendarRepository()
+    initial = CalendarCollector(
+        FakeCalendarProvider([_holiday("2026-01-01")]), repo, source="exchange-a"
+    ).collect("SH", 2026)
+    repo.apply_correction(
+        "2026-01-02",
+        "TEMPORARY_CLOSURE",
+        "existing correction",
+        "ops",
+        version_id=initial.version_id,
+    )
+    before_holidays = repo.source_holidays("exchange-a")
+    before_audit = repo.audit_log()
+    before_corrections = repo.correction_overlay(initial.version_id)
+    provider = PagedCalendarProvider(
+        {
+            None: _page([_holiday("2026-02-17")], "cursor-a"),
+            "cursor-a": _page(
+                [
+                    _holiday("2026-03-01"),
+                    bad_holiday,
+                ],
+                "secret-cursor",
+            ),
+            "secret-cursor": _page([_holiday("2026-04-01")]),
+        }
+    )
+
+    with pytest.raises(ProviderDataError, match="calendar holiday does not match request") as error:
+        CalendarCollector(provider, repo, source="exchange-a").collect("SH", 2026)
+
+    assert str(error.value) == "calendar holiday does not match request"
+    assert provider.calls == [None, "cursor-a"]
+    assert repo.source_holidays("exchange-a") == before_holidays
+    assert repo.get_version(initial.version_id) == before_holidays
+    assert repo.audit_log() == before_audit
+    assert repo.correction_overlay(initial.version_id) == before_corrections
+    assert "secret-cursor" not in str(error.value)
+    assert "secret-note" not in str(error.value)
+
+
+@pytest.mark.parametrize("invalid_exchange", ["sh", "SSE", "", None, 123])
+def test_invalid_exchange_is_rejected_before_fetch_or_save(invalid_exchange: object) -> None:
+    provider = PagedCalendarProvider({None: _page([])})
+    repo = InMemoryCalendarRepository()
+
+    with pytest.raises(ProviderDataError, match="calendar exchange is invalid") as error:
+        CalendarCollector(provider, repo, source="exchange-a").collect(
+            cast(str, invalid_exchange), 2026
+        )
+
+    assert str(error.value) == "calendar exchange is invalid"
+    assert provider.calls == []
+    assert repo.audit_log() == []
+    assert repr(invalid_exchange) not in str(error.value)
+
+
+@pytest.mark.parametrize("invalid_year", [True, False, 0, 10000, 1.5, "2026", None])
+def test_invalid_year_is_rejected_before_fetch_or_save(invalid_year: object) -> None:
+    provider = PagedCalendarProvider({None: _page([])})
+    repo = InMemoryCalendarRepository()
+
+    with pytest.raises(ProviderDataError, match="calendar year is invalid") as error:
+        CalendarCollector(provider, repo, source="exchange-a").collect(
+            "SH", cast(int, invalid_year)
+        )
+
+    assert str(error.value) == "calendar year is invalid"
+    assert provider.calls == []
+    assert repo.audit_log() == []
+    assert repr(invalid_year) not in str(error.value)
+
+
+@pytest.mark.parametrize("year", [1, 9999])
+def test_legal_empty_response_remains_unknown_coverage(year: int) -> None:
+    provider = PagedCalendarProvider({None: _page([])})
+    repo = InMemoryCalendarRepository()
+
+    result = CalendarCollector(provider, repo, source="exchange-a").collect("BJ", year)
+
+    assert result.coverage_status == "UNKNOWN"
+    assert provider.request_calls == [("BJ", year, None)]
+    assert sum(line.startswith("SAVE ") for line in repo.audit_log()) == 1
 
 
 def test_temporary_closure_raises_alert() -> None:

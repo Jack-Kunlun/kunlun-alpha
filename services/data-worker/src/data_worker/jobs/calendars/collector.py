@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from ashare_contracts.calendar_holiday import Exchange as HolidayExchange
 from ashare_contracts.calendar_holiday import Holiday
 from data_worker.jobs.calendars.repository import CalendarRepository
 from market_core.providers import CalendarProvider, ProviderDataError
@@ -39,6 +40,19 @@ class CalendarCollectResult:
     alerts: list[CalendarAlert]
     holiday_count: int
     coverage_status: Literal["UNKNOWN"] = "UNKNOWN"
+
+
+def _validate_request(exchange: str, year: int) -> tuple[str, int]:
+    if type(exchange) is not str:
+        raise ProviderDataError("calendar exchange is invalid")
+    try:
+        canonical_exchange = HolidayExchange(exchange)
+    except ValueError:
+        raise ProviderDataError("calendar exchange is invalid") from None
+
+    if type(year) is not int or not 1 <= year <= 9999:
+        raise ProviderDataError("calendar year is invalid")
+    return canonical_exchange.value, year
 
 
 def detect_alerts(
@@ -99,9 +113,10 @@ class CalendarCollector:
         self._max_pages = max_pages
 
     def collect(self, exchange: str, year: int) -> CalendarCollectResult:
-        holidays = self._fetch_all(exchange, year)
-        version_id = self._repository.save_version(self._source, year, holidays)
-        alerts = detect_alerts(holidays, year)
+        canonical_exchange, valid_year = _validate_request(exchange, year)
+        holidays = self._fetch_all(canonical_exchange, valid_year)
+        version_id = self._repository.save_version(self._source, valid_year, holidays)
+        alerts = detect_alerts(holidays, valid_year)
         return CalendarCollectResult(
             version_id=version_id, alerts=alerts, holiday_count=len(holidays)
         )
@@ -116,6 +131,11 @@ class CalendarCollector:
                 raise ProviderDataError("calendar pagination exceeded max_pages")
             page = self._provider.fetch_holidays(exchange, year, cursor)
             pages_fetched += 1
+            if any(
+                holiday.exchange.value != exchange or holiday.date.year != year
+                for holiday in page.items
+            ):
+                raise ProviderDataError("calendar holiday does not match request")
             holidays.extend(page.items)
             next_cursor = page.next_cursor
             if next_cursor is None:
