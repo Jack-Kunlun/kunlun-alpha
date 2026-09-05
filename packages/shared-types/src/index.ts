@@ -840,6 +840,51 @@ export interface LicenseMetadata1 {
 }
 
 /**
+ * This interface was referenced by `MarketCoverageResponse`'s JSON-Schema
+ * via the `definition` "MarketCoverageSource".
+ */
+export type MarketCoverageSource =
+  "tushare-pro" | "akshare-tencent" | "akshare-sina" | "akshare-eastmoney";
+
+/**
+ * Observed daily raw market-bar coverage; this is not a completeness or quality verdict.
+ */
+export interface MarketCoverageResponse {
+  schemaVersion: "market-data-coverage-v1";
+  scope: "DAILY_RAW_SUPPORTED_SOURCES";
+  meaning: "OBSERVED_ONLY";
+  window: MarketCoverageWindow;
+  /**
+   * @maxItems 100
+   */
+  rows: MarketCoverageRow[];
+  truncated: boolean;
+}
+/**
+ * This interface was referenced by `MarketCoverageResponse`'s JSON-Schema
+ * via the `definition` "MarketCoverageWindow".
+ */
+export interface MarketCoverageWindow {
+  dateFrom: string;
+  dateTo: string;
+  asOf: string;
+}
+/**
+ * This interface was referenced by `MarketCoverageResponse`'s JSON-Schema
+ * via the `definition` "MarketCoverageRow".
+ */
+export interface MarketCoverageRow {
+  unifiedCode: string;
+  source: MarketCoverageSource;
+  observedBarDays: number;
+  firstDate: string;
+  lastDate: string;
+  latestEventTime: string;
+  latestAvailableTime: string;
+  latestProcessingTime: string;
+}
+
+/**
  * A single limit-up/limit-down fact: seal, seal break, or open count
  */
 export interface LimitEvent {

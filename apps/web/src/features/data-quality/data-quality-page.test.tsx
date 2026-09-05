@@ -3,13 +3,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataQualityRecord } from "./types";
 import { DataQualityPage } from "./data-quality-page";
 import { useDataQuality } from "./use-data-quality";
+import { useMarketCoverage } from "./use-market-coverage";
 
 vi.mock("./use-data-quality", () => ({
   useDataQuality: vi.fn(),
   evidenceUrl: (id: string) => `/v1/data-quality/${encodeURIComponent(id)}/evidence`,
 }));
+vi.mock("./use-market-coverage", () => ({
+  useMarketCoverage: vi.fn(),
+}));
 
 const mockedUseDataQuality = vi.mocked(useDataQuality);
+const mockedUseMarketCoverage = vi.mocked(useMarketCoverage);
 
 const sample: DataQualityRecord = {
   id: "fund-conflict-aaa",
@@ -23,9 +28,34 @@ const sample: DataQualityRecord = {
   schemaVersion: "fund-v1",
 };
 
+const coverage = {
+  schemaVersion: "market-data-coverage-v1" as const,
+  scope: "DAILY_RAW_SUPPORTED_SOURCES" as const,
+  meaning: "OBSERVED_ONLY" as const,
+  window: {
+    dateFrom: "2026-09-01",
+    dateTo: "2026-09-04",
+    asOf: "2026-09-05T02:00:00.000Z",
+  },
+  rows: [
+    {
+      unifiedCode: "600519.SH",
+      source: "tushare-pro" as const,
+      observedBarDays: 2,
+      firstDate: "2026-09-03",
+      lastDate: "2026-09-04",
+      latestEventTime: "2026-09-04T07:00:00.000Z",
+      latestAvailableTime: "2026-09-04T07:01:00.000Z",
+      latestProcessingTime: "2026-09-04T07:02:00.000Z",
+    },
+  ],
+  truncated: false,
+};
+
 describe("DataQualityPage states", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedUseMarketCoverage.mockReturnValue({ status: "success", data: coverage, error: null });
   });
 
   it("renders the loading state", () => {
@@ -35,12 +65,16 @@ describe("DataQualityPage states", () => {
 
   it("renders the empty state", () => {
     mockedUseDataQuality.mockReturnValue({ status: "empty", data: [], error: null });
-    expect(renderToStaticMarkup(<DataQualityPage />)).toContain("暂无质量问题");
+    expect(renderToStaticMarkup(<DataQualityPage />)).toContain(
+      "当前条件下暂无已记录的基金质量事件",
+    );
   });
 
   it("renders the error state", () => {
     mockedUseDataQuality.mockReturnValue({ status: "error", data: null, error: new Error("boom") });
-    expect(renderToStaticMarkup(<DataQualityPage />)).toContain("加载失败");
+    const html = renderToStaticMarkup(<DataQualityPage />);
+    expect(html).toContain("基金质量事件加载失败");
+    expect(html).not.toContain("boom");
   });
 
   it("renders the forbidden state", () => {
@@ -58,6 +92,8 @@ describe("DataQualityPage states", () => {
     expect(html).toContain("SOURCE_CONFLICT");
     expect(html).toContain("600519.SH");
     expect(html).toContain('href="/v1/data-quality/fund-conflict-aaa/evidence"');
+    expect(html).toContain("日线入库概览");
+    expect(html).toContain("观测日数");
   });
 
   it("associates labels with inputs for keyboard and screen-reader access", () => {
@@ -82,5 +118,18 @@ describe("DataQualityPage states", () => {
       error: new Error("x"),
     });
     expect(renderToStaticMarkup(<DataQualityPage />)).toContain('role="alert"');
+  });
+
+  it("keeps coverage states independent from fund quality events", () => {
+    mockedUseDataQuality.mockReturnValue({ status: "success", data: [sample], error: null });
+    mockedUseMarketCoverage.mockReturnValue({
+      status: "error",
+      data: null,
+      error: new Error("raw failure"),
+    });
+    const html = renderToStaticMarkup(<DataQualityPage />);
+    expect(html).toContain("SOURCE_CONFLICT");
+    expect(html).toContain("日线行情覆盖加载失败");
+    expect(html).not.toContain("raw failure");
   });
 });

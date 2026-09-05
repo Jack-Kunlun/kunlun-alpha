@@ -1,12 +1,15 @@
 import { BadRequestException, Controller, Get, Inject, Param, Query } from "@nestjs/common";
 import { ApiExtraModels, ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { MarketCoverageResponse } from "@kunlun/shared-types";
 import type { DataQualityRecord, EvidenceRecord } from "./quality-record";
 import { QualityValidationError } from "./quality-filters";
 import { DataQualityService } from "./data-quality.service";
 import { QualityQueryDto } from "./quality-dto";
+import { MarketCoverageQueryDto } from "./market-coverage.dto";
+import { MarketCoverageValidationError } from "./market-coverage.query";
 
 @ApiTags("data-quality")
-@ApiExtraModels(QualityQueryDto)
+@ApiExtraModels(QualityQueryDto, MarketCoverageQueryDto)
 @Controller("data-quality")
 export class DataQualityController {
   constructor(@Inject(DataQualityService) private readonly service: DataQualityService) {}
@@ -18,6 +21,19 @@ export class DataQualityController {
       return await this.service.query(query);
     } catch (error) {
       if (error instanceof QualityValidationError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Get("market-coverage")
+  @ApiOperation({ summary: "Read observed daily market-bar coverage" })
+  async coverage(@Query() query: MarketCoverageQueryDto): Promise<MarketCoverageResponse> {
+    try {
+      return await this.service.coverage(query);
+    } catch (error) {
+      if (error instanceof MarketCoverageValidationError) {
         throw new BadRequestException(error.message);
       }
       throw error;

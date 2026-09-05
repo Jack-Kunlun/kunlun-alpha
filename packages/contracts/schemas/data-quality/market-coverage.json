@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun.local/contracts/data-quality/market-coverage-v1.json",
+  "title": "MarketCoverageResponse",
+  "description": "Observed daily raw market-bar coverage; this is not a completeness or quality verdict.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "scope", "meaning", "window", "rows", "truncated"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "market-data-coverage-v1"
+    },
+    "scope": {
+      "type": "string",
+      "const": "DAILY_RAW_SUPPORTED_SOURCES"
+    },
+    "meaning": {
+      "type": "string",
+      "const": "OBSERVED_ONLY"
+    },
+    "window": {
+      "$ref": "#/$defs/MarketCoverageWindow"
+    },
+    "rows": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/MarketCoverageRow"
+      }
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "MarketCoverageWindow": {
+      "title": "MarketCoverageWindow",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dateFrom", "dateTo", "asOf"],
+      "properties": {
+        "dateFrom": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "dateTo": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "asOf": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "MarketCoverageRow": {
+      "title": "MarketCoverageRow",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unifiedCode",
+        "source",
+        "observedBarDays",
+        "firstDate",
+        "lastDate",
+        "latestEventTime",
+        "latestAvailableTime",
+        "latestProcessingTime"
+      ],
+      "properties": {
+        "unifiedCode": {
+          "type": "string",
+          "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$"
+        },
+        "source": {
+          "$ref": "#/$defs/MarketCoverageSource"
+        },
+        "observedBarDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 366
+        },
+        "firstDate": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "lastDate": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "latestEventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "latestAvailableTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "latestProcessingTime": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "MarketCoverageSource": {
+      "title": "MarketCoverageSource",
+      "type": "string",
+      "enum": ["tushare-pro", "akshare-tencent", "akshare-sina", "akshare-eastmoney"]
+    }
+  }
+}

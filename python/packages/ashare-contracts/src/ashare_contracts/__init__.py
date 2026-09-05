@@ -113,6 +113,16 @@ from ashare_contracts.content_raw_content import ContentType as ContentType
 from ashare_contracts.content_raw_content import FingerprintVersion as FingerprintVersion
 from ashare_contracts.content_raw_content import LicenseMetadata as LicenseMetadata
 from ashare_contracts.content_raw_content import RawContent as RawContent
+from ashare_contracts.data_quality_market_coverage import (
+    MarketCoverageResponse as MarketCoverageResponse,
+)
+from ashare_contracts.data_quality_market_coverage import MarketCoverageRow as MarketCoverageRow
+from ashare_contracts.data_quality_market_coverage import (
+    MarketCoverageSource as MarketCoverageSource,
+)
+from ashare_contracts.data_quality_market_coverage import (
+    MarketCoverageWindow as MarketCoverageWindow,
+)
 from ashare_contracts.emotion_limit_event import EventType as EventType
 from ashare_contracts.emotion_limit_event import Exchange as Exchange_3
 from ashare_contracts.emotion_limit_event import LimitEvent as LimitEvent
@@ -707,6 +717,10 @@ __all__ = [
     "FingerprintVersion",
     "LicenseMetadata",
     "RawContent",
+    "MarketCoverageResponse",
+    "MarketCoverageRow",
+    "MarketCoverageSource",
+    "MarketCoverageWindow",
     "EventType",
     "Exchange_3",
     "LimitEvent",

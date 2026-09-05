@@ -2,6 +2,8 @@
 
 ## 当前能力
 
+日线行情观测与入库概览的字段语义、故障边界和只读核验见[日线入库概览运行手册](market-data-coverage.md)。
+
 data-worker 提供两个可切换的真实行情源。默认源是无需 token 的 AKShare，Tushare Pro
 仅在显式选择并提供授权 token 时使用。适配器将未复权行情写入现有 ClickHouse
 `bars_daily_v2` 与 `bars_minute_v2` 表。默认 AKShare 路径覆盖以下行情类型：

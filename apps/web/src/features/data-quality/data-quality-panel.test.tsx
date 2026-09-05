@@ -24,6 +24,8 @@ describe("DataQualityPanel", () => {
     expect(html).toContain("600519.SH");
     expect(html).toContain("多来源观测不一致，未选择权威值");
     expect(html).toContain("fund-v1");
+    expect(html).toContain("创建时间（上海）");
+    expect(html).toContain("2026-08-13 17:30:00（上海）");
   });
 
   it("links evidence only through the safe internal endpoint", () => {
@@ -32,5 +34,12 @@ describe("DataQualityPanel", () => {
     expect(html).not.toContain("raw://");
     expect(html).not.toContain("s3://");
     expect(html).not.toContain("raw_object");
+  });
+
+  it("renders unavailable timestamps as unknown", () => {
+    const html = renderToStaticMarkup(
+      <DataQualityPanel records={[{ ...records[0]!, availableAt: null }]} />,
+    );
+    expect(html).toContain("未知");
   });
 });

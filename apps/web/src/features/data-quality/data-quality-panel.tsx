@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import type { DataQualityRecord } from "./types";
 import { evidenceUrl } from "./use-data-quality";
+import { formatShanghaiTime } from "./format-shanghai-time";
 
 interface DataQualityPanelProps {
   records: DataQualityRecord[];
@@ -23,35 +24,41 @@ interface DataQualityPanelProps {
  */
 export function DataQualityPanel({ records }: DataQualityPanelProps) {
   return (
-    <Table aria-label="数据质量事件列表">
-      <TableHeader>
-        <TableRow>
-          <TableHead>类型</TableHead>
-          <TableHead>日期</TableHead>
-          <TableHead>来源</TableHead>
-          <TableHead>证券</TableHead>
-          <TableHead>明细</TableHead>
-          <TableHead>版本</TableHead>
-          <TableHead>证据</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {records.map((record) => (
-          <TableRow key={record.id}>
-            <TableCell>{record.kind}</TableCell>
-            <TableCell>{record.date}</TableCell>
-            <TableCell>{record.source ?? "—"}</TableCell>
-            <TableCell>{record.unifiedCode ?? "—"}</TableCell>
-            <TableCell>{record.detail}</TableCell>
-            <TableCell>{record.schemaVersion}</TableCell>
-            <TableCell>
-              <a href={evidenceUrl(record.id)} className="underline">
-                查看
-              </a>
-            </TableCell>
+    <div className="overflow-x-auto">
+      <Table aria-label="数据质量事件列表" className="min-w-[980px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>类型</TableHead>
+            <TableHead>日期</TableHead>
+            <TableHead>来源</TableHead>
+            <TableHead>证券</TableHead>
+            <TableHead>明细</TableHead>
+            <TableHead>创建时间（上海）</TableHead>
+            <TableHead>可用时间（上海）</TableHead>
+            <TableHead>版本</TableHead>
+            <TableHead>证据</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {records.map((record) => (
+            <TableRow key={record.id}>
+              <TableCell>{record.kind}</TableCell>
+              <TableCell>{record.date}</TableCell>
+              <TableCell>{record.source ?? "—"}</TableCell>
+              <TableCell>{record.unifiedCode ?? "—"}</TableCell>
+              <TableCell>{record.detail}</TableCell>
+              <TableCell>{formatShanghaiTime(record.createdAt)}</TableCell>
+              <TableCell>{formatShanghaiTime(record.availableAt)}</TableCell>
+              <TableCell>{record.schemaVersion}</TableCell>
+              <TableCell>
+                <a href={evidenceUrl(record.id)} className="underline">
+                  查看
+                </a>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
