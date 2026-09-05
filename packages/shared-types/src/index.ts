@@ -885,6 +885,139 @@ export interface MarketCoverageRow {
 }
 
 /**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualitySource".
+ */
+export type MarketQualitySource =
+  "tushare-pro" | "akshare-tencent" | "akshare-sina" | "akshare-eastmoney";
+/**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityInterval".
+ */
+export type MarketQualityInterval = "DAILY" | "MINUTE_1" | "MINUTE_5";
+/**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityStatus".
+ */
+export type MarketQualityStatus = "REJECTED" | "FILTERED";
+/**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityReasonCode".
+ */
+export type MarketQualityReasonCode =
+  "PROVIDER_PARSE_ERROR" | "BAR_QUALITY_REJECTED" | "SINA_OVERFETCH_OUTSIDE_REQUEST";
+/**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityKind".
+ */
+export type MarketQualityKind =
+  "OUT_OF_ORDER" | "DUPLICATE" | "NEGATIVE_PRICE" | "ABNORMAL_VOLUME" | "MISSING_FIELD";
+/**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityFilteredReasonCode".
+ */
+export type MarketQualityFilteredReasonCode = "SINA_OVERFETCH_OUTSIDE_REQUEST";
+
+/**
+ * A bounded, sanitized page of market-data rejection and filtering evidence.
+ */
+export interface MarketQualityEvidencePage {
+  schemaVersion: "market-quality-evidence-v1";
+  snapshotId: string;
+  publishedAt: string;
+  snapshotRecordCount: number;
+  matchingRecordCount: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+  /**
+   * @maxItems 100
+   */
+  records: MarketQualityEvidenceRecord[];
+}
+/**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityEvidenceRecord".
+ */
+export interface MarketQualityEvidenceRecord {
+  evidenceId: string;
+  source: MarketQualitySource;
+  unifiedCode: string;
+  interval: MarketQualityInterval;
+  requestedStart: string;
+  requestedEnd: string;
+  status: MarketQualityStatus;
+  reasonCode: MarketQualityReasonCode;
+  captureAvailableAt: string;
+  qualityRecordedAt: string;
+  rejectedRecordCount: number;
+  qualityEventCount: number;
+  filteredRecordCount: number;
+  /**
+   * @maxItems 10000
+   */
+  qualityEvents: MarketQualityEvent[];
+  /**
+   * @maxItems 10000
+   */
+  filteredRecords: MarketQualityFilteredRecord[];
+}
+/**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityEvent".
+ */
+export interface MarketQualityEvent {
+  kind: MarketQualityKind;
+  unifiedCode: string | null;
+  timestamp: string | null;
+}
+/**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityFilteredRecord".
+ */
+export interface MarketQualityFilteredRecord {
+  rawRowIndex: number;
+  timestamp: string;
+  requestedStart: string;
+  requestedEnd: string;
+  reasonCode: MarketQualityFilteredReasonCode;
+}
+/**
+ * Immutable storage snapshot; its filename is the SHA-256 of canonical JSON bytes.
+ *
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityEvidenceSnapshot".
+ */
+export interface MarketQualityEvidenceSnapshot {
+  schemaVersion: "market-quality-snapshot-v1";
+  publishedAt: string;
+  /**
+   * @maxItems 10000
+   */
+  records: MarketQualityEvidenceRecord[];
+}
+/**
+ * Atomic pointer to one complete immutable market-quality snapshot.
+ *
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityEvidenceCurrent".
+ */
+export interface MarketQualityEvidenceCurrent {
+  schemaVersion: "market-quality-current-v1";
+  snapshotId: string;
+}
+/**
+ * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
+ * via the `definition` "MarketQualityEvidenceDetail".
+ */
+export interface MarketQualityEvidenceDetail {
+  schemaVersion: "market-quality-evidence-v1";
+  snapshotId: string;
+  publishedAt: string;
+  record: MarketQualityEvidenceRecord;
+}
+
+/**
  * A single limit-up/limit-down fact: seal, seal break, or open count
  */
 export interface LimitEvent {

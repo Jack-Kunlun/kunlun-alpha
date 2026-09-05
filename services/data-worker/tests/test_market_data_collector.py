@@ -244,6 +244,41 @@ def test_sina_overfetch_writes_only_in_window_and_persists_filter_evidence(
     ]
 
 
+def test_filtered_quality_public_publish_failure_stops_bar_write(tmp_path: Path) -> None:
+    class FailingPublisher:
+        def publish_capture(self) -> object:
+            raise RuntimeError("public evidence unavailable")
+
+    raw = LocalFileStorage(tmp_path / "raw")
+    writer = RecordingWriter()
+    collector = MarketDataCollector(
+        SinaEvidenceProvider(
+            [
+                _sina_row("2026-08-26 09:31:00"),
+                _sina_row("2026-08-27 09:31:00"),
+            ]
+        ),
+        raw,
+        writer,
+        quality_sink=MarketDataQualitySink(
+            tmp_path / "market-quality", publisher=FailingPublisher()
+        ),
+    )
+
+    with pytest.raises(QualitySinkError, match="public publish"):
+        collector.collect(
+            "600000.SH",
+            "MINUTE_1",
+            "2026-08-27",
+            "2026-08-27",
+            run_id="run-sina-public-publish-failure",
+            capture_ordinal=1,
+        )
+
+    assert len(raw.list("akshare-sina", "2026-08-27")) == 1
+    assert writer.rows == []
+
+
 def test_sina_filter_evidence_failure_stops_writer_after_raw_capture(tmp_path: Path) -> None:
     raw = LocalFileStorage(tmp_path / "raw")
     writer = RecordingWriter()

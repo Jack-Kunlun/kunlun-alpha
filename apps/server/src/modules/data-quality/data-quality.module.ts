@@ -19,6 +19,15 @@ import type { QualityRepository } from "./quality-repository";
 import { SystemMarketCoverageClock } from "./market-coverage.query";
 import type { MarketCoverageReadModel } from "./market-coverage.read-model";
 import { UnavailableMarketCoverageReadModel } from "./market-coverage.read-model";
+import {
+  FileMarketQualityEvidenceReadModel,
+  UnavailableMarketQualityEvidenceReadModel,
+  type MarketQualityEvidenceReadModel,
+} from "./market-quality-evidence.read-model";
+import {
+  FileMarketQualityEvidenceSnapshotReader,
+} from "./market-quality-evidence.reader";
+import { MARKET_QUALITY_EVIDENCE_READ_MODEL } from "./data-quality.tokens";
 
 function buildRepository(): QualityRepository {
   const dsn = process.env["DATA_QUALITY_POSTGRES_DSN"];
@@ -61,11 +70,23 @@ function buildMarketCoverageReadModel(): MarketCoverageReadModel {
   return new ClickHouseMarketCoverageReadModel(new ClickHouseJsonClient(config));
 }
 
+function buildMarketQualityEvidenceReadModel(): MarketQualityEvidenceReadModel {
+  const root = process.env["MARKET_DATA_QUALITY_PUBLIC_ROOT"]?.trim();
+  if (!root) return new UnavailableMarketQualityEvidenceReadModel();
+  return new FileMarketQualityEvidenceReadModel(
+    new FileMarketQualityEvidenceSnapshotReader(root),
+  );
+}
+
 @Module({
   controllers: [DataQualityController],
   providers: [
     { provide: QUALITY_REPOSITORY, useFactory: buildRepository },
     { provide: MARKET_COVERAGE_READ_MODEL, useFactory: buildMarketCoverageReadModel },
+    {
+      provide: MARKET_QUALITY_EVIDENCE_READ_MODEL,
+      useFactory: buildMarketQualityEvidenceReadModel,
+    },
     {
       provide: MARKET_COVERAGE_CLOCK,
       useClass: SystemMarketCoverageClock,

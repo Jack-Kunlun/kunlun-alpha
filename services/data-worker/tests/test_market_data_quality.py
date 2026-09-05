@@ -152,6 +152,42 @@ def test_quality_sink_is_idempotent_and_keeps_first_recorded_at(tmp_path: Path) 
     assert len(list((tmp_path / "raw" / "market-quality").glob("*.json"))) == 1
 
 
+def test_quality_sink_retries_public_publish_on_idempotent_capture(tmp_path: Path) -> None:
+    class Publisher:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def publish_capture(self) -> object:
+            self.calls += 1
+            return None
+
+    publisher = Publisher()
+    manifest = _manifest(tmp_path)
+    sink = MarketDataQualitySink(tmp_path / "raw" / "market-quality", publisher=publisher)
+    first_time = datetime(2026, 8, 27, 4, 1, tzinfo=UTC)
+
+    _record(sink, manifest, recorded_at=first_time)
+    _record(sink, manifest, recorded_at=datetime(2026, 8, 27, 4, 2, tzinfo=UTC))
+
+    assert publisher.calls == 2
+
+
+def test_quality_sink_keeps_raw_evidence_when_public_publish_fails(tmp_path: Path) -> None:
+    class FailingPublisher:
+        def publish_capture(self) -> object:
+            raise RuntimeError("untrusted publisher detail")
+
+    manifest = _manifest(tmp_path)
+    quality_root = tmp_path / "raw" / "market-quality"
+    sink = MarketDataQualitySink(quality_root, publisher=FailingPublisher())
+
+    with pytest.raises(QualitySinkError, match="public publish") as error:
+        _record(sink, manifest, recorded_at=datetime(2026, 8, 27, 4, 1, tzinfo=UTC))
+
+    assert "untrusted publisher detail" not in str(error.value)
+    assert (quality_root / f"{manifest.capture_id}.json").exists()
+
+
 def test_quality_sink_rejects_conflicting_semantics_for_same_capture(tmp_path: Path) -> None:
     manifest = _manifest(tmp_path)
     sink = MarketDataQualitySink(tmp_path / "raw" / "market-quality")

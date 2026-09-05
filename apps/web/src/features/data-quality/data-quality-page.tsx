@@ -6,6 +6,11 @@ import { DataQualityPanel } from "./data-quality-panel";
 import { useDataQuality, type DataQualityFilters } from "./use-data-quality";
 import { MarketCoveragePanel } from "./market-coverage-panel";
 import { useMarketCoverage } from "./use-market-coverage";
+import { MarketQualityEvidencePanel } from "./market-quality-evidence-panel";
+import {
+  useMarketQualityEvidence,
+  type MarketQualityEvidenceFilters,
+} from "./use-market-quality-evidence";
 
 function FilterField({
   id,
@@ -42,12 +47,30 @@ function FilterField({
 export function DataQualityPage() {
   const [draft, setDraft] = useState<DataQualityFilters>({});
   const [applied, setApplied] = useState<DataQualityFilters>({});
+  const [marketStatusDraft, setMarketStatusDraft] = useState("");
+  const [marketStatusApplied, setMarketStatusApplied] = useState("");
+  const [marketEvidenceOffset, setMarketEvidenceOffset] = useState(0);
+  const [marketEvidenceSnapshotId, setMarketEvidenceSnapshotId] = useState<string | null>(null);
   const result = useDataQuality(applied);
   const coverageResult = useMarketCoverage(applied);
+  const marketEvidenceFilters: MarketQualityEvidenceFilters = {
+    date: applied.date,
+    source: applied.source,
+    unifiedCode: applied.unifiedCode,
+    status: marketStatusApplied || undefined,
+  };
+  const marketEvidenceResult = useMarketQualityEvidence(marketEvidenceFilters, {
+    snapshotId: marketEvidenceSnapshotId,
+    offset: marketEvidenceOffset,
+    limit: 20,
+  });
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     setApplied({ ...draft });
+    setMarketStatusApplied(marketStatusDraft);
+    setMarketEvidenceOffset(0);
+    setMarketEvidenceSnapshotId(null);
   };
 
   return (
@@ -81,6 +104,13 @@ export function DataQualityPage() {
           onChange={(value) => setDraft((prev) => ({ ...prev, unifiedCode: value }))}
           placeholder="600519.SH"
         />
+        <FilterField
+          id="dq-market-status"
+          label="行情证据状态"
+          value={marketStatusDraft}
+          onChange={setMarketStatusDraft}
+          placeholder="REJECTED / FILTERED"
+        />
         <Button type="submit">查询</Button>
       </form>
       <p className="text-xs text-muted-foreground">
@@ -94,7 +124,7 @@ export function DataQualityPage() {
             基金质量事件
           </h3>
           <p className="text-sm text-muted-foreground">
-            仅展示已记录的异常事件；行情拒绝、缺口与全市场覆盖尚未接入此列表。
+            本列表仅展示基金质量事件；行情拒绝证据已在下方独立区块按公开快照展示，缺口分析与全市场覆盖不在本页范围内。
           </p>
         </div>
         {result.status === "loading" && (
@@ -126,7 +156,7 @@ export function DataQualityPage() {
             日线入库概览
           </h3>
           <p className="text-sm text-muted-foreground">
-            当前仅接入已观测到的日线数据；行情拒绝证据、缺口分析、来源差异与全市场覆盖仍未接入。
+            当前仅接入已观测到的日线数据；行情质量证据在下方独立区块展示，缺口分析、来源差异与全市场覆盖不在本区块内。
           </p>
         </div>
         {coverageResult.status === "loading" && (
@@ -147,6 +177,29 @@ export function DataQualityPage() {
         {coverageResult.status === "success" && coverageResult.data !== null && (
           <MarketCoveragePanel response={coverageResult.data} />
         )}
+      </section>
+
+      <section aria-labelledby="market-quality-evidence-heading" className="space-y-3">
+        <div>
+          <h3 id="market-quality-evidence-heading" className="text-lg font-semibold">
+            行情质量证据
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            仅展示已发布的脱敏 REJECTED/FILTERED 证据快照，不读取原始行情文件，也不宣称没有质量问题或全市场覆盖完整。
+            日期筛选按证据请求窗口与输入日期是否相交；翻页固定在同一 snapshotId。
+          </p>
+        </div>
+        <MarketQualityEvidencePanel
+          result={marketEvidenceResult}
+          onPrevious={() => setMarketEvidenceOffset((value) => Math.max(0, value - 20))}
+          onNext={() => {
+            const page = marketEvidenceResult.data;
+            if (page?.hasMore) {
+              setMarketEvidenceSnapshotId(page.snapshotId);
+              setMarketEvidenceOffset(page.offset + page.limit);
+            }
+          }}
+        />
       </section>
     </div>
   );

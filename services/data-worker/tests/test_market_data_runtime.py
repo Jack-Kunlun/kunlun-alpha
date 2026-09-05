@@ -81,6 +81,18 @@ def test_settings_default_to_akshare_without_token() -> None:
     assert settings.minute_symbols == ()
     assert settings.daily_lookback_days == 730
     assert settings.continuous is False
+    assert settings.quality_public_root is None
+
+
+def test_settings_enable_public_quality_only_for_explicit_nonempty_root() -> None:
+    assert (
+        load_market_data_settings({"MARKET_DATA_QUALITY_PUBLIC_ROOT": "  "}).quality_public_root
+        is None
+    )
+    settings = load_market_data_settings(
+        {"MARKET_DATA_QUALITY_PUBLIC_ROOT": "/var/lib/kunlun/public-quality"}
+    )
+    assert settings.quality_public_root == Path("/var/lib/kunlun/public-quality")
 
 
 def test_tushare_defaults_use_the_conservative_daily_symbol() -> None:
@@ -152,9 +164,74 @@ def test_builder_wires_durable_quality_sink_under_raw_root() -> None:
     runner = build_market_data_runner(settings)
 
     collector = cast(MarketDataCollector, runner._collector)  # pyright: ignore[reportPrivateUsage]
-    quality_sink = collector._quality_sink  # pyright: ignore[reportPrivateUsage]
+    quality_sink = cast(MarketDataQualitySink, collector._quality_sink)  # pyright: ignore[reportPrivateUsage]
     assert isinstance(quality_sink, MarketDataQualitySink)
     assert quality_sink.root == settings.raw_root / "market-quality"
+
+
+def test_builder_wires_public_quality_publisher_only_when_configured(tmp_path: Path) -> None:
+    settings = load_market_data_settings(
+        {
+            "MARKET_DATA_RAW_ROOT": str(tmp_path / "raw"),
+            "MARKET_DATA_QUALITY_PUBLIC_ROOT": str(tmp_path / "public"),
+        }
+    )
+
+    runner = build_market_data_runner(settings)
+
+    collector = cast(MarketDataCollector, runner._collector)  # pyright: ignore[reportPrivateUsage]
+    quality_sink = cast(MarketDataQualitySink, collector._quality_sink)  # pyright: ignore[reportPrivateUsage]
+    assert quality_sink._publisher is not None  # pyright: ignore[reportPrivateUsage]
+    assert runner._quality_publisher is not None  # pyright: ignore[reportPrivateUsage]
+
+
+def test_runner_publishes_at_cycle_end_when_public_hook_is_enabled() -> None:
+    class Publisher:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def publish_cycle(self) -> object:
+            self.calls += 1
+            return None
+
+    publisher = Publisher()
+    runner = MarketDataRunner(
+        RecordingCollector(),
+        symbols=("600519.SH",),
+        daily_lookback_days=2,
+        run_id="market-quality-cycle",
+        clock=lambda: datetime(2026, 8, 27, 4, 0, tzinfo=UTC),
+        quality_publisher=publisher,
+    )
+
+    runner.run_cycle()
+
+    assert publisher.calls == 1
+
+
+def test_checkpoint_replay_cycle_keeps_public_hook_at_cycle_boundary(tmp_path: Path) -> None:
+    class Publisher:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def publish_cycle(self) -> object:
+            self.calls += 1
+            return None
+
+    publisher = Publisher()
+    runner = MarketDataRunner(
+        RecordingCollector(),
+        symbols=("600519.SH",),
+        daily_lookback_days=2,
+        checkpoint_root=tmp_path,
+        clock=lambda: datetime(2026, 8, 27, 4, 0, tzinfo=UTC),
+        quality_publisher=publisher,
+    )
+
+    runner.run_cycle()
+    runner.run_cycle()
+
+    assert publisher.calls == 2
 
 
 def test_first_cycle_backfills_daily_then_collects_current_minutes() -> None:

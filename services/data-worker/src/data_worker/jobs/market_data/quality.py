@@ -11,7 +11,7 @@ from contextlib import suppress
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import cast
+from typing import Protocol, cast
 
 from data_worker.normalize.rejection import RejectedRecord
 from data_worker.raw.manifest import RawObjectManifest
@@ -47,6 +47,13 @@ class QualitySinkError(RuntimeError):
 
 class QualityEvidenceConflictError(QualitySinkError):
     """A capture id already contains different quality evidence."""
+
+
+class QualityPublisher(Protocol):
+    """Optional public evidence publication hook."""
+
+    def publish_capture(self) -> object:
+        """Publish the durable quality tree after the raw envelope is safe."""
 
 
 def _utc_now() -> datetime:
@@ -206,9 +213,16 @@ def _semantic_bytes(payload: Mapping[str, object]) -> bytes:
 class MarketDataQualitySink:
     """Publish one immutable JSON rejection envelope per capture id."""
 
-    def __init__(self, root: Path, *, clock: Clock = _utc_now) -> None:
+    def __init__(
+        self,
+        root: Path,
+        *,
+        clock: Clock = _utc_now,
+        publisher: QualityPublisher | None = None,
+    ) -> None:
         self.root = Path(root)
         self._clock = clock
+        self._publisher = publisher
         self._lock_path = self.root / ".market-quality.lock"
 
     def _recorded_at(self, value: datetime | None) -> datetime:
@@ -283,23 +297,22 @@ class MarketDataQualitySink:
                         raise QualityEvidenceConflictError(
                             f"quality evidence conflicts for capture {manifest.capture_id}"
                         )
-                    return target
-                self.root.mkdir(parents=True, exist_ok=True)
-                with tempfile.NamedTemporaryFile(
-                    mode="wb",
-                    dir=self.root,
-                    prefix=".quality-",
-                    suffix=".tmp",
-                    delete=False,
-                ) as temporary:
-                    temporary_path = Path(temporary.name)
-                    temporary.write(payload)
-                    temporary.flush()
-                    os.fsync(temporary.fileno())
-                assert temporary_path is not None
-                os.replace(temporary_path, target)
-                temporary_path = None
-                return target
+                else:
+                    self.root.mkdir(parents=True, exist_ok=True)
+                    with tempfile.NamedTemporaryFile(
+                        mode="wb",
+                        dir=self.root,
+                        prefix=".quality-",
+                        suffix=".tmp",
+                        delete=False,
+                    ) as temporary:
+                        temporary_path = Path(temporary.name)
+                        temporary.write(payload)
+                        temporary.flush()
+                        os.fsync(temporary.fileno())
+                    assert temporary_path is not None
+                    os.replace(temporary_path, target)
+                    temporary_path = None
         except QualitySinkError:
             raise
         except (OSError, ValueError) as exc:
@@ -308,6 +321,12 @@ class MarketDataQualitySink:
             if temporary_path is not None:
                 with suppress(FileNotFoundError):
                     temporary_path.unlink()
+        if self._publisher is not None:
+            try:
+                self._publisher.publish_capture()
+            except Exception as error:
+                raise QualitySinkError("quality evidence public publish failed") from error
+        return target
 
 
 __all__ = [
@@ -316,6 +335,7 @@ __all__ = [
     "MarketDataQualitySink",
     "PROVIDER_PARSE_ERROR",
     "QualityEvidenceConflictError",
+    "QualityPublisher",
     "QualitySinkError",
     "SINA_OVERFETCH_OUTSIDE_REQUEST",
 ]

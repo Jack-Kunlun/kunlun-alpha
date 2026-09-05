@@ -4,6 +4,10 @@ import type { DataQualityRecord } from "./types";
 import { DataQualityPage } from "./data-quality-page";
 import { useDataQuality } from "./use-data-quality";
 import { useMarketCoverage } from "./use-market-coverage";
+import {
+  useMarketQualityEvidence,
+  useMarketQualityEvidenceDetail,
+} from "./use-market-quality-evidence";
 
 vi.mock("./use-data-quality", () => ({
   useDataQuality: vi.fn(),
@@ -12,9 +16,15 @@ vi.mock("./use-data-quality", () => ({
 vi.mock("./use-market-coverage", () => ({
   useMarketCoverage: vi.fn(),
 }));
+vi.mock("./use-market-quality-evidence", () => ({
+  useMarketQualityEvidence: vi.fn(),
+  useMarketQualityEvidenceDetail: vi.fn(),
+}));
 
 const mockedUseDataQuality = vi.mocked(useDataQuality);
 const mockedUseMarketCoverage = vi.mocked(useMarketCoverage);
+const mockedUseMarketQualityEvidence = vi.mocked(useMarketQualityEvidence);
+const mockedUseMarketQualityEvidenceDetail = vi.mocked(useMarketQualityEvidenceDetail);
 
 const sample: DataQualityRecord = {
   id: "fund-conflict-aaa",
@@ -56,6 +66,18 @@ describe("DataQualityPage states", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedUseMarketCoverage.mockReturnValue({ status: "success", data: coverage, error: null });
+    mockedUseMarketQualityEvidence.mockReturnValue({ status: "success", data: {
+      schemaVersion: "market-quality-evidence-v1",
+      snapshotId: "a".repeat(64),
+      publishedAt: "2026-09-05T02:00:00.000Z",
+      snapshotRecordCount: 0,
+      matchingRecordCount: 0,
+      offset: 0,
+      limit: 20,
+      hasMore: false,
+      records: [],
+    }, error: null });
+    mockedUseMarketQualityEvidenceDetail.mockReturnValue({ status: "empty", data: null, error: null });
   });
 
   it("renders the loading state", () => {

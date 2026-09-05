@@ -29,6 +29,7 @@ from data_worker.jobs.market_data.collector import (
     RawBarProvider,
 )
 from data_worker.jobs.market_data.quality import MarketDataQualitySink
+from data_worker.jobs.market_data.quality_export import MarketQualityPublicPublisher
 from data_worker.jobs.market_data.remote_settings import (
     RemoteMarketDataSettingsError,
     RemoteSettingsTransport,
@@ -79,6 +80,12 @@ class Collector(Protocol):
     ) -> MarketDataCollectionResult: ...
 
 
+class QualityCyclePublisher(Protocol):
+    """Optional cycle-end hook for explicitly enabled public evidence."""
+
+    def publish_cycle(self) -> object: ...
+
+
 @dataclass(frozen=True, slots=True)
 class MarketDataSyncSettings:
     """Validated environment settings; credentials are excluded from repr."""
@@ -102,6 +109,7 @@ class MarketDataSyncSettings:
     managed_settings_worker_token: str | None = field(default=None, repr=False)
     managed_settings_allow_local_http: bool = False
     managed_revision: int | None = None
+    quality_public_root: Path | None = None
 
     def __post_init__(self) -> None:
         if self.continuous and self.poll_seconds < 60:
@@ -211,6 +219,12 @@ def load_market_data_settings(
     poll_seconds = _positive_int(environ, "MARKET_DATA_POLL_SECONDS", 60)
     if mode == "continuous" and poll_seconds < 60:
         raise RuntimeError("continuous market-data mode requires poll_seconds at least 60")
+    quality_public_root_value = environ.get("MARKET_DATA_QUALITY_PUBLIC_ROOT")
+    quality_public_root = (
+        None
+        if quality_public_root_value is None or not quality_public_root_value.strip()
+        else Path(quality_public_root_value.strip())
+    )
     return MarketDataSyncSettings(
         token=token,
         tushare_endpoint=tushare_endpoint,
@@ -235,6 +249,7 @@ def load_market_data_settings(
             False if remote_source is None else remote_source.allow_local_http
         ),
         managed_revision=None if managed is None else managed.revision,
+        quality_public_root=quality_public_root,
     )
 
 
@@ -252,6 +267,7 @@ class MarketDataRunner:
         run_id: str | None = None,
         checkpoint_root: Path | None = None,
         clock: Clock = _utc_now,
+        quality_publisher: QualityCyclePublisher | None = None,
     ) -> None:
         if not symbols:
             raise ValueError("symbols must not be empty")
@@ -267,6 +283,7 @@ class MarketDataRunner:
         self._requested_run_id = run_id
         self._run_id = run_id or (None if checkpoint_root is not None else f"market-{uuid4().hex}")
         self._clock = clock
+        self._quality_publisher = quality_publisher
         self._capture_ordinal = 0
         self._daily_refreshed_for: date | None = None
         self._checkpoint_store = (
@@ -378,7 +395,7 @@ class MarketDataRunner:
             self._daily_refreshed_for = trading_date
         for symbol in self._minute_symbols:
             results.append(self._collect(symbol, self._minute_interval, trading_date, trading_date))
-        return MarketDataSyncSummary(
+        summary = MarketDataSyncSummary(
             trading_date=trading_date.isoformat(),
             requests=len(results),
             received_bars=sum(result.received_bars for result in results),
@@ -386,6 +403,9 @@ class MarketDataRunner:
             daily_refreshed=refresh_daily,
             raw_capture_ids=tuple(result.raw_capture_id for result in results),
         )
+        if self._quality_publisher is not None:
+            self._quality_publisher.publish_cycle()
+        return summary
 
     def _run_cycle_with_checkpoint(self, checkpoint: MarketDataCheckpoint) -> MarketDataSyncSummary:
         now = self._clock()
@@ -461,7 +481,7 @@ class MarketDataRunner:
 
         self._run_id = checkpoint.run_id
         self._capture_ordinal = checkpoint.next_capture_ordinal - 1
-        return MarketDataSyncSummary(
+        summary = MarketDataSyncSummary(
             trading_date=trading_date.isoformat(),
             requests=len(results),
             received_bars=sum(result.received_bars for result in results),
@@ -469,6 +489,9 @@ class MarketDataRunner:
             daily_refreshed=daily_refreshed,
             raw_capture_ids=tuple(result.raw_capture_id for result in results),
         )
+        if self._quality_publisher is not None:
+            self._quality_publisher.publish_cycle()
+        return summary
 
     def run_cycle(self) -> MarketDataSyncSummary:
         if self._checkpoint_store is None:
@@ -703,7 +726,16 @@ def build_market_data_runner(
         )
     )
     raw_storage = LocalFileStorage(settings.raw_root)
-    quality_sink = MarketDataQualitySink(settings.raw_root / "market-quality", clock=clock)
+    quality_publisher = (
+        None
+        if settings.quality_public_root is None
+        else MarketQualityPublicPublisher(
+            settings.raw_root, settings.quality_public_root, clock=clock
+        )
+    )
+    quality_sink = MarketDataQualitySink(
+        settings.raw_root / "market-quality", clock=clock, publisher=quality_publisher
+    )
     collector = MarketDataCollector(
         provider,
         raw_storage,
@@ -721,6 +753,7 @@ def build_market_data_runner(
         minute_interval=settings.minute_interval,
         checkpoint_root=selected_checkpoint_root,
         clock=clock,
+        quality_publisher=quality_publisher,
     )
 
 

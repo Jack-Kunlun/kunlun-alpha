@@ -2,10 +2,15 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  NotFoundException,
   Optional,
   ServiceUnavailableException,
 } from "@nestjs/common";
-import type { MarketCoverageResponse } from "@kunlun/shared-types";
+import type {
+  MarketCoverageResponse,
+  MarketQualityEvidenceDetail,
+  MarketQualityEvidencePage,
+} from "@kunlun/shared-types";
 import type { DataQualityRecord, EvidenceRecord } from "./quality-record";
 import type { QualityRepository } from "./quality-repository";
 import { validateEvidenceId, validateQualityQuery } from "./quality-filters";
@@ -13,6 +18,7 @@ import { AllowAllAuthorizer, type DataQualityAuthorizer } from "./data-quality.a
 import {
   MARKET_COVERAGE_CLOCK,
   MARKET_COVERAGE_READ_MODEL,
+  MARKET_QUALITY_EVIDENCE_READ_MODEL,
   QUALITY_AUTHORIZER,
   QUALITY_REPOSITORY,
 } from "./data-quality.tokens";
@@ -25,6 +31,16 @@ import {
   UnavailableMarketCoverageReadModel,
   type MarketCoverageReadModel,
 } from "./market-coverage.read-model";
+import {
+  MarketQualityEvidenceNotFoundError,
+  type MarketQualityEvidenceReadModel,
+  UnavailableMarketQualityEvidenceReadModel,
+} from "./market-quality-evidence.read-model";
+import {
+  parseMarketQualityEvidenceDetailQuery,
+  parseMarketQualityEvidenceQuery,
+  validateMarketQualityEvidenceId,
+} from "./market-quality-evidence.query";
 
 /**
  * Reads persisted quality events through a repository port and validates every
@@ -43,6 +59,10 @@ export class DataQualityService {
     @Optional()
     @Inject(MARKET_COVERAGE_CLOCK)
     private readonly marketCoverageClock: MarketCoverageClock = new SystemMarketCoverageClock(),
+    @Optional()
+    @Inject(MARKET_QUALITY_EVIDENCE_READ_MODEL)
+    private readonly marketQualityEvidence: MarketQualityEvidenceReadModel =
+      new UnavailableMarketQualityEvidenceReadModel(),
   ) {}
 
   async query(input: unknown): Promise<DataQualityRecord[]> {
@@ -78,6 +98,33 @@ export class DataQualityService {
       };
     } catch {
       throw new ServiceUnavailableException("行情覆盖暂不可用");
+    }
+  }
+
+  async marketEvidence(input: unknown): Promise<MarketQualityEvidencePage> {
+    await this.assertAuthorized();
+    const filters = parseMarketQualityEvidenceQuery(input);
+    try {
+      return await this.marketQualityEvidence.list(filters);
+    } catch {
+      throw new ServiceUnavailableException("行情质量证据暂不可用");
+    }
+  }
+
+  async marketEvidenceDetail(
+    opaqueIdInput: unknown,
+    queryInput: unknown,
+  ): Promise<MarketQualityEvidenceDetail> {
+    await this.assertAuthorized();
+    const opaqueId = validateMarketQualityEvidenceId(opaqueIdInput);
+    const { snapshotId } = parseMarketQualityEvidenceDetailQuery(queryInput);
+    try {
+      return await this.marketQualityEvidence.detail(opaqueId, snapshotId);
+    } catch (error) {
+      if (error instanceof MarketQualityEvidenceNotFoundError) {
+        throw new NotFoundException("行情质量证据不存在");
+      }
+      throw new ServiceUnavailableException("行情质量证据暂不可用");
     }
   }
 

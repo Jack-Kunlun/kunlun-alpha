@@ -123,6 +123,42 @@ from ashare_contracts.data_quality_market_coverage import (
 from ashare_contracts.data_quality_market_coverage import (
     MarketCoverageWindow as MarketCoverageWindow,
 )
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityEvent as MarketQualityEvent,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityEvidenceCurrent as MarketQualityEvidenceCurrent,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityEvidenceDetail as MarketQualityEvidenceDetail,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityEvidencePage as MarketQualityEvidencePage,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityEvidenceRecord as MarketQualityEvidenceRecord,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityEvidenceSnapshot as MarketQualityEvidenceSnapshot,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityFilteredRecord as MarketQualityFilteredRecord,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityInterval as MarketQualityInterval,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityKind as MarketQualityKind,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityReasonCode as MarketQualityReasonCode,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualitySource as MarketQualitySource,
+)
+from ashare_contracts.data_quality_market_quality_evidence import (
+    MarketQualityStatus as MarketQualityStatus,
+)
 from ashare_contracts.emotion_limit_event import EventType as EventType
 from ashare_contracts.emotion_limit_event import Exchange as Exchange_3
 from ashare_contracts.emotion_limit_event import LimitEvent as LimitEvent
@@ -721,6 +757,18 @@ __all__ = [
     "MarketCoverageRow",
     "MarketCoverageSource",
     "MarketCoverageWindow",
+    "MarketQualityEvent",
+    "MarketQualityEvidenceCurrent",
+    "MarketQualityEvidenceDetail",
+    "MarketQualityEvidencePage",
+    "MarketQualityEvidenceRecord",
+    "MarketQualityEvidenceSnapshot",
+    "MarketQualityFilteredRecord",
+    "MarketQualityInterval",
+    "MarketQualityKind",
+    "MarketQualityReasonCode",
+    "MarketQualitySource",
+    "MarketQualityStatus",
     "EventType",
     "Exchange_3",
     "LimitEvent",
