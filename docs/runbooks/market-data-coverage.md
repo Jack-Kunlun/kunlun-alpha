@@ -43,7 +43,8 @@ winner/qualified 判定；不会以物理行数冒充 Bar 覆盖率，不使用 
 
 新增接口 `GET /api/v1/data-quality/market-coverage/days`，使用相同的日期规则，
 但 `source` 与 `unifiedCode` 都必须指定。页面从概览行进入“查看已入库日期”。
-这是代码能力说明，本次未部署，现有运行环境不会因代码提交而自动启用。
+逐日明细已随 `2cf1f91` 更新到现有本地部署，并通过真实入库日期的只读适配器查询验证。
+尚未进行登录后的浏览器交互验收；具体范围见[本地部署记录](../reviews/2026-09-05-calendar-and-data-quality-deployment.md)。
 
 响应版本为 `market-data-coverage-days-v1`，含义仍为 `OBSERVED_ONLY`。
 `days` 只含实际观测到的日期，按日期升序且唯一，最多 366 项，不补齐日历日期。

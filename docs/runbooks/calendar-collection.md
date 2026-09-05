@@ -27,7 +27,8 @@ provider 自身错误继续按既有错误分类向调用方传播，本次不�
 
 ## 使用与运行边界
 
-本次修改的是代码能力，没有部署、启动定时任务、回填日历或变更数据库。
+修复代码已随 `2cf1f91` 发布到本地 worker 镜像，未启动 worker、定时任务、回填日历或
+变更数据库。实际部署范围见[本地部署记录](../reviews/2026-09-05-calendar-and-data-quality-deployment.md)。
 现有 `InMemoryCalendarRepository` 仍仅用于测试与单次进程；不能将其用于需要持久化、
 历史知识重建或正式缺失判定的验收。
 
