@@ -123,6 +123,18 @@ from ashare_contracts.data_quality_market_coverage import (
 from ashare_contracts.data_quality_market_coverage import (
     MarketCoverageWindow as MarketCoverageWindow,
 )
+from ashare_contracts.data_quality_market_coverage_days import (
+    MarketCoverageDaysResponse as MarketCoverageDaysResponse,
+)
+from ashare_contracts.data_quality_market_coverage_days import (
+    MarketCoverageDaysSource as MarketCoverageDaysSource,
+)
+from ashare_contracts.data_quality_market_coverage_days import (
+    MarketCoverageDaysWindow as MarketCoverageDaysWindow,
+)
+from ashare_contracts.data_quality_market_coverage_days import (
+    MarketCoverageObservedDay as MarketCoverageObservedDay,
+)
 from ashare_contracts.data_quality_market_quality_evidence import (
     MarketQualityEvent as MarketQualityEvent,
 )
@@ -757,6 +769,10 @@ __all__ = [
     "MarketCoverageRow",
     "MarketCoverageSource",
     "MarketCoverageWindow",
+    "MarketCoverageDaysResponse",
+    "MarketCoverageDaysSource",
+    "MarketCoverageDaysWindow",
+    "MarketCoverageObservedDay",
     "MarketQualityEvent",
     "MarketQualityEvidenceCurrent",
     "MarketQualityEvidenceDetail",

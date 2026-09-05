@@ -66,18 +66,26 @@ describe("DataQualityPage states", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedUseMarketCoverage.mockReturnValue({ status: "success", data: coverage, error: null });
-    mockedUseMarketQualityEvidence.mockReturnValue({ status: "success", data: {
-      schemaVersion: "market-quality-evidence-v1",
-      snapshotId: "a".repeat(64),
-      publishedAt: "2026-09-05T02:00:00.000Z",
-      snapshotRecordCount: 0,
-      matchingRecordCount: 0,
-      offset: 0,
-      limit: 20,
-      hasMore: false,
-      records: [],
-    }, error: null });
-    mockedUseMarketQualityEvidenceDetail.mockReturnValue({ status: "empty", data: null, error: null });
+    mockedUseMarketQualityEvidence.mockReturnValue({
+      status: "success",
+      data: {
+        schemaVersion: "market-quality-evidence-v1",
+        snapshotId: "a".repeat(64),
+        publishedAt: "2026-09-05T02:00:00.000Z",
+        snapshotRecordCount: 0,
+        matchingRecordCount: 0,
+        offset: 0,
+        limit: 20,
+        hasMore: false,
+        records: [],
+      },
+      error: null,
+    });
+    mockedUseMarketQualityEvidenceDetail.mockReturnValue({
+      status: "empty",
+      data: null,
+      error: null,
+    });
   });
 
   it("renders the loading state", () => {
@@ -116,6 +124,7 @@ describe("DataQualityPage states", () => {
     expect(html).toContain('href="/v1/data-quality/fund-conflict-aaa/evidence"');
     expect(html).toContain("日线入库概览");
     expect(html).toContain("观测日数");
+    expect(html).toContain("查看已入库日期");
   });
 
   it("associates labels with inputs for keyboard and screen-reader access", () => {

@@ -1,6 +1,7 @@
 import { BadRequestException, Controller, Get, Inject, Param, Query } from "@nestjs/common";
 import { ApiExtraModels, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type {
+  MarketCoverageDaysResponse,
   MarketCoverageResponse,
   MarketQualityEvidenceDetail,
   MarketQualityEvidencePage,
@@ -10,6 +11,7 @@ import { QualityValidationError } from "./quality-filters";
 import { DataQualityService } from "./data-quality.service";
 import { QualityQueryDto } from "./quality-dto";
 import { MarketCoverageQueryDto } from "./market-coverage.dto";
+import { MarketCoverageDaysQueryDto } from "./market-coverage-days.dto";
 import { MarketCoverageValidationError } from "./market-coverage.query";
 import {
   MarketQualityEvidenceDetailQueryDto,
@@ -21,6 +23,7 @@ import { MarketQualityEvidenceValidationError } from "./market-quality-evidence.
 @ApiExtraModels(
   QualityQueryDto,
   MarketCoverageQueryDto,
+  MarketCoverageDaysQueryDto,
   MarketQualityEvidenceQueryDto,
   MarketQualityEvidenceDetailQueryDto,
 )
@@ -46,6 +49,21 @@ export class DataQualityController {
   async coverage(@Query() query: MarketCoverageQueryDto): Promise<MarketCoverageResponse> {
     try {
       return await this.service.coverage(query);
+    } catch (error) {
+      if (error instanceof MarketCoverageValidationError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Get("market-coverage/days")
+  @ApiOperation({ summary: "Read observed daily market-bar dates for one instrument/source" })
+  async coverageDays(
+    @Query() query: MarketCoverageDaysQueryDto,
+  ): Promise<MarketCoverageDaysResponse> {
+    try {
+      return await this.service.coverageDays(query);
     } catch (error) {
       if (error instanceof MarketCoverageValidationError) {
         throw new BadRequestException(error.message);

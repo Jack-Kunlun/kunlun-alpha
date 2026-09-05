@@ -840,6 +840,48 @@ export interface LicenseMetadata1 {
 }
 
 /**
+ * This interface was referenced by `MarketCoverageDaysResponse`'s JSON-Schema
+ * via the `definition` "MarketCoverageDaysSource".
+ */
+export type MarketCoverageDaysSource =
+  "tushare-pro" | "akshare-tencent" | "akshare-sina" | "akshare-eastmoney";
+
+/**
+ * Observed daily raw market-bar days for one supported source and instrument; no missing-day inference.
+ */
+export interface MarketCoverageDaysResponse {
+  schemaVersion: "market-data-coverage-days-v1";
+  scope: "DAILY_RAW_SINGLE_SUPPORTED_SOURCE";
+  meaning: "OBSERVED_ONLY";
+  window: MarketCoverageDaysWindow;
+  unifiedCode: string;
+  source: MarketCoverageDaysSource;
+  /**
+   * @maxItems 366
+   */
+  days: MarketCoverageObservedDay[];
+}
+/**
+ * This interface was referenced by `MarketCoverageDaysResponse`'s JSON-Schema
+ * via the `definition` "MarketCoverageDaysWindow".
+ */
+export interface MarketCoverageDaysWindow {
+  dateFrom: string;
+  dateTo: string;
+  asOf: string;
+}
+/**
+ * This interface was referenced by `MarketCoverageDaysResponse`'s JSON-Schema
+ * via the `definition` "MarketCoverageObservedDay".
+ */
+export interface MarketCoverageObservedDay {
+  date: string;
+  latestEventTime: string;
+  latestAvailableTime: string;
+  latestProcessingTime: string;
+}
+
+/**
  * This interface was referenced by `MarketCoverageResponse`'s JSON-Schema
  * via the `definition` "MarketCoverageSource".
  */

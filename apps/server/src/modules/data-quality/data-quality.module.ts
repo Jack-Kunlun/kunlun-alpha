@@ -5,12 +5,14 @@ import {
   ClickHouseJsonClient,
 } from "../instrument-intelligence/clickhouse-json-client";
 import { ClickHouseMarketCoverageReadModel } from "./clickhouse-market-coverage.read-model";
+import { ClickHouseMarketCoverageDaysReadModel } from "./clickhouse-market-coverage-days.read-model";
 import { DataQualityController } from "./data-quality.controller";
 import { DataQualityService } from "./data-quality.service";
 import { PostgresQualityRepository } from "./postgres-quality.repository";
 import { AllowAllAuthorizer } from "./data-quality.authorizer";
 import {
   MARKET_COVERAGE_CLOCK,
+  MARKET_COVERAGE_DAYS_READ_MODEL,
   MARKET_COVERAGE_READ_MODEL,
   QUALITY_AUTHORIZER,
   QUALITY_REPOSITORY,
@@ -19,14 +21,14 @@ import type { QualityRepository } from "./quality-repository";
 import { SystemMarketCoverageClock } from "./market-coverage.query";
 import type { MarketCoverageReadModel } from "./market-coverage.read-model";
 import { UnavailableMarketCoverageReadModel } from "./market-coverage.read-model";
+import type { MarketCoverageDaysReadModel } from "./market-coverage-days.read-model";
+import { UnavailableMarketCoverageDaysReadModel } from "./market-coverage-days.read-model";
 import {
   FileMarketQualityEvidenceReadModel,
   UnavailableMarketQualityEvidenceReadModel,
   type MarketQualityEvidenceReadModel,
 } from "./market-quality-evidence.read-model";
-import {
-  FileMarketQualityEvidenceSnapshotReader,
-} from "./market-quality-evidence.reader";
+import { FileMarketQualityEvidenceSnapshotReader } from "./market-quality-evidence.reader";
 import { MARKET_QUALITY_EVIDENCE_READ_MODEL } from "./data-quality.tokens";
 
 function buildRepository(): QualityRepository {
@@ -46,11 +48,11 @@ function timeout(value: string | undefined): number {
   return parsed;
 }
 
-function buildMarketCoverageReadModel(): MarketCoverageReadModel {
+function buildClickHouseClient(): ClickHouseJsonClient | undefined {
   const environment = process.env;
   const url =
     environment["INSTRUMENT_INTELLIGENCE_CLICKHOUSE_URL"] ?? environment["EMOTION_CLICKHOUSE_URL"];
-  if (!url) return new UnavailableMarketCoverageReadModel();
+  if (!url) return undefined;
   const config: ClickHouseIntelligenceConfig = {
     url,
     database:
@@ -67,15 +69,27 @@ function buildMarketCoverageReadModel(): MarketCoverageReadModel {
     environment["INSTRUMENT_INTELLIGENCE_CLICKHOUSE_PASSWORD"] ??
     environment["EMOTION_CLICKHOUSE_PASSWORD"];
   if (password !== undefined) config.password = password;
-  return new ClickHouseMarketCoverageReadModel(new ClickHouseJsonClient(config));
+  return new ClickHouseJsonClient(config);
+}
+
+function buildMarketCoverageReadModel(): MarketCoverageReadModel {
+  const client = buildClickHouseClient();
+  return client
+    ? new ClickHouseMarketCoverageReadModel(client)
+    : new UnavailableMarketCoverageReadModel();
+}
+
+function buildMarketCoverageDaysReadModel(): MarketCoverageDaysReadModel {
+  const client = buildClickHouseClient();
+  return client
+    ? new ClickHouseMarketCoverageDaysReadModel(client)
+    : new UnavailableMarketCoverageDaysReadModel();
 }
 
 function buildMarketQualityEvidenceReadModel(): MarketQualityEvidenceReadModel {
   const root = process.env["MARKET_DATA_QUALITY_PUBLIC_ROOT"]?.trim();
   if (!root) return new UnavailableMarketQualityEvidenceReadModel();
-  return new FileMarketQualityEvidenceReadModel(
-    new FileMarketQualityEvidenceSnapshotReader(root),
-  );
+  return new FileMarketQualityEvidenceReadModel(new FileMarketQualityEvidenceSnapshotReader(root));
 }
 
 @Module({
@@ -83,6 +97,7 @@ function buildMarketQualityEvidenceReadModel(): MarketQualityEvidenceReadModel {
   providers: [
     { provide: QUALITY_REPOSITORY, useFactory: buildRepository },
     { provide: MARKET_COVERAGE_READ_MODEL, useFactory: buildMarketCoverageReadModel },
+    { provide: MARKET_COVERAGE_DAYS_READ_MODEL, useFactory: buildMarketCoverageDaysReadModel },
     {
       provide: MARKET_QUALITY_EVIDENCE_READ_MODEL,
       useFactory: buildMarketQualityEvidenceReadModel,

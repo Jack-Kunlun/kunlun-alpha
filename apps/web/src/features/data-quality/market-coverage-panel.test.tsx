@@ -38,6 +38,8 @@ describe("MarketCoveragePanel", () => {
     expect(html).toContain("processing_time");
     expect(html).toContain("结果超过 100 条");
     expect(html).toContain("2026-09-04 15:00:00（上海）");
+    expect(html).toContain("查看已入库日期");
+    expect(html).toContain("查看已入库日期 600519.SH tushare-pro");
   });
 
   it("keeps rows horizontally accessible", () => {

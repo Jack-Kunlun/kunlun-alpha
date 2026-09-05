@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -8,12 +10,35 @@ import {
 } from "@/components/ui/table";
 import type { MarketCoverageResponse } from "@kunlun/shared-types";
 import { formatShanghaiTime } from "./format-shanghai-time";
+import { MarketCoverageDaysPanel } from "./market-coverage-days-panel";
+import type { MarketCoverageDaysQuery } from "./market-coverage-days";
+import { useMarketCoverageDays } from "./use-market-coverage-days";
 
 interface MarketCoveragePanelProps {
   response: MarketCoverageResponse;
 }
 
+type SelectedMarketCoverageDays = MarketCoverageDaysQuery & {
+  selectionKey: string;
+};
+
+function MarketCoverageDaysQueryPanel({ selection }: { selection: SelectedMarketCoverageDays }) {
+  const result = useMarketCoverageDays(selection);
+  return <MarketCoverageDaysPanel result={result} selection={selection} />;
+}
+
 export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
+  const [selected, setSelected] = useState<SelectedMarketCoverageDays | null>(null);
+  const activeSelection =
+    selected !== null &&
+    response.window.dateFrom === selected.dateFrom &&
+    response.window.dateTo === selected.dateTo &&
+    response.window.asOf === selected.selectionKey &&
+    response.rows.some(
+      (row) => row.unifiedCode === selected.unifiedCode && row.source === selected.source,
+    )
+      ? selected
+      : null;
   return (
     <div className="space-y-3">
       <div className="text-sm text-muted-foreground">
@@ -25,6 +50,7 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
           {formatShanghaiTime(response.window.asOf)}。
         </p>
         <p>每个“最新”时间分别按字段取最大值，可能来自不同记录。</p>
+        <p>点击某行“查看已入库日期”可独立读取该证券与来源在当前汇总窗口内的已观测日期。</p>
       </div>
       <div className="overflow-x-auto">
         <Table aria-label="行情日线覆盖列表" className="min-w-[1180px]">
@@ -38,12 +64,13 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
               <TableHead>最新行情时间（event_time，上海）</TableHead>
               <TableHead>最新可用时间（available_time，上海）</TableHead>
               <TableHead>最新入库时间（processing_time，上海）</TableHead>
+              <TableHead>明细</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {response.rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-muted-foreground">
+                <TableCell colSpan={9} className="text-muted-foreground">
                   当前条件下暂无已观测到的日线行情
                 </TableCell>
               </TableRow>
@@ -58,6 +85,25 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
                   <TableCell>{formatShanghaiTime(row.latestEventTime)}</TableCell>
                   <TableCell>{formatShanghaiTime(row.latestAvailableTime)}</TableCell>
                   <TableCell>{formatShanghaiTime(row.latestProcessingTime)}</TableCell>
+                  <TableCell>
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      aria-label={`查看已入库日期 ${row.unifiedCode} ${row.source}`}
+                      onClick={() =>
+                        setSelected({
+                          dateFrom: response.window.dateFrom,
+                          dateTo: response.window.dateTo,
+                          unifiedCode: row.unifiedCode,
+                          source: row.source,
+                          selectionKey: response.window.asOf,
+                        })
+                      }
+                    >
+                      查看已入库日期
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -68,6 +114,12 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
         <p role="status" className="text-sm text-amber-700 dark:text-amber-300">
           结果超过 100 条，请缩小日期、来源或证券筛选。
         </p>
+      )}
+      {activeSelection !== null && (
+        <MarketCoverageDaysQueryPanel
+          key={`${activeSelection.unifiedCode}-${activeSelection.source}-${activeSelection.dateFrom}-${activeSelection.dateTo}-${activeSelection.selectionKey}`}
+          selection={activeSelection}
+        />
       )}
     </div>
   );

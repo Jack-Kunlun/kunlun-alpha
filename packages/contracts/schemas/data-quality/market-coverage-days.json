@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun.local/contracts/data-quality/market-coverage-days-v1.json",
+  "title": "MarketCoverageDaysResponse",
+  "description": "Observed daily raw market-bar days for one supported source and instrument; no missing-day inference.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "scope", "meaning", "window", "unifiedCode", "source", "days"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "market-data-coverage-days-v1"
+    },
+    "scope": {
+      "type": "string",
+      "const": "DAILY_RAW_SINGLE_SUPPORTED_SOURCE"
+    },
+    "meaning": {
+      "type": "string",
+      "const": "OBSERVED_ONLY"
+    },
+    "window": {
+      "$ref": "#/$defs/MarketCoverageDaysWindow"
+    },
+    "unifiedCode": {
+      "type": "string",
+      "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$"
+    },
+    "source": {
+      "$ref": "#/$defs/MarketCoverageDaysSource"
+    },
+    "days": {
+      "type": "array",
+      "maxItems": 366,
+      "items": {
+        "$ref": "#/$defs/MarketCoverageObservedDay"
+      }
+    }
+  },
+  "$defs": {
+    "MarketCoverageDaysWindow": {
+      "title": "MarketCoverageDaysWindow",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dateFrom", "dateTo", "asOf"],
+      "properties": {
+        "dateFrom": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "dateTo": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "asOf": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "MarketCoverageDaysSource": {
+      "title": "MarketCoverageDaysSource",
+      "type": "string",
+      "enum": ["tushare-pro", "akshare-tencent", "akshare-sina", "akshare-eastmoney"]
+    },
+    "MarketCoverageObservedDay": {
+      "title": "MarketCoverageObservedDay",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "latestEventTime", "latestAvailableTime", "latestProcessingTime"],
+      "properties": {
+        "date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "latestEventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "latestAvailableTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "latestProcessingTime": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

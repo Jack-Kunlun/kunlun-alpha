@@ -7,6 +7,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import type {
+  MarketCoverageDaysResponse,
   MarketCoverageResponse,
   MarketQualityEvidenceDetail,
   MarketQualityEvidencePage,
@@ -17,6 +18,7 @@ import { validateEvidenceId, validateQualityQuery } from "./quality-filters";
 import { AllowAllAuthorizer, type DataQualityAuthorizer } from "./data-quality.authorizer";
 import {
   MARKET_COVERAGE_CLOCK,
+  MARKET_COVERAGE_DAYS_READ_MODEL,
   MARKET_COVERAGE_READ_MODEL,
   MARKET_QUALITY_EVIDENCE_READ_MODEL,
   QUALITY_AUTHORIZER,
@@ -27,6 +29,12 @@ import {
   SystemMarketCoverageClock,
   type MarketCoverageClock,
 } from "./market-coverage.query";
+import { parseMarketCoverageDaysQuery } from "./market-coverage-days.query";
+import {
+  UnavailableMarketCoverageDaysReadModel,
+  validateMarketCoverageDays,
+  type MarketCoverageDaysReadModel,
+} from "./market-coverage-days.read-model";
 import {
   UnavailableMarketCoverageReadModel,
   type MarketCoverageReadModel,
@@ -61,8 +69,10 @@ export class DataQualityService {
     private readonly marketCoverageClock: MarketCoverageClock = new SystemMarketCoverageClock(),
     @Optional()
     @Inject(MARKET_QUALITY_EVIDENCE_READ_MODEL)
-    private readonly marketQualityEvidence: MarketQualityEvidenceReadModel =
-      new UnavailableMarketQualityEvidenceReadModel(),
+    private readonly marketQualityEvidence: MarketQualityEvidenceReadModel = new UnavailableMarketQualityEvidenceReadModel(),
+    @Optional()
+    @Inject(MARKET_COVERAGE_DAYS_READ_MODEL)
+    private readonly marketCoverageDays: MarketCoverageDaysReadModel = new UnavailableMarketCoverageDaysReadModel(),
   ) {}
 
   async query(input: unknown): Promise<DataQualityRecord[]> {
@@ -98,6 +108,35 @@ export class DataQualityService {
       };
     } catch {
       throw new ServiceUnavailableException("行情覆盖暂不可用");
+    }
+  }
+
+  async coverageDays(input: unknown): Promise<MarketCoverageDaysResponse> {
+    await this.assertAuthorized();
+    const now = this.marketCoverageClock.now();
+    const filters = parseMarketCoverageDaysQuery(input, now);
+    const asOf = now.toISOString();
+    try {
+      const days = validateMarketCoverageDays(
+        await this.marketCoverageDays.query(filters, asOf),
+        filters,
+        asOf,
+      );
+      return {
+        schemaVersion: "market-data-coverage-days-v1",
+        scope: "DAILY_RAW_SINGLE_SUPPORTED_SOURCE",
+        meaning: "OBSERVED_ONLY",
+        window: {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+          asOf,
+        },
+        unifiedCode: filters.unifiedCode,
+        source: filters.source,
+        days,
+      };
+    } catch {
+      throw new ServiceUnavailableException("行情日线明细暂不可用");
     }
   }
 
