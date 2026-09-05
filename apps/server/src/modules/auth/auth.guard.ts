@@ -1,12 +1,23 @@
-import { ForbiddenException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { AuthConfig, BrowserRequestHeaders } from "./auth.config";
-import { assertTrustedBrowserRequest, readCookieToken } from "./auth.config";
+import {
+  assertInternalServiceRequest,
+  assertTrustedBrowserRequest,
+  readCookieToken,
+} from "./auth.config";
 import type { AuthenticatedRequest } from "./auth.request";
 import { AuthService } from "./auth.service";
 import { AUTH_CONFIG } from "./auth.tokens";
 import { PUBLIC_ROUTE_METADATA } from "./public-route.decorator";
+import { INTERNAL_SERVICE_ROUTE_METADATA } from "./internal-service-route.decorator";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -20,6 +31,8 @@ function browserHeaders(request: AuthenticatedRequest): BrowserRequestHeaders {
     origin: oneHeader(request.headers.origin),
     referer: oneHeader(request.headers.referer),
     secFetchSite: oneHeader(request.headers["sec-fetch-site"]),
+    secFetchMode: oneHeader(request.headers["sec-fetch-mode"]),
+    secFetchDest: oneHeader(request.headers["sec-fetch-dest"]),
   };
 }
 
@@ -38,6 +51,35 @@ export class AuthenticationGuard implements CanActivate {
         context.getHandler(),
         context.getClass(),
       ]) === true;
+
+    const internalService = this.reflector.getAllAndOverride<string | undefined>(
+      INTERNAL_SERVICE_ROUTE_METADATA,
+      [context.getHandler(), context.getClass()],
+    );
+    if (internalService !== undefined) {
+      if (internalService !== "market-data-settings") {
+        throw new ForbiddenException("内部服务路由不可用");
+      }
+      try {
+        assertInternalServiceRequest(
+          {
+            ...browserHeaders(request),
+            authorization: request.headers.authorization,
+            cookie: request.headers.cookie,
+            csrfToken: request.headers["x-csrf-token"],
+          },
+          request.method,
+          request.originalUrl ?? request.url,
+          this.config.marketDataSettingsWorkerToken,
+        );
+      } catch {
+        if (this.config.marketDataSettingsWorkerToken === undefined) {
+          throw new ServiceUnavailableException("内部服务未配置");
+        }
+        throw new UnauthorizedException("内部服务认证失败");
+      }
+      return true;
+    }
 
     if (isPublic) {
       if (!SAFE_METHODS.has(request.method.toUpperCase())) this.assertBrowser(request);

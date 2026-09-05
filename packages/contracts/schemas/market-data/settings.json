@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun.local/contracts/market-data-settings-v1.json",
+  "title": "MarketDataSettingsResponse",
+  "description": "Safe instance-level market-data provider settings; secrets are never returned to browser clients.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "market-data-settings-v1"
+    },
+    "provider": {
+      "$ref": "#/$defs/MarketDataProvider"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "tokenConfigured": {
+      "type": "boolean"
+    },
+    "updatedAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    }
+  },
+  "required": ["schemaVersion", "provider", "revision", "tokenConfigured", "updatedAt"],
+  "$defs": {
+    "MarketDataProvider": {
+      "type": "string",
+      "enum": ["akshare", "tushare"]
+    },
+    "MarketDataTokenAction": {
+      "type": "string",
+      "enum": ["KEEP", "REPLACE", "CLEAR"]
+    },
+    "MarketDataSettingsUpdateRequest": {
+      "title": "MarketDataSettingsUpdateRequest",
+      "description": "Compare-and-set update for instance-level market-data provider settings.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "market-data-settings-update-v1"
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "provider": {
+          "$ref": "#/$defs/MarketDataProvider"
+        },
+        "tokenAction": {
+          "$ref": "#/$defs/MarketDataTokenAction"
+        },
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[\\x21-\\x7e]+$"
+        }
+      },
+      "required": ["schemaVersion", "expectedRevision", "provider", "tokenAction"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "tokenAction": {
+                "const": "REPLACE"
+              }
+            },
+            "required": ["tokenAction"]
+          },
+          "then": {
+            "required": ["token"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "tokenAction": {
+                "enum": ["KEEP", "CLEAR"]
+              }
+            },
+            "required": ["tokenAction"]
+          },
+          "then": {
+            "not": {
+              "required": ["token"]
+            }
+          }
+        }
+      ],
+      "x-typescript-strip-semantic-branches": true
+    },
+    "MarketDataWorkerSettingsResponse": {
+      "title": "MarketDataWorkerSettingsResponse",
+      "description": "Effective settings for the dedicated data worker service; never served to browser routes.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "market-data-worker-settings-v1"
+        },
+        "provider": {
+          "$ref": "#/$defs/MarketDataProvider"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "token": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[\\x21-\\x7e]+$"
+        }
+      },
+      "required": ["schemaVersion", "provider", "revision", "token"]
+    }
+  }
+}

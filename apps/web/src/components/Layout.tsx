@@ -14,6 +14,7 @@ import {
   Newspaper,
   Orbit,
   Search,
+  Settings2,
   ShieldCheck,
   UsersRound,
   WalletCards,
@@ -52,6 +53,7 @@ const routeIcons: Record<TerminalRouteId, LucideIcon> = {
   "seat-kol": UsersRound,
   "backtest-regressions": FlaskConical,
   "data-quality": Database,
+  "market-data-settings": Settings2,
 };
 
 function RouteLink({ route, mobile = false }: { route: TerminalRouteContract; mobile?: boolean }) {

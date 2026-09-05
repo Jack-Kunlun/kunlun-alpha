@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from "node:crypto";
+
 export interface AuthConfig {
   postgresDsn: string;
   publicOrigin: string;
@@ -8,16 +10,20 @@ export interface AuthConfig {
   loginWindowMs: number;
   usernameAttemptLimit: number;
   globalAttemptLimit: number;
+  marketDataSettingsWorkerToken?: string;
 }
 
 export interface BrowserRequestHeaders {
   origin?: string;
   referer?: string;
   secFetchSite?: string;
+  secFetchMode?: string;
+  secFetchDest?: string;
 }
 
 const SESSION_TOKEN = /^[A-Za-z0-9_-]{43}$/;
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const INTERNAL_SERVICE_TOKEN = /^[\x21-\x7e]{32,512}$/;
 
 function exactOrigin(value: string, field: string): string {
   let parsed: URL;
@@ -73,6 +79,8 @@ export function loadAuthConfig(environ: Readonly<Record<string, string | undefin
     environ["AUTH_POSTGRES_DSN"]?.trim() ?? environ["KUNLUN_POSTGRES_DSN"]?.trim();
   if (!postgresDsn) throw new Error("AUTH_POSTGRES_DSN is required");
 
+  const marketDataSettingsWorkerToken = environ["MARKET_DATA_SETTINGS_WORKER_TOKEN"];
+
   return {
     postgresDsn,
     publicOrigin,
@@ -83,6 +91,11 @@ export function loadAuthConfig(environ: Readonly<Record<string, string | undefin
     loginWindowMs: 15 * 60 * 1000,
     usernameAttemptLimit: 8,
     globalAttemptLimit: 50,
+    marketDataSettingsWorkerToken:
+      marketDataSettingsWorkerToken !== undefined &&
+      INTERNAL_SERVICE_TOKEN.test(marketDataSettingsWorkerToken)
+        ? marketDataSettingsWorkerToken
+        : undefined,
   };
 }
 
@@ -114,6 +127,48 @@ export function assertTrustedBrowserRequest(
   ) {
     throw new Error("browser fetch site is not allowed");
   }
+}
+
+export function assertInternalServiceRequest(
+  headers: BrowserRequestHeaders & {
+    authorization?: string | string[];
+    cookie?: string;
+    csrfToken?: string | string[];
+  },
+  method: string,
+  url: string,
+  expectedToken: string | undefined,
+): void {
+  if (method.toUpperCase() !== "GET" || url.includes("?")) {
+    throw new Error("internal service route is read-only");
+  }
+  if (
+    headers.cookie !== undefined ||
+    headers.origin !== undefined ||
+    headers.referer !== undefined ||
+    headers.secFetchSite !== undefined ||
+    headers.secFetchMode !== undefined ||
+    headers.secFetchDest !== undefined ||
+    headers.csrfToken !== undefined
+  ) {
+    throw new Error("browser request metadata is not accepted");
+  }
+  const presented = oneHeader(headers.authorization);
+  const expectedIsUsable =
+    expectedToken !== undefined && INTERNAL_SERVICE_TOKEN.test(expectedToken);
+  const expected = expectedIsUsable ? `Bearer ${expectedToken}` : "";
+  const presentedDigest = createHash("sha256")
+    .update(presented ?? "", "utf8")
+    .digest();
+  const expectedDigest = createHash("sha256").update(expected, "utf8").digest();
+  if (!timingSafeEqual(presentedDigest, expectedDigest) || !expectedIsUsable) {
+    throw new Error("internal service authentication failed");
+  }
+}
+
+function oneHeader(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value.length === 1 ? value[0] : undefined;
+  return value;
 }
 
 export function readCookieToken(

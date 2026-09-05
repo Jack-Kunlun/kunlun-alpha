@@ -430,6 +430,17 @@ from ashare_contracts.market_data_bar import Session as Session
 from ashare_contracts.market_data_corporate_action import ActionType as ActionType
 from ashare_contracts.market_data_corporate_action import CorporateAction as CorporateAction
 from ashare_contracts.market_data_corporate_action import Exchange as Exchange_13
+from ashare_contracts.market_data_settings import MarketDataProvider as MarketDataProvider
+from ashare_contracts.market_data_settings import (
+    MarketDataSettingsResponse as MarketDataSettingsResponse,
+)
+from ashare_contracts.market_data_settings import (
+    MarketDataSettingsUpdateRequest as MarketDataSettingsUpdateRequest,
+)
+from ashare_contracts.market_data_settings import MarketDataTokenAction as MarketDataTokenAction
+from ashare_contracts.market_data_settings import (
+    MarketDataWorkerSettingsResponse as MarketDataWorkerSettingsResponse,
+)
 from ashare_contracts.market_data_tick import Direction as Direction
 from ashare_contracts.market_data_tick import Exchange as Exchange_14
 from ashare_contracts.market_data_tick import Tick as Tick
@@ -939,6 +950,11 @@ __all__ = [
     "ActionType",
     "CorporateAction",
     "Exchange_13",
+    "MarketDataProvider",
+    "MarketDataSettingsResponse",
+    "MarketDataSettingsUpdateRequest",
+    "MarketDataTokenAction",
+    "MarketDataWorkerSettingsResponse",
     "Direction",
     "Exchange_14",
     "Tick",

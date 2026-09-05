@@ -2906,6 +2906,53 @@ export interface CorporateAction {
 }
 
 /**
+ * This interface was referenced by `MarketDataSettingsResponse`'s JSON-Schema
+ * via the `definition` "MarketDataProvider".
+ */
+export type MarketDataProvider = "akshare" | "tushare";
+/**
+ * This interface was referenced by `MarketDataSettingsResponse`'s JSON-Schema
+ * via the `definition` "MarketDataTokenAction".
+ */
+export type MarketDataTokenAction = "KEEP" | "REPLACE" | "CLEAR";
+
+/**
+ * Safe instance-level market-data provider settings; secrets are never returned to browser clients.
+ */
+export interface MarketDataSettingsResponse {
+  schemaVersion: "market-data-settings-v1";
+  provider: MarketDataProvider;
+  revision: number;
+  tokenConfigured: boolean;
+  updatedAt: string | null;
+}
+/**
+ * Compare-and-set update for instance-level market-data provider settings.
+ *
+ * This interface was referenced by `MarketDataSettingsResponse`'s JSON-Schema
+ * via the `definition` "MarketDataSettingsUpdateRequest".
+ */
+export interface MarketDataSettingsUpdateRequest {
+  schemaVersion: "market-data-settings-update-v1";
+  expectedRevision: number;
+  provider: MarketDataProvider;
+  tokenAction: MarketDataTokenAction;
+  token?: string;
+}
+/**
+ * Effective settings for the dedicated data worker service; never served to browser routes.
+ *
+ * This interface was referenced by `MarketDataSettingsResponse`'s JSON-Schema
+ * via the `definition` "MarketDataWorkerSettingsResponse".
+ */
+export interface MarketDataWorkerSettingsResponse {
+  schemaVersion: "market-data-worker-settings-v1";
+  provider: MarketDataProvider;
+  revision: number;
+  token: string | null;
+}
+
+/**
  * A single executed trade with millisecond-precision timestamp
  */
 export interface Tick {

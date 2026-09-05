@@ -26,6 +26,13 @@ AKShare 日线调用 Tencent-backed `stock_zh_a_hist_tx`，来源元数据为
 `MARKET_DATA_MINUTE_SYMBOLS` 显式配置。自定义代码集合仍可通过 `MARKET_DATA_SYMBOLS` 提供，
 它们都是本地研究样本，不代表全市场宽度。
 
+运维管理员还可以在实例级 `/settings/market-data` 页面配置 AKShare/Tushare 来源。该配置保存
+在显式的 PostgreSQL settings DSN 中，Tushare token 只以 AES-256-GCM envelope 形式持久化；
+浏览器响应不会包含 token、密文、nonce、tag、key 或 digest。保存成功表示“已保存，下一采集
+周期生效”，不表示当前运行中的 worker 已经应用；页面不会把一次配置读取当作运行态确认。
+AKShare 不需要 token，也不会把已保存的 token 解密下发给 worker；免费源仍不保证全市场覆盖、
+实时性或商业 SLA。
+
 ## 离线回放验收包
 
 仓库提供 `data/fixtures/offline-market-replay-v1.json`，用于在断网且没有数据库的环境中验证
@@ -73,8 +80,10 @@ capture fail closed，不会静默改采其他来源。需要有明确权限、S
 `RAW`，会明确拒绝解析，不猜测或改写原始证据。
 
 Tushare Pro 是需要单独授权的切换项。日线和实时分钟接口的积分、权限和数据许可以官方说明
-为准；token 只能通过进程环境或未提交的本地 `.env` 提供，不会写入 raw manifest、ClickHouse、
-日志或异常消息。相关协议和接口说明：
+为准。在 legacy 环境模式中，token 通过进程环境或未提交的本地 `.env` 提供；在实例级 managed
+模式中，管理员通过设置页提交后由 server 加密持久化，worker 只通过受限 internal GET 取得有效
+token。两种模式都不会把 token 写入 raw manifest、ClickHouse、日志或异常消息。相关协议和接口
+说明：
 
 - [HTTP 调用协议](https://tushare.pro/document/1?doc_id=130)
 - [A 股实时分钟-日累计](https://tushare.pro/document/2?doc_id=457)
@@ -86,6 +95,56 @@ Tushare Pro 是需要单独授权的切换项。日线和实时分钟接口的�
 能力。
 
 ## 单次同步
+
+### 实例级设置（可选）
+
+默认不启用远程配置，现有 `MARKET_DATA_PROVIDER`/`TUSHARE_TOKEN` 环境模式保持不变。启用前
+必须在部署 secret 管理或 checkout 之外的环境文件中提供以下值；不要把 master key 或 worker
+credential 写入仓库、`infra/docker/.env`、日志、raw manifest 或浏览器存储：
+
+```dotenv
+MARKET_DATA_SETTINGS_POSTGRES_DSN=postgresql://<settings-db>/kunlun
+MARKET_DATA_SETTINGS_MASTER_KEY=<base64-encoded-32-byte-key>
+MARKET_DATA_SETTINGS_WORKER_TOKEN=<at-least-32-printable-ascii-bytes>
+MARKET_DATA_SETTINGS_URL=https://<internal-server>/api/v1/internal/market-data/settings
+MARKET_DATA_SETTINGS_ALLOW_LOCAL_HTTP=false
+```
+
+`MARKET_DATA_SETTINGS_MASTER_KEY` 必须是严格 32 字节的标准 base64 密钥；服务不会生成默认
+密钥、把密钥写入数据库或在重启时随机生成新密钥。也可使用外部文件提供
+`MARKET_DATA_SETTINGS_MASTER_KEY_FILE`，文件不应位于 checkout 内；Compose 需要由部署系统把该
+文件以只读方式挂载并显式设置路径，空的 `.env` 占位值不会创建或生成密钥。`MARKET_DATA_SETTINGS_WORKER_TOKEN`
+由 server 与 worker 共享，长度为 32–512 个可打印非空格 ASCII 字符；worker 只使用独立
+Bearer credential 访问精确的 internal GET，不获得数据库或 master-key 权限。生产环境使用 HTTPS；
+本地 Compose 的 `http://server:3002/api/v1/internal/market-data/settings` 只有在显式设置
+`MARKET_DATA_SETTINGS_ALLOW_LOCAL_HTTP=true` 时允许，不能推广为 LAN 或任意 HTTP。
+
+设置迁移使用现有 `@kunlun/db` Migration 定义，不在应用启动时执行。迁移命令使用临时的特权
+settings DSN，只应用 settings migration；完成后不要把该特权 DSN 继续注入运行中的 server。
+运行时 settings DSN 应使用受限数据库角色：仅允许 singleton 配置行的 `SELECT`、`INSERT`、`UPDATE`
+以及审计表 `INSERT`，不授予 DDL 或 `DELETE`。settings DSN 与主库相同时可按常规命令迁移；
+使用独立 settings DSN 时显式运行：
+
+```bash
+MARKET_DATA_SETTINGS_POSTGRES_DSN='postgresql://<settings-db>/kunlun' \
+  node apps/server/dist/migrate.js --market-data-settings
+```
+
+缺少 DSN 或 master key 时，浏览器配置端点和 internal settings 读取会安全返回不可用；缺少或无效
+worker credential 只会禁用 internal worker 读取和 managed mode，不影响已配置密钥的管理员浏览器
+读取。系统不会回退到内存存储或把 legacy 环境 token 混入远程配置。POST 使用 `expectedRevision` compare-and-set；
+`tokenAction` 为 `KEEP`、`REPLACE` 或 `CLEAR`，Tushare 不允许清除唯一 token。
+
+管理员页面位于 `/settings/market-data`。保存成功仅代表配置已持久化；只有已启用 managed mode
+的采集进程会在下一周期边界读取它，不表示进程已经应用配置或供应商已授予数据权限。
+managed mode 读取失败、版本回退或同版本内容变化时停止本次采集，不使用旧配置或环境变量兜底。
+恢复配置服务后，按既有进程管理方式恢复采集，不能通过删除历史断点绕过校验。
+
+managed mode 的断点按 `managed-checkpoints/<provider>/<revision>` 隔离，原始行情和质量归档根目录
+保持不变。共享版本记录采用跨进程锁和原子替换；POSIX 上同步父目录，Windows 沿用已有锁与原子
+替换机制，不声称具有 POSIX 目录 fsync 验证。记录仅含版本、来源及以 worker credential 为密钥的
+HMAC 指纹，不持久化明文 Token 或普通 Token 哈希。轮换 worker credential 时，应协调停止采集、
+更新两端凭据并提高配置 revision 后恢复；不要直接删除版本记录来绕过同版本变更检查。
 
 在仓库根目录执行。没有设置 `MARKET_DATA_PROVIDER` 时默认使用 AKShare，因此不需要
 `TUSHARE_TOKEN`：

@@ -25,6 +25,7 @@ describe("terminal route contract", () => {
         "/watchlists",
         "/paper",
         "/precious-metals",
+        "/settings/market-data",
       ]),
     );
   });
@@ -43,5 +44,16 @@ describe("terminal route contract", () => {
   it("marks both instrument entry and deep-link routes ready", () => {
     expect(getTerminalRoute("instruments").status).toBe("ready");
     expect(getTerminalRoute("instrument-detail").status).toBe("ready");
+  });
+
+  it("keeps market-data settings instance-scoped and administrator-only", () => {
+    const route = getTerminalRoute("market-data-settings");
+    expect(route.path).toBe("/settings/market-data");
+    expect(route.group).toBe("research");
+    expect(route.permission).toBe("operations:read");
+    expect(route.navigation).toBe(true);
+    expect(route.status).toBe("ready");
+    expect(canAccessTerminalRoute(route, ["platform_admin"])).toBe(true);
+    expect(canAccessTerminalRoute(route, ["researcher"])).toBe(false);
   });
 });

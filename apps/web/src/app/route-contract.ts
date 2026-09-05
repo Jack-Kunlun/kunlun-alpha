@@ -20,7 +20,8 @@ export type TerminalRouteId =
   | "event-workbench"
   | "seat-kol"
   | "backtest-regressions"
-  | "data-quality";
+  | "data-quality"
+  | "market-data-settings";
 
 export interface TerminalRouteContract {
   id: TerminalRouteId;
@@ -230,6 +231,18 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     label: "数据质量",
     shortLabel: "质量",
     description: "数据异常、恢复状态与运维证据",
+    group: "research",
+    permission: "operations:read",
+    status: "ready",
+    navigation: true,
+  },
+  {
+    id: "market-data-settings",
+    path: "/settings/market-data",
+    href: "/settings/market-data",
+    label: "行情源配置",
+    shortLabel: "行情源",
+    description: "实例级 AKShare / Tushare 采集配置与 token 状态",
     group: "research",
     permission: "operations:read",
     status: "ready",

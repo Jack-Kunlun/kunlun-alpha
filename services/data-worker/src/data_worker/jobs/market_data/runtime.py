@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
+import tempfile
 import time as time_module
 from collections.abc import Callable, Mapping
+from contextlib import suppress
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -25,6 +29,14 @@ from data_worker.jobs.market_data.collector import (
     RawBarProvider,
 )
 from data_worker.jobs.market_data.quality import MarketDataQualitySink
+from data_worker.jobs.market_data.remote_settings import (
+    RemoteMarketDataSettingsError,
+    RemoteSettingsTransport,
+    fetch_remote_market_data_settings,
+    load_remote_market_data_settings,
+    remote_market_data_settings_source,
+    validate_remote_settings_worker_token,
+)
 from data_worker.providers.akshare import AKShareMarketDataProvider, ClientFactory
 from data_worker.raw import LocalFileStorage
 from market_core.instrument.code_parser import (
@@ -41,6 +53,10 @@ ProviderFactory = Callable[["MarketDataSyncSettings", Clock], RawBarProvider]
 _SHANGHAI = ZoneInfo("Asia/Shanghai")
 _DEFAULT_AKSHARE_SYMBOLS = "600519.SH"
 _DEFAULT_TUSHARE_SYMBOLS = "600519.SH"
+_MANAGED_TUSHARE_ENDPOINT = "https://api.tushare.pro"
+_MANAGED_CHECKPOINT_DIRECTORY = "managed-checkpoints"
+_MANAGED_STATE_FILENAME = ".managed-settings-state-v1.json"
+_MANAGED_STATE_VERSION = "market-data-managed-settings-v1"
 
 
 def _utc_now() -> datetime:
@@ -82,6 +98,10 @@ class MarketDataSyncSettings:
     continuous: bool = False
     provider: str = "akshare"
     minute_symbols: tuple[str, ...] = ()
+    managed_settings_url: str | None = field(default=None, repr=False)
+    managed_settings_worker_token: str | None = field(default=None, repr=False)
+    managed_settings_allow_local_http: bool = False
+    managed_revision: int | None = None
 
     def __post_init__(self) -> None:
         if self.continuous and self.poll_seconds < 60:
@@ -152,22 +172,38 @@ def _optional_symbols(raw: str | None) -> tuple[str, ...]:
     return _symbols(raw)
 
 
-def load_market_data_settings(environ: Mapping[str, str]) -> MarketDataSyncSettings:
+def load_market_data_settings(
+    environ: Mapping[str, str],
+    *,
+    remote_transport: RemoteSettingsTransport | None = None,
+) -> MarketDataSyncSettings:
     """Parse the explicit process environment without loading credential files."""
 
+    remote_source = remote_market_data_settings_source(environ)
     provider = environ.get("MARKET_DATA_PROVIDER", "akshare").strip()
-    if provider not in {"akshare", "tushare"}:
+    if remote_source is None and provider not in {"akshare", "tushare"}:
         raise RuntimeError("MARKET_DATA_PROVIDER must be akshare or tushare")
+    managed = (
+        None
+        if remote_source is None
+        else load_remote_market_data_settings(environ, transport=remote_transport)
+    )
+    if managed is not None:
+        provider = managed.provider
+        token = managed.token
+        tushare_endpoint = _MANAGED_TUSHARE_ENDPOINT
+    else:
+        raw_token = environ.get("TUSHARE_TOKEN")
+        token = raw_token.strip() if raw_token is not None and raw_token.strip() else None
+        if provider == "tushare" and token is None:
+            raise RuntimeError("TUSHARE_TOKEN is required when MARKET_DATA_PROVIDER=tushare")
+        tushare_endpoint = environ.get("TUSHARE_API_URL", _MANAGED_TUSHARE_ENDPOINT).strip()
     mode = environ.get("MARKET_DATA_RUN_MODE", "once").strip().lower()
     if mode not in {"once", "continuous"}:
         raise RuntimeError("MARKET_DATA_RUN_MODE must be once or continuous")
     minute_interval = environ.get("MARKET_DATA_MINUTE_INTERVAL", "MINUTE_1").strip()
     if minute_interval not in {"MINUTE_1", "MINUTE_5"}:
         raise RuntimeError("MARKET_DATA_MINUTE_INTERVAL must be MINUTE_1 or MINUTE_5")
-    raw_token = environ.get("TUSHARE_TOKEN")
-    token = raw_token.strip() if raw_token is not None and raw_token.strip() else None
-    if provider == "tushare" and token is None:
-        raise RuntimeError("TUSHARE_TOKEN is required when MARKET_DATA_PROVIDER=tushare")
     password = environ.get("CLICKHOUSE_PASSWORD")
     default_symbols = (
         _DEFAULT_AKSHARE_SYMBOLS if provider == "akshare" else _DEFAULT_TUSHARE_SYMBOLS
@@ -177,7 +213,7 @@ def load_market_data_settings(environ: Mapping[str, str]) -> MarketDataSyncSetti
         raise RuntimeError("continuous market-data mode requires poll_seconds at least 60")
     return MarketDataSyncSettings(
         token=token,
-        tushare_endpoint=environ.get("TUSHARE_API_URL", "https://api.tushare.pro").strip(),
+        tushare_endpoint=tushare_endpoint,
         symbols=_symbols(environ.get("MARKET_DATA_SYMBOLS", default_symbols)),
         raw_root=Path(environ.get("MARKET_DATA_RAW_ROOT", "var/market-raw")),
         clickhouse_url=environ.get("CLICKHOUSE_URL", "http://localhost:8123").strip(),
@@ -191,6 +227,14 @@ def load_market_data_settings(environ: Mapping[str, str]) -> MarketDataSyncSetti
         continuous=mode == "continuous",
         provider=provider,
         minute_symbols=_optional_symbols(environ.get("MARKET_DATA_MINUTE_SYMBOLS")),
+        managed_settings_url=None if remote_source is None else remote_source.url,
+        managed_settings_worker_token=(
+            None if remote_source is None else remote_source.worker_token
+        ),
+        managed_settings_allow_local_http=(
+            False if remote_source is None else remote_source.allow_local_http
+        ),
+        managed_revision=None if managed is None else managed.revision,
     )
 
 
@@ -435,6 +479,172 @@ class MarketDataRunner:
             return self._run_cycle_with_checkpoint(checkpoint)
 
 
+def _managed_settings_digest(settings: MarketDataSyncSettings) -> str:
+    worker_token = settings.managed_settings_worker_token
+    if worker_token is None:
+        raise RuntimeError("managed market-data worker credential is invalid")
+    validate_remote_settings_worker_token(worker_token)
+    token = settings.token or ""
+    material = f"{settings.provider}\x00{token}".encode()
+    return hmac.new(worker_token.encode(), material, hashlib.sha256).hexdigest()
+
+
+def _managed_checkpoint_root(settings: MarketDataSyncSettings) -> Path:
+    revision = settings.managed_revision
+    if settings.managed_settings_url is None:
+        if revision is not None:
+            raise RuntimeError("managed market-data settings source is incomplete")
+        return settings.raw_root
+    if type(revision) is not int or revision < 0:
+        raise RuntimeError("managed market-data settings revision is invalid")
+    if settings.provider not in {"akshare", "tushare"}:
+        raise RuntimeError("managed market-data provider is invalid")
+    return settings.raw_root / _MANAGED_CHECKPOINT_DIRECTORY / settings.provider / str(revision)
+
+
+def managed_market_data_checkpoint_root(settings: MarketDataSyncSettings) -> Path:
+    """Return the checkpoint namespace while preserving the raw archive root."""
+
+    return _managed_checkpoint_root(settings)
+
+
+def _managed_state_path(settings: MarketDataSyncSettings) -> Path:
+    return settings.raw_root / _MANAGED_CHECKPOINT_DIRECTORY / _MANAGED_STATE_FILENAME
+
+
+def _read_managed_state(path: Path) -> tuple[int, str, str] | None:
+    if not path.exists():
+        return None
+    try:
+        raw: object = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        raise RuntimeError("managed market-data settings state is invalid") from None
+    if not isinstance(raw, dict):
+        raise RuntimeError("managed market-data settings state is invalid")
+    payload = cast(dict[object, object], raw)
+    expected = {"version", "revision", "provider", "digest"}
+    if set(payload) != expected:
+        raise RuntimeError("managed market-data settings state is invalid")
+    revision = payload.get("revision")
+    provider = payload.get("provider")
+    digest = payload.get("digest")
+    if (
+        type(revision) is not int
+        or revision < 0
+        or revision > 2**53 - 1
+        or not isinstance(provider, str)
+        or provider not in {"akshare", "tushare"}
+        or not isinstance(digest, str)
+        or len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+        or payload.get("version") != _MANAGED_STATE_VERSION
+    ):
+        raise RuntimeError("managed market-data settings state is invalid")
+    return revision, provider, digest
+
+
+def _write_managed_state(path: Path, settings: MarketDataSyncSettings) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": _MANAGED_STATE_VERSION,
+        "revision": settings.managed_revision,
+        "provider": settings.provider,
+        "digest": _managed_settings_digest(settings),
+    }
+    temporary_path: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{_MANAGED_STATE_FILENAME}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            temporary_path = temporary.name
+            json.dump(payload, temporary, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, path)
+        if os.name != "nt":
+            directory = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+        temporary_path = None
+    except OSError:
+        raise RuntimeError("managed market-data settings state is unavailable") from None
+    finally:
+        if temporary_path is not None:
+            with suppress(OSError):
+                os.unlink(temporary_path)
+
+
+def _reconcile_managed_settings_state(settings: MarketDataSyncSettings) -> None:
+    if settings.managed_settings_url is None:
+        return
+    revision = settings.managed_revision
+    if type(revision) is not int or revision < 0:
+        raise RuntimeError("managed market-data settings revision is invalid")
+    if settings.managed_settings_worker_token is None:
+        raise RuntimeError("managed market-data settings source is incomplete")
+    state_path = _managed_state_path(settings)
+    try:
+        with MarketDataCheckpointStore(state_path.parent).locked():
+            previous = _read_managed_state(state_path)
+            current_digest = _managed_settings_digest(settings)
+            if previous is None:
+                _write_managed_state(state_path, settings)
+                return
+            previous_revision, previous_provider, previous_digest = previous
+            if revision < previous_revision:
+                raise RuntimeError("managed market-data settings revision rolled back")
+            if revision == previous_revision:
+                if settings.provider != previous_provider or current_digest != previous_digest:
+                    raise RuntimeError("managed market-data settings changed without a revision")
+                return
+            _write_managed_state(state_path, settings)
+    except MarketDataCheckpointError:
+        raise RuntimeError("managed market-data settings state is unavailable") from None
+
+
+def refresh_managed_market_data_settings(
+    settings: MarketDataSyncSettings,
+    *,
+    remote_transport: RemoteSettingsTransport | None = None,
+) -> MarketDataSyncSettings:
+    """Fetch the next managed settings snapshot at a run-cycle boundary."""
+
+    if settings.managed_settings_url is None:
+        return settings
+    worker_token = settings.managed_settings_worker_token
+    current_revision = settings.managed_revision
+    if worker_token is None or type(current_revision) is not int:
+        raise RemoteMarketDataSettingsError("managed market-data settings source is incomplete")
+    remote = fetch_remote_market_data_settings(
+        settings.managed_settings_url,
+        worker_token,
+        allow_local_http=settings.managed_settings_allow_local_http,
+        transport=remote_transport,
+    )
+    if remote.revision < current_revision:
+        raise RemoteMarketDataSettingsError("managed market-data settings revision rolled back")
+    if remote.revision == current_revision:
+        if remote.provider != settings.provider or remote.token != settings.token:
+            raise RemoteMarketDataSettingsError(
+                "managed market-data settings changed without a revision"
+            )
+        return settings
+    return replace(
+        settings,
+        provider=remote.provider,
+        token=remote.token,
+        tushare_endpoint=_MANAGED_TUSHARE_ENDPOINT,
+        managed_revision=remote.revision,
+    )
+
+
 def build_market_data_provider(
     settings: MarketDataSyncSettings,
     *,
@@ -451,8 +661,13 @@ def build_market_data_provider(
     elif settings.provider == "tushare":
         if settings.token is None:
             raise RuntimeError("TUSHARE_TOKEN is required when MARKET_DATA_PROVIDER=tushare")
+        endpoint = (
+            _MANAGED_TUSHARE_ENDPOINT
+            if settings.managed_settings_url is not None
+            else settings.tushare_endpoint
+        )
         provider = TushareMarketDataProvider(
-            TushareConfig(token=settings.token, endpoint=settings.tushare_endpoint),
+            TushareConfig(token=settings.token, endpoint=endpoint),
             clock=clock,
         )
     else:
@@ -467,9 +682,11 @@ def build_market_data_runner(
     clock: Clock = _utc_now,
     provider_factory: ProviderFactory | None = None,
     akshare_client_factory: ClientFactory | None = None,
+    checkpoint_root: Path | None = None,
 ) -> MarketDataRunner:
     """Compose the selected provider, immutable raw storage, and ClickHouse writer."""
 
+    _reconcile_managed_settings_state(settings)
     provider = build_market_data_provider(
         settings,
         clock=clock,
@@ -493,13 +710,16 @@ def build_market_data_runner(
         writer,
         quality_sink=quality_sink,
     )
+    selected_checkpoint_root = (
+        checkpoint_root if checkpoint_root is not None else _managed_checkpoint_root(settings)
+    )
     return MarketDataRunner(
         collector,
         symbols=settings.symbols,
         minute_symbols=settings.minute_symbols,
         daily_lookback_days=settings.daily_lookback_days,
         minute_interval=settings.minute_interval,
-        checkpoint_root=settings.raw_root,
+        checkpoint_root=selected_checkpoint_root,
         clock=clock,
     )
 
@@ -509,16 +729,31 @@ def run_market_data_sync(
     *,
     clock: Clock = _utc_now,
     sleeper: Sleeper = time_module.sleep,
+    remote_transport: RemoteSettingsTransport | None = None,
 ) -> None:
     """Run once by default, or continuously when explicitly configured."""
 
-    runner = build_market_data_runner(settings, clock=clock)
+    current_settings = settings
+    runner = build_market_data_runner(current_settings, clock=clock)
     while True:
+        refreshed_settings = refresh_managed_market_data_settings(
+            current_settings,
+            remote_transport=remote_transport,
+        )
+        if (
+            refreshed_settings.managed_revision != current_settings.managed_revision
+            or refreshed_settings.provider != current_settings.provider
+            or refreshed_settings.token != current_settings.token
+        ):
+            current_settings = refreshed_settings
+            runner = build_market_data_runner(current_settings, clock=clock)
+        else:
+            current_settings = refreshed_settings
         summary = runner.run_cycle()
         print(json.dumps(summary.to_dict(), ensure_ascii=False, sort_keys=True), flush=True)
-        if not settings.continuous:
+        if not current_settings.continuous:
             return
-        sleeper(float(settings.poll_seconds))
+        sleeper(float(current_settings.poll_seconds))
 
 
 def main() -> None:
@@ -539,5 +774,7 @@ __all__ = [
     "build_market_data_provider",
     "build_market_data_runner",
     "load_market_data_settings",
+    "managed_market_data_checkpoint_root",
+    "refresh_managed_market_data_settings",
     "run_market_data_sync",
 ]

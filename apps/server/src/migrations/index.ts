@@ -8,6 +8,7 @@ import { migrations as seatKolIntelligence } from "./007-seat-kol-intelligence";
 import { migrations as watchlistAlerts } from "./008-watchlist-alerts";
 import { migrations as auth } from "./009-auth";
 import { migrations as notificationReceipts } from "./010-watchlist-notification-receipts";
+import { migrations as marketDataSettings } from "./011-market-data-settings";
 
 export const migrations = [
   ...initial,
@@ -20,4 +21,5 @@ export const migrations = [
   ...watchlistAlerts,
   ...auth,
   ...notificationReceipts,
+  ...marketDataSettings,
 ];

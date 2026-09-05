@@ -16,10 +16,12 @@ import { PreciousMetalsModule } from "./modules/precious-metals/precious-metals.
 import { PaperTerminalModule } from "./modules/paper/paper-terminal.module";
 import { RankingTerminalModule } from "./modules/ranking/ranking-terminal.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { MarketDataSettingsModule } from "./modules/market-data-settings/market-data-settings.module";
 
 @Module({
   imports: [
     AuthModule,
+    MarketDataSettingsModule,
     DataQualityModule,
     EmotionModule,
     EventFeedbackModule,

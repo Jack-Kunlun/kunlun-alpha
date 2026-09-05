@@ -5,6 +5,7 @@ import { AuthenticationGuard } from "./auth.guard";
 import type { AuthenticatedRequest } from "./auth.request";
 import type { AuthenticatedSession, AuthService } from "./auth.service";
 import { PUBLIC_ROUTE_METADATA } from "./public-route.decorator";
+import { INTERNAL_SERVICE_ROUTE_METADATA } from "./internal-service-route.decorator";
 
 const config = {
   postgresDsn: "postgresql://local.invalid/kunlun",
@@ -41,9 +42,16 @@ const session: AuthenticatedSession = {
   },
 };
 
-function context(request: Partial<AuthenticatedRequest>, isPublic = false): ExecutionContext {
+function context(
+  request: Partial<AuthenticatedRequest>,
+  isPublic = false,
+  internalService = false,
+): ExecutionContext {
   const handler = () => undefined;
   if (isPublic) Reflect.defineMetadata(PUBLIC_ROUTE_METADATA, true, handler);
+  if (internalService) {
+    Reflect.defineMetadata(INTERNAL_SERVICE_ROUTE_METADATA, "market-data-settings", handler);
+  }
   return {
     switchToHttp: () => ({ getRequest: () => request }),
     getHandler: () => handler,
@@ -89,5 +97,48 @@ describe("AuthenticationGuard", () => {
     await expect(guard.canActivate(context({ method: "GET", headers: {} }))).rejects.toMatchObject({
       status: 401,
     });
+  });
+
+  it("authenticates only the dedicated internal settings route with a bearer secret", async () => {
+    const auth = { authenticate: vi.fn(), assertCsrf: vi.fn() } as unknown as AuthService;
+    const guard = new AuthenticationGuard(new Reflector(), auth, {
+      ...config,
+      marketDataSettingsWorkerToken: "w".repeat(32),
+    });
+    const request = {
+      method: "GET",
+      url: "/api/v1/internal/market-data/settings",
+      originalUrl: "/api/v1/internal/market-data/settings",
+      headers: { authorization: `Bearer ${"w".repeat(32)}` },
+    } as Partial<AuthenticatedRequest>;
+
+    await expect(guard.canActivate(context(request, false, true))).resolves.toBe(true);
+    expect(auth.authenticate).not.toHaveBeenCalled();
+  });
+
+  it("rejects browser cookies and metadata on the internal settings route", async () => {
+    const auth = { authenticate: vi.fn(), assertCsrf: vi.fn() } as unknown as AuthService;
+    const guard = new AuthenticationGuard(new Reflector(), auth, {
+      ...config,
+      marketDataSettingsWorkerToken: "w".repeat(32),
+    });
+    await expect(
+      guard.canActivate(
+        context(
+          {
+            method: "GET",
+            url: "/api/v1/internal/market-data/settings",
+            originalUrl: "/api/v1/internal/market-data/settings",
+            headers: {
+              authorization: `Bearer ${"w".repeat(32)}`,
+              cookie: `kunlun_session=${"s".repeat(43)}`,
+              origin: "http://localhost:5173",
+            },
+          },
+          false,
+          true,
+        ),
+      ),
+    ).rejects.toMatchObject({ status: 401 });
   });
 });

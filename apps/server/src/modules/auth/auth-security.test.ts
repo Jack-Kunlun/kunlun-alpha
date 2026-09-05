@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { assertTrustedBrowserRequest, loadAuthConfig, readCookieToken } from "./auth.config";
+import {
+  assertInternalServiceRequest,
+  assertTrustedBrowserRequest,
+  loadAuthConfig,
+  readCookieToken,
+} from "./auth.config";
 import { normalizeUsername, ScryptPasswordHasher, validatePassword } from "./password";
 
 describe("authentication configuration and browser boundary", () => {
@@ -62,6 +67,42 @@ describe("authentication configuration and browser boundary", () => {
       readCookieToken(`kunlun_session=${token}; kunlun_session=${token}`, "kunlun_session"),
     ).toBe(null);
     expect(readCookieToken("kunlun_session=not-a-session", "kunlun_session")).toBe(null);
+  });
+
+  it("keeps the internal worker credential separate from browser authentication", () => {
+    const token = "w".repeat(32);
+    expect(
+      loadAuthConfig({
+        AUTH_PUBLIC_ORIGIN: "http://localhost:5173",
+        AUTH_ALLOW_INSECURE_COOKIE: "true",
+        KUNLUN_POSTGRES_DSN: "postgresql://local.invalid/kunlun",
+        MARKET_DATA_SETTINGS_WORKER_TOKEN: token,
+      }).marketDataSettingsWorkerToken,
+    ).toBe(token);
+    expect(() =>
+      assertInternalServiceRequest(
+        { authorization: `Bearer ${token}` },
+        "GET",
+        "/api/v1/internal/market-data/settings",
+        token,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertInternalServiceRequest(
+        { authorization: `Bearer ${token}`, origin: "http://localhost:5173" },
+        "GET",
+        "/api/v1/internal/market-data/settings",
+        token,
+      ),
+    ).toThrow();
+    expect(
+      loadAuthConfig({
+        AUTH_PUBLIC_ORIGIN: "http://localhost:5173",
+        AUTH_ALLOW_INSECURE_COOKIE: "true",
+        KUNLUN_POSTGRES_DSN: "postgresql://local.invalid/kunlun",
+        MARKET_DATA_SETTINGS_WORKER_TOKEN: "short",
+      }).marketDataSettingsWorkerToken,
+    ).toBeUndefined();
   });
 });
 

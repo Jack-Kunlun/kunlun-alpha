@@ -47,6 +47,10 @@ const BacktestRegressionPage = lazy(async () => ({
 const DataQualityPage = lazy(async () => ({
   default: (await import("../features/data-quality/data-quality-page")).DataQualityPage,
 }));
+const MarketDataSettingsPage = lazy(async () => ({
+  default: (await import("../features/market-data-settings/market-data-settings-page"))
+    .MarketDataSettingsPage,
+}));
 
 function RouteLoading() {
   return (
@@ -85,4 +89,5 @@ export const terminalRouteElements: Readonly<Record<TerminalRouteId, ReactNode>>
   "seat-kol": lazyRoute(SeatKolWorkbenchPage),
   "backtest-regressions": lazyRoute(BacktestRegressionPage),
   "data-quality": lazyRoute(DataQualityPage),
+  "market-data-settings": lazyRoute(MarketDataSettingsPage),
 };
