@@ -1,27 +1,25 @@
 """Calendar collection job.
 
-Collects an exchange's holiday / temporary-closure calendar from a provider,
-stores it as a versioned source, and raises alerts for missing dates (large
-gaps in coverage), conflicting sources (same date, different reason) and
-temporary closures. Manual corrections are audited and never overwrite source
-data.
+Collects an exchange's holiday / temporary-closure records from a provider,
+stores them as a versioned source, and raises alerts for conflicting sources
+(same date, different reason) and temporary closures. The provider returns
+sparse closure records rather than a complete daily calendar, so this job does
+not infer missing dates. Manual corrections are audited and never overwrite
+source data.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
 from typing import Literal
 
 from ashare_contracts.calendar_holiday import Holiday
 from data_worker.jobs.calendars.repository import CalendarRepository
-from market_core.providers import CalendarProvider
+from market_core.providers import CalendarProvider, ProviderDataError
 
+# Retained for internal compatibility with older alert consumers. Sparse
+# Holiday[] input never produces this legacy alert.
 AlertKind = Literal["MISSING_DATE", "SOURCE_CONFLICT", "TEMPORARY_CLOSURE"]
-
-# A gap larger than this many days between consecutive records is treated as
-# missing coverage (a trading calendar should never be silent for a quarter).
-_MAX_GAP_DAYS = 90
 
 
 @dataclass(frozen=True)
@@ -40,6 +38,7 @@ class CalendarCollectResult:
     version_id: str
     alerts: list[CalendarAlert]
     holiday_count: int
+    coverage_status: Literal["UNKNOWN"] = "UNKNOWN"
 
 
 def detect_alerts(
@@ -47,7 +46,11 @@ def detect_alerts(
     year: int,
     other_sources: list[Holiday] | None = None,
 ) -> list[CalendarAlert]:
-    """Detect missing dates, source conflicts and temporary closures."""
+    """Detect explicit source conflicts and temporary closures.
+
+    ``holidays`` is a sparse list of closure records, not a daily calendar;
+    neither gaps nor an empty list are evidence of missing dates.
+    """
     alerts: list[CalendarAlert] = []
 
     for holiday in holidays:
@@ -60,25 +63,7 @@ def detect_alerts(
                 )
             )
 
-    sorted_dates = sorted({h.date for h in holidays})
-    if not sorted_dates:
-        alerts.append(
-            CalendarAlert(kind="MISSING_DATE", date=f"{year}-01-01", detail="no calendar data")
-        )
-    else:
-        start = date(year, 1, 1)
-        end = date(year, 12, 31)
-        boundaries = [start, *sorted_dates, end]
-        for i in range(1, len(boundaries)):
-            gap = (boundaries[i] - boundaries[i - 1]).days
-            if gap > _MAX_GAP_DAYS:
-                alerts.append(
-                    CalendarAlert(
-                        kind="MISSING_DATE",
-                        date=boundaries[i - 1].isoformat(),
-                        detail=f"{gap} days without a record",
-                    )
-                )
+    del year
 
     if other_sources:
         primary = {h.date: h.reason for h in holidays}
@@ -99,11 +84,19 @@ class CalendarCollector:
     """Collects and versions an exchange's calendar."""
 
     def __init__(
-        self, provider: CalendarProvider, repository: CalendarRepository, source: str
+        self,
+        provider: CalendarProvider,
+        repository: CalendarRepository,
+        source: str,
+        *,
+        max_pages: int = 100,
     ) -> None:
+        if type(max_pages) is not int or max_pages <= 0:
+            raise ProviderDataError("calendar max_pages must be a positive integer")
         self._provider = provider
         self._repository = repository
         self._source = source
+        self._max_pages = max_pages
 
     def collect(self, exchange: str, year: int) -> CalendarCollectResult:
         holidays = self._fetch_all(exchange, year)
@@ -116,9 +109,19 @@ class CalendarCollector:
     def _fetch_all(self, exchange: str, year: int) -> list[Holiday]:
         holidays: list[Holiday] = []
         cursor: str | None = None
+        consumed_cursors: set[str] = set()
+        pages_fetched = 0
         while True:
+            if pages_fetched >= self._max_pages:
+                raise ProviderDataError("calendar pagination exceeded max_pages")
             page = self._provider.fetch_holidays(exchange, year, cursor)
+            pages_fetched += 1
             holidays.extend(page.items)
-            cursor = page.next_cursor
-            if cursor is None:
+            next_cursor = page.next_cursor
+            if next_cursor is None:
                 return holidays
+            if next_cursor == cursor or next_cursor in consumed_cursors:
+                raise ProviderDataError("calendar pagination cursor repeated")
+            if cursor is not None:
+                consumed_cursors.add(cursor)
+            cursor = next_cursor
