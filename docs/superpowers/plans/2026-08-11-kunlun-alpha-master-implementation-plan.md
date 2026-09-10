@@ -73,7 +73,7 @@ Creates the intelligence terminal, watchlists, rankings, drill-downs, alerts, pa
 
 ### Phase 7 — QMT, Risk, and Live Trading
 
-Creates a separately deployable execution boundary, QMT adapter, paper-first lifecycle, independent risk engine, idempotent order state machine, reconciliation, kill switch, approvals, observability, disaster drills, and small-capital live gates.
+Creates a separately deployable execution boundary, QMT adapter, paper-first lifecycle, independent risk engine, idempotent order state machine, reconciliation, kill switch, approvals, observability, disaster drills, a separate qualified 72-hour endurance hold before any live enablement, and small-capital live gates.
 
 ## Handoff
 
