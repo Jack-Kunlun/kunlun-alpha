@@ -22,6 +22,8 @@ official-sse-calendar-sync = "data_worker.jobs.calendars.official_sse_runtime:ma
 official-szse-daily-sync = "data_worker.jobs.calendars.official_szse_runtime:main"
 calendar-quality-verify = "data_worker.jobs.calendars.calendar_quality_runtime:main"
 calendar-quality-publish = "data_worker.jobs.calendars.calendar_quality_runtime:publish_main"
+instrument-master-sync = "data_worker.jobs.instruments.runtime:main"
+instrument-master-provider-migrate = "data_worker.jobs.instruments.runtime:migrate_main"
 offline-market-replay-check = "data_worker.jobs.offline_market_replay.runtime:main"
 ranking-snapshot-materialize = "data_worker.jobs.ranking_snapshot.runtime:main"
 
@@ -41,3 +43,4 @@ build-backend = "hatchling.build"
 "src/data_worker/jobs/calendars/calendar_snapshot_migration.sql" = "data_worker/jobs/calendars/calendar_snapshot_migration.sql"
 "src/data_worker/jobs/calendars/official_calendar_migration.sql" = "data_worker/jobs/calendars/official_calendar_migration.sql"
 "src/data_worker/jobs/calendars/calendar_quality_migration.sql" = "data_worker/jobs/calendars/calendar_quality_migration.sql"
+"src/data_worker/jobs/instruments/instrument_master_migration.sql" = "data_worker/jobs/instruments/instrument_master_migration.sql"

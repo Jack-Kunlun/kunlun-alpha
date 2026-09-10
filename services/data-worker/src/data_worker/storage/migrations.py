@@ -48,6 +48,48 @@ CALENDAR_QUALITY_MIGRATOR_ROLE = "kunlun_cq_migrator"
 CALENDAR_QUALITY_RUNTIME_ROLE = "kunlun_cq_runtime"
 CALENDAR_QUALITY_READER_ROLE = "kunlun_cq_reader"
 CALENDAR_QUALITY_LOCK_KEY = "kunlun-alpha.calendar-quality"
+INSTRUMENT_MASTER_PROVIDER_SCHEMA = "kunlun_instrument_provider"
+INSTRUMENT_MASTER_PROVIDER_MIGRATION_VERSION = 1
+INSTRUMENT_MASTER_PROVIDER_MIGRATION_NAME = "tushare_instrument_master_provider"
+INSTRUMENT_MASTER_PROVIDER_LOCK_KEY = "kunlun-alpha.instrument-master-provider"
+# Compatibility aliases are intentionally explicit.  The provider ledger is
+# independent from the shared V1-V4 worker ledger; these names no longer
+# represent a shared V5 migration.
+INSTRUMENT_MASTER_MIGRATION_VERSION = INSTRUMENT_MASTER_PROVIDER_MIGRATION_VERSION
+INSTRUMENT_MASTER_MIGRATION_NAME = INSTRUMENT_MASTER_PROVIDER_MIGRATION_NAME
+_INSTRUMENT_MASTER_RESOURCE_PATH = ("jobs", "instruments")
+_INSTRUMENT_MASTER_RESOURCE_NAME = "instrument_master_migration.sql"
+INSTRUMENT_MASTER_TABLES = (
+    "tushare_instrument_master_runs",
+    "tushare_instrument_master_raw_refs",
+    "tushare_instrument_master_checkpoints",
+    "tushare_instrument_master_snapshots",
+    "tushare_instrument_master_revisions",
+    "tushare_instrument_master_snapshot_revisions",
+    "tushare_instrument_master_heads",
+    "tushare_instrument_master_removal_candidates",
+    "tushare_instrument_master_audit",
+)
+INSTRUMENT_MASTER_PROVIDER_TABLES = (
+    "tushare_instrument_master_schema_migrations",
+    *INSTRUMENT_MASTER_TABLES,
+)
+
+INSTRUMENT_MASTER_PROVIDER_OWNER_ROLE = "kunlun_im_owner"
+INSTRUMENT_MASTER_PROVIDER_MIGRATOR_ROLE = "kunlun_im_migrator"
+INSTRUMENT_MASTER_PROVIDER_RUNTIME_ROLE = "kunlun_im_runtime"
+INSTRUMENT_MASTER_PROVIDER_READER_ROLE = "kunlun_im_reader"
+
+
+class InstrumentMasterProviderRoles(NamedTuple):
+    """Database roles required by the private Tushare provider schema."""
+
+    owner: str = INSTRUMENT_MASTER_PROVIDER_OWNER_ROLE
+    migrator: str = INSTRUMENT_MASTER_PROVIDER_MIGRATOR_ROLE
+    runtime: str = INSTRUMENT_MASTER_PROVIDER_RUNTIME_ROLE
+    reader: str = INSTRUMENT_MASTER_PROVIDER_READER_ROLE
+
+
 class CalendarQualityRoles(NamedTuple):
     """Database roles required by the calendar-quality V5 boundary."""
 
@@ -601,12 +643,28 @@ def _calendar_quality_migration_checksum() -> str:
     return hashlib.sha256(load_calendar_quality_migration()).hexdigest()
 
 
+def load_instrument_master_migration() -> bytes:
+    """Read the canonical P1-N06 security-master SQL resource."""
+
+    return (
+        files(_PACKAGE_RESOURCE_ROOT)
+        .joinpath(*_INSTRUMENT_MASTER_RESOURCE_PATH, _INSTRUMENT_MASTER_RESOURCE_NAME)
+        .read_bytes()
+    )
+
+
+def _instrument_master_migration_checksum() -> str:
+    return hashlib.sha256(load_instrument_master_migration()).hexdigest()
+
+
 # Kept as a compatibility export for existing callers; the source of truth is
 # still the packaged bytes above, never a duplicated SQL literal.
 PRECIOUS_METALS_MIGRATION = load_precious_metals_migration().decode("utf-8")
 CALENDAR_SNAPSHOT_MIGRATION = load_calendar_snapshot_migration().decode("utf-8")
 OFFICIAL_CALENDAR_MIGRATION = load_official_calendar_migration().decode("utf-8")
 CALENDAR_QUALITY_MIGRATION = load_calendar_quality_migration().decode("utf-8")
+INSTRUMENT_MASTER_MIGRATION = load_instrument_master_migration().decode("utf-8")
+INSTRUMENT_MASTER_PROVIDER_MIGRATION = INSTRUMENT_MASTER_MIGRATION
 
 
 _CATALOG_CONTRACT_CHECKSUM = "42351a268e5d5e8139d4c8c4f7ab7b0c361d462954052fb19a88aa22dddb282c"
@@ -5604,6 +5662,1154 @@ def publish_calendar_quality(
         return CalendarQualityPublishResult(CalendarQualityPublishDisposition.PUBLISHED)
 
 
+_INSTRUMENT_MASTER_REQUIRED_COLUMNS: dict[str, tuple[str, ...]] = {
+    "instrument_master_runs": (
+        "run_id",
+        "source",
+        "profile_version",
+        "schema_version",
+        "parser_version",
+        "source_revision",
+        "manifest_date",
+        "manifest_capture_id",
+        "manifest_object_id",
+        "terminal",
+        "completeness",
+        "disposition",
+        "reason_code",
+        "record_count",
+        "row_count",
+        "opened_at",
+        "completed_at",
+    ),
+    "instrument_master_raw_refs": (
+        "run_id",
+        "ordinal",
+        "ref_kind",
+        "api_name",
+        "status_partition",
+        "market_partition",
+        "offset_value",
+        "capture_id",
+        "object_id",
+        "raw_date",
+        "request_identity",
+        "status_code",
+        "content_type",
+        "observed_at",
+        "available_at",
+        "row_count",
+        "state",
+        "source_revision",
+    ),
+    "instrument_master_checkpoints": (
+        "profile_version",
+        "source",
+        "partition_ordinal",
+        "next_offset",
+        "run_id",
+        "state",
+        "updated_at",
+    ),
+    "instrument_master_snapshots": (
+        "snapshot_id",
+        "run_id",
+        "source",
+        "profile_version",
+        "terminal",
+        "completeness",
+        "disposition",
+        "available_at",
+        "published_at",
+    ),
+    "instrument_master_revisions": (
+        "revision_id",
+        "snapshot_id",
+        "unified_code",
+        "code",
+        "exchange",
+        "board",
+        "security_type",
+        "name",
+        "listing_lifecycle",
+        "trading_availability",
+        "risk_tags",
+        "list_date",
+        "delist_date",
+        "observed_at",
+        "available_at",
+        "source",
+        "source_revision",
+        "evidence_ref",
+        "payload_fingerprint",
+        "created_at",
+    ),
+    "instrument_master_snapshot_revisions": ("snapshot_id", "revision_id", "ordinal"),
+    "instrument_master_heads": ("unified_code", "revision_id", "updated_at"),
+    "instrument_master_removal_candidates": (
+        "candidate_id",
+        "run_id",
+        "unified_code",
+        "prior_revision_id",
+        "reason",
+        "status",
+        "evidence_ref",
+        "created_at",
+    ),
+    "instrument_master_audit": (
+        "audit_id",
+        "run_id",
+        "snapshot_id",
+        "unified_code",
+        "action",
+        "before_revision_id",
+        "after_revision_id",
+        "details",
+        "actor",
+        "created_at",
+    ),
+}
+_INSTRUMENT_MASTER_TRIGGERS = frozenset(
+    {
+        "instrument_master_runs_immutable",
+        "instrument_master_raw_refs_immutable",
+        "instrument_master_snapshots_immutable",
+        "instrument_master_revisions_immutable",
+        "instrument_master_snapshot_revisions_immutable",
+        "instrument_master_removal_candidates_immutable",
+        "instrument_master_audit_immutable",
+        "instrument_master_audit_actor_immutable",
+    }
+)
+
+# The V5 verifier is deliberately independent from the SQL resource.  A
+# migration checksum proves which bytes were applied, while these catalog
+# contracts prove that the installed objects still have the intended identity
+# and security properties when a repository is reopened later.
+_INSTRUMENT_MASTER_FUNCTIONS = frozenset(
+    {
+        "instrument_master_history_immutable",
+        "instrument_master_current_actor",
+        "instrument_master_audit_actor_immutable",
+        "instrument_master_publish_head",
+    }
+)
+_INSTRUMENT_MASTER_FUNCTION_BODIES = {
+    "instrument_master_history_immutable": """
+    BEGIN
+        RAISE EXCEPTION 'instrument master history is immutable';
+    END;
+    """,
+    "instrument_master_current_actor": "SELECT CURRENT_USER::TEXT",
+    "instrument_master_audit_actor_immutable": """
+    BEGIN
+        -- The actor is a database-trusted execution identity.  Never accept an
+        -- actor value supplied by the application or an external payload.
+        NEW.actor := CURRENT_USER::TEXT;
+        RETURN NEW;
+    END;
+    """,
+}
+
+_INSTRUMENT_MASTER_KEY_CONSTRAINTS: dict[str, _ConstraintSpec] = {
+    "instrument_master_runs_pkey": _primary_key(
+        "instrument_master_runs", "instrument_master_runs_pkey", "run_id"
+    ),
+    "instrument_master_runs_manifest_uk": _ConstraintSpec(
+        "instrument_master_runs",
+        "instrument_master_runs_manifest_uk",
+        "u",
+        ("source", "manifest_capture_id"),
+        no_inherit=True,
+    ),
+    "instrument_master_raw_refs_pkey": _primary_key(
+        "instrument_master_raw_refs", "instrument_master_raw_refs_pkey", "run_id", "ordinal"
+    ),
+    "instrument_master_raw_refs_run_fkey": _ConstraintSpec(
+        "instrument_master_raw_refs",
+        "instrument_master_raw_refs_run_fkey",
+        "f",
+        ("run_id",),
+        "instrument_master_runs",
+        ("run_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_raw_refs_capture_uk": _ConstraintSpec(
+        "instrument_master_raw_refs",
+        "instrument_master_raw_refs_capture_uk",
+        "u",
+        ("run_id", "capture_id"),
+        no_inherit=True,
+    ),
+    "instrument_master_checkpoints_pkey": _primary_key(
+        "instrument_master_checkpoints",
+        "instrument_master_checkpoints_pkey",
+        "profile_version",
+        "source",
+    ),
+    "instrument_master_checkpoints_run_fkey": _ConstraintSpec(
+        "instrument_master_checkpoints",
+        "instrument_master_checkpoints_run_fkey",
+        "f",
+        ("run_id",),
+        "instrument_master_runs",
+        ("run_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_snapshots_run_fkey": _ConstraintSpec(
+        "instrument_master_snapshots",
+        "instrument_master_snapshots_run_fkey",
+        "f",
+        ("run_id",),
+        "instrument_master_runs",
+        ("run_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_snapshots_pkey": _primary_key(
+        "instrument_master_snapshots", "instrument_master_snapshots_pkey", "snapshot_id"
+    ),
+    "instrument_master_snapshots_run_uk": _ConstraintSpec(
+        "instrument_master_snapshots",
+        "instrument_master_snapshots_run_uk",
+        "u",
+        ("run_id",),
+        no_inherit=True,
+    ),
+    "instrument_master_revisions_snapshot_fkey": _ConstraintSpec(
+        "instrument_master_revisions",
+        "instrument_master_revisions_snapshot_fkey",
+        "f",
+        ("snapshot_id",),
+        "instrument_master_snapshots",
+        ("snapshot_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_revisions_payload_uk": _ConstraintSpec(
+        "instrument_master_revisions",
+        "instrument_master_revisions_payload_uk",
+        "u",
+        ("unified_code", "payload_fingerprint"),
+        no_inherit=True,
+    ),
+    "instrument_master_revisions_pkey": _primary_key(
+        "instrument_master_revisions", "instrument_master_revisions_pkey", "revision_id"
+    ),
+    "instrument_master_snapshot_revisions_pkey": _primary_key(
+        "instrument_master_snapshot_revisions",
+        "instrument_master_snapshot_revisions_pkey",
+        "snapshot_id",
+        "revision_id",
+    ),
+    "instrument_master_snapshot_revisions_snapshot_fkey": _ConstraintSpec(
+        "instrument_master_snapshot_revisions",
+        "instrument_master_snapshot_revisions_snapshot_fkey",
+        "f",
+        ("snapshot_id",),
+        "instrument_master_snapshots",
+        ("snapshot_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_snapshot_revisions_revision_fkey": _ConstraintSpec(
+        "instrument_master_snapshot_revisions",
+        "instrument_master_snapshot_revisions_revision_fkey",
+        "f",
+        ("revision_id",),
+        "instrument_master_revisions",
+        ("revision_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_snapshot_revisions_revision_uk": _ConstraintSpec(
+        "instrument_master_snapshot_revisions",
+        "instrument_master_snapshot_revisions_revision_uk",
+        "u",
+        ("snapshot_id", "ordinal"),
+        no_inherit=True,
+    ),
+    "instrument_master_heads_pkey": _primary_key(
+        "instrument_master_heads", "instrument_master_heads_pkey", "unified_code"
+    ),
+    "instrument_master_heads_revision_fkey": _ConstraintSpec(
+        "instrument_master_heads",
+        "instrument_master_heads_revision_fkey",
+        "f",
+        ("revision_id",),
+        "instrument_master_revisions",
+        ("revision_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_heads_revision_uk": _ConstraintSpec(
+        "instrument_master_heads",
+        "instrument_master_heads_revision_uk",
+        "u",
+        ("revision_id",),
+        no_inherit=True,
+    ),
+    "instrument_master_removal_candidates_pkey": _primary_key(
+        "instrument_master_removal_candidates",
+        "instrument_master_removal_candidates_pkey",
+        "candidate_id",
+    ),
+    "instrument_master_removal_candidates_run_fkey": _ConstraintSpec(
+        "instrument_master_removal_candidates",
+        "instrument_master_removal_candidates_run_fkey",
+        "f",
+        ("run_id",),
+        "instrument_master_runs",
+        ("run_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_removal_candidates_prior_fkey": _ConstraintSpec(
+        "instrument_master_removal_candidates",
+        "instrument_master_removal_candidates_prior_fkey",
+        "f",
+        ("prior_revision_id",),
+        "instrument_master_revisions",
+        ("revision_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_audit_pkey": _primary_key(
+        "instrument_master_audit", "instrument_master_audit_pkey", "audit_id"
+    ),
+    "instrument_master_audit_run_fkey": _ConstraintSpec(
+        "instrument_master_audit",
+        "instrument_master_audit_run_fkey",
+        "f",
+        ("run_id",),
+        "instrument_master_runs",
+        ("run_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_audit_snapshot_fkey": _ConstraintSpec(
+        "instrument_master_audit",
+        "instrument_master_audit_snapshot_fkey",
+        "f",
+        ("snapshot_id",),
+        "instrument_master_snapshots",
+        ("snapshot_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_audit_before_fkey": _ConstraintSpec(
+        "instrument_master_audit",
+        "instrument_master_audit_before_fkey",
+        "f",
+        ("before_revision_id",),
+        "instrument_master_revisions",
+        ("revision_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+    "instrument_master_audit_after_fkey": _ConstraintSpec(
+        "instrument_master_audit",
+        "instrument_master_audit_after_fkey",
+        "f",
+        ("after_revision_id",),
+        "instrument_master_revisions",
+        ("revision_id",),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    ),
+}
+
+_INSTRUMENT_MASTER_CHECK_CONSTRAINTS = frozenset(
+    {
+        "instrument_master_runs_source_ck",
+        "instrument_master_runs_profile_ck",
+        "instrument_master_runs_schema_ck",
+        "instrument_master_runs_parser_ck",
+        "instrument_master_runs_manifest_capture_ck",
+        "instrument_master_runs_manifest_object_ck",
+        "instrument_master_runs_terminal_ck",
+        "instrument_master_runs_completeness_ck",
+        "instrument_master_runs_disposition_ck",
+        "instrument_master_runs_count_ck",
+        "instrument_master_runs_timeline_ck",
+        "instrument_master_raw_refs_ordinal_ck",
+        "instrument_master_raw_refs_kind_ck",
+        "instrument_master_raw_refs_api_ck",
+        "instrument_master_raw_refs_status_ck",
+        "instrument_master_raw_refs_market_ck",
+        "instrument_master_raw_refs_offset_ck",
+        "instrument_master_raw_refs_capture_ck",
+        "instrument_master_raw_refs_object_ck",
+        "instrument_master_raw_refs_status_code_ck",
+        "instrument_master_raw_refs_timeline_ck",
+        "instrument_master_raw_refs_count_ck",
+        "instrument_master_raw_refs_state_ck",
+        "instrument_master_checkpoints_profile_ck",
+        "instrument_master_checkpoints_source_ck",
+        "instrument_master_checkpoints_partition_ck",
+        "instrument_master_checkpoints_offset_ck",
+        "instrument_master_checkpoints_state_ck",
+        "instrument_master_snapshots_source_ck",
+        "instrument_master_snapshots_profile_ck",
+        "instrument_master_snapshots_terminal_ck",
+        "instrument_master_snapshots_completeness_ck",
+        "instrument_master_snapshots_disposition_ck",
+        "instrument_master_snapshots_timeline_ck",
+        "instrument_master_revisions_code_ck",
+        "instrument_master_revisions_exchange_ck",
+        "instrument_master_revisions_board_ck",
+        "instrument_master_revisions_type_ck",
+        "instrument_master_revisions_lifecycle_ck",
+        "instrument_master_revisions_availability_ck",
+        "instrument_master_revisions_dates_ck",
+        "instrument_master_revisions_timeline_ck",
+        "instrument_master_revisions_source_ck",
+        "instrument_master_revisions_evidence_ck",
+        "instrument_master_revisions_fingerprint_ck",
+        "instrument_master_snapshot_revisions_ordinal_ck",
+        "instrument_master_heads_code_ck",
+        "instrument_master_removal_candidates_code_ck",
+        "instrument_master_removal_candidates_status_ck",
+        "instrument_master_removal_candidates_evidence_ck",
+        "instrument_master_audit_action_ck",
+        "instrument_master_audit_code_ck",
+        "instrument_master_audit_details_ck",
+    }
+)
+
+_INSTRUMENT_MASTER_CONSTRAINTS = frozenset(
+    {*_INSTRUMENT_MASTER_KEY_CONSTRAINTS, *_INSTRUMENT_MASTER_CHECK_CONSTRAINTS}
+)
+
+_INSTRUMENT_MASTER_CHECK_TOKENS: dict[str, tuple[str, ...]] = {
+    "instrument_master_runs_source_ck": ("source='tushare-instrument-master'",),
+    "instrument_master_runs_profile_ck": ("profile_version='tushare-instrument-profile-v1'",),
+    "instrument_master_runs_schema_ck": ("schema_version='tushare-instrument-raw-v1'",),
+    "instrument_master_runs_parser_ck": ("parser_version='tushare-instrument-parser-v1'",),
+    "instrument_master_runs_manifest_capture_ck": (
+        "manifest_capture_id~",
+        "^[a-za-z0-9][a-za-z0-9._:-]{0,127}$",
+    ),
+    "instrument_master_runs_manifest_object_ck": (
+        "manifest_object_id~",
+        "^[0-9a-f]{64}$",
+    ),
+    "instrument_master_runs_terminal_ck": (
+        "terminal=any(array['complete'",
+        "'indeterminate'",
+        "'failed'",
+    ),
+    "instrument_master_runs_completeness_ck": (
+        "completeness=any(array['complete'",
+        "'indeterminate'",
+        "'rejected'",
+    ),
+    "instrument_master_runs_disposition_ck": (
+        "disposition=any(array['snapshot_candidate'",
+        "'no_head_change'",
+        "'rejected'",
+    ),
+    "instrument_master_runs_count_ck": ("record_count>=0",),
+    "instrument_master_runs_timeline_ck": ("opened_at<=completed_at",),
+    "instrument_master_raw_refs_ordinal_ck": ("ordinal>=0",),
+    "instrument_master_raw_refs_kind_ck": ("ref_kind=any(array['page'", "'attempt'"),
+    "instrument_master_raw_refs_api_ck": ("api_name=any(array['stock_basic'", "'fund_basic'"),
+    "instrument_master_raw_refs_status_ck": ("status_partition=any(array['l'", "'p'", "'d'"),
+    "instrument_master_raw_refs_market_ck": (
+        "api_name='stock_basic'",
+        "market_partitionisnull",
+        "api_name='fund_basic'",
+        "market_partition='e'",
+    ),
+    "instrument_master_raw_refs_offset_ck": ("offset_value>=0",),
+    "instrument_master_raw_refs_capture_ck": (
+        "capture_id~",
+        "^[a-za-z0-9][a-za-z0-9._:-]{0,127}$",
+    ),
+    "instrument_master_raw_refs_object_ck": ("object_id~'^[0-9a-f]{64}$'",),
+    "instrument_master_raw_refs_status_code_ck": ("status_code>=0", "status_code<=599"),
+    "instrument_master_raw_refs_timeline_ck": ("observed_at<=available_at",),
+    "instrument_master_raw_refs_count_ck": ("row_count>=0",),
+    "instrument_master_raw_refs_state_ck": (
+        "state=any(array['accepted_response'",
+        "'rejected_response'",
+        "'transport_error'",
+    ),
+    "instrument_master_checkpoints_profile_ck": (
+        "profile_version='tushare-instrument-profile-v1'",
+    ),
+    "instrument_master_checkpoints_source_ck": ("source='tushare-instrument-master'",),
+    "instrument_master_checkpoints_partition_ck": (
+        "partition_ordinal>=0",
+        "partition_ordinal<=4",
+    ),
+    "instrument_master_checkpoints_offset_ck": ("next_offset>=0",),
+    "instrument_master_checkpoints_state_ck": (
+        "state=any(array['active'",
+        "'complete'",
+        "'indeterminate'",
+        "'failed'",
+    ),
+    "instrument_master_snapshots_source_ck": ("source='tushare-instrument-master'",),
+    "instrument_master_snapshots_profile_ck": ("profile_version='tushare-instrument-profile-v1'",),
+    "instrument_master_snapshots_terminal_ck": (
+        "terminal=any(array['complete'",
+        "'indeterminate'",
+    ),
+    "instrument_master_snapshots_completeness_ck": (
+        "completeness=any(array['complete'",
+        "'indeterminate'",
+        "'rejected'",
+    ),
+    "instrument_master_snapshots_disposition_ck": ("disposition=any(array['snapshot_candidate'",),
+    "instrument_master_snapshots_timeline_ck": ("available_at<=published_at",),
+    "instrument_master_revisions_code_ck": (
+        "unified_code~'^[0-9]{6}\\.(sh|sz|bj)$'",
+        "code~'^[0-9]{6}$'",
+        '"substring"(unified_code,1,6)=code',
+        '"substring"(unified_code,8,2)=exchange',
+    ),
+    "instrument_master_revisions_exchange_ck": (
+        "exchange=any(array['sh'",
+        "'sz'",
+        "'bj'",
+    ),
+    "instrument_master_revisions_board_ck": (
+        "board=any(array['main'",
+        "'chinext'",
+        "'star'",
+        "'bse'",
+    ),
+    "instrument_master_revisions_type_ck": (
+        "security_type=any(array['stock'",
+        "'etf'",
+        "'lof'",
+        "'fund'",
+    ),
+    "instrument_master_revisions_lifecycle_ck": (
+        "listing_lifecycle=any(array['pre_listing'",
+        "'listed'",
+        "'delisted'",
+        "'unknown'",
+    ),
+    "instrument_master_revisions_availability_ck": (
+        "trading_availability=any(array['active'",
+        "'suspended_full_day'",
+        "'suspended_partial'",
+        "'unknown'",
+    ),
+    "instrument_master_revisions_dates_ck": (
+        "delist_dateisnull",
+        "list_dateisnull",
+        "list_date<=delist_date",
+    ),
+    "instrument_master_revisions_timeline_ck": ("observed_at<=available_at",),
+    "instrument_master_revisions_source_ck": ("source='tushare-instrument-master'",),
+    "instrument_master_revisions_evidence_ck": (
+        "evidence_ref~",
+        "^[a-za-z0-9][a-za-z0-9._:-]{0,127}$",
+    ),
+    "instrument_master_revisions_fingerprint_ck": ("payload_fingerprint~'^[0-9a-f]{64}$'",),
+    "instrument_master_snapshot_revisions_ordinal_ck": ("ordinal>=0",),
+    "instrument_master_heads_code_ck": ("unified_code~'^[0-9]{6}\\.(sh|sz|bj)$'",),
+    "instrument_master_removal_candidates_code_ck": ("unified_code~'^[0-9]{6}\\.(sh|sz|bj)$'",),
+    "instrument_master_removal_candidates_status_ck": (
+        "status=any(array['removal_candidate'",
+        "'indeterminate'",
+        "'reviewed'",
+    ),
+    "instrument_master_removal_candidates_evidence_ck": (
+        "evidence_refisnull",
+        "evidence_ref~",
+        "^[a-za-z0-9][a-za-z0-9._:-]{0,127}$",
+    ),
+    "instrument_master_audit_action_ck": (
+        "action=any(array['run_accepted'",
+        "'run_rejected'",
+        "'snapshot_published'",
+        "'revision_added'",
+        "'removal_candidate'",
+        "'duplicate'",
+        "'conflict'",
+    ),
+    "instrument_master_audit_code_ck": (
+        "unified_codeisnull",
+        "unified_code~'^[0-9]{6}\\.(sh|sz|bj)$'",
+    ),
+    "instrument_master_audit_details_ck": ("jsonb_typeof(details)='object'",),
+}
+
+
+def _instrument_master_tables(cursor: Any) -> set[str]:
+    cursor.execute(
+        "SELECT c.relname FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "WHERE n.nspname = pg_catalog.current_schema() AND c.relkind IN ('r', 'p') "
+        "AND c.relname LIKE 'instrument_master_%'"
+    )
+    return {str(row[0]) for row in cursor.fetchall()}
+
+
+def _instrument_master_publisher_body(schema_name: str) -> str:
+    escaped_schema = schema_name.replace("'", "''")
+    return _canonical_function_body(
+        f"""
+        DECLARE
+            revision_code TEXT;
+            target_schema CONSTANT TEXT := '{escaped_schema}';
+        BEGIN
+            EXECUTE pg_catalog.format(
+                'SELECT unified_code FROM %I.instrument_master_revisions WHERE revision_id = $1',
+                target_schema
+            ) INTO revision_code USING p_revision_id;
+            IF revision_code IS NULL OR revision_code IS DISTINCT FROM p_unified_code THEN
+                RAISE EXCEPTION 'instrument master revision identity mismatch';
+            END IF;
+            EXECUTE pg_catalog.format(
+                'INSERT INTO %I.instrument_master_heads (unified_code, revision_id) '
+                'VALUES ($1, $2) ON CONFLICT (unified_code) DO UPDATE '
+                'SET revision_id = EXCLUDED.revision_id, updated_at = CURRENT_TIMESTAMP',
+                target_schema
+            ) USING p_unified_code, p_revision_id;
+        END;
+        """
+    )
+
+
+def _verify_instrument_master_tables_and_columns(cursor: Any, schema_name: str) -> None:
+    tables = tuple(_INSTRUMENT_MASTER_REQUIRED_COLUMNS)
+    if _instrument_master_tables(cursor) != set(tables):
+        raise ValueError("instrument master schema drift: table set mismatch")
+
+    placeholders = ", ".join("%s" for _ in tables)
+    cursor.execute(
+        "SELECT c.relname, c.relkind, c.relpersistence, c.relrowsecurity, "
+        "c.relforcerowsecurity, c.relispartition "
+        "FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "WHERE n.nspname = %s "
+        f"AND c.relname IN ({placeholders})",
+        (schema_name, *tables),
+    )
+    relation_rows = cursor.fetchall()
+    if len(relation_rows) != len(tables):
+        raise ValueError("instrument master schema drift: relation set mismatch")
+    for row in relation_rows:
+        if str(row[1]) != "r" or str(row[2]) != "p" or bool(row[3]) or bool(row[4]) or bool(row[5]):
+            raise ValueError(f"instrument master schema drift: relation {row[0]}")
+
+    cursor.execute(
+        "SELECT table_name, column_name FROM information_schema.columns "
+        "WHERE table_schema = %s "
+        f"AND table_name IN ({placeholders}) ORDER BY table_name, ordinal_position",
+        (schema_name, *tables),
+    )
+    actual: dict[str, list[str]] = {}
+    for table, column in cursor.fetchall():
+        actual.setdefault(str(table), []).append(str(column))
+    if set(actual) != set(tables):
+        raise ValueError("instrument master schema drift: table set mismatch")
+    for table, expected_columns in _INSTRUMENT_MASTER_REQUIRED_COLUMNS.items():
+        if tuple(actual.get(table, ())) != expected_columns:
+            raise ValueError(f"instrument master schema drift in {table}")
+
+    cursor.execute(
+        "SELECT c.relname, a.attname FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "JOIN pg_catalog.pg_attribute AS a ON a.attrelid = c.oid "
+        "WHERE n.nspname = %s AND c.relname LIKE 'instrument_master_%%' "
+        "AND a.attnum > 0 AND a.attisdropped",
+        (schema_name,),
+    )
+    if cursor.fetchall():
+        raise ValueError("instrument master schema drift: dropped column")
+
+    # Defaults are part of the evidence boundary: timestamps are generated by
+    # the database, while the audit actor is always the trusted SQL function.
+    expected_defaults = {
+        ("instrument_master_checkpoints", "updated_at"): "current_timestamp",
+        ("instrument_master_revisions", "created_at"): "current_timestamp",
+        ("instrument_master_heads", "updated_at"): "current_timestamp",
+        ("instrument_master_removal_candidates", "created_at"): "current_timestamp",
+        ("instrument_master_audit", "actor"): "instrument_master_current_actor",
+        ("instrument_master_audit", "created_at"): "current_timestamp",
+    }
+    cursor.execute(
+        "SELECT table_name, column_name, column_default "
+        "FROM information_schema.columns WHERE table_schema = %s "
+        f"AND table_name IN ({placeholders}) ORDER BY table_name, ordinal_position",
+        (schema_name, *tables),
+    )
+    for table, column, default in cursor.fetchall():
+        expected = expected_defaults.get((str(table), str(column)))
+        actual_default = _canonical_catalog_expression(default)
+        if expected is None:
+            if actual_default is not None:
+                raise ValueError(f"instrument master schema drift: default {table}.{column}")
+        elif actual_default != expected:
+            raise ValueError(f"instrument master schema drift: default {table}.{column}")
+
+
+def _verify_instrument_master_constraints(cursor: Any, schema_name: str) -> None:
+    tables = tuple(_INSTRUMENT_MASTER_REQUIRED_COLUMNS)
+    placeholders = ", ".join("%s" for _ in tables)
+    cursor.execute(
+        "SELECT n.nspname, c.relname, con.conname, con.contype, con.conkey, con.confkey, "
+        "rc.relname, rn.nspname, con.confmatchtype, con.confupdtype, con.confdeltype, "
+        "con.condeferrable, con.condeferred, con.convalidated, con.connoinherit, "
+        "pg_catalog.pg_get_constraintdef(con.oid, TRUE) "
+        "FROM pg_catalog.pg_constraint AS con "
+        "JOIN pg_catalog.pg_class AS c ON c.oid = con.conrelid "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "LEFT JOIN pg_catalog.pg_class AS rc ON rc.oid = con.confrelid "
+        "LEFT JOIN pg_catalog.pg_namespace AS rn ON rn.oid = rc.relnamespace "
+        "WHERE n.nspname = %s "
+        f"AND c.relname IN ({placeholders})",
+        (schema_name, *tables),
+    )
+    rows = cursor.fetchall()
+    attributes = _catalog_attribute_names(cursor, tables)
+    actual_names = {(str(row[0]), str(row[1]), str(row[2])) for row in rows}
+    expected_names = {
+        (schema_name, spec.table, name) for name, spec in _INSTRUMENT_MASTER_KEY_CONSTRAINTS.items()
+    }
+    # Check constraints carry the table prefix in their names.  Resolve the
+    # table explicitly instead of trusting a name-only catalog lookup.
+    for name in _INSTRUMENT_MASTER_CHECK_CONSTRAINTS:
+        matching_tables = tuple(table for table in tables if name.startswith(f"{table}_"))
+        if len(matching_tables) != 1:
+            raise ValueError(f"instrument master schema drift: constraint mapping {name}")
+        expected_names.add((schema_name, matching_tables[0], name))
+    if actual_names != expected_names:
+        raise ValueError("instrument master schema drift: constraint set mismatch")
+
+    actual_keys: dict[str, tuple[object, ...]] = {}
+    for row in rows:
+        (
+            row_schema,
+            table,
+            name,
+            constraint_type,
+            conkey,
+            confkey,
+            referenced_table,
+            referenced_schema,
+            match_type,
+            update_action,
+            delete_action,
+            deferrable,
+            deferred,
+            validated,
+            no_inherit,
+            definition,
+        ) = row
+        table_name = str(table)
+        columns = tuple(
+            attributes[table_name].get(attnum, f"<attnum:{attnum}>")
+            for attnum in _int_vector(conkey)
+        )
+        if referenced_table is None:
+            referenced_columns: tuple[str, ...] = ()
+        else:
+            referenced_attributes = attributes.get(str(referenced_table), {})
+            referenced_columns = tuple(
+                referenced_attributes.get(attnum, f"<attnum:{attnum}>")
+                for attnum in _int_vector(confkey)
+            )
+        actual_keys[str(name)] = (
+            str(row_schema),
+            table_name,
+            str(constraint_type),
+            columns,
+            str(referenced_table) if referenced_table is not None else None,
+            referenced_columns,
+            str(referenced_schema) if referenced_schema is not None else None,
+            str(match_type) if referenced_table is not None else None,
+            str(update_action) if referenced_table is not None else None,
+            str(delete_action) if referenced_table is not None else None,
+            bool(deferrable),
+            bool(deferred),
+            bool(validated),
+            bool(no_inherit),
+            _canonical_pg_definition(definition),
+        )
+
+    for name, expected in _INSTRUMENT_MASTER_KEY_CONSTRAINTS.items():
+        actual = actual_keys[name]
+        referenced_schema_matches = (
+            actual[6] == schema_name if expected.referenced_table is not None else actual[6] is None
+        )
+        if (
+            actual[0] != schema_name
+            or actual[1] != expected.table
+            or actual[2] != expected.contype
+            or actual[3] != expected.columns
+            or actual[4] != expected.referenced_table
+            or actual[5] != expected.referenced_columns
+            or not referenced_schema_matches
+            or actual[7] != expected.match_type
+            or actual[8] != expected.update_action
+            or actual[9] != expected.delete_action
+            or actual[10]
+            or actual[11]
+            or not actual[12]
+            or not actual[13]
+        ):
+            raise ValueError(f"instrument master schema drift: constraint {name}")
+
+    for name in _INSTRUMENT_MASTER_CHECK_CONSTRAINTS:
+        actual = actual_keys[name]
+        compact = "".join(str(actual[14]).split())
+        if (
+            actual[2] != "c"
+            or actual[10]
+            or actual[11]
+            or not actual[12]
+            or actual[13]
+            or any(token not in compact for token in _INSTRUMENT_MASTER_CHECK_TOKENS[name])
+        ):
+            raise ValueError(f"instrument master schema drift: constraint {name}")
+
+
+def _verify_instrument_master_indexes(cursor: Any, schema_name: str) -> None:
+    tables = tuple(_INSTRUMENT_MASTER_REQUIRED_COLUMNS)
+    placeholders = ", ".join("%s" for _ in tables)
+    expected_index_names = {
+        name
+        for name, spec in _INSTRUMENT_MASTER_KEY_CONSTRAINTS.items()
+        if spec.contype in {"p", "u"}
+    } | {"instrument_master_revisions_pit_idx"}
+    cursor.execute(
+        "SELECT n.nspname, c.relname, i.relname, i.relkind, i.relpersistence, "
+        "am.amname, ix.indisunique, ix.indisvalid, ix.indisready "
+        "FROM pg_catalog.pg_index AS ix "
+        "JOIN pg_catalog.pg_class AS c ON c.oid = ix.indrelid "
+        "JOIN pg_catalog.pg_class AS i ON i.oid = ix.indexrelid "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "JOIN pg_catalog.pg_am AS am ON am.oid = i.relam "
+        "WHERE n.nspname = %s "
+        f"AND c.relname IN ({placeholders})",
+        (schema_name, *tables),
+    )
+    rows = cursor.fetchall()
+    actual_index_names = {str(row[2]) for row in rows}
+    if actual_index_names != expected_index_names:
+        raise ValueError("instrument master schema drift: index set mismatch")
+    for row in rows:
+        if (
+            str(row[0]) != schema_name
+            or str(row[3]) != "i"
+            or str(row[4]) != "p"
+            or str(row[5]) != "btree"
+            or not bool(row[7])
+            or not bool(row[8])
+        ):
+            raise ValueError(f"instrument master schema drift: index {row[2]}")
+    cursor.execute(
+        "SELECT i.oid, c.relname, ix.indisunique, ix.indnkeyatts, ix.indnatts, "
+        "ix.indkey, ix.indoption, ix.indclass, ix.indcollation, ix.indnullsnotdistinct, "
+        "pg_catalog.pg_get_expr(ix.indpred, ix.indrelid), i.reloptions, ix.indisvalid, "
+        "ix.indisready, owner.conname "
+        "FROM pg_catalog.pg_index AS ix "
+        "JOIN pg_catalog.pg_class AS c ON c.oid = ix.indrelid "
+        "JOIN pg_catalog.pg_class AS i ON i.oid = ix.indexrelid "
+        "LEFT JOIN pg_catalog.pg_constraint AS owner "
+        "ON owner.conindid = i.oid AND owner.contype IN ('p', 'u') "
+        "WHERE c.relnamespace = pg_catalog.to_regnamespace(%s) "
+        "AND i.relname = 'instrument_master_revisions_pit_idx'",
+        (schema_name,),
+    )
+    pit = cursor.fetchone()
+    if pit is None:
+        raise ValueError("instrument master schema drift: PIT index missing")
+    (
+        index_oid,
+        table,
+        unique,
+        key_count,
+        total_count,
+        key_vector,
+        key_options,
+        opclass_vector,
+        collation_vector,
+        nulls_not_distinct,
+        predicate,
+        options,
+        valid,
+        ready,
+        owner,
+    ) = pit
+    attributes = _catalog_attribute_names(cursor, ("instrument_master_revisions",))
+    keys, included = _index_keys(
+        cursor,
+        int(index_oid),
+        "instrument_master_revisions",
+        key_vector,
+        int(key_count),
+        int(total_count),
+        attributes,
+    )
+    actual_opclasses = _index_opclass_specs(cursor, opclass_vector, int(key_count))
+    expected_keys = ("unified_code", "available_at", "created_at", "revision_id")
+    expected_opclasses = (
+        ("pg_catalog", "text_ops", "btree"),
+        ("pg_catalog", "timestamptz_ops", "btree"),
+        ("pg_catalog", "timestamptz_ops", "btree"),
+        ("pg_catalog", "uuid_ops", "btree"),
+    )
+    collations = _int_vector(collation_vector)
+    type_collations = _catalog_attribute_type_collations(cursor, ("instrument_master_revisions",))
+    expected_collations = tuple(
+        type_collations[("instrument_master_revisions", column)] for column in expected_keys
+    )
+    if (
+        str(table) != "instrument_master_revisions"
+        or bool(unique)
+        or int(key_count) != len(expected_keys)
+        or int(total_count) != len(expected_keys)
+        or keys != expected_keys
+        or included
+        or _int_vector(key_options) != (0,) * len(expected_keys)
+        or actual_opclasses != expected_opclasses
+        or collations != expected_collations
+        or bool(nulls_not_distinct)
+        or predicate is not None
+        or tuple(options or ())
+        or owner is not None
+        or not bool(valid)
+        or not bool(ready)
+    ):
+        raise ValueError("instrument master schema drift: PIT index definition")
+
+
+def _verify_instrument_master_schema(cursor: Any) -> None:  # pyright: ignore[reportUnusedFunction]
+    cursor.execute("SELECT pg_catalog.current_schema()")
+    schema_row = cursor.fetchone()
+    if schema_row is None or not str(schema_row[0]):
+        raise ValueError("instrument master schema drift: current schema unavailable")
+    schema_name = str(schema_row[0])
+    _verify_instrument_master_tables_and_columns(cursor, schema_name)
+    _verify_instrument_master_constraints(cursor, schema_name)
+    _verify_instrument_master_indexes(cursor, schema_name)
+
+    cursor.execute(
+        "SELECT p.oid, p.proname, p.pronargs, p.pronargdefaults, p.prokind, "
+        "p.provolatile, p.prosecdef, p.proleakproof, p.proparallel, p.provariadic, "
+        "p.proconfig, p.prosrc, p.proacl, pg_catalog.pg_get_userbyid(p.proowner), "
+        "pg_catalog.pg_get_function_identity_arguments(p.oid), "
+        "pg_catalog.pg_get_function_result(p.oid), rt.typname, l.lanname "
+        "FROM pg_catalog.pg_proc AS p "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace "
+        "JOIN pg_catalog.pg_type AS rt ON rt.oid = p.prorettype "
+        "JOIN pg_catalog.pg_language AS l ON l.oid = p.prolang "
+        "WHERE n.nspname = %s AND p.proname LIKE 'instrument_master_%%'",
+        (schema_name,),
+    )
+    function_rows = cursor.fetchall()
+    if {str(row[1]) for row in function_rows} != set(_INSTRUMENT_MASTER_FUNCTIONS):
+        raise ValueError("instrument master schema drift: function set mismatch")
+    function_oids: dict[str, int] = {}
+    expected_function_specs = {
+        "instrument_master_history_immutable": (0, "v", False, "", "trigger", "plpgsql"),
+        "instrument_master_current_actor": (0, "s", False, "", "text", "sql"),
+        "instrument_master_audit_actor_immutable": (0, "v", False, "", "trigger", "plpgsql"),
+        "instrument_master_publish_head": (
+            2,
+            "v",
+            True,
+            "p_unified_code text, p_revision_id uuid",
+            "void",
+            "plpgsql",
+        ),
+    }
+    for row in function_rows:
+        (
+            function_oid,
+            function_name,
+            argument_count,
+            argument_defaults,
+            function_kind,
+            volatility,
+            security_definer,
+            leakproof,
+            parallel_safety,
+            variadic_oid,
+            configuration,
+            function_body,
+            _acl,
+            owner,
+            identity_arguments,
+            function_result,
+            return_type,
+            language,
+        ) = row
+        name = str(function_name)
+        (
+            expected_args,
+            expected_volatility,
+            expected_definer,
+            expected_identity,
+            expected_result,
+            expected_language,
+        ) = expected_function_specs[name]
+        if (
+            int(argument_count) != expected_args
+            or int(argument_defaults or 0) != 0
+            or str(function_kind) != "f"
+            or str(volatility) != expected_volatility
+            or bool(security_definer) != expected_definer
+            or bool(leakproof)
+            or str(parallel_safety) != "u"
+            or int(variadic_oid) != 0
+            or tuple(str(item) for item in (configuration or ())) != ("search_path=pg_catalog",)
+            or str(identity_arguments) != expected_identity
+            or str(function_result) != expected_result
+            or str(return_type) != expected_result
+            or str(language) != expected_language
+            or not str(owner)
+            or str(owner).lower() == "public"
+        ):
+            raise ValueError(f"instrument master schema drift: function {name}")
+        if name == "instrument_master_publish_head":
+            expected_body = _instrument_master_publisher_body(schema_name)
+        else:
+            expected_body = _canonical_function_body(_INSTRUMENT_MASTER_FUNCTION_BODIES[name])
+        if _canonical_function_body(function_body) != expected_body:
+            raise ValueError(f"instrument master schema drift: function {name}")
+        function_oids[name] = int(function_oid)
+
+    for name, function_oid in function_oids.items():
+        cursor.execute(
+            "SELECT pg_catalog.has_function_privilege('public', %s::pg_catalog.oid, 'EXECUTE')",
+            (function_oid,),
+        )
+        privilege_row = cursor.fetchone()
+        if privilege_row is None or bool(privilege_row[0]):
+            raise ValueError(f"instrument master schema drift: public execute {name}")
+
+    cursor.execute(
+        "SELECT c.relname, t.tgname, t.tgtype, t.tgenabled, t.tgdeferrable, "
+        "t.tginitdeferred, t.tgconstraint, t.tgfoid, p.proname, p.prokind, "
+        "rt.typname, l.lanname, t.tgnargs, t.tgargs, "
+        "pg_catalog.pg_get_expr(t.tgqual, t.tgrelid, TRUE) "
+        "FROM pg_catalog.pg_trigger AS t "
+        "JOIN pg_catalog.pg_class AS c ON c.oid = t.tgrelid "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "JOIN pg_catalog.pg_proc AS p ON p.oid = t.tgfoid "
+        "JOIN pg_catalog.pg_type AS rt ON rt.oid = p.prorettype "
+        "JOIN pg_catalog.pg_language AS l ON l.oid = p.prolang "
+        "WHERE n.nspname = %s AND c.relname LIKE 'instrument_master_%%' "
+        "AND NOT t.tgisinternal",
+        (schema_name,),
+    )
+    trigger_rows = cursor.fetchall()
+    expected_triggers = {
+        (name.removesuffix("_immutable"), name)
+        for name in _INSTRUMENT_MASTER_TRIGGERS
+        if name != "instrument_master_audit_actor_immutable"
+    } | {("instrument_master_audit", "instrument_master_audit_actor_immutable")}
+    actual_triggers = {(str(row[0]), str(row[1])) for row in trigger_rows}
+    if actual_triggers != expected_triggers:
+        raise ValueError("instrument master schema drift: immutable trigger set mismatch")
+    for row in trigger_rows:
+        (
+            _table,
+            name,
+            trigger_type,
+            enabled,
+            deferrable,
+            initially_deferred,
+            constraint_oid,
+            function_oid,
+            function_name,
+            function_kind,
+            return_type,
+            language,
+            argument_count,
+            arguments,
+            condition,
+        ) = row
+        expected_type = 7 if str(name) == "instrument_master_audit_actor_immutable" else 27
+        expected_function = (
+            "instrument_master_audit_actor_immutable"
+            if expected_type == 7
+            else "instrument_master_history_immutable"
+        )
+        try:
+            empty_arguments = bytes(arguments) == b""
+        except (TypeError, ValueError):
+            empty_arguments = False
+        if (
+            int(trigger_type) != expected_type
+            or str(enabled) != "O"
+            or bool(deferrable)
+            or bool(initially_deferred)
+            or int(constraint_oid) != 0
+            or int(function_oid) != function_oids[expected_function]
+            or str(function_name) != expected_function
+            or str(function_kind) != "f"
+            or str(return_type) != "trigger"
+            or str(language) != "plpgsql"
+            or int(argument_count) != 0
+            or not empty_arguments
+            or condition is not None
+        ):
+            raise ValueError(f"instrument master schema drift: trigger {name}")
+
+
+def verify_instrument_master_schema(connection: Connection[Any]) -> None:
+    """Compatibility alias for the private provider schema verifier."""
+
+    verify_instrument_master_provider_schema(connection)
+
+
+def apply_instrument_master_migration(connection: Connection[Any]) -> None:
+    """Explicit compatibility alias for the private provider migration."""
+
+    apply_instrument_master_provider_migration(connection)
+
+
 def apply_seat_collection_migration(connection: Connection[Any]) -> None:
     """Apply the seat schema as version 2 in the existing worker ledger."""
 
@@ -5637,7 +6843,12 @@ def apply_seat_collection_migration(connection: Connection[Any]) -> None:
 
 
 def apply_data_worker_migrations(connection: Connection[Any]) -> None:
-    """Apply only the shared V1-V4 data-worker migrations."""
+    """Apply only the shared V1-V4 data-worker migrations.
+
+    The Tushare instrument-master provider owns a separate schema and ledger;
+    callers must opt into :func:`apply_instrument_master_provider_migration`
+    explicitly.
+    """
 
     apply_precious_metals_migration(connection)
     apply_seat_collection_migration(connection)
@@ -5680,3 +6891,1890 @@ def apply_precious_metals_migration(connection: Connection[Any]) -> None:
 
 
 run_migration = apply_data_worker_migrations
+
+
+# ---------------------------------------------------------------------------
+# Private Tushare instrument-master provider migration
+# ---------------------------------------------------------------------------
+
+_PROVIDER_SCHEMA_RE = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
+_PROVIDER_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "tushare_instrument_master_schema_migrations": (
+        "version",
+        "name",
+        "checksum",
+        "applied_at",
+    ),
+    "tushare_instrument_master_runs": (
+        "run_id",
+        "source",
+        "profile_version",
+        "schema_version",
+        "parser_version",
+        "source_revision",
+        "manifest_date",
+        "manifest_capture_id",
+        "manifest_object_id",
+        "terminal",
+        "completeness",
+        "disposition",
+        "reason_code",
+        "record_count",
+        "opened_at",
+        "completed_at",
+    ),
+    "tushare_instrument_master_raw_refs": (
+        "run_id",
+        "ordinal",
+        "ref_kind",
+        "api_name",
+        "status_partition",
+        "market_partition",
+        "offset_value",
+        "capture_id",
+        "object_id",
+        "raw_date",
+        "request_identity",
+        "status_code",
+        "content_type",
+        "observed_at",
+        "available_at",
+        "row_count",
+        "state",
+        "source_revision",
+    ),
+    "tushare_instrument_master_checkpoints": (
+        "profile_version",
+        "source",
+        "partition_ordinal",
+        "next_offset",
+        "run_id",
+        "state",
+        "updated_at",
+    ),
+    "tushare_instrument_master_snapshots": (
+        "snapshot_id",
+        "run_id",
+        "source",
+        "profile_version",
+        "terminal",
+        "completeness",
+        "disposition",
+        "available_at",
+        "published_at",
+    ),
+    "tushare_instrument_master_revisions": (
+        "revision_id",
+        "snapshot_id",
+        "unified_code",
+        "code",
+        "exchange",
+        "board",
+        "security_type",
+        "name",
+        "listing_lifecycle",
+        "trading_availability",
+        "risk_tags",
+        "list_date",
+        "delist_date",
+        "observed_at",
+        "available_at",
+        "source",
+        "source_revision",
+        "evidence_ref",
+        "payload_fingerprint",
+        "created_at",
+    ),
+    "tushare_instrument_master_snapshot_revisions": (
+        "snapshot_id",
+        "revision_id",
+        "ordinal",
+    ),
+    "tushare_instrument_master_heads": (
+        "unified_code",
+        "revision_id",
+        "ordering_at",
+        "updated_at",
+    ),
+    "tushare_instrument_master_removal_candidates": (
+        "candidate_id",
+        "run_id",
+        "unified_code",
+        "prior_revision_id",
+        "reason",
+        "status",
+        "evidence_ref",
+        "created_at",
+    ),
+    "tushare_instrument_master_audit": (
+        "audit_id",
+        "run_id",
+        "snapshot_id",
+        "unified_code",
+        "action",
+        "before_revision_id",
+        "after_revision_id",
+        "details",
+        "actor",
+        "created_at",
+    ),
+}
+
+_PROVIDER_CONSTRAINTS = frozenset(
+    {
+        "tushare_instrument_master_schema_migrations_pkey",
+        "tushare_instrument_master_runs_pkey",
+        "tushare_instrument_master_runs_manifest_uk",
+        "tushare_instrument_master_runs_source_ck",
+        "tushare_instrument_master_runs_profile_ck",
+        "tushare_instrument_master_runs_schema_ck",
+        "tushare_instrument_master_runs_parser_ck",
+        "tushare_instrument_master_runs_manifest_capture_ck",
+        "tushare_instrument_master_runs_manifest_object_ck",
+        "tushare_instrument_master_runs_terminal_ck",
+        "tushare_instrument_master_runs_completeness_ck",
+        "tushare_instrument_master_runs_disposition_ck",
+        "tushare_instrument_master_runs_count_ck",
+        "tushare_instrument_master_runs_timeline_ck",
+        "tushare_instrument_master_raw_refs_pkey",
+        "tushare_instrument_master_raw_refs_run_fkey",
+        "tushare_instrument_master_raw_refs_ordinal_ck",
+        "tushare_instrument_master_raw_refs_kind_ck",
+        "tushare_instrument_master_raw_refs_api_ck",
+        "tushare_instrument_master_raw_refs_status_ck",
+        "tushare_instrument_master_raw_refs_market_ck",
+        "tushare_instrument_master_raw_refs_offset_ck",
+        "tushare_instrument_master_raw_refs_capture_ck",
+        "tushare_instrument_master_raw_refs_object_ck",
+        "tushare_instrument_master_raw_refs_status_code_ck",
+        "tushare_instrument_master_raw_refs_timeline_ck",
+        "tushare_instrument_master_raw_refs_count_ck",
+        "tushare_instrument_master_raw_refs_state_ck",
+        "tushare_instrument_master_raw_refs_capture_uk",
+        "tushare_instrument_master_checkpoints_pkey",
+        "tushare_instrument_master_checkpoints_run_fkey",
+        "tushare_instrument_master_checkpoints_profile_ck",
+        "tushare_instrument_master_checkpoints_source_ck",
+        "tushare_instrument_master_checkpoints_partition_ck",
+        "tushare_instrument_master_checkpoints_offset_ck",
+        "tushare_instrument_master_checkpoints_state_ck",
+        "tushare_instrument_master_snapshots_pkey",
+        "tushare_instrument_master_snapshots_run_uk",
+        "tushare_instrument_master_snapshots_run_fkey",
+        "tushare_instrument_master_snapshots_source_ck",
+        "tushare_instrument_master_snapshots_profile_ck",
+        "tushare_instrument_master_snapshots_terminal_ck",
+        "tushare_instrument_master_snapshots_completeness_ck",
+        "tushare_instrument_master_snapshots_disposition_ck",
+        "tushare_instrument_master_snapshots_timeline_ck",
+        "tushare_instrument_master_revisions_pkey",
+        "tushare_instrument_master_revisions_snapshot_fkey",
+        "tushare_instrument_master_revisions_code_ck",
+        "tushare_instrument_master_revisions_exchange_ck",
+        "tushare_instrument_master_revisions_board_ck",
+        "tushare_instrument_master_revisions_type_ck",
+        "tushare_instrument_master_revisions_lifecycle_ck",
+        "tushare_instrument_master_revisions_availability_ck",
+        "tushare_instrument_master_revisions_dates_ck",
+        "tushare_instrument_master_revisions_timeline_ck",
+        "tushare_instrument_master_revisions_source_ck",
+        "tushare_instrument_master_revisions_evidence_ck",
+        "tushare_instrument_master_revisions_fingerprint_ck",
+        "tushare_instrument_master_revisions_payload_uk",
+        "tushare_instrument_master_snapshot_revisions_pkey",
+        "tushare_instrument_master_snapshot_revisions_snapshot_fkey",
+        "tushare_instrument_master_snapshot_revisions_revision_fkey",
+        "tushare_instrument_master_snapshot_revisions_ordinal_ck",
+        "tushare_instrument_master_snapshot_revisions_revision_uk",
+        "tushare_instrument_master_heads_pkey",
+        "tushare_instrument_master_heads_revision_uk",
+        "tushare_instrument_master_heads_revision_fkey",
+        "tushare_instrument_master_heads_code_ck",
+        "tushare_instrument_master_removal_candidates_pkey",
+        "tushare_instrument_master_removal_candidates_run_fkey",
+        "tushare_instrument_master_removal_candidates_prior_fkey",
+        "tushare_instrument_master_removal_candidates_code_ck",
+        "tushare_instrument_master_removal_candidates_status_ck",
+        "tushare_instrument_master_removal_candidates_evidence_ck",
+        "tushare_instrument_master_audit_pkey",
+        "tushare_instrument_master_audit_run_fkey",
+        "tushare_instrument_master_audit_snapshot_fkey",
+        "tushare_instrument_master_audit_before_fkey",
+        "tushare_instrument_master_audit_after_fkey",
+        "tushare_instrument_master_audit_action_ck",
+        "tushare_instrument_master_audit_code_ck",
+        "tushare_instrument_master_audit_details_ck",
+    }
+)
+
+# Provider catalog contracts are intentionally declared independently from the
+# migration SQL.  The migration checksum tells us which resource was applied;
+# these constants prevent a drifted resource or a post-apply DDL edit from
+# teaching the verifier its own new shape.
+_PROVIDER_INTEGER_COLUMNS = frozenset(
+    {
+        "version",
+        "ordinal",
+        "record_count",
+        "row_count",
+        "offset_value",
+        "partition_ordinal",
+        "next_offset",
+        "status_code",
+    }
+)
+_PROVIDER_UUID_COLUMNS = frozenset(
+    {
+        "run_id",
+        "snapshot_id",
+        "revision_id",
+        "candidate_id",
+        "audit_id",
+        "prior_revision_id",
+        "before_revision_id",
+        "after_revision_id",
+    }
+)
+_PROVIDER_DATE_COLUMNS = frozenset({"manifest_date", "raw_date", "list_date", "delist_date"})
+_PROVIDER_TIMESTAMPTZ_COLUMNS = frozenset(
+    {
+        "applied_at",
+        "opened_at",
+        "completed_at",
+        "observed_at",
+        "available_at",
+        "published_at",
+        "ordering_at",
+        "updated_at",
+        "created_at",
+    }
+)
+_PROVIDER_CHAR64_COLUMNS = frozenset({"manifest_object_id", "object_id", "payload_fingerprint"})
+_PROVIDER_ARRAY_COLUMNS = frozenset({"risk_tags"})
+_PROVIDER_JSON_COLUMNS = frozenset({"details"})
+_PROVIDER_NULLABLE_COLUMNS = frozenset(
+    {
+        ("tushare_instrument_master_runs", "source_revision"),
+        ("tushare_instrument_master_raw_refs", "market_partition"),
+        ("tushare_instrument_master_raw_refs", "source_revision"),
+        ("tushare_instrument_master_revisions", "list_date"),
+        ("tushare_instrument_master_revisions", "delist_date"),
+        ("tushare_instrument_master_revisions", "source_revision"),
+        ("tushare_instrument_master_removal_candidates", "prior_revision_id"),
+        ("tushare_instrument_master_removal_candidates", "evidence_ref"),
+        ("tushare_instrument_master_audit", "snapshot_id"),
+        ("tushare_instrument_master_audit", "unified_code"),
+        ("tushare_instrument_master_audit", "before_revision_id"),
+        ("tushare_instrument_master_audit", "after_revision_id"),
+    }
+)
+_PROVIDER_COLUMN_DEFAULTS = {
+    ("tushare_instrument_master_checkpoints", "updated_at"): "current_timestamp",
+    ("tushare_instrument_master_revisions", "created_at"): "current_timestamp",
+    ("tushare_instrument_master_heads", "updated_at"): "current_timestamp",
+    ("tushare_instrument_master_removal_candidates", "created_at"): "current_timestamp",
+    ("tushare_instrument_master_audit", "actor"): "current_user",
+    ("tushare_instrument_master_audit", "created_at"): "current_timestamp",
+}
+
+
+def _provider_column_type(column: str) -> str:
+    if column in _PROVIDER_INTEGER_COLUMNS:
+        return "integer"
+    if column in _PROVIDER_UUID_COLUMNS:
+        return "uuid"
+    if column in _PROVIDER_DATE_COLUMNS:
+        return "date"
+    if column in _PROVIDER_TIMESTAMPTZ_COLUMNS:
+        return "timestamp with time zone"
+    if column in _PROVIDER_CHAR64_COLUMNS:
+        return "character(64)"
+    if column in _PROVIDER_ARRAY_COLUMNS:
+        return "text[]"
+    if column in _PROVIDER_JSON_COLUMNS:
+        return "jsonb"
+    return "text"
+
+
+def _provider_column_contract(
+    table: str,
+    column: str,
+) -> tuple[str, str, bool, str | None, str, str, tuple[str, str] | None]:
+    column_type = _provider_column_type(column)
+    collation = (
+        ("pg_catalog", "default") if column_type in {"text", "text[]", "character(64)"} else None
+    )
+    return (
+        column,
+        column_type,
+        (table, column) not in _PROVIDER_NULLABLE_COLUMNS,
+        _PROVIDER_COLUMN_DEFAULTS.get((table, column)),
+        "",
+        "",
+        collation,
+    )
+
+
+def _provider_fk(
+    table: str,
+    name: str,
+    column: str,
+    referenced_table: str,
+    referenced_column: str,
+) -> _ConstraintSpec:
+    return _ConstraintSpec(
+        table,
+        name,
+        "f",
+        (column,),
+        referenced_table,
+        (referenced_column,),
+        "s",
+        "r",
+        "r",
+        referenced_schema=_CURRENT_SCHEMA_SENTINEL,
+        no_inherit=True,
+    )
+
+
+_PROVIDER_KEY_CONSTRAINTS: dict[str, _ConstraintSpec] = {
+    "tushare_instrument_master_schema_migrations_pkey": _primary_key(
+        "tushare_instrument_master_schema_migrations",
+        "tushare_instrument_master_schema_migrations_pkey",
+        "version",
+    ),
+    "tushare_instrument_master_runs_pkey": _primary_key(
+        "tushare_instrument_master_runs", "tushare_instrument_master_runs_pkey", "run_id"
+    ),
+    "tushare_instrument_master_runs_manifest_uk": _ConstraintSpec(
+        "tushare_instrument_master_runs",
+        "tushare_instrument_master_runs_manifest_uk",
+        "u",
+        ("source", "manifest_capture_id"),
+        no_inherit=True,
+    ),
+    "tushare_instrument_master_raw_refs_pkey": _primary_key(
+        "tushare_instrument_master_raw_refs",
+        "tushare_instrument_master_raw_refs_pkey",
+        "run_id",
+        "ordinal",
+    ),
+    "tushare_instrument_master_raw_refs_run_fkey": _provider_fk(
+        "tushare_instrument_master_raw_refs",
+        "tushare_instrument_master_raw_refs_run_fkey",
+        "run_id",
+        "tushare_instrument_master_runs",
+        "run_id",
+    ),
+    "tushare_instrument_master_raw_refs_capture_uk": _ConstraintSpec(
+        "tushare_instrument_master_raw_refs",
+        "tushare_instrument_master_raw_refs_capture_uk",
+        "u",
+        ("run_id", "capture_id"),
+        no_inherit=True,
+    ),
+    "tushare_instrument_master_checkpoints_pkey": _primary_key(
+        "tushare_instrument_master_checkpoints",
+        "tushare_instrument_master_checkpoints_pkey",
+        "profile_version",
+        "source",
+    ),
+    "tushare_instrument_master_checkpoints_run_fkey": _provider_fk(
+        "tushare_instrument_master_checkpoints",
+        "tushare_instrument_master_checkpoints_run_fkey",
+        "run_id",
+        "tushare_instrument_master_runs",
+        "run_id",
+    ),
+    "tushare_instrument_master_snapshots_pkey": _primary_key(
+        "tushare_instrument_master_snapshots",
+        "tushare_instrument_master_snapshots_pkey",
+        "snapshot_id",
+    ),
+    "tushare_instrument_master_snapshots_run_uk": _ConstraintSpec(
+        "tushare_instrument_master_snapshots",
+        "tushare_instrument_master_snapshots_run_uk",
+        "u",
+        ("run_id",),
+        no_inherit=True,
+    ),
+    "tushare_instrument_master_snapshots_run_fkey": _provider_fk(
+        "tushare_instrument_master_snapshots",
+        "tushare_instrument_master_snapshots_run_fkey",
+        "run_id",
+        "tushare_instrument_master_runs",
+        "run_id",
+    ),
+    "tushare_instrument_master_revisions_pkey": _primary_key(
+        "tushare_instrument_master_revisions",
+        "tushare_instrument_master_revisions_pkey",
+        "revision_id",
+    ),
+    "tushare_instrument_master_revisions_snapshot_fkey": _provider_fk(
+        "tushare_instrument_master_revisions",
+        "tushare_instrument_master_revisions_snapshot_fkey",
+        "snapshot_id",
+        "tushare_instrument_master_snapshots",
+        "snapshot_id",
+    ),
+    "tushare_instrument_master_revisions_payload_uk": _ConstraintSpec(
+        "tushare_instrument_master_revisions",
+        "tushare_instrument_master_revisions_payload_uk",
+        "u",
+        ("unified_code", "payload_fingerprint"),
+        no_inherit=True,
+    ),
+    "tushare_instrument_master_snapshot_revisions_pkey": _primary_key(
+        "tushare_instrument_master_snapshot_revisions",
+        "tushare_instrument_master_snapshot_revisions_pkey",
+        "snapshot_id",
+        "revision_id",
+    ),
+    "tushare_instrument_master_snapshot_revisions_snapshot_fkey": _provider_fk(
+        "tushare_instrument_master_snapshot_revisions",
+        "tushare_instrument_master_snapshot_revisions_snapshot_fkey",
+        "snapshot_id",
+        "tushare_instrument_master_snapshots",
+        "snapshot_id",
+    ),
+    "tushare_instrument_master_snapshot_revisions_revision_fkey": _provider_fk(
+        "tushare_instrument_master_snapshot_revisions",
+        "tushare_instrument_master_snapshot_revisions_revision_fkey",
+        "revision_id",
+        "tushare_instrument_master_revisions",
+        "revision_id",
+    ),
+    "tushare_instrument_master_snapshot_revisions_revision_uk": _ConstraintSpec(
+        "tushare_instrument_master_snapshot_revisions",
+        "tushare_instrument_master_snapshot_revisions_revision_uk",
+        "u",
+        ("snapshot_id", "ordinal"),
+        no_inherit=True,
+    ),
+    "tushare_instrument_master_heads_pkey": _primary_key(
+        "tushare_instrument_master_heads", "tushare_instrument_master_heads_pkey", "unified_code"
+    ),
+    "tushare_instrument_master_heads_revision_uk": _ConstraintSpec(
+        "tushare_instrument_master_heads",
+        "tushare_instrument_master_heads_revision_uk",
+        "u",
+        ("revision_id",),
+        no_inherit=True,
+    ),
+    "tushare_instrument_master_heads_revision_fkey": _provider_fk(
+        "tushare_instrument_master_heads",
+        "tushare_instrument_master_heads_revision_fkey",
+        "revision_id",
+        "tushare_instrument_master_revisions",
+        "revision_id",
+    ),
+    "tushare_instrument_master_removal_candidates_pkey": _primary_key(
+        "tushare_instrument_master_removal_candidates",
+        "tushare_instrument_master_removal_candidates_pkey",
+        "candidate_id",
+    ),
+    "tushare_instrument_master_removal_candidates_run_fkey": _provider_fk(
+        "tushare_instrument_master_removal_candidates",
+        "tushare_instrument_master_removal_candidates_run_fkey",
+        "run_id",
+        "tushare_instrument_master_runs",
+        "run_id",
+    ),
+    "tushare_instrument_master_removal_candidates_prior_fkey": _provider_fk(
+        "tushare_instrument_master_removal_candidates",
+        "tushare_instrument_master_removal_candidates_prior_fkey",
+        "prior_revision_id",
+        "tushare_instrument_master_revisions",
+        "revision_id",
+    ),
+    "tushare_instrument_master_audit_pkey": _primary_key(
+        "tushare_instrument_master_audit", "tushare_instrument_master_audit_pkey", "audit_id"
+    ),
+    "tushare_instrument_master_audit_run_fkey": _provider_fk(
+        "tushare_instrument_master_audit",
+        "tushare_instrument_master_audit_run_fkey",
+        "run_id",
+        "tushare_instrument_master_runs",
+        "run_id",
+    ),
+    "tushare_instrument_master_audit_snapshot_fkey": _provider_fk(
+        "tushare_instrument_master_audit",
+        "tushare_instrument_master_audit_snapshot_fkey",
+        "snapshot_id",
+        "tushare_instrument_master_snapshots",
+        "snapshot_id",
+    ),
+    "tushare_instrument_master_audit_before_fkey": _provider_fk(
+        "tushare_instrument_master_audit",
+        "tushare_instrument_master_audit_before_fkey",
+        "before_revision_id",
+        "tushare_instrument_master_revisions",
+        "revision_id",
+    ),
+    "tushare_instrument_master_audit_after_fkey": _provider_fk(
+        "tushare_instrument_master_audit",
+        "tushare_instrument_master_audit_after_fkey",
+        "after_revision_id",
+        "tushare_instrument_master_revisions",
+        "revision_id",
+    ),
+}
+
+
+def _provider_check(expression: str) -> str:
+    return f"CHECK ({expression})"
+
+
+_PROVIDER_CHECK_CONSTRAINT_DEFINITIONS = {
+    "tushare_instrument_master_runs_source_ck": _provider_check(
+        "source = 'tushare-instrument-master'::text"
+    ),
+    "tushare_instrument_master_runs_profile_ck": _provider_check(
+        "profile_version = 'tushare-instrument-profile-v1'::text"
+    ),
+    "tushare_instrument_master_runs_schema_ck": _provider_check(
+        "schema_version = 'tushare-instrument-raw-v1'::text"
+    ),
+    "tushare_instrument_master_runs_parser_ck": _provider_check(
+        "parser_version = 'tushare-instrument-parser-v1'::text"
+    ),
+    "tushare_instrument_master_runs_manifest_capture_ck": _provider_check(
+        "manifest_capture_id ~ "
+        r"'^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'::text"
+    ),
+    "tushare_instrument_master_runs_manifest_object_ck": _provider_check(
+        "manifest_object_id ~ " r"'^[0-9a-f]{64}$'::text"
+    ),
+    "tushare_instrument_master_runs_terminal_ck": _provider_check(
+        "terminal = ANY (ARRAY['COMPLETE'::text, 'INDETERMINATE'::text, 'FAILED'::text])"
+    ),
+    "tushare_instrument_master_runs_completeness_ck": _provider_check(
+        "completeness = ANY (ARRAY['COMPLETE'::text, 'INDETERMINATE'::text, 'REJECTED'::text])"
+    ),
+    "tushare_instrument_master_runs_disposition_ck": _provider_check(
+        "disposition = ANY (ARRAY["
+        "'SNAPSHOT_CANDIDATE'::text, 'NO_HEAD_CHANGE'::text, 'REJECTED'::text])"
+    ),
+    "tushare_instrument_master_runs_count_ck": _provider_check("record_count >= 0"),
+    "tushare_instrument_master_runs_timeline_ck": _provider_check("opened_at <= completed_at"),
+    "tushare_instrument_master_raw_refs_ordinal_ck": _provider_check("ordinal >= 0"),
+    "tushare_instrument_master_raw_refs_kind_ck": _provider_check(
+        "ref_kind = ANY (ARRAY['PAGE'::text, 'ATTEMPT'::text])"
+    ),
+    "tushare_instrument_master_raw_refs_api_ck": _provider_check(
+        "api_name = ANY (ARRAY['stock_basic'::text, 'fund_basic'::text])"
+    ),
+    "tushare_instrument_master_raw_refs_status_ck": _provider_check(
+        "status_partition = ANY (ARRAY['L'::text, 'P'::text, 'D'::text])"
+    ),
+    "tushare_instrument_master_raw_refs_market_ck": _provider_check(
+        "api_name = 'stock_basic'::text AND market_partition IS NULL "
+        "OR api_name = 'fund_basic'::text AND market_partition = 'E'::text"
+    ),
+    "tushare_instrument_master_raw_refs_offset_ck": _provider_check("offset_value >= 0"),
+    "tushare_instrument_master_raw_refs_capture_ck": _provider_check(
+        "capture_id ~ " r"'^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'::text"
+    ),
+    "tushare_instrument_master_raw_refs_object_ck": _provider_check(
+        "object_id ~ " r"'^[0-9a-f]{64}$'::text"
+    ),
+    "tushare_instrument_master_raw_refs_status_code_ck": _provider_check(
+        "status_code >= 0 AND status_code <= 599"
+    ),
+    "tushare_instrument_master_raw_refs_timeline_ck": _provider_check(
+        "observed_at <= available_at"
+    ),
+    "tushare_instrument_master_raw_refs_count_ck": _provider_check("row_count >= 0"),
+    "tushare_instrument_master_raw_refs_state_ck": _provider_check(
+        "state = ANY (ARRAY["
+        "'ACCEPTED_RESPONSE'::text, 'REJECTED_RESPONSE'::text, 'TRANSPORT_ERROR'::text])"
+    ),
+    "tushare_instrument_master_checkpoints_profile_ck": _provider_check(
+        "profile_version = 'tushare-instrument-profile-v1'::text"
+    ),
+    "tushare_instrument_master_checkpoints_source_ck": _provider_check(
+        "source = 'tushare-instrument-master'::text"
+    ),
+    "tushare_instrument_master_checkpoints_partition_ck": _provider_check(
+        "partition_ordinal >= 0 AND partition_ordinal <= 4"
+    ),
+    "tushare_instrument_master_checkpoints_offset_ck": _provider_check("next_offset >= 0"),
+    "tushare_instrument_master_checkpoints_state_ck": _provider_check(
+        "state = ANY (ARRAY['ACTIVE'::text, 'COMPLETE'::text, "
+        "'INDETERMINATE'::text, 'FAILED'::text])"
+    ),
+    "tushare_instrument_master_snapshots_source_ck": _provider_check(
+        "source = 'tushare-instrument-master'::text"
+    ),
+    "tushare_instrument_master_snapshots_profile_ck": _provider_check(
+        "profile_version = 'tushare-instrument-profile-v1'::text"
+    ),
+    "tushare_instrument_master_snapshots_terminal_ck": _provider_check(
+        "terminal = ANY (ARRAY['COMPLETE'::text, 'INDETERMINATE'::text])"
+    ),
+    "tushare_instrument_master_snapshots_completeness_ck": _provider_check(
+        "completeness = ANY (ARRAY['COMPLETE'::text, 'INDETERMINATE'::text, 'REJECTED'::text])"
+    ),
+    "tushare_instrument_master_snapshots_disposition_ck": _provider_check(
+        "disposition = ANY (ARRAY["
+        "'SNAPSHOT_CANDIDATE'::text, 'NO_HEAD_CHANGE'::text, 'REJECTED'::text])"
+    ),
+    "tushare_instrument_master_snapshots_timeline_ck": _provider_check(
+        "available_at <= published_at"
+    ),
+    "tushare_instrument_master_revisions_code_ck": _provider_check(
+        "unified_code ~ "
+        r"'^[0-9]{6}\.(SH|SZ|BJ)$'::text AND "
+        r"code ~ '^[0-9]{6}$'::text AND "
+        '"substring"(unified_code, 1, 6) = code AND '
+        '"substring"(unified_code, 8, 2) = exchange'
+    ),
+    "tushare_instrument_master_revisions_exchange_ck": _provider_check(
+        "exchange = ANY (ARRAY['SH'::text, 'SZ'::text, 'BJ'::text])"
+    ),
+    "tushare_instrument_master_revisions_board_ck": _provider_check(
+        "board = ANY (ARRAY['MAIN'::text, 'CHINEXT'::text, 'STAR'::text, 'BSE'::text])"
+    ),
+    "tushare_instrument_master_revisions_type_ck": _provider_check(
+        "security_type = ANY (ARRAY['STOCK'::text, 'ETF'::text, 'LOF'::text, 'FUND'::text])"
+    ),
+    "tushare_instrument_master_revisions_lifecycle_ck": _provider_check(
+        "listing_lifecycle = ANY (ARRAY["
+        "'PRE_LISTING'::text, 'LISTED'::text, 'DELISTED'::text, 'UNKNOWN'::text])"
+    ),
+    "tushare_instrument_master_revisions_availability_ck": _provider_check(
+        "trading_availability = ANY (ARRAY["
+        "'ACTIVE'::text, 'SUSPENDED_FULL_DAY'::text, 'SUSPENDED_PARTIAL'::text, 'UNKNOWN'::text])"
+    ),
+    "tushare_instrument_master_revisions_dates_ck": _provider_check(
+        "delist_date IS NULL OR list_date IS NULL OR list_date <= delist_date"
+    ),
+    "tushare_instrument_master_revisions_timeline_ck": _provider_check(
+        "observed_at <= available_at"
+    ),
+    "tushare_instrument_master_revisions_source_ck": _provider_check(
+        "source = 'tushare-instrument-master'::text"
+    ),
+    "tushare_instrument_master_revisions_evidence_ck": _provider_check(
+        "evidence_ref ~ " r"'^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'::text"
+    ),
+    "tushare_instrument_master_revisions_fingerprint_ck": _provider_check(
+        "payload_fingerprint ~ " r"'^[0-9a-f]{64}$'::text"
+    ),
+    "tushare_instrument_master_snapshot_revisions_ordinal_ck": _provider_check("ordinal >= 0"),
+    "tushare_instrument_master_heads_code_ck": _provider_check(
+        "unified_code ~ " r"'^[0-9]{6}\.(SH|SZ|BJ)$'::text"
+    ),
+    "tushare_instrument_master_removal_candidates_code_ck": _provider_check(
+        "unified_code ~ " r"'^[0-9]{6}\.(SH|SZ|BJ)$'::text"
+    ),
+    "tushare_instrument_master_removal_candidates_status_ck": _provider_check(
+        "status = ANY (ARRAY['REMOVAL_CANDIDATE'::text, 'INDETERMINATE'::text, 'REVIEWED'::text])"
+    ),
+    "tushare_instrument_master_removal_candidates_evidence_ck": _provider_check(
+        "evidence_ref IS NULL OR evidence_ref ~ "
+        r"'^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'::text"
+    ),
+    "tushare_instrument_master_audit_action_ck": _provider_check(
+        "action = ANY (ARRAY["
+        "'RUN_ACCEPTED'::text, 'RUN_REJECTED'::text, 'SNAPSHOT_PUBLISHED'::text, "
+        "'REVISION_ADDED'::text, 'REMOVAL_CANDIDATE'::text, 'DUPLICATE'::text, "
+        "'CONFLICT'::text, 'OUT_OF_ORDER_BLOCKED'::text, 'ORDER_CONFLICT'::text])"
+    ),
+    "tushare_instrument_master_audit_code_ck": _provider_check(
+        "unified_code IS NULL OR unified_code ~ " r"'^[0-9]{6}\.(SH|SZ|BJ)$'::text"
+    ),
+    "tushare_instrument_master_audit_details_ck": _provider_check(
+        "jsonb_typeof(details) = 'object'::text"
+    ),
+}
+
+_PROVIDER_INDEXES = frozenset(
+    {name for name in _PROVIDER_CONSTRAINTS if name.endswith(("_pkey", "_uk"))}
+    | {"tushare_instrument_master_revisions_pit_idx"}
+)
+_PROVIDER_TRIGGER_TABLES = {
+    "tushare_instrument_master_runs_immutable": "tushare_instrument_master_runs",
+    "tushare_instrument_master_raw_refs_immutable": "tushare_instrument_master_raw_refs",
+    "tushare_instrument_master_snapshots_immutable": "tushare_instrument_master_snapshots",
+    "tushare_instrument_master_revisions_immutable": "tushare_instrument_master_revisions",
+    "tushare_instrument_master_snapshot_revisions_immutable": (
+        "tushare_instrument_master_snapshot_revisions"
+    ),
+    "tushare_instrument_master_removal_candidates_immutable": (
+        "tushare_instrument_master_removal_candidates"
+    ),
+    "tushare_instrument_master_audit_immutable": "tushare_instrument_master_audit",
+    "tushare_instrument_master_audit_actor_immutable": "tushare_instrument_master_audit",
+}
+_PROVIDER_FUNCTIONS = frozenset(
+    {
+        "tushare_instrument_master_history_immutable",
+        "tushare_instrument_master_current_actor",
+        "tushare_instrument_master_audit_actor_immutable",
+        "tushare_instrument_master_publish_head",
+    }
+)
+_DEFAULT_PROVIDER_ROLES = InstrumentMasterProviderRoles()
+
+
+def _provider_identifier(value: str, field_name: str) -> str:
+    if type(value) is not str or _PROVIDER_SCHEMA_RE.fullmatch(value) is None:
+        raise ValueError(f"{field_name} is invalid")
+    return value
+
+
+def _provider_schema_name(schema: str) -> str:
+    return _provider_identifier(schema, "provider schema")
+
+
+def _provider_roles(roles: InstrumentMasterProviderRoles) -> InstrumentMasterProviderRoles:
+    if type(roles) is not InstrumentMasterProviderRoles:
+        raise ValueError("provider role contract is invalid")
+    for field_name in ("owner", "migrator", "runtime", "reader"):
+        _provider_identifier(getattr(roles, field_name), f"provider role {field_name}")
+    if len({roles.owner, roles.migrator, roles.runtime, roles.reader}) != 4:
+        raise ValueError("provider role contract is invalid")
+    return roles
+
+
+def _provider_qualified(schema: str, table: str) -> str:
+    return f'"{_provider_schema_name(schema)}"."{table}"'
+
+
+def _render_instrument_master_provider_migration(
+    schema: str,
+    roles: InstrumentMasterProviderRoles,
+) -> str:
+    schema = _provider_schema_name(schema)
+    roles = _provider_roles(roles)
+    sql = INSTRUMENT_MASTER_PROVIDER_MIGRATION
+    sql = sql.replace(f'"{INSTRUMENT_MASTER_PROVIDER_SCHEMA}"', f'"{schema}"')
+    for default, actual in (
+        (INSTRUMENT_MASTER_PROVIDER_OWNER_ROLE, roles.owner),
+        (INSTRUMENT_MASTER_PROVIDER_MIGRATOR_ROLE, roles.migrator),
+        (INSTRUMENT_MASTER_PROVIDER_RUNTIME_ROLE, roles.runtime),
+        (INSTRUMENT_MASTER_PROVIDER_READER_ROLE, roles.reader),
+    ):
+        sql = sql.replace(default, actual)
+    return sql
+
+
+def _provider_legacy_prerequisite(
+    cursor: Any,
+    legacy_schema: str,
+    migrator: str,
+) -> None:
+    legacy_schema = _provider_schema_name(legacy_schema)
+    migrator = _provider_identifier(migrator, "provider role migrator")
+    expected = {
+        MIGRATION_VERSION: (MIGRATION_NAME, _migration_checksum()),
+        SEAT_MIGRATION_VERSION: (SEAT_MIGRATION_NAME, _seat_migration_checksum()),
+        CALENDAR_SNAPSHOT_MIGRATION_VERSION: (
+            CALENDAR_SNAPSHOT_MIGRATION_NAME,
+            _calendar_snapshot_migration_checksum(),
+        ),
+        OFFICIAL_CALENDAR_MIGRATION_VERSION: (
+            OFFICIAL_CALENDAR_MIGRATION_NAME,
+            _official_calendar_migration_checksum(),
+        ),
+    }
+    cursor.execute(
+        "SELECT to_regclass(%s)",
+        (f"{legacy_schema}.data_worker_schema_migrations",),
+    )
+    if cursor.fetchone()[0] is None:
+        raise ValueError("instrument master provider requires legacy V1-V4 ledger")
+    cursor.execute(
+        f'SELECT version, name, checksum FROM "{legacy_schema}".'
+        '"data_worker_schema_migrations" ORDER BY version'
+    )
+    rows = cursor.fetchall()
+    if len(rows) != len(expected):
+        raise ValueError("instrument master provider requires legacy V1-V4 ledger")
+    for row in rows:
+        version = int(row[0])
+        if version not in expected or tuple(str(item) for item in row[1:]) != expected[version]:
+            raise ValueError("instrument master legacy ledger drift")
+
+    # Bootstrap grants the dedicated migrator exactly the read access needed
+    # for this prerequisite. Verify direct ACLs as evidence; a broad grant or
+    # role membership must not silently widen the migration boundary.
+    cursor.execute(
+        "SELECT pg_catalog.pg_get_userbyid(n.nspowner) "
+        "FROM pg_catalog.pg_namespace AS n WHERE n.nspname = %s",
+        (legacy_schema,),
+    )
+    schema_owner_row = cursor.fetchone()
+    if schema_owner_row is None or schema_owner_row[0] is None:
+        raise ValueError("instrument master legacy schema ACL drift")
+    schema_owner = str(schema_owner_row[0])
+    _verify_provider_acl_entries(
+        _provider_acl_entries(
+            cursor,
+            "SELECT pg_catalog.pg_get_userbyid(x.grantor), "
+            "CASE WHEN x.grantee = 0 THEN 'PUBLIC' "
+            "ELSE pg_catalog.pg_get_userbyid(x.grantee) END, "
+            "x.privilege_type, x.is_grantable "
+            "FROM pg_catalog.pg_namespace AS n "
+            "CROSS JOIN LATERAL pg_catalog.aclexplode( "
+            "n.nspacl) AS x "
+            "WHERE n.nspname = %s",
+            (legacy_schema,),
+        ),
+        owner=schema_owner,
+        allowed={(migrator, "USAGE", False)},
+        subject="legacy schema",
+    )
+
+    cursor.execute(
+        "SELECT pg_catalog.pg_get_userbyid(c.relowner) "
+        "FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "WHERE n.nspname = %s AND c.relname = 'data_worker_schema_migrations' "
+        "AND c.relkind IN ('r', 'p')",
+        (legacy_schema,),
+    )
+    table_owner_row = cursor.fetchone()
+    if table_owner_row is None or table_owner_row[0] is None:
+        raise ValueError("instrument master legacy ledger ACL drift")
+    table_owner = str(table_owner_row[0])
+    _verify_provider_acl_entries(
+        _provider_acl_entries(
+            cursor,
+            "SELECT pg_catalog.pg_get_userbyid(x.grantor), "
+            "CASE WHEN x.grantee = 0 THEN 'PUBLIC' "
+            "ELSE pg_catalog.pg_get_userbyid(x.grantee) END, "
+            "x.privilege_type, x.is_grantable "
+            "FROM pg_catalog.pg_class AS c "
+            "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+            "CROSS JOIN LATERAL pg_catalog.aclexplode( "
+            "c.relacl) AS x "
+            "WHERE n.nspname = %s AND c.relname = 'data_worker_schema_migrations'",
+            (legacy_schema,),
+        ),
+        owner=table_owner,
+        allowed={(migrator, "SELECT", False)},
+        subject="legacy ledger",
+    )
+
+
+def _verify_provider_roles(cursor: Any, roles: InstrumentMasterProviderRoles) -> None:
+    role_names = (roles.owner, roles.migrator, roles.runtime, roles.reader)
+    placeholders = ", ".join("%s" for _ in role_names)
+    cursor.execute(
+        "SELECT rolname, rolcanlogin, rolinherit, rolsuper, rolcreaterole, "
+        "rolcreatedb, rolreplication, rolbypassrls "
+        f"FROM pg_catalog.pg_roles WHERE rolname IN ({placeholders})",
+        role_names,
+    )
+    rows = {str(row[0]): row for row in cursor.fetchall()}
+    if set(rows) != set(role_names):
+        raise ValueError("instrument master provider role contract drift")
+    expected_login = {
+        roles.owner: False,
+        roles.migrator: True,
+        roles.runtime: True,
+        roles.reader: False,
+    }
+    for name, row in rows.items():
+        if (
+            bool(row[1]) != expected_login[name]
+            or bool(row[2])
+            or bool(row[3])
+            or bool(row[4])
+            or bool(row[5])
+            or bool(row[6])
+            or bool(row[7])
+        ):
+            raise ValueError("instrument master provider role contract drift")
+    cursor.execute(
+        "SELECT member.rolname, granted.rolname, m.inherit_option, "
+        "m.set_option, m.admin_option "
+        "FROM pg_catalog.pg_auth_members AS m "
+        "JOIN pg_catalog.pg_roles AS member ON member.oid = m.member "
+        "JOIN pg_catalog.pg_roles AS granted ON granted.oid = m.roleid "
+        f"WHERE member.rolname IN ({placeholders}) "
+        f"OR granted.rolname IN ({placeholders})",
+        (*role_names, *role_names),
+    )
+    memberships = {
+        (str(row[0]), str(row[1]), bool(row[2]), bool(row[3]), bool(row[4]))
+        for row in cursor.fetchall()
+    }
+    if memberships != {(roles.migrator, roles.owner, False, True, False)}:
+        raise ValueError("instrument master provider role membership drift")
+
+
+def _provider_relation_names(cursor: Any, schema: str) -> set[str]:
+    cursor.execute(
+        "SELECT c.relname FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "WHERE n.nspname = %s AND c.relkind IN ('r', 'p')",
+        (schema,),
+    )
+    return {str(row[0]) for row in cursor.fetchall()}
+
+
+def _verify_provider_columns(cursor: Any, schema: str) -> None:
+    tables = tuple(_PROVIDER_TABLE_COLUMNS)
+    placeholders = ", ".join("%s" for _ in tables)
+    cursor.execute(
+        "SELECT c.relname, a.attname, "
+        "pg_catalog.format_type(a.atttypid, a.atttypmod), a.attnotnull, "
+        "pg_catalog.pg_get_expr(ad.adbin, ad.adrelid), a.attidentity, "
+        "a.attgenerated, cn.nspname, co.collname "
+        "FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "JOIN pg_catalog.pg_attribute AS a ON a.attrelid = c.oid "
+        "LEFT JOIN pg_catalog.pg_attrdef AS ad "
+        "ON ad.adrelid = a.attrelid AND ad.adnum = a.attnum "
+        "LEFT JOIN pg_catalog.pg_collation AS co ON co.oid = a.attcollation "
+        "LEFT JOIN pg_catalog.pg_namespace AS cn ON cn.oid = co.collnamespace "
+        "WHERE n.nspname = %s "
+        f"AND c.relname IN ({placeholders}) "
+        "AND c.relkind IN ('r', 'p') "
+        "AND a.attnum > 0 AND NOT a.attisdropped "
+        "ORDER BY c.relname, a.attnum",
+        (schema, *tables),
+    )
+    actual: dict[str, list[tuple[object, ...]]] = {}
+    for row in cursor.fetchall():
+        actual.setdefault(str(row[0]), []).append(tuple(row[1:]))
+    if set(actual) != set(tables):
+        raise ValueError("instrument master provider schema drift: columns")
+    for table, expected_columns in _PROVIDER_TABLE_COLUMNS.items():
+        expected = [_provider_column_contract(table, column) for column in expected_columns]
+        observed: list[tuple[object, ...]] = []
+        for row in actual[table]:
+            (
+                column,
+                column_type,
+                not_null,
+                default,
+                identity,
+                generated,
+                collation_schema,
+                collation_name,
+            ) = row
+            observed.append(
+                (
+                    str(column),
+                    str(column_type),
+                    bool(not_null),
+                    _canonical_catalog_expression(default),
+                    str(identity),
+                    str(generated),
+                    (
+                        (str(collation_schema), str(collation_name))
+                        if collation_schema is not None and collation_name is not None
+                        else None
+                    ),
+                )
+            )
+        if observed != expected:
+            raise ValueError(f"instrument master provider schema drift: columns {table}")
+
+    cursor.execute(
+        "SELECT c.relname, a.attname "
+        "FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "JOIN pg_catalog.pg_attribute AS a ON a.attrelid = c.oid "
+        "WHERE n.nspname = %s "
+        f"AND c.relname IN ({placeholders}) "
+        "AND a.attnum > 0 AND a.attisdropped",
+        (schema, *tables),
+    )
+    if cursor.fetchall():
+        raise ValueError("instrument master provider schema drift: dropped column")
+
+
+def _verify_provider_relations(
+    cursor: Any, schema: str, roles: InstrumentMasterProviderRoles
+) -> None:
+    cursor.execute(
+        "SELECT n.nspname, c.relname, c.relkind, c.relpersistence, c.relrowsecurity, "
+        "c.relforcerowsecurity, pg_catalog.pg_get_userbyid(c.relowner) "
+        "FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "WHERE n.nspname = %s AND c.relkind NOT IN ('i', 'I')",
+        (schema,),
+    )
+    rows = cursor.fetchall()
+    if {str(row[1]) for row in rows} != set(_PROVIDER_TABLE_COLUMNS):
+        raise ValueError("instrument master provider schema drift: table set")
+    for row in rows:
+        if (
+            str(row[0]) != schema
+            or str(row[2]) != "r"
+            or str(row[3]) != "p"
+            or bool(row[4])
+            or bool(row[5])
+            or str(row[6]) != roles.owner
+        ):
+            raise ValueError(f"instrument master provider schema drift: relation {row[1]}")
+    _verify_provider_columns(cursor, schema)
+
+
+def _provider_attribute_name_map(
+    cursor: Any,
+    schema: str,
+    tables: tuple[str, ...],
+) -> dict[str, dict[int, str]]:
+    placeholders = ", ".join("%s" for _ in tables)
+    cursor.execute(
+        "SELECT c.relname, a.attnum, a.attname "
+        "FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "JOIN pg_catalog.pg_attribute AS a ON a.attrelid = c.oid "
+        "WHERE n.nspname = %s "
+        f"AND c.relname IN ({placeholders}) "
+        "AND a.attnum > 0 AND NOT a.attisdropped",
+        (schema, *tables),
+    )
+    rows = cursor.fetchall()
+    actual: dict[str, dict[int, str]] = {table: {} for table in tables}
+    for table, attnum, name in rows:
+        actual[str(table)][int(attnum)] = str(name)
+    return actual
+
+
+def _provider_attribute_collations(
+    cursor: Any,
+    schema: str,
+    tables: tuple[str, ...],
+) -> dict[tuple[str, str], int]:
+    placeholders = ", ".join("%s" for _ in tables)
+    cursor.execute(
+        "SELECT c.relname, a.attname, a.attcollation "
+        "FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "JOIN pg_catalog.pg_attribute AS a ON a.attrelid = c.oid "
+        "WHERE n.nspname = %s "
+        f"AND c.relname IN ({placeholders}) "
+        "AND a.attnum > 0 AND NOT a.attisdropped",
+        (schema, *tables),
+    )
+    return {
+        (str(table), str(column)): int(collation) for table, column, collation in cursor.fetchall()
+    }
+
+
+def _provider_constraint_actual(
+    row: tuple[object, ...],
+    attributes: dict[str, dict[int, str]],
+) -> _ConstraintSpec:
+    (
+        _row_schema,
+        table,
+        name,
+        constraint_type,
+        conkey,
+        confkey,
+        referenced_table,
+        referenced_schema,
+        match_type,
+        update_action,
+        delete_action,
+        _deferrable,
+        _deferred,
+        _validated,
+        _no_inherit,
+        _is_local,
+        _inherit_count,
+        _definition,
+    ) = row
+    table_name = str(table)
+    columns = tuple(
+        attributes[table_name].get(attnum, f"<attnum:{attnum}>") for attnum in _int_vector(conkey)
+    )
+    referenced_name = str(referenced_table) if referenced_table is not None else None
+    referenced_columns = ()
+    if referenced_name is not None:
+        referenced_columns = tuple(
+            attributes.get(referenced_name, {}).get(attnum, f"<attnum:{attnum}>")
+            for attnum in _int_vector(confkey)
+        )
+    return _ConstraintSpec(
+        table_name,
+        str(name),
+        str(constraint_type),
+        columns,
+        referenced_name,
+        referenced_columns,
+        str(match_type) if referenced_name is not None else None,
+        str(update_action) if referenced_name is not None else None,
+        str(delete_action) if referenced_name is not None else None,
+        referenced_schema=str(referenced_schema) if referenced_schema is not None else None,
+        no_inherit=bool(_no_inherit),
+    )
+
+
+def _provider_index_opclass(column: str) -> tuple[str, str, str]:
+    return {
+        "text": ("pg_catalog", "text_ops", "btree"),
+        "character(64)": ("pg_catalog", "bpchar_ops", "btree"),
+        "uuid": ("pg_catalog", "uuid_ops", "btree"),
+        "integer": ("pg_catalog", "int4_ops", "btree"),
+        "timestamp with time zone": ("pg_catalog", "timestamptz_ops", "btree"),
+    }[_provider_column_type(column)]
+
+
+def _verify_provider_constraints_and_indexes(cursor: Any, schema: str) -> None:
+    tables = tuple(_PROVIDER_TABLE_COLUMNS)
+    placeholders = ", ".join("%s" for _ in tables)
+    cursor.execute(
+        "SELECT n.nspname, c.relname, con.conname, con.contype, con.conkey, con.confkey, "
+        "rc.relname, rn.nspname, con.confmatchtype, con.confupdtype, con.confdeltype, "
+        "con.condeferrable, con.condeferred, con.convalidated, con.connoinherit, "
+        "con.conislocal, con.coninhcount, pg_catalog.pg_get_constraintdef(con.oid, TRUE) "
+        "FROM pg_catalog.pg_constraint AS con "
+        "JOIN pg_catalog.pg_class AS c ON c.oid = con.conrelid "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "LEFT JOIN pg_catalog.pg_class AS rc ON rc.oid = con.confrelid "
+        "LEFT JOIN pg_catalog.pg_namespace AS rn ON rn.oid = rc.relnamespace "
+        "WHERE n.nspname = %s "
+        f"AND c.relname IN ({placeholders})",
+        (schema, *tables),
+    )
+    rows = [tuple(row) for row in cursor.fetchall()]
+    names = {str(row[2]) for row in rows}
+    if names != set(_PROVIDER_CONSTRAINTS):
+        raise ValueError("instrument master provider schema drift: constraint set")
+    if any(
+        bool(row[11])
+        or bool(row[12])
+        or not bool(row[13])
+        or bool(row[14]) != (str(row[3]) != "c")
+        or not bool(row[15])
+        or int(row[16]) != 0
+        for row in rows
+    ):
+        raise ValueError("instrument master provider schema drift: constraint flags")
+
+    attributes = _provider_attribute_name_map(cursor, schema, tables)
+    actual_by_name = {str(row[2]): _provider_constraint_actual(row, attributes) for row in rows}
+    expected_key_constraints = {
+        name: (
+            spec._replace(referenced_schema=schema)
+            if spec.referenced_schema == _CURRENT_SCHEMA_SENTINEL
+            else spec
+        )
+        for name, spec in _PROVIDER_KEY_CONSTRAINTS.items()
+    }
+    if set(expected_key_constraints) != set(_PROVIDER_KEY_CONSTRAINTS) or not set(
+        _PROVIDER_CHECK_CONSTRAINT_DEFINITIONS
+    ).issubset(names):
+        raise ValueError("instrument master provider schema drift: constraint contract")
+    for name, expected in expected_key_constraints.items():
+        actual = actual_by_name[name]
+        if actual != expected:
+            raise ValueError(f"instrument master provider schema drift: constraint {name}")
+    for name, expected_definition in _PROVIDER_CHECK_CONSTRAINT_DEFINITIONS.items():
+        actual = actual_by_name[name]
+        table_prefixes = tuple(table for table in tables if name.startswith(f"{table}_"))
+        if len(table_prefixes) != 1 or actual.table != table_prefixes[0] or actual.contype != "c":
+            raise ValueError(f"instrument master provider schema drift: constraint {name}")
+        definition_row = next(row for row in rows if str(row[2]) == name)
+        if _canonical_pg_definition(definition_row[17]) != _canonical_pg_definition(
+            expected_definition
+        ):
+            raise ValueError(f"instrument master provider schema drift: constraint {name}")
+
+    index_tables = tuple(_PROVIDER_TABLE_COLUMNS)
+    cursor.execute(
+        "SELECT c.relname, i.oid, i.relname, i.relkind, i.relpersistence, am.amname, "
+        "ix.indisunique, ix.indnkeyatts, ix.indnatts, ix.indkey, ix.indoption, "
+        "ix.indclass, ix.indcollation, owner.conname, ix.indnullsnotdistinct, "
+        "pg_catalog.pg_get_expr(ix.indpred, ix.indrelid), i.reloptions, ix.indisvalid, "
+        "ix.indisready "
+        "FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "JOIN pg_catalog.pg_index AS ix ON ix.indrelid = c.oid "
+        "JOIN pg_catalog.pg_class AS i ON i.oid = ix.indexrelid "
+        "JOIN pg_catalog.pg_am AS am ON am.oid = i.relam "
+        "LEFT JOIN pg_catalog.pg_constraint AS owner "
+        "ON owner.conindid = i.oid AND owner.contype IN ('p', 'u') "
+        "WHERE n.nspname = %s "
+        f"AND c.relname IN ({placeholders})",
+        (schema, *index_tables),
+    )
+    index_rows = [tuple(row) for row in cursor.fetchall()]
+    attribute_names = _provider_attribute_name_map(cursor, schema, index_tables)
+    actual_indexes: set[_IndexSpec] = set()
+    for row in index_rows:
+        (
+            table,
+            index_oid,
+            name,
+            kind,
+            persistence,
+            access_method,
+            unique,
+            key_count,
+            total_count,
+            key_vector,
+            key_options,
+            opclass_vector,
+            collation_vector,
+            owner,
+            nulls_not_distinct,
+            predicate,
+            options,
+            valid,
+            ready,
+        ) = row
+        if str(kind) != "i" or str(persistence) != "p" or not bool(valid) or not bool(ready):
+            raise ValueError(f"instrument master provider schema drift: index {name}")
+        key_count_int = int(key_count)
+        total_count_int = int(total_count)
+        keys, included = _index_keys(
+            cursor,
+            int(index_oid),
+            str(table),
+            key_vector,
+            key_count_int,
+            total_count_int,
+            attribute_names,
+        )
+        actual_indexes.add(
+            _IndexSpec(
+                str(table),
+                str(name),
+                str(access_method),
+                keys,
+                included,
+                bool(unique),
+                str(predicate) if predicate is not None else None,
+                tuple(str(option) for option in (options or ())),
+                _int_vector(key_options),
+                _index_opclass_specs(cursor, opclass_vector, key_count_int),
+                _int_vector(collation_vector),
+                str(owner) if owner is not None else None,
+                bool(nulls_not_distinct),
+            )
+        )
+
+    collations = _provider_attribute_collations(cursor, schema, index_tables)
+    expected_indexes: set[_IndexSpec] = set()
+    for spec in expected_key_constraints.values():
+        if spec.contype in {"p", "u"}:
+            expected_indexes.add(
+                _IndexSpec(
+                    spec.table,
+                    spec.name,
+                    "btree",
+                    spec.columns,
+                    unique=True,
+                    key_options=(0,) * len(spec.columns),
+                    key_opclasses=tuple(_provider_index_opclass(c) for c in spec.columns),
+                    key_collations=tuple(collations[(spec.table, c)] for c in spec.columns),
+                    owner=spec.name,
+                )
+            )
+    pit_table = "tushare_instrument_master_revisions"
+    pit_columns = ("unified_code", "available_at", "created_at", "revision_id")
+    expected_indexes.add(
+        _IndexSpec(
+            pit_table,
+            "tushare_instrument_master_revisions_pit_idx",
+            "btree",
+            pit_columns,
+            key_options=(0,) * len(pit_columns),
+            key_opclasses=tuple(_provider_index_opclass(c) for c in pit_columns),
+            key_collations=tuple(collations[(pit_table, c)] for c in pit_columns),
+        )
+    )
+    if actual_indexes != expected_indexes:
+        missing = expected_indexes - actual_indexes
+        extra = actual_indexes - expected_indexes
+        if missing:
+            item = sorted(missing, key=lambda spec: (spec.table, spec.name))[0]
+            raise ValueError(f"instrument master provider schema drift: index {item.name}")
+        item = sorted(extra, key=lambda spec: (spec.table, spec.name))[0]
+        raise ValueError(f"instrument master provider schema drift: index {item.name}")
+
+
+def _provider_publish_head_body(schema: str) -> str:
+    escaped_schema = schema.replace("'", "''")
+    return _canonical_function_body(
+        f"""
+        DECLARE
+            target_available TIMESTAMPTZ;
+            current_revision UUID;
+            current_ordering TIMESTAMPTZ;
+        BEGIN
+            IF p_ordering_at IS NULL THEN
+                RAISE EXCEPTION 'instrument master ordering coordinate is invalid';
+            END IF;
+            SELECT r.available_at
+              INTO target_available
+              FROM "{escaped_schema}"."tushare_instrument_master_revisions" AS r
+             WHERE r.revision_id = p_revision_id
+               AND r.unified_code = p_unified_code;
+            IF target_available IS NULL THEN
+                RAISE EXCEPTION 'instrument master revision identity mismatch';
+            END IF;
+            IF p_ordering_at < target_available THEN
+                RAISE EXCEPTION 'instrument master ordering coordinate precedes revision';
+            END IF;
+
+            SELECT h.revision_id, h.ordering_at
+              INTO current_revision, current_ordering
+              FROM "{escaped_schema}"."tushare_instrument_master_heads" AS h
+             WHERE h.unified_code = p_unified_code
+             FOR UPDATE;
+            IF current_revision IS NOT NULL THEN
+                IF current_ordering > p_ordering_at THEN
+                    RETURN FALSE;
+                END IF;
+                IF current_ordering = p_ordering_at AND current_revision <> p_revision_id THEN
+                    RAISE EXCEPTION 'instrument master ordering conflict';
+                END IF;
+            END IF;
+
+            INSERT INTO "{escaped_schema}"."tushare_instrument_master_heads"
+                (unified_code, revision_id, ordering_at)
+            VALUES (p_unified_code, p_revision_id, p_ordering_at)
+            ON CONFLICT (unified_code) DO UPDATE
+                SET revision_id = EXCLUDED.revision_id,
+                    ordering_at = EXCLUDED.ordering_at,
+                    updated_at = CURRENT_TIMESTAMP;
+            RETURN TRUE;
+        END;
+        """
+    )
+
+
+_PROVIDER_FUNCTION_BODIES = {
+    "tushare_instrument_master_history_immutable": """
+        BEGIN
+            RAISE EXCEPTION 'instrument master history is immutable';
+        END;
+    """,
+    "tushare_instrument_master_current_actor": "SELECT CURRENT_USER::TEXT",
+    "tushare_instrument_master_audit_actor_immutable": """
+        BEGIN
+            NEW.actor := CURRENT_USER::TEXT;
+            RETURN NEW;
+        END;
+    """,
+}
+
+
+def _provider_expected_function_body(name: str, schema: str) -> str:
+    if name == "tushare_instrument_master_publish_head":
+        return _provider_publish_head_body(schema)
+    return _canonical_function_body(_PROVIDER_FUNCTION_BODIES[name])
+
+
+def _verify_provider_functions_and_triggers(
+    cursor: Any,
+    schema: str,
+    roles: InstrumentMasterProviderRoles,
+) -> None:
+    cursor.execute(
+        "SELECT p.oid, p.proname, p.pronargs, p.pronargdefaults, p.prokind, "
+        "p.provolatile, p.prosecdef, p.proleakproof, p.proparallel, "
+        "p.provariadic, p.proconfig, p.prosrc, "
+        "pg_catalog.pg_get_userbyid(p.proowner), "
+        "pg_catalog.pg_get_function_identity_arguments(p.oid), "
+        "pg_catalog.pg_get_function_result(p.oid), l.lanname "
+        "FROM pg_catalog.pg_proc AS p "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace "
+        "JOIN pg_catalog.pg_language AS l ON l.oid = p.prolang "
+        "WHERE n.nspname = %s AND p.proname LIKE 'tushare_instrument_master_%%'",
+        (schema,),
+    )
+    rows = cursor.fetchall()
+    if {str(row[1]) for row in rows} != set(_PROVIDER_FUNCTIONS):
+        raise ValueError("instrument master provider schema drift: function set")
+    function_oids: dict[str, int] = {}
+    for row in rows:
+        (
+            oid,
+            name,
+            argument_count,
+            argument_defaults,
+            kind,
+            volatility,
+            definer,
+            leakproof,
+            parallel,
+            variadic,
+            config,
+            source,
+            owner,
+            identity,
+            result,
+            language,
+        ) = row
+        name = str(name)
+        expected_args = 3 if name.endswith("publish_head") else 0
+        expected_definer = name.endswith("publish_head")
+        expected_language = (
+            "plpgsql" if name != "tushare_instrument_master_current_actor" else "sql"
+        )
+        expected_volatility = "s" if name == "tushare_instrument_master_current_actor" else "v"
+        expected_parallel = "u"
+        if (
+            int(argument_count) != expected_args
+            or int(argument_defaults or 0) != 0
+            or str(kind) != "f"
+            or str(volatility) != expected_volatility
+            or bool(definer) != expected_definer
+            or bool(leakproof)
+            or str(parallel) != expected_parallel
+            or int(variadic) != 0
+            or tuple(str(item).replace(" ", "") for item in (config or ()))
+            != ("search_path=pg_catalog,pg_temp",)
+            or str(owner) != roles.owner
+            or str(language) != expected_language
+            or str(identity).replace(" ", "")
+            != (
+                "p_unified_codetext,p_revision_iduuid,p_ordering_attimestampwithtimezone"
+                if expected_args
+                else ""
+            )
+            or (expected_args and str(result) != "boolean")
+        ):
+            raise ValueError(f"instrument master provider schema drift: function {name}")
+        if _canonical_function_body(source) != _provider_expected_function_body(name, schema):
+            raise ValueError(f"instrument master provider schema drift: function {name}")
+        function_oids[name] = int(oid)
+
+    privilege_names = ("EXECUTE",)
+    for name, oid in function_oids.items():
+        cursor.execute(
+            "SELECT pg_catalog.has_function_privilege(%s, %s::pg_catalog.oid, %s), "
+            "pg_catalog.has_function_privilege(%s, %s::pg_catalog.oid, %s), "
+            "pg_catalog.has_function_privilege('public', %s::pg_catalog.oid, %s)",
+            (
+                roles.runtime,
+                oid,
+                privilege_names[0],
+                roles.reader,
+                oid,
+                privilege_names[0],
+                oid,
+                privilege_names[0],
+            ),
+        )
+        privilege_row = cursor.fetchone()
+        runtime_allowed = name.endswith("publish_head")
+        if (
+            privilege_row is None
+            or bool(privilege_row[2])
+            or bool(privilege_row[1])
+            or bool(privilege_row[0]) != runtime_allowed
+        ):
+            raise ValueError(f"instrument master provider schema drift: function ACL {name}")
+
+    cursor.execute(
+        "SELECT c.relname, t.tgname, t.tgtype, t.tgenabled, t.tgdeferrable, "
+        "t.tginitdeferred, t.tgconstraint, p.proname, p.prokind, rt.typname, "
+        "l.lanname, t.tgnargs, t.tgargs, pg_catalog.pg_get_expr(t.tgqual, t.tgrelid, TRUE) "
+        "FROM pg_catalog.pg_trigger AS t "
+        "JOIN pg_catalog.pg_class AS c ON c.oid = t.tgrelid "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "JOIN pg_catalog.pg_proc AS p ON p.oid = t.tgfoid "
+        "JOIN pg_catalog.pg_type AS rt ON rt.oid = p.prorettype "
+        "JOIN pg_catalog.pg_language AS l ON l.oid = p.prolang "
+        "WHERE n.nspname = %s AND NOT t.tgisinternal",
+        (schema,),
+    )
+    trigger_rows = cursor.fetchall()
+    if {(str(row[0]), str(row[1])) for row in trigger_rows} != {
+        (table, trigger) for trigger, table in _PROVIDER_TRIGGER_TABLES.items()
+    }:
+        raise ValueError("instrument master provider schema drift: trigger set")
+    for row in trigger_rows:
+        (
+            _table,
+            trigger,
+            trigger_type,
+            enabled,
+            deferrable,
+            deferred,
+            constraint_oid,
+            function_name,
+            kind,
+            return_type,
+            language,
+            argument_count,
+            arguments,
+            condition,
+        ) = row
+        expected_type = (
+            7 if str(trigger) == "tushare_instrument_master_audit_actor_immutable" else 27
+        )
+        expected_function = (
+            "tushare_instrument_master_audit_actor_immutable"
+            if expected_type == 7
+            else "tushare_instrument_master_history_immutable"
+        )
+        try:
+            empty_arguments = bytes(arguments) == b""
+        except (TypeError, ValueError):
+            empty_arguments = False
+        if (
+            int(trigger_type) != expected_type
+            or str(enabled) != "O"
+            or bool(deferrable)
+            or bool(deferred)
+            or int(constraint_oid) != 0
+            or str(function_name) != expected_function
+            or str(kind) != "f"
+            or str(return_type) != "trigger"
+            or str(language) != "plpgsql"
+            or int(argument_count) != 0
+            or not empty_arguments
+            or condition is not None
+        ):
+            raise ValueError(f"instrument master provider schema drift: trigger {trigger}")
+
+
+def _provider_acl_entries(
+    cursor: Any,
+    statement: str,
+    parameters: tuple[object, ...],
+) -> set[tuple[str, str, bool, str]]:
+    cursor.execute(statement, parameters)
+    return {(str(row[1]), str(row[2]), bool(row[3]), str(row[0])) for row in cursor.fetchall()}
+
+
+def _verify_provider_acl_entries(
+    entries: set[tuple[str, str, bool, str]],
+    *,
+    owner: str,
+    allowed: set[tuple[str, str, bool]],
+    subject: str,
+) -> None:
+    observed: set[tuple[str, str, bool]] = set()
+    for grantee, privilege, grantable, grantor in entries:
+        # PostgreSQL owners have implicit full privileges.  Explicit owner
+        # entries are harmless only when the owner itself created them.
+        if grantee == owner and grantor == owner:
+            continue
+        candidate = (grantee, privilege, grantable)
+        if grantor != owner or candidate not in allowed:
+            raise ValueError(f"instrument master provider schema drift: {subject} ACL")
+        observed.add(candidate)
+    if observed != allowed:
+        raise ValueError(f"instrument master provider schema drift: {subject} ACL")
+
+
+def _verify_provider_acl(
+    cursor: Any,
+    schema: str,
+    roles: InstrumentMasterProviderRoles,
+) -> None:
+    qualified_schema = schema
+    cursor.execute(
+        "SELECT pg_catalog.has_schema_privilege(%s, %s, 'USAGE'), "
+        "pg_catalog.has_schema_privilege(%s, %s, 'USAGE'), "
+        "pg_catalog.has_schema_privilege(%s, %s, 'USAGE'), "
+        "pg_catalog.has_schema_privilege(%s, %s, 'CREATE'), "
+        "pg_catalog.has_schema_privilege('public', %s, 'USAGE'), "
+        "pg_catalog.has_schema_privilege('public', %s, 'CREATE')",
+        (
+            roles.runtime,
+            qualified_schema,
+            roles.reader,
+            qualified_schema,
+            roles.owner,
+            qualified_schema,
+            roles.owner,
+            qualified_schema,
+            qualified_schema,
+            qualified_schema,
+        ),
+    )
+    row = cursor.fetchone()
+    if (
+        row is None
+        or not bool(row[0])
+        or not bool(row[1])
+        or not bool(row[2])
+        or not bool(row[3])
+        or bool(row[4])
+        or bool(row[5])
+    ):
+        raise ValueError("instrument master provider schema drift: schema ACL")
+
+    _verify_provider_acl_entries(
+        _provider_acl_entries(
+            cursor,
+            "SELECT pg_catalog.pg_get_userbyid(x.grantor), "
+            "CASE WHEN x.grantee = 0 THEN 'PUBLIC' "
+            "ELSE pg_catalog.pg_get_userbyid(x.grantee) END, "
+            "x.privilege_type, x.is_grantable "
+            "FROM pg_catalog.pg_namespace AS n "
+            "CROSS JOIN LATERAL pg_catalog.aclexplode("
+            "n.nspacl) AS x "
+            "WHERE n.nspname = %s",
+            (schema,),
+        ),
+        owner=roles.owner,
+        allowed={
+            (roles.runtime, "USAGE", False),
+            (roles.reader, "USAGE", False),
+        },
+        subject="schema",
+    )
+
+    pit_tables = {
+        "tushare_instrument_master_snapshots",
+        "tushare_instrument_master_revisions",
+        "tushare_instrument_master_snapshot_revisions",
+        "tushare_instrument_master_heads",
+        "tushare_instrument_master_removal_candidates",
+    }
+    runtime_insert_tables = set(_PROVIDER_TABLE_COLUMNS) - {
+        "tushare_instrument_master_schema_migrations",
+        "tushare_instrument_master_checkpoints",
+        "tushare_instrument_master_heads",
+    }
+    runtime_select_tables = runtime_insert_tables | {"tushare_instrument_master_heads"}
+    privileges = (
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER",
+    )
+    for table in _PROVIDER_TABLE_COLUMNS:
+        qualified_table = _provider_qualified(schema, table)
+        for privilege in privileges:
+            cursor.execute(
+                "SELECT pg_catalog.has_table_privilege('public', %s, %s), "
+                "pg_catalog.has_table_privilege(%s, %s, %s), "
+                "pg_catalog.has_table_privilege(%s, %s, %s)",
+                (
+                    qualified_table,
+                    privilege,
+                    roles.runtime,
+                    qualified_table,
+                    privilege,
+                    roles.reader,
+                    qualified_table,
+                    privilege,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None or bool(row[0]):
+                raise ValueError(f"instrument master provider schema drift: public ACL {table}")
+            runtime_allowed = (privilege == "SELECT" and table in runtime_select_tables) or (
+                privilege == "INSERT" and table in runtime_insert_tables
+            )
+            reader_allowed = privilege == "SELECT" and table in pit_tables
+            if bool(row[1]) != runtime_allowed or bool(row[2]) != reader_allowed:
+                raise ValueError(f"instrument master provider schema drift: table ACL {table}")
+
+        table_allowed: set[tuple[str, str, bool]] = set()
+        if table in runtime_select_tables:
+            table_allowed.add((roles.runtime, "SELECT", False))
+        if table in runtime_insert_tables:
+            table_allowed.add((roles.runtime, "INSERT", False))
+        if table in pit_tables:
+            table_allowed.add((roles.reader, "SELECT", False))
+        _verify_provider_acl_entries(
+            _provider_acl_entries(
+                cursor,
+                "SELECT pg_catalog.pg_get_userbyid(x.grantor), "
+                "CASE WHEN x.grantee = 0 THEN 'PUBLIC' "
+                "ELSE pg_catalog.pg_get_userbyid(x.grantee) END, "
+                "x.privilege_type, x.is_grantable "
+                "FROM pg_catalog.pg_class AS c "
+                "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+                "CROSS JOIN LATERAL pg_catalog.aclexplode("
+                "c.relacl) AS x "
+                "WHERE n.nspname = %s AND c.relname = %s",
+                (schema, table),
+            ),
+            owner=roles.owner,
+            allowed=table_allowed,
+            subject=f"table {table}",
+        )
+
+    sequence_entries = _provider_acl_entries(
+        cursor,
+        "SELECT pg_catalog.pg_get_userbyid(x.grantor), "
+        "CASE WHEN x.grantee = 0 THEN 'PUBLIC' "
+        "ELSE pg_catalog.pg_get_userbyid(x.grantee) END, "
+        "x.privilege_type, x.is_grantable "
+        "FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+        "CROSS JOIN LATERAL pg_catalog.aclexplode("
+        "c.relacl) AS x "
+        "WHERE n.nspname = %s AND c.relkind = 'S'",
+        (schema,),
+    )
+    if sequence_entries:
+        raise ValueError("instrument master provider schema drift: sequence ACL")
+
+    for name in _PROVIDER_FUNCTIONS:
+        function_allowed: set[tuple[str, str, bool]] = (
+            {(roles.runtime, "EXECUTE", False)} if name.endswith("publish_head") else set()
+        )
+        _verify_provider_acl_entries(
+            _provider_acl_entries(
+                cursor,
+                "SELECT pg_catalog.pg_get_userbyid(x.grantor), "
+                "CASE WHEN x.grantee = 0 THEN 'PUBLIC' "
+                "ELSE pg_catalog.pg_get_userbyid(x.grantee) END, "
+                "x.privilege_type, x.is_grantable "
+                "FROM pg_catalog.pg_proc AS p "
+                "JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace "
+                "CROSS JOIN LATERAL pg_catalog.aclexplode("
+                "p.proacl) AS x "
+                "WHERE n.nspname = %s AND p.proname = %s",
+                (schema, name),
+            ),
+            owner=roles.owner,
+            allowed=function_allowed,
+            subject=f"function {name}",
+        )
+
+    _verify_provider_acl_entries(
+        _provider_acl_entries(
+            cursor,
+            "SELECT pg_catalog.pg_get_userbyid(x.grantor), "
+            "CASE WHEN x.grantee = 0 THEN 'PUBLIC' "
+            "ELSE pg_catalog.pg_get_userbyid(x.grantee) END, "
+            "x.privilege_type, x.is_grantable "
+            "FROM pg_catalog.pg_default_acl AS d "
+            "CROSS JOIN LATERAL pg_catalog.aclexplode("
+            "d.defaclacl) AS x "
+            "WHERE d.defaclrole = ("
+            "SELECT r.oid FROM pg_catalog.pg_roles AS r WHERE r.rolname = %s) "
+            "AND (d.defaclnamespace = 0 OR d.defaclnamespace = ("
+            "SELECT n.oid FROM pg_catalog.pg_namespace AS n WHERE n.nspname = %s))",
+            (roles.owner, schema),
+        ),
+        owner=roles.owner,
+        allowed=set(),
+        subject="default",
+    )
+
+
+def _verify_instrument_master_provider_schema(
+    cursor: Any,
+    schema: str,
+    roles: InstrumentMasterProviderRoles,
+) -> None:
+    schema = _provider_schema_name(schema)
+    roles = _provider_roles(roles)
+    _verify_provider_roles(cursor, roles)
+    cursor.execute(
+        "SELECT n.nspname, pg_catalog.pg_get_userbyid(n.nspowner) "
+        "FROM pg_catalog.pg_namespace AS n WHERE n.nspname = %s",
+        (schema,),
+    )
+    schema_row = cursor.fetchone()
+    if schema_row is None or str(schema_row[1]) != roles.owner:
+        raise ValueError("instrument master provider schema drift: schema owner")
+    _verify_provider_relations(cursor, schema, roles)
+    _verify_provider_constraints_and_indexes(cursor, schema)
+    _verify_provider_functions_and_triggers(cursor, schema, roles)
+    _verify_provider_acl(cursor, schema, roles)
+
+
+def verify_instrument_master_provider_schema(
+    connection: Connection[Any],
+    *,
+    schema: str = INSTRUMENT_MASTER_PROVIDER_SCHEMA,
+    roles: InstrumentMasterProviderRoles = _DEFAULT_PROVIDER_ROLES,
+) -> None:
+    """Verify the private provider schema without applying or mutating it."""
+
+    # Use psycopg's transaction context as a top-level transaction when the
+    # caller is idle, and as a savepoint when the caller already owns a
+    # transaction.  This makes every cursor operation finish cleanly without
+    # committing a caller-owned transaction or leaving an idle connection in
+    # INTRANS/INERROR after verification.
+    status = connection.info.transaction_status
+    if status == TransactionStatus.INERROR:
+        raise ValueError("instrument master provider verification requires a usable transaction")
+    with connection.transaction(), connection.cursor() as cursor:
+        _verify_instrument_master_provider_schema(cursor, schema, roles)
+
+
+def apply_instrument_master_provider_migration(
+    connection: Connection[Any],
+    *,
+    schema: str = INSTRUMENT_MASTER_PROVIDER_SCHEMA,
+    roles: InstrumentMasterProviderRoles = _DEFAULT_PROVIDER_ROLES,
+    legacy_schema: str = "kunlun",
+) -> None:
+    """Apply the provider-owned migration after a read-only legacy V1-V4 check."""
+
+    schema = _provider_schema_name(schema)
+    roles = _provider_roles(roles)
+    legacy_schema = _provider_schema_name(legacy_schema)
+    rendered_sql = _render_instrument_master_provider_migration(schema, roles)
+    checksum = (
+        _instrument_master_migration_checksum()
+        if schema == INSTRUMENT_MASTER_PROVIDER_SCHEMA and roles == _DEFAULT_PROVIDER_ROLES
+        else hashlib.sha256(rendered_sql.encode("utf-8")).hexdigest()
+    )
+    with connection.transaction(), connection.cursor() as raw_cursor:
+        cursor = cast(Any, raw_cursor)
+        cursor.execute(
+            "SELECT pg_advisory_xact_lock(pg_catalog.hashtext(%s))",
+            (f"{INSTRUMENT_MASTER_PROVIDER_LOCK_KEY}:{schema}",),
+        )
+        cursor.execute("SELECT SESSION_USER, CURRENT_USER")
+        current_user = cursor.fetchone()
+        if (
+            current_user is None
+            or len(current_user) != 2
+            or any(str(value) != roles.migrator for value in current_user)
+        ):
+            raise ValueError("instrument master provider requires migrator role")
+        _verify_provider_roles(cursor, roles)
+        _provider_legacy_prerequisite(cursor, legacy_schema, roles.migrator)
+        cursor.execute("SELECT pg_catalog.to_regnamespace(%s)", (schema,))
+        schema_row = cursor.fetchone()
+        if schema_row is None or schema_row[0] is None:
+            raise ValueError("instrument master provider schema is not bootstrapped")
+        cursor.execute(f'SET LOCAL ROLE "{roles.owner}"')
+        cursor.execute("SELECT CURRENT_USER")
+        owner_row = cursor.fetchone()
+        if owner_row is None or str(owner_row[0]) != roles.owner:
+            raise ValueError("instrument master provider owner role is invalid")
+
+        ledger_name = "tushare_instrument_master_schema_migrations"
+        data_tables = set(_PROVIDER_TABLE_COLUMNS) - {ledger_name}
+        existing = _provider_relation_names(cursor, schema)
+        if ledger_name in existing:
+            cursor.execute(
+                f"SELECT version, name, checksum FROM {_provider_qualified(schema, ledger_name)} "
+                "ORDER BY version"
+            )
+            ledger_rows = cursor.fetchall()
+            expected_ledger = (
+                INSTRUMENT_MASTER_PROVIDER_MIGRATION_VERSION,
+                INSTRUMENT_MASTER_PROVIDER_MIGRATION_NAME,
+                checksum,
+            )
+            if len(ledger_rows) != 1 or tuple(ledger_rows[0]) != expected_ledger:
+                raise ValueError("instrument master provider migration ledger drift")
+            _verify_instrument_master_provider_schema(cursor, schema, roles)
+            return
+        if existing & data_tables:
+            raise ValueError("untracked instrument master provider schema exists")
+        cursor.execute(rendered_sql)
+        expected_ledger = (
+            INSTRUMENT_MASTER_PROVIDER_MIGRATION_VERSION,
+            INSTRUMENT_MASTER_PROVIDER_MIGRATION_NAME,
+            checksum,
+        )
+        cursor.execute(
+            f"INSERT INTO {_provider_qualified(schema, ledger_name)} "
+            "(version, name, checksum, applied_at) VALUES (%s, %s, %s, CURRENT_TIMESTAMP)",
+            expected_ledger,
+        )
+        _verify_instrument_master_provider_schema(cursor, schema, roles)

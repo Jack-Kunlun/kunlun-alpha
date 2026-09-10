@@ -79,6 +79,88 @@ services:
       - "kunlun.service=data-worker-migrate"
       - "kunlun.description=Verified data-worker schema migrations"
 
+  # The private instrument-master provider is intentionally split into three
+  # explicit one-shot services.  None of these services is enabled by the
+  # default compose profile.
+  role-bootstrap:
+    profiles: ["instrument-master"]
+    image: postgres:17.10-alpine3.24
+    container_name: kunlun-instrument-master-role-bootstrap
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      data-worker-migrate:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-kunlun}
+      PGUSER: ${POSTGRES_USER:-kunlun}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-kunlun-local-dev}
+      INSTRUMENT_MASTER_MIGRATOR_PASSWORD: ${INSTRUMENT_MASTER_MIGRATOR_PASSWORD:-}
+      INSTRUMENT_MASTER_RUNTIME_PASSWORD: ${INSTRUMENT_MASTER_RUNTIME_PASSWORD:-}
+    volumes:
+      - ./migrations/instrument-master-roles.sql:/bootstrap/instrument-master-roles.sql:ro
+    entrypoint: ["psql"]
+    command:
+      [
+        "--no-psqlrc",
+        "--set",
+        "ON_ERROR_STOP=1",
+        "--file",
+        "/bootstrap/instrument-master-roles.sql",
+      ]
+    labels:
+      - "kunlun.service=role-bootstrap"
+      - "kunlun.description=Explicit private instrument-master role and schema bootstrap"
+
+  provider-migrate:
+    profiles: ["instrument-master"]
+    image: kunlun-data-worker-migrate:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: data-worker-migrate
+    container_name: kunlun-instrument-master-provider-migrate
+    restart: "no"
+    depends_on:
+      role-bootstrap:
+        condition: service_completed_successfully
+      data-worker-migrate:
+        condition: service_completed_successfully
+    environment:
+      INSTRUMENT_MASTER_MIGRATOR_DSN: ${INSTRUMENT_MASTER_MIGRATOR_DSN:-}
+      INSTRUMENT_MASTER_MIGRATOR_DSN_FILE: ${INSTRUMENT_MASTER_MIGRATOR_DSN_FILE:-}
+    command: ["instrument-master-provider-migrate"]
+    labels:
+      - "kunlun.service=provider-migrate"
+      - "kunlun.description=Explicit private instrument-master provider migration"
+
+  instrument-master-sync:
+    profiles: ["instrument-master"]
+    image: kunlun-data-worker:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: data-worker
+    container_name: kunlun-instrument-master-sync
+    restart: "no"
+    depends_on:
+      provider-migrate:
+        condition: service_completed_successfully
+    environment:
+      INSTRUMENT_MASTER_RUNTIME_DSN: ${INSTRUMENT_MASTER_RUNTIME_DSN:-}
+      INSTRUMENT_MASTER_RUNTIME_DSN_FILE: ${INSTRUMENT_MASTER_RUNTIME_DSN_FILE:-}
+      KUNLUN_RAW_ROOT: /workspace/var/instrument-master-raw
+      TUSHARE_TOKEN: ${TUSHARE_TOKEN:-}
+    volumes:
+      - kunlun-instrument-master-raw:/workspace/var/instrument-master-raw
+    command: ["instrument-master-sync"]
+    labels:
+      - "kunlun.service=instrument-master-sync"
+      - "kunlun.description=Explicit one-shot Tushare instrument-master collect/replay"
+
   # Calendar-quality V5 installation is one administrator-owned transaction.
   # It stays disabled unless the calendar-quality profile is selected.
   calendar-quality-publish:
@@ -411,3 +493,5 @@ volumes:
     name: ${MARKET_DATA_RAW_VOLUME_NAME:-kunlun-market-raw}
   kunlun-quant-state:
     name: ${QUANT_STATE_VOLUME_NAME:-kunlun-quant-state}
+  kunlun-instrument-master-raw:
+    name: ${INSTRUMENT_MASTER_RAW_VOLUME_NAME:-kunlun-instrument-master-raw}
