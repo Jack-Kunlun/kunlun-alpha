@@ -16,6 +16,7 @@ from data_worker.jobs.precious_metals_funds.collector import (
 )
 from data_worker.raw import LocalFileStorage
 from data_worker.storage import EvidenceEnvelope, InMemoryFundStorage, RejectedObservation
+from data_worker.storage.precious_metals import controlled_rejection_payload
 from market_core.providers import RawFundProviderResponse
 from market_core.providers.base import Provider
 
@@ -274,6 +275,48 @@ def test_collector_rejection_diagnostics_never_persist_provider_values(
             assert len(field) <= 64
             assert field.isascii()
             assert all(character.isalnum() or character in "_.-" for character in field)
+
+
+def test_rejection_field_names_use_a_strict_business_allowlist(
+    tmp_path: Path,
+) -> None:
+    secret = "task2-field-name-secret-without-marker"
+    invalid_mapping = {
+        "validFrom": f"invalid-date-{secret}",
+        "token-embedded-synthetic": secret,
+        "opaqueFieldWithoutMarker": secret,
+        " validFrom ": secret,
+    }
+    persistence = InMemoryFundStorage()
+    collector = FundCollector(
+        RejectionProvider([invalid_mapping]),
+        LocalFileStorage(tmp_path),
+        persistence,
+        now=_PROCESSING,
+    )
+
+    result = collector.collect("metadata", "SH", collection_date="2026-08-13")
+
+    assert len(result.rejected) == 1
+    assert result.rejected[0].payload["field_names"] == ["validFrom"]
+    assert persistence.rejections()[0].payload["field_names"] == []
+    assert secret not in _rejection_strings(result.rejected)
+
+    explicit = controlled_rejection_payload(
+        {"validFrom": secret},
+        digest="a" * 64,
+        field_names=[
+            "validFrom",
+            "unifiedCode",
+            "token-embedded-synthetic",
+            "opaqueFieldWithoutMarker",
+            " validFrom ",
+        ],
+    )
+    assert explicit == {
+        "item_digest": "a" * 64,
+        "field_names": ["unifiedCode", "validFrom"],
+    }
 
 
 def test_collector_rejection_ignores_forged_canonical_digest(tmp_path: Path) -> None:

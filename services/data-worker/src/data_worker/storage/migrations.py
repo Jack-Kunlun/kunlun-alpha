@@ -6869,7 +6869,13 @@ def apply_precious_metals_migration(connection: Connection[Any]) -> None:
         _verify_base_schema(cursor)
         task_owned = _task_owned_tables(cursor)
         ledger_exists = "data_worker_schema_migrations" in task_owned
+        calendar_tables = _calendar_snapshot_tables(cursor)
+        official_calendar_tables = _official_calendar_tables(cursor)
 
+        if not ledger_exists and calendar_tables:
+            raise ValueError("untracked calendar snapshot schema exists without ledger")
+        if not ledger_exists and official_calendar_tables:
+            raise ValueError("untracked official calendar schema exists without ledger")
         if not ledger_exists and task_owned:
             raise ValueError("untracked or partial fund schema exists without migration ledger")
         if ledger_exists:

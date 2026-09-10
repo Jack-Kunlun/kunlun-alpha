@@ -61,10 +61,43 @@ _SENSITIVE_KEYS = frozenset(
 _REJECTION_REASON_CODES = frozenset({"item_not_mapping", "normalization_error"})
 _MAX_REJECTION_FIELDS = 32
 _MAX_REJECTION_FIELD_LENGTH = 64
+_REJECTION_FIELD_ALLOWLIST = frozenset(
+    {
+        # These are the exact camelCase input fields read by the fund
+        # normalizer and its PreciousMetalFund contract.  Rejection
+        # diagnostics are intentionally a union because they do not carry the
+        # endpoint kind needed for a narrower per-kind boundary.
+        "assetType",
+        "availableTime",
+        "benchmarkOrTrackingIndex",
+        "benchmarkSeriesId",
+        "confidence",
+        "date",
+        "eventTime",
+        "exchange",
+        "fundAssetClass",
+        "inav",
+        "ingestTime",
+        "managementFeeRate",
+        "nav",
+        "navCurrency",
+        "processingTime",
+        "publishTime",
+        "rawObjectId",
+        "recurringFees",
+        "reviewStatus",
+        "source",
+        "tradingCurrency",
+        "underlyingCommodity",
+        "unifiedCode",
+        "validFrom",
+        "validTo",
+    }
+)
 
 
 def _safe_rejection_field_names(value: object) -> list[str]:
-    """Return bounded, non-sensitive field names without any field values."""
+    """Return bounded, allowlisted field names without any field values."""
 
     if not isinstance(value, Mapping):
         return []
@@ -73,10 +106,12 @@ def _safe_rejection_field_names(value: object) -> list[str]:
     for key in mapping:
         if not isinstance(key, str):
             continue
-        name = key.strip()
+        name = key
         if not name or len(name) > _MAX_REJECTION_FIELD_LENGTH or not name.isascii():
             continue
         if not all(character.isalnum() or character in "_.-" for character in name):
+            continue
+        if name not in _REJECTION_FIELD_ALLOWLIST:
             continue
         normalized = "".join(character for character in name.lower() if character.isalnum())
         if normalized in _SENSITIVE_KEYS:

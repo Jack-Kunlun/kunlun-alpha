@@ -223,10 +223,22 @@ def test_postgres_rejection_uses_evidence_digest_for_canonical_looking_payload()
     adapter = PostgresFundStorage(cast(Any, connection))
     evidence = _evidence()
     forged_digest = "e" * 64
+    embedded_field_name = "token-embedded-synthetic"
+    unknown_field_name = "opaqueFieldWithoutMarker"
     rejected = RejectedObservation(
         record_id=evidence.record_id,
         kind="metadata",
-        payload={"item_digest": forged_digest, "field_names": ["validFrom", "T" * 64]},
+        payload={
+            "item_digest": forged_digest,
+            "field_names": [
+                "validFrom",
+                embedded_field_name,
+                unknown_field_name,
+                "T" * 64,
+            ],
+            embedded_field_name: "task2-embedded-field-secret",
+            unknown_field_name: "task2-unknown-field-secret",
+        },
         reason="normalization_error",
         evidence=evidence,
     )
@@ -255,6 +267,10 @@ def test_postgres_rejection_uses_evidence_digest_for_canonical_looking_payload()
     serialized = "\n".join(statements)
     assert forged_digest not in serialized
     assert "T" * 64 not in serialized
+    assert embedded_field_name not in serialized
+    assert unknown_field_name not in serialized
+    assert "task2-embedded-field-secret" not in serialized
+    assert "task2-unknown-field-secret" not in serialized
     assert evidence.payload_digest in serialized
 
 

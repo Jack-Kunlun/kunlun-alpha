@@ -127,7 +127,7 @@ transaction and leaves no migration-ledger advancement.
 
 Raw capture may succeed before a process crashes. Call
 `FundCollector.replay_captures(kind, source, collection_date, run_id=...,
-source_revision=...)` to verify and replay only manifests on that route
+source_revision=..., attempt_id=...)` to verify and replay only manifests on that route
 through the normal normalization and persistence path. Legacy manifests
 without route fields are rejected rather than mixed into a replay. A database
 commit followed by a crash before returning is safe to replay because evidence
@@ -142,6 +142,11 @@ unknown cursor transitions, and never falls back to page zero. A provider
 without a source revision uses the controlled `source-revision-absent`
 sentinel; providers cannot claim that reserved value. Only the final page is
 complete, and repeated cursors raise `CursorLoopError`.
+
+Use the existing attempt identity recorded for the selected capture/checkpoint;
+do not generate a new attempt id for replay or combine captures from different
+attempts. Omitting `run_id`, `source_revision`, or `attempt_id` is rejected before
+manifest scanning. Pass the original exchange explicitly when it is not `SH`.
 
 Rejected records retain bounded, redacted payloads and an evidence envelope.
 Request identities use the P1-R03 sanitization rules; headers, bodies,
