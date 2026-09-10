@@ -1,0 +1,35 @@
+# Optional market-quality evidence overlay.
+# Combine with the existing infrastructure/application Compose files only.
+
+services:
+  server:
+    environment:
+      MARKET_DATA_QUALITY_PUBLIC_ROOT: /workspace/var/market-quality-public
+    volumes:
+      - kunlun-market-quality-public:/workspace/var/market-quality-public:ro
+
+  market-data-sync:
+    environment:
+      MARKET_DATA_QUALITY_PUBLIC_ROOT: /workspace/var/market-quality-public
+    volumes:
+      - kunlun-market-quality-public:/workspace/var/market-quality-public
+
+  market-quality-evidence-export:
+    profiles: ["evidence-export"]
+    image: kunlun-data-worker:local
+    user: "10001:10001"
+    network_mode: "none"
+    restart: "no"
+    volumes:
+      - kunlun-market-raw:/workspace/var/market-raw:ro
+      - kunlun-market-quality-public:/workspace/var/market-quality-public
+    command:
+      - market-quality-export
+      - --raw-root
+      - /workspace/var/market-raw
+      - --public-root
+      - /workspace/var/market-quality-public
+
+volumes:
+  kunlun-market-quality-public:
+    name: kunlun-market-quality-public

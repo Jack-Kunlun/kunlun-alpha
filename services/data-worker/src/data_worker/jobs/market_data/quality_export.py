@@ -46,6 +46,8 @@ _MANIFEST_RE = re.compile(
 _QUALITY_CAPTURE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _QUALITY_LOCK_NAME = ".market-quality.lock"
 _LOCK_NAME_RE = re.compile(r"^\.[A-Za-z0-9._-]+\.lock$")
+_PUBLIC_DIRECTORY_MODE = 0o755
+_PUBLIC_FILE_MODE = 0o644
 
 
 class MarketQualityExportError(RuntimeError):
@@ -116,6 +118,58 @@ def _require_directory(path: Path, *, allow_missing: bool) -> None:
         raise MarketQualityExportError("market-quality directory is unavailable") from error
     if not stat.S_ISDIR(mode):
         raise MarketQualityExportError("market-quality path is not a directory")
+
+
+def _ensure_public_directory(path: Path) -> None:
+    """Create a public directory with explicit mode or reject unsafe existing mode."""
+
+    _ensure_no_symlink_components(path)
+    created = False
+    try:
+        os.lstat(path)
+    except FileNotFoundError:
+        try:
+            path.mkdir(parents=True, exist_ok=False, mode=_PUBLIC_DIRECTORY_MODE)
+        except FileExistsError:
+            pass
+        except OSError as error:
+            raise MarketQualityExportError("market-quality directory cannot be created") from error
+        else:
+            created = True
+    except OSError as error:
+        raise MarketQualityExportError("market-quality directory is unavailable") from error
+    _require_directory(path, allow_missing=False)
+    if os.name == "nt":
+        return
+    if created:
+        try:
+            os.chmod(path, _PUBLIC_DIRECTORY_MODE)
+        except OSError as error:
+            raise MarketQualityExportError(
+                "market-quality directory mode is unavailable"
+            ) from error
+    try:
+        mode = os.lstat(path).st_mode
+    except OSError as error:
+        raise MarketQualityExportError("market-quality directory is unavailable") from error
+    if stat.S_IMODE(mode) != _PUBLIC_DIRECTORY_MODE:
+        raise MarketQualityExportError("market-quality directory mode is invalid")
+
+
+def _require_public_file_mode(path: Path) -> None:
+    """Require the fixed public-file mode before reusing an existing snapshot."""
+
+    if os.name == "nt":
+        return
+    _ensure_no_symlink_components(path)
+    try:
+        metadata = os.lstat(path)
+    except OSError as error:
+        raise MarketQualityExportError("market-quality public file is unavailable") from error
+    if not stat.S_ISREG(metadata.st_mode):
+        raise MarketQualityExportError("market-quality public file is not regular")
+    if stat.S_IMODE(metadata.st_mode) != _PUBLIC_FILE_MODE:
+        raise MarketQualityExportError("market-quality public file mode is invalid")
 
 
 def _read_limited(path: Path, maximum: int) -> bytes:
@@ -335,6 +389,11 @@ def _atomic_write(path: Path, payload: bytes) -> None:
         ) as temporary:
             temporary_path = Path(temporary.name)
             temporary.write(payload)
+            fchmod = getattr(os, "fchmod", None)
+            if fchmod is None:
+                os.chmod(temporary.name, _PUBLIC_FILE_MODE)
+            else:
+                fchmod(temporary.fileno(), _PUBLIC_FILE_MODE)
             temporary.flush()
             os.fsync(temporary.fileno())
         if path.exists() or path.is_symlink():
@@ -437,12 +496,12 @@ def _export_locked(raw: Path, public: Path, *, clock: Clock) -> MarketQualityExp
     )
 
     snapshots_root = public / "snapshots"
-    _require_directory(snapshots_root, allow_missing=True)
+    _ensure_public_directory(snapshots_root)
     try:
         _load_current(public)
-        snapshots_root.mkdir(parents=True, exist_ok=True)
         snapshot_path = snapshots_root / f"{snapshot_id}.json"
         if snapshot_path.exists() or snapshot_path.is_symlink():
+            _require_public_file_mode(snapshot_path)
             existing = _read_limited(snapshot_path, MARKET_QUALITY_MAX_BYTES)
             if existing != snapshot_bytes:
                 raise MarketQualityExportError("market-quality snapshot identity is conflicted")
@@ -466,13 +525,7 @@ def export_market_quality_evidence(
 
     raw, public = _validate_roots(raw_root, public_root)
     _ensure_no_symlink_components(public)
-    try:
-        public.mkdir(parents=True, exist_ok=True)
-    except OSError as error:
-        raise MarketQualityExportError(
-            "market-quality public directory cannot be created"
-        ) from error
-    _require_directory(public, allow_missing=False)
+    _ensure_public_directory(public)
     lock_path = public / _QUALITY_LOCK_NAME
     _ensure_no_symlink_components(lock_path)
     try:

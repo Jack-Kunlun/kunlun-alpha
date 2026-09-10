@@ -79,8 +79,9 @@ COPY . .
 RUN uv sync --locked --no-dev --package data-worker
 RUN groupadd --gid 10001 kunlun \
     && useradd --create-home --uid 10001 --gid 10001 kunlun \
-    && mkdir -p /workspace/var/market-raw \
-    && chown -R 10001:10001 /workspace/var
+    && mkdir -p /workspace/var/market-raw /workspace/var/market-quality-public \
+    && chown -R 10001:10001 /workspace/var \
+    && chmod 0755 /workspace/var/market-quality-public
 
 ENV PATH="/workspace/.venv/bin:${PATH}"
 

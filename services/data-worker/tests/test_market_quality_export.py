@@ -106,6 +106,190 @@ def test_export_publishes_hash_bound_sanitized_snapshot_without_reading_objects(
     assert "raw detail" not in snapshot_bytes.decode()
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX mode assertions")
+def test_public_export_files_are_owner_writable_and_inputs_unchanged(tmp_path: Path) -> None:
+    raw_root = tmp_path / "raw"
+    manifest = _manifest(tmp_path)
+    _record(raw_root, manifest)
+    before_raw = {
+        path.relative_to(raw_root): (path.stat().st_mode & 0o777, path.read_bytes())
+        for path in raw_root.rglob("*")
+        if path.is_file()
+    }
+    public_root = tmp_path / "public"
+
+    first = export_market_quality_evidence(
+        raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 2, tzinfo=UTC)
+    )
+    second = export_market_quality_evidence(
+        raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 3, tzinfo=UTC)
+    )
+
+    public_files = [
+        public_root / "current.json",
+        public_root / "snapshots" / f"{first.snapshot_id}.json",
+        public_root / "snapshots" / f"{second.snapshot_id}.json",
+    ]
+    assert all(path.stat().st_mode & 0o777 == 0o644 for path in public_files)
+    assert public_root.stat().st_mode & 0o777 == 0o755
+    assert (public_root / "snapshots").stat().st_mode & 0o777 == 0o755
+    after_raw = {
+        path.relative_to(raw_root): (path.stat().st_mode & 0o777, path.read_bytes())
+        for path in raw_root.rglob("*")
+        if path.is_file()
+    }
+    assert after_raw == before_raw
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX mode assertions")
+def test_existing_public_directory_with_unsafe_mode_is_rejected(tmp_path: Path) -> None:
+    raw_root = tmp_path / "raw"
+    (raw_root / "market-quality").mkdir(parents=True)
+    public_root = tmp_path / "public"
+    public_root.mkdir(mode=0o700)
+    os.chmod(public_root, 0o700)
+
+    with pytest.raises(MarketQualityExportError):
+        export_market_quality_evidence(
+            raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 2, tzinfo=UTC)
+        )
+
+    assert public_root.stat().st_mode & 0o777 == 0o700
+    assert not (public_root / "current.json").exists()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX mode assertions")
+def test_public_export_chmod_failure_preserves_current_pointer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw_root = tmp_path / "raw"
+    (raw_root / "market-quality").mkdir(parents=True)
+    public_root = tmp_path / "public"
+    export_market_quality_evidence(
+        raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 2, tzinfo=UTC)
+    )
+    old_current = (public_root / "current.json").read_bytes()
+
+    import data_worker.jobs.market_data.quality_export as export_module
+
+    def fail_fchmod(_descriptor: int, _mode: int) -> None:
+        raise OSError("simulated public mode failure")
+
+    monkeypatch.setattr(export_module.os, "fchmod", fail_fchmod)
+    with pytest.raises(MarketQualityExportError):
+        export_market_quality_evidence(
+            raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 3, tzinfo=UTC)
+        )
+
+    assert (public_root / "current.json").read_bytes() == old_current
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX mode assertions")
+def test_public_current_fchmod_failure_preserves_current_pointer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw_root = tmp_path / "raw"
+    (raw_root / "market-quality").mkdir(parents=True)
+    public_root = tmp_path / "public"
+    export_market_quality_evidence(
+        raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 2, tzinfo=UTC)
+    )
+    old_current = (public_root / "current.json").read_bytes()
+
+    import data_worker.jobs.market_data.quality_export as export_module
+
+    original_fchmod = export_module.os.fchmod
+    calls = 0
+
+    def fail_current_fchmod(descriptor: int, mode: int) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("simulated current mode failure")
+        original_fchmod(descriptor, mode)
+
+    monkeypatch.setattr(export_module.os, "fchmod", fail_current_fchmod)
+    with pytest.raises(MarketQualityExportError):
+        export_market_quality_evidence(
+            raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 3, tzinfo=UTC)
+        )
+
+    assert calls == 2
+    assert (public_root / "current.json").read_bytes() == old_current
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX mode assertions")
+def test_existing_legacy_snapshot_mode_is_not_reused(tmp_path: Path) -> None:
+    raw_root = tmp_path / "raw"
+    (raw_root / "market-quality").mkdir(parents=True)
+    public_root = tmp_path / "public"
+    baseline = export_market_quality_evidence(
+        raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 2, tzinfo=UTC)
+    )
+    snapshot_path = public_root / "snapshots" / f"{baseline.snapshot_id}.json"
+    os.chmod(snapshot_path, 0o600)
+    old_current = (public_root / "current.json").read_bytes()
+
+    with pytest.raises(MarketQualityExportError):
+        export_market_quality_evidence(
+            raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 2, tzinfo=UTC)
+        )
+
+    assert (public_root / "current.json").read_bytes() == old_current
+    assert snapshot_path.stat().st_mode & 0o777 == 0o600
+
+
+@pytest.mark.parametrize("mode", [0o700, 0o750])
+@pytest.mark.skipif(os.name == "nt", reason="POSIX mode assertions")
+def test_existing_snapshots_directory_with_unsafe_mode_is_rejected(
+    tmp_path: Path, mode: int
+) -> None:
+    raw_root = tmp_path / "raw"
+    (raw_root / "market-quality").mkdir(parents=True)
+    public_root = tmp_path / "public"
+    export_market_quality_evidence(
+        raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 2, tzinfo=UTC)
+    )
+    snapshots_root = public_root / "snapshots"
+    os.chmod(snapshots_root, mode)
+    old_current = (public_root / "current.json").read_bytes()
+
+    with pytest.raises(MarketQualityExportError):
+        export_market_quality_evidence(
+            raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 3, tzinfo=UTC)
+        )
+
+    assert snapshots_root.stat().st_mode & 0o777 == mode
+    assert (public_root / "current.json").read_bytes() == old_current
+
+
+def test_public_directory_creation_permission_error_is_controlled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw_root = tmp_path / "raw"
+    (raw_root / "market-quality").mkdir(parents=True)
+    public_root = tmp_path / "public"
+    original_mkdir = Path.mkdir
+
+    def fail_public_mkdir(
+        path: Path,
+        mode: int = 0o777,
+        parents: bool = False,
+        exist_ok: bool = False,
+    ) -> None:
+        if path == public_root:
+            raise PermissionError("synthetic-private-path")
+        original_mkdir(path, mode=mode, parents=parents, exist_ok=exist_ok)
+
+    monkeypatch.setattr(Path, "mkdir", fail_public_mkdir)
+    with pytest.raises(MarketQualityExportError, match="market-quality directory") as error:
+        export_market_quality_evidence(
+            raw_root, public_root, clock=lambda: datetime(2026, 8, 27, 4, 2, tzinfo=UTC)
+        )
+
+    assert "synthetic-private-path" not in str(error.value)
+
+
 def test_export_accepts_existing_empty_quality_tree_and_publishes_zero_records(
     tmp_path: Path,
 ) -> None:
