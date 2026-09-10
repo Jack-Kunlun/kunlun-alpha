@@ -12,7 +12,8 @@ from enum import StrEnum
 from hashlib import sha256
 from typing import Final, cast
 
-MINIMUM_QUALIFYING_HOURS: Final = 72
+from .reliability import MINIMUM_QUALIFYING_HOURS
+
 MAX_CLOCK_DRIFT_SECONDS: Final = 300.0
 SOURCE_VERSION_PATTERN: Final = re.compile(r"^git:[0-9a-f]{40};source-sha256:[0-9a-f]{64}$")
 EVIDENCE_TARGET_PATTERN: Final = re.compile(r"^kunlun_paper_endurance_[a-z0-9_]*[0-9a-f]{32}$")

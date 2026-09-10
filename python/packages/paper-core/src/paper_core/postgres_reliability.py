@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import re
 import time
-from collections.abc import Generator, Mapping
+from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from secrets import token_hex
-from typing import Any, Final, cast
+from typing import Any, Final, TypeVar, cast
 from uuid import uuid4
 
 import psycopg
@@ -36,10 +36,21 @@ _DATABASE_SUFFIX_PATTERN: Final = re.compile(r"^[a-z0-9_]*[0-9a-f]{32}$")
 _OWNERSHIP_MARKER_PREFIX: Final = "kunlun-paper-endurance-owner:"
 _STREAMS_TABLE: Final = "paper_runtime_streams"
 _EVENTS_TABLE: Final = "paper_runtime_events"
+_TRANSIENT_OPERATION_ATTEMPTS: Final = 3
+_TRANSIENT_RETRY_BASE_SECONDS: Final = 0.1
+_TRANSIENT_RETRY_MAX_SECONDS: Final = 1.0
 
 # Any is confined to the Psycopg row-factory boundary; every domain field is
 # validated before it becomes a PaperRuntimeEvent.
 Row = dict[str, Any]
+OperationResult = TypeVar("OperationResult")
+
+
+def _retry_delay(attempt: int) -> float:
+    return min(
+        _TRANSIENT_RETRY_BASE_SECONDS * (2**attempt),
+        _TRANSIENT_RETRY_MAX_SECONDS,
+    )
 
 
 def _validate_identifier(identifier: str, name: str) -> None:
@@ -124,57 +135,63 @@ class PostgresPaperEventStore(PaperDurableEventStore):
     def initialize(self) -> None:
         """Create the isolated event tables idempotently."""
 
+        self._run_with_transient_retries(
+            self._initialize_once,
+            unavailable_message=(
+                "paper PostgreSQL persistence is unavailable during initialization"
+            ),
+        )
+
+    def _initialize_once(self) -> None:
+        """Attempt one idempotent schema initialization transaction."""
+
         streams = _qualified(self._schema, _STREAMS_TABLE)
         events = _qualified(self._schema, _EVENTS_TABLE)
-        try:
-            with self._connect() as connection, connection.cursor() as cursor:
-                cursor.execute(
-                    sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(self._schema))
-                )
-                cursor.execute(
-                    sql.SQL(
-                        """
-                        CREATE TABLE IF NOT EXISTS {} (
-                            stream_id TEXT PRIMARY KEY,
-                            head_sequence BIGINT NOT NULL CHECK (head_sequence >= 0),
-                            head_digest CHAR(64) NOT NULL
-                        )
-                        """
-                    ).format(streams)
-                )
-                cursor.execute(
-                    sql.SQL(
-                        """
-                        CREATE TABLE IF NOT EXISTS {} (
-                            stream_id TEXT NOT NULL REFERENCES {} (stream_id),
-                            event_id TEXT NOT NULL,
-                            event_type TEXT NOT NULL,
-                            sequence BIGINT NOT NULL CHECK (sequence > 0),
-                            occurred_at TIMESTAMPTZ NOT NULL,
-                            payload JSONB NOT NULL CHECK (jsonb_typeof(payload) = 'object'),
-                            prior_digest CHAR(64) NOT NULL,
-                            digest CHAR(64) NOT NULL,
-                            PRIMARY KEY (stream_id, sequence),
-                            UNIQUE (stream_id, event_id)
-                        )
-                        """
-                    ).format(events, streams)
-                )
-        except (psycopg.OperationalError, psycopg.InterfaceError) as exc:
-            raise PersistenceUnavailableError(
-                "paper PostgreSQL persistence is unavailable during initialization"
-            ) from exc
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(self._schema))
+            )
+            cursor.execute(
+                sql.SQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS {} (
+                        stream_id TEXT PRIMARY KEY,
+                        head_sequence BIGINT NOT NULL CHECK (head_sequence >= 0),
+                        head_digest CHAR(64) NOT NULL
+                    )
+                    """
+                ).format(streams)
+            )
+            cursor.execute(
+                sql.SQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS {} (
+                        stream_id TEXT NOT NULL REFERENCES {} (stream_id),
+                        event_id TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        sequence BIGINT NOT NULL CHECK (sequence > 0),
+                        occurred_at TIMESTAMPTZ NOT NULL,
+                        payload JSONB NOT NULL CHECK (jsonb_typeof(payload) = 'object'),
+                        prior_digest CHAR(64) NOT NULL,
+                        digest CHAR(64) NOT NULL,
+                        PRIMARY KEY (stream_id, sequence),
+                        UNIQUE (stream_id, event_id)
+                    )
+                    """
+                ).format(events, streams)
+            )
 
     def read_stream(self, stream_id: str) -> tuple[PaperRuntimeEvent, ...]:
         if not stream_id:
             raise ValueError("stream_id must not be empty")
-        try:
-            with self._connect() as connection, connection.cursor() as cursor:
-                return self._read_stream(cursor, stream_id)
-        except (psycopg.OperationalError, psycopg.InterfaceError) as exc:
-            raise PersistenceUnavailableError(
-                "paper PostgreSQL persistence is unavailable during read"
-            ) from exc
+        return self._run_with_transient_retries(
+            lambda: self._read_stream_once(stream_id),
+            unavailable_message="paper PostgreSQL persistence is unavailable during read",
+        )
+
+    def _read_stream_once(self, stream_id: str) -> tuple[PaperRuntimeEvent, ...]:
+        with self._connect() as connection, connection.cursor() as cursor:
+            return self._read_stream(cursor, stream_id)
 
     def append_event(
         self,
@@ -182,99 +199,131 @@ class PostgresPaperEventStore(PaperDurableEventStore):
         *,
         expected_head_digest: str,
     ) -> tuple[AppendOutcome, tuple[PaperRuntimeEvent, ...]]:
+        # Retrying the whole transaction is safe because event_id is unique per
+        # stream. If PostgreSQL committed before an acknowledgement was lost,
+        # the next attempt returns DUPLICATE with the already durable event.
+        return self._run_with_transient_retries(
+            lambda: self._append_event_once(
+                event,
+                expected_head_digest=expected_head_digest,
+            ),
+            unavailable_message="paper PostgreSQL persistence is unavailable during append",
+        )
+
+    def _append_event_once(
+        self,
+        event: PaperRuntimeEvent,
+        *,
+        expected_head_digest: str,
+    ) -> tuple[AppendOutcome, tuple[PaperRuntimeEvent, ...]]:
         streams = _qualified(self._schema, _STREAMS_TABLE)
         events = _qualified(self._schema, _EVENTS_TABLE)
-        try:
-            with self._connect() as connection, connection.cursor() as cursor:
-                cursor.execute(
-                    sql.SQL(
-                        """
-                        INSERT INTO {} (stream_id, head_sequence, head_digest)
-                        VALUES (%s, 0, %s)
-                        ON CONFLICT (stream_id) DO NOTHING
-                        """
-                    ).format(streams),
-                    (event.stream_id, GENESIS_DIGEST),
-                )
-                cursor.execute(
-                    sql.SQL(
-                        "SELECT head_sequence, head_digest FROM {} WHERE stream_id = %s FOR UPDATE"
-                    ).format(streams),
-                    (event.stream_id,),
-                )
-                head = cursor.fetchone()
-                if head is None:
-                    raise RecoveryInvariantError("durable stream head disappeared during append")
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                sql.SQL(
+                    """
+                    INSERT INTO {} (stream_id, head_sequence, head_digest)
+                    VALUES (%s, 0, %s)
+                    ON CONFLICT (stream_id) DO NOTHING
+                    """
+                ).format(streams),
+                (event.stream_id, GENESIS_DIGEST),
+            )
+            cursor.execute(
+                sql.SQL(
+                    "SELECT head_sequence, head_digest FROM {} WHERE stream_id = %s FOR UPDATE"
+                ).format(streams),
+                (event.stream_id,),
+            )
+            head = cursor.fetchone()
+            if head is None:
+                raise RecoveryInvariantError("durable stream head disappeared during append")
 
-                cursor.execute(
-                    sql.SQL(
-                        """
-                        SELECT stream_id, event_id, event_type, sequence, occurred_at,
-                               payload, prior_digest, digest
-                          FROM {}
-                         WHERE stream_id = %s AND event_id = %s
-                        """
-                    ).format(events),
-                    (event.stream_id, event.event_id),
-                )
-                duplicate_row = cursor.fetchone()
-                if duplicate_row is not None:
-                    persisted = _event_from_row(duplicate_row)
-                    if (
-                        persisted.event_type != event.event_type
-                        or persisted.payload_items != event.payload_items
-                    ):
-                        raise DuplicateEventConflictError(
-                            f"event_id {event.event_id!r} was reused with different content"
-                        )
-                    return AppendOutcome.DUPLICATE, self._read_stream(cursor, event.stream_id)
-
-                head_sequence = head.get("head_sequence")
-                current_head = head.get("head_digest")
-                if not isinstance(head_sequence, int) or isinstance(head_sequence, bool):
-                    raise RecoveryInvariantError("durable stream head sequence is invalid")
-                if not isinstance(current_head, str):
-                    raise RecoveryInvariantError("durable stream head digest is invalid")
-                if current_head != expected_head_digest:
-                    raise ConcurrentWriteConflictError("durable stream head changed before append")
-                if event.sequence != head_sequence + 1:
-                    raise RecoveryInvariantError("event sequence is not contiguous")
-                if event.prior_digest != current_head:
-                    raise RecoveryInvariantError(
-                        "event prior digest does not match the durable stream head"
+            cursor.execute(
+                sql.SQL(
+                    """
+                    SELECT stream_id, event_id, event_type, sequence, occurred_at,
+                           payload, prior_digest, digest
+                      FROM {}
+                     WHERE stream_id = %s AND event_id = %s
+                    """
+                ).format(events),
+                (event.stream_id, event.event_id),
+            )
+            duplicate_row = cursor.fetchone()
+            if duplicate_row is not None:
+                persisted = _event_from_row(duplicate_row)
+                if (
+                    persisted.event_type != event.event_type
+                    or persisted.payload_items != event.payload_items
+                ):
+                    raise DuplicateEventConflictError(
+                        f"event_id {event.event_id!r} was reused with different content"
                     )
+                return AppendOutcome.DUPLICATE, self._read_stream(cursor, event.stream_id)
 
-                cursor.execute(
-                    sql.SQL(
-                        """
-                        INSERT INTO {} (
-                            stream_id, event_id, event_type, sequence, occurred_at,
-                            payload, prior_digest, digest
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        """
-                    ).format(events),
-                    (
-                        event.stream_id,
-                        event.event_id,
-                        event.event_type,
-                        event.sequence,
-                        event.occurred_at,
-                        Jsonb(dict(event.payload_items)),
-                        event.prior_digest,
-                        event.digest,
-                    ),
+            head_sequence = head.get("head_sequence")
+            current_head = head.get("head_digest")
+            if not isinstance(head_sequence, int) or isinstance(head_sequence, bool):
+                raise RecoveryInvariantError("durable stream head sequence is invalid")
+            if not isinstance(current_head, str):
+                raise RecoveryInvariantError("durable stream head digest is invalid")
+            if current_head != expected_head_digest:
+                raise ConcurrentWriteConflictError("durable stream head changed before append")
+            if event.sequence != head_sequence + 1:
+                raise RecoveryInvariantError("event sequence is not contiguous")
+            if event.prior_digest != current_head:
+                raise RecoveryInvariantError(
+                    "event prior digest does not match the durable stream head"
                 )
-                cursor.execute(
-                    sql.SQL(
-                        "UPDATE {} SET head_sequence = %s, head_digest = %s WHERE stream_id = %s"
-                    ).format(streams),
-                    (event.sequence, event.digest, event.stream_id),
-                )
-                return AppendOutcome.APPLIED, self._read_stream(cursor, event.stream_id)
-        except (psycopg.OperationalError, psycopg.InterfaceError) as exc:
-            raise PersistenceUnavailableError(
-                "paper PostgreSQL persistence is unavailable during append"
-            ) from exc
+
+            cursor.execute(
+                sql.SQL(
+                    """
+                    INSERT INTO {} (
+                        stream_id, event_id, event_type, sequence, occurred_at,
+                        payload, prior_digest, digest
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                ).format(events),
+                (
+                    event.stream_id,
+                    event.event_id,
+                    event.event_type,
+                    event.sequence,
+                    event.occurred_at,
+                    Jsonb(dict(event.payload_items)),
+                    event.prior_digest,
+                    event.digest,
+                ),
+            )
+            cursor.execute(
+                sql.SQL(
+                    "UPDATE {} SET head_sequence = %s, head_digest = %s WHERE stream_id = %s"
+                ).format(streams),
+                (event.sequence, event.digest, event.stream_id),
+            )
+            return AppendOutcome.APPLIED, self._read_stream(cursor, event.stream_id)
+
+    def _run_with_transient_retries(
+        self,
+        operation: Callable[[], OperationResult],
+        *,
+        unavailable_message: str,
+    ) -> OperationResult:
+        last_error: psycopg.OperationalError | psycopg.InterfaceError | None = None
+        for attempt in range(_TRANSIENT_OPERATION_ATTEMPTS):
+            try:
+                return operation()
+            except (psycopg.OperationalError, psycopg.InterfaceError) as exc:
+                last_error = exc
+                if attempt + 1 < _TRANSIENT_OPERATION_ATTEMPTS:
+                    time.sleep(_retry_delay(attempt))
+        assert last_error is not None
+        raise PersistenceUnavailableError(
+            f"{unavailable_message} after {_TRANSIENT_OPERATION_ATTEMPTS} attempts "
+            f"({type(last_error).__name__})"
+        ) from last_error
 
     def _connect(self) -> Connection[Row]:
         return cast(
@@ -391,9 +440,7 @@ class PostgresPaperFaultHarness:
         )
 
     def active_connection_count(self) -> int:
-        with self._admin_connection() as connection, connection.cursor() as cursor:
-            self._assert_admin_database(cursor)
-            self._assert_owned_database(cursor)
+        def count_connections(cursor: Cursor[Row]) -> int:
             cursor.execute(
                 "SELECT count(*) AS connection_count FROM pg_stat_activity WHERE datname = %s",
                 (self._database_name,),
@@ -403,26 +450,32 @@ class PostgresPaperFaultHarness:
                 raise RecoveryInvariantError("PostgreSQL connection baseline is unavailable")
             return cast(int, row["connection_count"])
 
+        return self._run_admin_operation(
+            count_connections,
+            unavailable_message="PostgreSQL connection baseline is unavailable",
+        )
+
     @contextmanager
     def database_outage(self) -> Generator[None, None, None]:
         """Reject and terminate connections only for the isolated database."""
 
         disabled = False
+
+        def disable_connections(cursor: Cursor[Row]) -> None:
+            nonlocal disabled
+            disabled = True
+            self._set_connections(cursor, allowed=False)
+            self._terminate_target_connections(cursor)
+
         try:
-            with self._admin_connection() as connection, connection.cursor() as cursor:
-                self._assert_admin_database(cursor)
-                self._assert_owned_database(cursor)
-                disabled = True
-                self._set_connections(cursor, allowed=False)
-                self._terminate_target_connections(cursor)
+            self._run_admin_operation(
+                disable_connections,
+                unavailable_message="isolated database outage injection could not be applied",
+            )
             yield
         finally:
             if disabled:
-                with self._admin_connection() as connection, connection.cursor() as cursor:
-                    self._assert_admin_database(cursor)
-                    self._assert_owned_database(cursor)
-                    self._set_connections(cursor, allowed=True)
-                self._wait_until_available()
+                self._restore_connections_until_available()
 
     def _admin_connection(self) -> Connection[Row]:
         return cast(
@@ -478,6 +531,43 @@ class PostgresPaperFaultHarness:
         self._assert_owned_database(cursor)
         self._set_connections(cursor, allowed=True)
 
+    def _restore_connections_until_available(self) -> None:
+        def restore_connections(cursor: Cursor[Row]) -> None:
+            self._set_connections(cursor, allowed=True)
+
+        self._run_admin_operation(
+            restore_connections,
+            unavailable_message="isolated paper endurance database connections were not restored",
+        )
+        self._wait_until_available()
+
+    def _run_admin_operation(
+        self,
+        operation: Callable[[Cursor[Row]], OperationResult],
+        *,
+        unavailable_message: str,
+    ) -> OperationResult:
+        deadline = time.monotonic() + self._recovery_timeout_seconds
+        attempt = 0
+        last_error: psycopg.OperationalError | psycopg.InterfaceError | None = None
+        while True:
+            try:
+                with self._admin_connection() as connection, connection.cursor() as cursor:
+                    self._assert_admin_database(cursor)
+                    self._assert_owned_database(cursor)
+                    return operation(cursor)
+            except (psycopg.OperationalError, psycopg.InterfaceError) as exc:
+                last_error = exc
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                time.sleep(min(_retry_delay(attempt), remaining))
+                attempt += 1
+        assert last_error is not None
+        raise PersistenceUnavailableError(
+            f"{unavailable_message} after bounded retries ({type(last_error).__name__})"
+        ) from last_error
+
     def _set_connections(self, cursor: Cursor[Row], *, allowed: bool) -> None:
         setting = sql.SQL("true") if allowed else sql.SQL("false")
         cursor.execute(
@@ -498,9 +588,6 @@ class PostgresPaperFaultHarness:
         )
 
     def _wait_until_available(self) -> None:
-        with self._admin_connection() as connection, connection.cursor() as cursor:
-            self._assert_admin_database(cursor)
-            self._assert_owned_database(cursor)
         deadline = time.monotonic() + self._recovery_timeout_seconds
         while True:
             try:

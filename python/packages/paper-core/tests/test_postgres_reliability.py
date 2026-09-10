@@ -13,8 +13,10 @@ from paper_core.postgres_reliability import (
     PostgresPaperFaultHarness,
 )
 from paper_core.reliability import (
+    GENESIS_DIGEST,
     AppendOutcome,
     FaultScenarioStatus,
+    PaperRuntimeEvent,
     PersistenceUnavailableError,
     RecoverablePaperRuntime,
     RecoveryInvariantError,
@@ -42,6 +44,11 @@ class _FakeAdminCursor:
     def fetchone(self) -> dict[str, object] | None:
         return self._rows.pop(0) if self._rows else None
 
+    def fetchall(self) -> list[dict[str, object]]:
+        rows = [row for row in self._rows if row is not None]
+        self._rows.clear()
+        return rows
+
 
 class _FakeAdminConnection:
     def __init__(self, cursor: _FakeAdminCursor) -> None:
@@ -55,6 +62,10 @@ class _FakeAdminConnection:
 
     def cursor(self) -> _FakeAdminCursor:
         return self._cursor
+
+
+def _skip_sleep(_seconds: float) -> None:
+    return None
 
 
 @pytest.fixture
@@ -186,6 +197,92 @@ def test_ownership_marker_lookup_uses_the_shared_object_description_function(
     assert "shobj_description(oid, 'pg_database')" in str(cursor.statements[1])
 
 
+def test_postgres_store_retries_a_transient_connection_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = PostgresPaperEventStore("postgresql://example.invalid/postgres")
+    cursor = _FakeAdminCursor([])
+    connection_attempts = 0
+
+    def connect() -> _FakeAdminConnection:
+        nonlocal connection_attempts
+        connection_attempts += 1
+        if connection_attempts == 1:
+            raise psycopg.errors.ConnectionTimeout("connection timeout expired")
+        return _FakeAdminConnection(cursor)
+
+    monkeypatch.setattr(store, "_connect", connect)
+    monkeypatch.setattr("paper_core.postgres_reliability.time.sleep", _skip_sleep)
+
+    assert store.read_stream("transient-read") == ()
+    assert connection_attempts == 2
+
+
+def test_postgres_store_bounds_transient_connection_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = PostgresPaperEventStore("postgresql://example.invalid/postgres")
+    connection_attempts = 0
+
+    def connect() -> _FakeAdminConnection:
+        nonlocal connection_attempts
+        connection_attempts += 1
+        raise psycopg.errors.ConnectionTimeout("connection timeout expired")
+
+    monkeypatch.setattr(store, "_connect", connect)
+    monkeypatch.setattr("paper_core.postgres_reliability.time.sleep", _skip_sleep)
+
+    with pytest.raises(PersistenceUnavailableError, match="after 3 attempts"):
+        store.read_stream("persistent-outage")
+
+    assert connection_attempts == 3
+
+
+def test_database_outage_retries_a_transient_admin_timeout_during_restore(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    harness = PostgresPaperFaultHarness(
+        admin_dsn="postgresql://example.invalid/postgres",
+        database_name=f"{ISOLATED_DATABASE_PREFIX}test_{uuid4().hex}",
+        recovery_timeout_seconds=1,
+    )
+    marker = "marker-for-restore-test"
+    monkeypatch.setattr(harness, "_ownership_marker", marker)
+    disable_cursor = _FakeAdminCursor(
+        [
+            {"database_name": "postgres"},
+            {"ownership_marker": marker},
+        ]
+    )
+    restore_cursor = _FakeAdminCursor(
+        [
+            {"database_name": "postgres"},
+            {"ownership_marker": marker},
+        ]
+    )
+    connection_attempts = 0
+
+    def admin_connection() -> _FakeAdminConnection:
+        nonlocal connection_attempts
+        connection_attempts += 1
+        if connection_attempts == 1:
+            return _FakeAdminConnection(disable_cursor)
+        if connection_attempts == 2:
+            raise psycopg.errors.ConnectionTimeout("connection timeout expired")
+        return _FakeAdminConnection(restore_cursor)
+
+    monkeypatch.setattr(harness, "_admin_connection", admin_connection)
+    monkeypatch.setattr(harness, "_wait_until_available", lambda: None)
+    monkeypatch.setattr("paper_core.postgres_reliability.time.sleep", _skip_sleep)
+
+    with harness.database_outage():
+        pass
+
+    assert connection_attempts == 3
+    assert "false" in str(disable_cursor.statements[-2])
+    assert "true" in str(restore_cursor.statements[-1])
+
+
 def test_postgres_store_survives_reopen_and_keeps_duplicates_idempotent(
     postgres_harness: PostgresPaperFaultHarness,
 ) -> None:
@@ -212,6 +309,47 @@ def test_postgres_store_survives_reopen_and_keeps_duplicates_idempotent(
     assert recovered.event_ids == ("deposit-1",)
     assert duplicate.outcome is AppendOutcome.DUPLICATE
     assert duplicate.projection.event_count == 1
+
+
+def test_postgres_store_recovers_an_ambiguous_commit_as_an_idempotent_duplicate(
+    postgres_harness: PostgresPaperFaultHarness,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = postgres_harness.new_store()
+    event = PaperRuntimeEvent.build(
+        stream_id="ambiguous-commit",
+        event_id="deposit-ambiguous-1",
+        event_type="CASH_DEPOSITED",
+        sequence=1,
+        occurred_at=NOW,
+        payload={"amount": "100000.00", "currency": "CNY"},
+        prior_digest=GENESIS_DIGEST,
+    )
+    original_append = store._append_event_once  # pyright: ignore[reportPrivateUsage]
+    append_attempts = 0
+
+    def lose_first_acknowledgement(
+        candidate: PaperRuntimeEvent,
+        *,
+        expected_head_digest: str,
+    ) -> tuple[AppendOutcome, tuple[PaperRuntimeEvent, ...]]:
+        nonlocal append_attempts
+        append_attempts += 1
+        result = original_append(
+            candidate,
+            expected_head_digest=expected_head_digest,
+        )
+        if append_attempts == 1:
+            raise psycopg.errors.ConnectionTimeout("commit acknowledgement was lost")
+        return result
+
+    monkeypatch.setattr(store, "_append_event_once", lose_first_acknowledgement)
+
+    outcome, events = store.append_event(event, expected_head_digest=GENESIS_DIGEST)
+
+    assert append_attempts == 2
+    assert outcome is AppendOutcome.DUPLICATE
+    assert events == (event,)
 
 
 def test_postgres_store_serializes_concurrent_stream_appends(
@@ -243,6 +381,14 @@ def test_postgres_fault_matrix_disables_only_the_isolated_database(
 
     assert len(results) == 4
     assert all(result.status is FaultScenarioStatus.PASS for result in results)
+
+
+def test_postgres_fault_matrix_passes_one_hundred_high_frequency_iterations(
+    postgres_harness: PostgresPaperFaultHarness,
+) -> None:
+    for _iteration in range(100):
+        results = run_fault_matrix(now=NOW, harness=postgres_harness)
+        assert all(result.status is FaultScenarioStatus.PASS for result in results)
 
 
 def test_postgres_outage_keeps_the_admin_database_available_and_recovers(

@@ -213,8 +213,8 @@ def test_only_a_complete_wall_clock_run_can_qualify() -> None:
         classify_endurance_qualification(
             clock_mode=EnduranceClockMode.WALL,
             evidence_scope=EnduranceEvidenceScope.DURABLE_ADAPTER,
-            requested_duration_hours=71,
-            elapsed_wall_seconds=71 * 60 * 60,
+            requested_duration_hours=23,
+            elapsed_wall_seconds=23 * 60 * 60,
             scenarios=scenarios,
         )
         is EnduranceQualification.ENGINEERING_EVIDENCE_ONLY
@@ -228,4 +228,19 @@ def test_only_a_complete_wall_clock_run_can_qualify() -> None:
             scenarios=scenarios,
         )
         is EnduranceQualification.ENGINEERING_EVIDENCE_ONLY
+    )
+
+
+def test_24_hour_wall_clock_run_is_formally_qualifying() -> None:
+    scenarios = run_fault_matrix(now=NOW)
+
+    assert (
+        classify_endurance_qualification(
+            clock_mode=EnduranceClockMode.WALL,
+            evidence_scope=EnduranceEvidenceScope.DURABLE_ADAPTER,
+            requested_duration_hours=24,
+            elapsed_wall_seconds=24 * 60 * 60,
+            scenarios=scenarios,
+        )
+        is EnduranceQualification.QUALIFIED
     )

@@ -1,0 +1,51 @@
+{
+  "clockMode": "wall",
+  "elapsedWallSeconds": 86401.268,
+  "evidenceDigest": "68a06f5a505dfdf6ffe9e4fcd68ea52d301857e79804fd353b4536e4336c9ec3",
+  "evidenceScope": "DURABLE_ADAPTER",
+  "evidenceTarget": "kunlun_paper_endurance_440023dd3ef4487084b9bcb9d0b358f3",
+  "executionCapability": "PAPER_ONLY",
+  "faultInjection": "postgresql-database-connectivity-disable-and-backend-termination",
+  "generatedAt": "2026-09-04T18:11:44.175165Z",
+  "qualification": "QUALIFIED",
+  "reportVersion": "paper-endurance-report/v2",
+  "requestedDurationHours": 24,
+  "resourceMetrics": {
+    "adapterConnectionsEnd": 0,
+    "adapterConnectionsStart": 0,
+    "pythonHeapEndBytes": 949685,
+    "pythonHeapGrowthBytes": 949685,
+    "pythonHeapPeakBytes": 2195074,
+    "pythonHeapStartBytes": 0
+  },
+  "scenarios": [
+    {
+      "details": "1415/1415 iterations passed",
+      "iterations": 1415,
+      "name": "PROCESS_RESTART",
+      "status": "PASS"
+    },
+    {
+      "details": "1415/1415 iterations passed",
+      "iterations": 1415,
+      "name": "DUPLICATE_MESSAGE",
+      "status": "PASS"
+    },
+    {
+      "details": "1415/1415 iterations passed",
+      "iterations": 1415,
+      "name": "DATABASE_OUTAGE",
+      "status": "PASS"
+    },
+    {
+      "details": "1415/1415 iterations passed",
+      "iterations": 1415,
+      "name": "CACHE_LOSS",
+      "status": "PASS"
+    }
+  ],
+  "simulatedHours": 0,
+  "startedAt": "2026-09-03T04:11:09.740266Z",
+  "storageAdapter": "postgresql",
+  "sourceVersion": "git:79a7fe46462ce1d32ae31f3f15a66bcb8f8b9f88;source-sha256:e270a7f4e1bb8bf92bbf2aec5cfaad0c58e851f1b6f1a7e44cd01eac0a9eb09f"
+}

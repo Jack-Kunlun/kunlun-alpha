@@ -13,6 +13,7 @@ from paper_core.postgres_reliability import (
     PostgresPaperFaultHarness,
 )
 from paper_core.reliability import (
+    MINIMUM_QUALIFYING_HOURS,
     EnduranceClockMode,
     EnduranceQualification,
     InMemoryPaperFaultHarness,
@@ -35,7 +36,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run paper-runtime recovery faults over an endurance window.",
     )
-    parser.add_argument("--duration-hours", type=int, default=72)
+    parser.add_argument("--duration-hours", type=int, default=MINIMUM_QUALIFYING_HOURS)
     parser.add_argument(
         "--clock-mode",
         choices=[mode.value for mode in EnduranceClockMode],

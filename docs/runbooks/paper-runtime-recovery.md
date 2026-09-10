@@ -30,6 +30,12 @@ harness 只允许操作名称以 `kunlun_paper_endurance_` 开头且带 UUID 后
 管理 DSN 的 `current_database()` 还必须位于 `kunlun_paper_endurance_` 命名空间之外，不能把旧的
 耐久数据库误当作控制库。
 
+正常持久化读写遇到 `OperationalError` 或 `InterfaceError` 时，适配器会以 100 ms、200 ms 的
+有界退避最多尝试 3 次；全部失败后仍以 `PersistenceUnavailableError` 失败关闭。追加操作的整段
+事务可以安全重试：`event_id` 唯一约束会把“提交成功但确认丢失”的重试识别为 `DUPLICATE`，
+不会产生第二次持久变更。故障注入的管理连接及 `ALLOW_CONNECTIONS=true` 恢复路径则在 30 秒
+恢复窗口内有界重试；每次重连仍重新核验控制库和本次 ownership marker，不能绕过隔离保护。
+
 ## 工程快速检查
 
 虚拟时钟用于快速验证 72 个逻辑小时内的故障矩阵。它只产生工程证据，不能替代正式
@@ -49,7 +55,7 @@ uv run --package paper-core python scripts/run-paper-soak.py \
 
 ## 墙钟耐久证据与正式门禁
 
-不传 `--store postgres` 时，runner 使用 `FaultInjectablePaperStore`，即使墙钟运行满 72
+不传 `--store postgres` 时，runner 使用 `FaultInjectablePaperStore`，即使墙钟运行满 24
 小时也只能形成 `TEST_DOUBLE` 工程证据。正式运行必须连接具备建库、切换连接许可和终止
 隔离数据库会话权限的 PostgreSQL 管理数据库。DSN 只通过环境变量注入，不得写入命令参数、
 日志或报告：
@@ -59,7 +65,7 @@ export KUNLUN_PAPER_ENDURANCE_ADMIN_DSN='postgresql://USER:PASSWORD@HOST:PORT/po
 uv run --package paper-core python scripts/run-paper-soak.py \
   --store postgres \
   --clock-mode wall \
-  --duration-hours 72 \
+  --duration-hours 24 \
   --tick-seconds 60 \
   --progress-output /var/tmp/kunlun-paper-endurance-progress.json \
   --output /var/tmp/kunlun-paper-endurance-wall.json
@@ -77,16 +83,28 @@ runner 默认生成带不可预测 UUID 的全新隔离数据库；显式传入�
 正式资格必须由接入真实持久化适配器的 runner 执行，并同时满足以下条件：
 
 1. `clockMode` 为 `wall`。
-2. 请求时长不少于 72 小时。
+2. 请求时长不少于 24 小时。
 3. 实际单调墙钟时长达到请求时长。
 4. 四种故障场景每次迭代均为 `PASS`。
 5. `executionCapability` 为 `PAPER_ONLY`。
 6. `evidenceScope` 为 `DURABLE_ADAPTER`，不能是 `TEST_DOUBLE`。
 
-虚拟时钟、测试替身、缩短时长、缺失场景或任一失败都不能取得正式资格。报告包含版本、
+虚拟时钟、测试替身、低于 24 小时、缺失场景或任一失败都不能取得正式资格。报告包含版本、
 证据范围、起止时间、实际时长、迭代数、资格状态和证据摘要；审核时需保留原始 JSON 与
-运行日志。适配器和快速 PostgreSQL 故障矩阵通过不等于 72 小时门禁通过；墙钟报告生成前，
+运行日志。适配器和快速 PostgreSQL 故障矩阵通过不等于 24 小时 P6 门禁通过；墙钟报告生成前，
 P6-N12 继续保持待验收。
+
+截至 2026-09-05，第四轮已完成累计 24 小时有效运行且四类场景全部通过，但宿主睡眠导致
+独立检查器返回 `CLOCK_ELAPSED_MISMATCH`。项目负责人已将本轮作为开发阶段证据条件接受，
+允许继续非实盘与模拟态开发，并把最终连续 24 小时墙钟门禁延期到候选版本冻结后执行。
+该决定不把第四轮标记为 `QUALIFIED`，也不关闭 P6-N12 或 Phase 6；证据与边界见
+[`2026-09-05-p6-n12-r4-conditional-acceptance.md`](../reviews/2026-09-05-p6-n12-r4-conditional-acceptance.md)。
+
+24 小时资格只用于 P6-N12 退出和后续模拟开发，不构成实盘资格。任何真实账户或真实订单
+能力启用前，仍须取得独立、全新 UUID 隔离环境下连续 72 小时且全部故障场景通过的正式
+耐久证据，并同时满足 Phase 7 的监管、券商、环境隔离、独立风控、对账、Kill Switch 和人工
+批准门禁。基线调整记录见
+[`2026-09-03-p6-n12-duration-baseline-decision.md`](../reviews/2026-09-03-p6-n12-duration-baseline-decision.md)。
 
 可在不连接证据数据库、不发送信号且不改写进度或报告文件的前提下运行只读检查器：
 
@@ -106,10 +124,12 @@ uv run --package paper-core python scripts/check-paper-soak-evidence.py \
 若进程在数据库连接被禁用的极短窗口内遭遇不可捕获终止，不得按数据库名前缀手工执行
 `ALTER DATABASE`、`DROP DATABASE` 或拼接中断前后的时长。ownership marker 只由本次 harness
 保存在进程内，无法由报告或命令行重建；应将该数据库交给管理员按 catalog marker 做人工隔离
-清理，然后使用新生成的数据库重新开始完整 72 小时运行。
+清理，然后使用新生成的数据库重新开始完整 24 小时 P6 运行。
 
-此前固定名称运行的 `kunlun_paper_endurance_p6n12` 属于旧源码运行，不是本修复后的验收证据；
-修复后必须启动全新的 72 小时墙钟运行，不能续用或拼接旧运行时长。
+此前固定名称运行的 `kunlun_paper_endurance_p6n12` 属于旧源码运行，不是新基线下的验收证据；
+调整后必须启动全新的 24 小时墙钟运行，使用新的 UUID 隔离数据库和证据文件，不能续用或
+拼接旧运行时长。历史轮次继续按原始请求时长和实际结果保留；任何已失败报告都不得因本次
+基线调整追溯改判为通过。
 
 ## 恢复步骤
 

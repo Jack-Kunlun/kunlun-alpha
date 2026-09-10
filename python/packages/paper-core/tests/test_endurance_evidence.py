@@ -169,11 +169,28 @@ def test_complete_report_requires_all_formal_evidence_and_matching_progress() ->
     assert result.evidence_digest == report["evidenceDigest"]
 
 
+def test_complete_report_accepts_new_24_hour_minimum() -> None:
+    report = completed_report()
+    report["requestedDurationHours"] = 24
+    report["elapsedWallSeconds"] = 24 * 60 * 60
+    report["startedAt"] = (NOW - timedelta(hours=24)).isoformat().replace("+00:00", "Z")
+    report["evidenceDigest"] = evidence_digest(
+        {key: value for key, value in report.items() if key != "evidenceDigest"}
+    )
+
+    result = check_endurance_evidence(completed_progress(report), report, now=NOW)
+
+    assert result.status is EvidenceStatus.QUALIFIED
+    assert result.gate_satisfied is True
+    assert result.errors == ()
+
+
 @pytest.mark.parametrize(
     ("field", "value", "code"),
     [
         ("qualification", "FAILED", "QUALIFICATION_MISMATCH"),
         ("elapsedWallSeconds", 259_199.0, "DURATION_INCOMPLETE"),
+        ("requestedDurationHours", 23, "REQUESTED_DURATION_TOO_SHORT"),
         ("clockMode", "virtual", "CLOCK_MODE_MISMATCH"),
         ("evidenceScope", "TEST_DOUBLE", "EVIDENCE_SCOPE_MISMATCH"),
         ("executionCapability", "LIVE", "EXECUTION_CAPABILITY_MISMATCH"),

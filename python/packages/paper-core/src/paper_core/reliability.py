@@ -17,7 +17,8 @@ from typing import Final, Protocol, Self
 from uuid import uuid4
 
 GENESIS_DIGEST: Final = "0" * 64
-MINIMUM_QUALIFYING_HOURS: Final = 72
+# P6-N12 exit baseline. Live-trading readiness keeps a separate 72-hour hold.
+MINIMUM_QUALIFYING_HOURS: Final = 24
 MAXIMUM_ENDURANCE_HOURS: Final = 8_760
 MAX_APPEND_ATTEMPTS: Final = 2
 

@@ -1,0 +1,15 @@
+{
+  "clockMode": "wall",
+  "completedIterations": 2788,
+  "elapsedWallSeconds": 168640.733,
+  "evidenceScope": "DURABLE_ADAPTER",
+  "executionCapability": "PAPER_ONLY",
+  "requestedDurationHours": 72,
+  "sourceVersion": "git:5303a55407b8372273b8ff730b6951ac4a06eb82;source-sha256:d00f641ae46ebe1e1a63aadac942f65f9c18daca5f954e4d429bbf83862c7698",
+  "startedAt": "2026-08-29T02:22:57.889685Z",
+  "status": "RUNNING",
+  "updatedAt": "2026-08-31T01:13:38.994725Z",
+  "evidenceTarget": "kunlun_paper_endurance_p6n12_r2",
+  "processId": 44352,
+  "storageAdapter": "postgresql"
+}
