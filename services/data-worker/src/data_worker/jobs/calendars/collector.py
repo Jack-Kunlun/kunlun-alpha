@@ -115,7 +115,12 @@ class CalendarCollector:
     def collect(self, exchange: str, year: int) -> CalendarCollectResult:
         canonical_exchange, valid_year = _validate_request(exchange, year)
         holidays = self._fetch_all(canonical_exchange, valid_year)
-        version_id = self._repository.save_version(self._source, valid_year, holidays)
+        version_id = self._repository.save_version(
+            self._source,
+            valid_year,
+            holidays,
+            exchange=canonical_exchange,
+        )
         alerts = detect_alerts(holidays, valid_year)
         return CalendarCollectResult(
             version_id=version_id, alerts=alerts, holiday_count=len(holidays)

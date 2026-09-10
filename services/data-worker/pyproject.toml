@@ -18,6 +18,10 @@ limit-pool-terminal-materialize = "data_worker.jobs.limit_pool_terminal.runtime:
 local-terminal-reference-materialize = "data_worker.jobs.local_reference.runtime:main"
 market-data-sync = "data_worker.jobs.market_data.runtime:main"
 market-quality-export = "data_worker.jobs.market_data.quality_export:main"
+official-sse-calendar-sync = "data_worker.jobs.calendars.official_sse_runtime:main"
+official-szse-daily-sync = "data_worker.jobs.calendars.official_szse_runtime:main"
+calendar-quality-verify = "data_worker.jobs.calendars.calendar_quality_runtime:main"
+calendar-quality-publish = "data_worker.jobs.calendars.calendar_quality_runtime:publish_main"
 offline-market-replay-check = "data_worker.jobs.offline_market_replay.runtime:main"
 ranking-snapshot-materialize = "data_worker.jobs.ranking_snapshot.runtime:main"
 
@@ -34,3 +38,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/data_worker/jobs/seats/seat_collection_migration.sql" = "data_worker/jobs/seats/seat_collection_migration.sql"
+"src/data_worker/jobs/calendars/calendar_snapshot_migration.sql" = "data_worker/jobs/calendars/calendar_snapshot_migration.sql"
+"src/data_worker/jobs/calendars/official_calendar_migration.sql" = "data_worker/jobs/calendars/official_calendar_migration.sql"
+"src/data_worker/jobs/calendars/calendar_quality_migration.sql" = "data_worker/jobs/calendars/calendar_quality_migration.sql"

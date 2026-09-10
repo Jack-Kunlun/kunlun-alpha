@@ -79,6 +79,32 @@ services:
       - "kunlun.service=data-worker-migrate"
       - "kunlun.description=Verified data-worker schema migrations"
 
+  # Calendar-quality V5 installation is one administrator-owned transaction.
+  # It stays disabled unless the calendar-quality profile is selected.
+  calendar-quality-publish:
+    profiles: ["calendar-quality"]
+    image: kunlun-data-worker-migrate:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: data-worker-migrate
+    container_name: kunlun-calendar-quality-publish
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      data-worker-migrate:
+        condition: service_completed_successfully
+    environment:
+      CALENDAR_QUALITY_ADMIN_DSN: ${CALENDAR_QUALITY_ADMIN_DSN:-}
+      CALENDAR_QUALITY_ADMIN_DSN_FILE: ${CALENDAR_QUALITY_ADMIN_DSN_FILE:-}
+      CALENDAR_QUALITY_MIGRATOR_PASSWORD: ${CALENDAR_QUALITY_MIGRATOR_PASSWORD:-}
+      CALENDAR_QUALITY_RUNTIME_PASSWORD: ${CALENDAR_QUALITY_RUNTIME_PASSWORD:-}
+    command: ["calendar-quality-publish"]
+    labels:
+      - "kunlun.service=calendar-quality-publish"
+      - "kunlun.description=Atomic calendar-quality V5 publish"
+
   local-terminal-reference-materialize:
     image: kunlun-data-worker:local
     build:

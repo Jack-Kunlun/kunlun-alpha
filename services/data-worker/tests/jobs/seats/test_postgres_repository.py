@@ -327,6 +327,7 @@ def test_postgres_repository_restart_reads_committed_batch_and_checkpoint(
         assert cursor.fetchall() == [
             (1, "precious_metals_migration"),
             (2, "seat_collection_migration"),
+            (3, "calendar_snapshot_migration"),
         ]
 
     restarted_connection = _pg_connection(isolated_postgres)

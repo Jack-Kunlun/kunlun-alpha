@@ -223,6 +223,16 @@ def test_legal_empty_response_remains_unknown_coverage(year: int) -> None:
     assert sum(line.startswith("SAVE ") for line in repo.audit_log()) == 1
 
 
+def test_collect_assigns_empty_response_to_explicit_exchange_scope() -> None:
+    provider = PagedCalendarProvider({None: _page([])})
+    repo = InMemoryCalendarRepository()
+
+    result = CalendarCollector(provider, repo, source="exchange-a").collect("SZ", 2026)
+
+    assert repo.latest_version_id("exchange-a", "SZ", 2026) == result.version_id
+    assert repo.source_holidays("exchange-a", exchange="SZ", year=2026) == []
+
+
 def test_temporary_closure_raises_alert() -> None:
     holidays = [_holiday("2026-08-07", "TEMPORARY_CLOSURE", "台风临时休市")]
     alerts = detect_alerts(holidays, 2026)
