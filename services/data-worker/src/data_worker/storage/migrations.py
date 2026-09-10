@@ -28,7 +28,7 @@ _RESOURCE_NAME = "precious_metals_migration.sql"
 SEAT_MIGRATION_VERSION = 2
 SEAT_MIGRATION_NAME = "seat_collection_migration"
 _PACKAGE_RESOURCE_ROOT = "data_worker"
-_SEAT_RESOURCE_PACKAGE = "data_worker.jobs.seats"
+_SEAT_RESOURCE_PATH = ("jobs", "seats")
 _SEAT_RESOURCE_NAME = "seat_collection_migration.sql"
 CALENDAR_SNAPSHOT_MIGRATION_VERSION = 3
 CALENDAR_SNAPSHOT_MIGRATION_NAME = "calendar_snapshot_migration"
@@ -594,7 +594,11 @@ def _migration_checksum() -> str:
 def load_seat_collection_migration() -> bytes:
     """Read the canonical seat SQL from the installed package resource."""
 
-    return files(_SEAT_RESOURCE_PACKAGE).joinpath(_SEAT_RESOURCE_NAME).read_bytes()
+    return (
+        files(_PACKAGE_RESOURCE_ROOT)
+        .joinpath(*_SEAT_RESOURCE_PATH, _SEAT_RESOURCE_NAME)
+        .read_bytes()
+    )
 
 
 def _seat_migration_checksum() -> str:
