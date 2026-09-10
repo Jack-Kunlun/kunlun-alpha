@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import runpy
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -22,8 +24,9 @@ from data_worker.jobs.calendars.official_calendar_repository import (
 from data_worker.jobs.calendars.official_szse_daily import (
     OfficialSzseCalendarError,
     OfficialSzseTransport,
+    SzseOfficialDailyResult,
 )
-from data_worker.raw import RawStorage
+from data_worker.raw import LocalFileStorage, RawStorage
 
 _RUN_ID = UUID(int=42)
 _MANIFEST_DATE = "2026-09-06"
@@ -129,6 +132,16 @@ def _forbidden_open_repository(*unused: object, **also_unused: object) -> NoRetu
     pytest.fail("invalid inputs must fail before DB open")
 
 
+def _forbidden_capture_collection(**unused: object) -> NoReturn:
+    del unused
+    pytest.fail("invalid capture-only arguments must not collect")
+
+
+def _raise_provider_error(**unused: object) -> NoReturn:
+    del unused
+    raise OfficialSzseCalendarError("provider-secret")
+
+
 def _collected_result() -> object:
     return SimpleNamespace(
         run_id=_RUN_ID,
@@ -137,6 +150,32 @@ def _collected_result() -> object:
             capture_id=_MANIFEST_CAPTURE_ID,
         ),
     )
+
+
+def _fixture_daily_result(tmp_path: Path) -> SzseOfficialDailyResult:
+    helpers = runpy.run_path(str(Path(__file__).with_name("test_official_szse_daily.py")))
+    import data_worker.jobs.calendars.official_szse_daily as daily
+
+    original_pins = daily._IDENTITY_SOURCE_SHA256
+    body_factories = {
+        "root": helpers["_official_root_body"],
+        "path": helpers["_official_path_body"],
+        "concat": helpers["_official_concatversion_body"],
+        "js": helpers["_official_js_body"],
+    }
+    daily._IDENTITY_SOURCE_SHA256 = {
+        kind: hashlib.sha256(factory()).hexdigest() for kind, factory in body_factories.items()
+    }
+    try:
+        collector = runtime.SzseOfficialCalendarCollector(
+            LocalFileStorage(tmp_path / "raw"),
+            transport=helpers["_transport"](),
+            clock=helpers["_Clock"](),
+            run_id=_RUN_ID,
+        )
+        return collector.collect(exchange="SZ", year=2026)
+    finally:
+        daily._IDENTITY_SOURCE_SHA256 = original_pins
 
 
 def test_collect_replays_coordinates_after_capture(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -341,6 +380,290 @@ def test_cli_success_has_safe_sorted_output_and_closes_connection(
     assert connection.closed
     assert events[0] == ("open", (secret_dsn, "kunlun"))
     assert events[1][0] == "run"
+
+
+def test_cli_capture_only_collects_raw_without_opening_database(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("KUNLUN_POSTGRES_DSN", "dsn-secret")
+    monkeypatch.setattr(runtime, "_open_repository", _forbidden_open_repository)
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    result = _fixture_daily_result(tmp_path)
+
+    def collect(**unused: object) -> SzseOfficialDailyResult:
+        del unused
+        return result
+
+    monkeypatch.setattr(runtime, "_collect_official_szse_once", collect)
+
+    assert runtime.main(["--raw-root", str(raw_root), "--capture-only"]) == 0
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert payload["status"] == "RAW_CAPTURED_UNPERSISTED"
+    assert payload["run_id"] == str(_RUN_ID)
+    assert payload["manifest_capture_id"] == result.raw_manifest_ref.capture_id
+    assert payload["proof_digest"] == result.proof.proof_digest
+    confirmed_through = result.proof.coverage.confirmed_through
+    assert confirmed_through is not None
+    assert payload["confirmed_through"] == confirmed_through.isoformat()
+    assert payload["source_nowdate"] == result.proof.coverage.source_nowdate.isoformat()
+    assert captured.err == ""
+    assert "dsn-secret" not in captured.out + captured.err
+    assert str(raw_root) not in captured.out + captured.err
+    assert set(payload) == {
+        "status",
+        "exchange",
+        "year",
+        "run_id",
+        "manifest_date",
+        "manifest_capture_id",
+        "manifest_sha256",
+        "proof_digest",
+        "parser_version",
+        "contract_version",
+        "manifest_version",
+        "capture_state_version",
+        "catalog_version",
+        "identity_policy_version",
+        "coverage_level",
+        "confirmed_through",
+        "source_nowdate",
+        "available_at",
+        "identity_count",
+        "catalog_count",
+        "attempt_count",
+        "page_count",
+        "daily_day_count",
+    }
+    assert not {
+        "snapshot_id",
+        "terminal",
+        "disposition",
+        "run_disposition",
+        "accepted",
+        "complete",
+        "final_year",
+    }.intersection(payload)
+
+
+def test_cli_capture_only_does_not_read_postgres_dsn_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    result = _fixture_daily_result(tmp_path)
+
+    def collect(**unused: object) -> SzseOfficialDailyResult:
+        del unused
+        return result
+
+    monkeypatch.setattr(runtime, "_collect_official_szse_once", collect)
+    monkeypatch.setattr(runtime, "_open_repository", _forbidden_open_repository)
+    original_get = runtime.os.environ.get
+    environment_keys: list[str] = []
+
+    def recording_get(key: str, default: str | None = None) -> str | None:
+        environment_keys.append(key)
+        if key == runtime._DSN_ENV:
+            raise AssertionError("capture-only must not read the PostgreSQL DSN")
+        return original_get(key, default)
+
+    monkeypatch.setattr(runtime.os.environ, "get", recording_get)
+    raw_root = tmp_path / "capture-root"
+    raw_root.mkdir()
+
+    assert runtime.main(["--raw-root", str(raw_root), "--capture-only"]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert runtime._RAW_ROOT_ENV in environment_keys
+    assert runtime._DSN_ENV not in environment_keys
+
+
+def test_cli_capture_only_serialization_failure_has_no_success_output(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    result = _fixture_daily_result(tmp_path)
+
+    def collect(**unused: object) -> SzseOfficialDailyResult:
+        del unused
+        return result
+
+    def failing_dumps(*unused: object, **also_unused: object) -> NoReturn:
+        del unused, also_unused
+        raise RuntimeError("serialization-secret")
+
+    monkeypatch.setattr(runtime, "_collect_official_szse_once", collect)
+    monkeypatch.setattr(runtime, "_open_repository", _forbidden_open_repository)
+
+    def validated_capture(_value: object) -> SzseOfficialDailyResult:
+        return result
+
+    monkeypatch.setattr(runtime, "_validated_capture_result", validated_capture)
+    monkeypatch.setattr(runtime.json, "dumps", failing_dumps)
+    raw_root = tmp_path / "capture-root"
+    raw_root.mkdir()
+
+    assert runtime.main(["--raw-root", str(raw_root), "--capture-only"]) == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == runtime._CLI_ERROR + "\n"
+    assert "serialization-secret" not in captured.err
+
+
+def test_cli_capture_only_raw_root_replacement_fails_closed_before_database_open(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    replacement = tmp_path / "replacement"
+    replacement.mkdir()
+    old_root = tmp_path / "old-root"
+
+    class _ReplacingCollector:
+        def __init__(self, unused_storage: RawStorage, **unused_kwargs: object) -> None:
+            del unused_storage, unused_kwargs
+
+        def collect(self, *, exchange: str, year: int) -> object:
+            del exchange, year
+            raw_root.rename(old_root)
+            replacement.rename(raw_root)
+            return _collected_result()
+
+    monkeypatch.setattr(runtime, "SzseOfficialCalendarCollector", _ReplacingCollector)
+    monkeypatch.setattr(runtime, "_open_repository", _forbidden_open_repository)
+
+    assert runtime.main(["--raw-root", str(raw_root), "--capture-only"]) == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == runtime._RAW_ROOT_ERROR + "\n"
+
+
+@pytest.mark.parametrize(
+    "extra_args",
+    [
+        ["--replay"],
+        ["--run-id", str(_RUN_ID)],
+        ["--manifest-date", _MANIFEST_DATE],
+        ["--manifest-capture-id", _MANIFEST_CAPTURE_ID],
+    ],
+)
+def test_cli_capture_only_rejects_replay_coordinates_before_database_open(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    extra_args: list[str],
+) -> None:
+    monkeypatch.setenv("KUNLUN_POSTGRES_DSN", "dsn-secret")
+    monkeypatch.setattr(runtime, "_open_repository", _forbidden_open_repository)
+    monkeypatch.setattr(
+        runtime,
+        "_collect_official_szse_once",
+        _forbidden_capture_collection,
+    )
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+
+    assert runtime.main(["--raw-root", str(raw_root), "--capture-only", *extra_args]) == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == runtime._REPLAY_ARGUMENT_ERROR + "\n"
+    assert "dsn-secret" not in captured.err
+
+
+def test_cli_capture_only_maps_collection_failure_without_success_output(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(runtime, "_open_repository", _forbidden_open_repository)
+    monkeypatch.setattr(
+        runtime,
+        "_collect_official_szse_once",
+        _raise_provider_error,
+    )
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+
+    assert runtime.main(["--raw-root", str(raw_root), "--capture-only"]) == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == runtime._CLI_ERROR + "\n"
+    assert "provider-secret" not in captured.err
+
+
+def test_cli_capture_only_guard_cleanup_failure_does_not_print_success(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    guard = _FailingGuard()
+    result = _fixture_daily_result(tmp_path)
+
+    def open_failing_guard(_root: Path) -> _FailingGuard:
+        return guard
+
+    monkeypatch.setattr(runtime._RawRootGuard, "open", open_failing_guard)
+
+    def collect(**unused: object) -> SzseOfficialDailyResult:
+        del unused
+        return result
+
+    monkeypatch.setattr(runtime, "_collect_official_szse_once", collect)
+    monkeypatch.setattr(runtime, "_open_repository", _forbidden_open_repository)
+    raw_root = tmp_path / "capture-root"
+    raw_root.mkdir()
+
+    assert runtime.main(["--raw-root", str(raw_root), "--capture-only"]) == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == runtime._RAW_ROOT_ERROR + "\n"
+    assert guard.closed
+
+
+def test_safe_capture_payload_rejects_tampered_or_malformed_results(
+    tmp_path: Path,
+) -> None:
+    result = _fixture_daily_result(tmp_path)
+    payload = json.loads(runtime._safe_capture_payload(result))
+    assert payload["status"] == "RAW_CAPTURED_UNPERSISTED"
+    assert payload["coverage_level"] == result.proof.coverage.level.value
+    assert payload["available_at"] == result.proof.cutoff_at.isoformat()
+    assert "final_year" not in payload
+
+    tampered_manifest = replace(result.raw_manifest_ref, raw_date="2026-09-05")
+    tampered_result = object.__new__(type(result))
+    for field_name in (
+        "exchange",
+        "year",
+        "run_id",
+        "proof",
+        "identity_assets",
+        "catalog_refs",
+        "attempts",
+    ):
+        object.__setattr__(tampered_result, field_name, getattr(result, field_name))
+    object.__setattr__(tampered_result, "raw_manifest_ref", tampered_manifest)
+    with pytest.raises(OfficialSzseCalendarError) as tampered_error:
+        runtime._safe_capture_payload(tampered_result)
+    assert str(tampered_error.value) == runtime._RESULT_ERROR
+
+    with pytest.raises(OfficialSzseCalendarError) as malformed_error:
+        runtime._safe_capture_payload(SimpleNamespace())
+    assert str(malformed_error.value) == runtime._RESULT_ERROR
 
 
 def test_cli_replay_passes_only_explicit_coordinates_and_closes_connection(
@@ -878,6 +1201,7 @@ def test_cli_help_is_available_and_unknown_arguments_do_not_echo_input(
     assert help_exit.value.code == 0
     help_output = capsys.readouterr()
     assert "--replay" in help_output.out
+    assert "--capture-only" in help_output.out
     assert "SZSE" in help_output.out
     assert "usage: official-szse-daily-sync" in help_output.out
 

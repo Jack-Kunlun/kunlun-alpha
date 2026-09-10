@@ -76,7 +76,18 @@ host 尚未实测。项目仍为 `PAPER_ONLY`，该入口没有任何实盘下�
 并校验 raw capture，之后只使用 raw coordinates 写入 V4；replay 模式必须指定既有
 `run_id`、`manifest_date` 和 `manifest_capture_id`，只读已保存 raw/state，不访问网络。
 该 CLI 不执行 migration，也不接入 scheduler；目标库和运行任务的生命周期仍由外部运维
-流程管理。入口已安装到本地 worker 镜像，`--help` 已在镜像中验证成功。
+流程管理。旧 worker 镜像中的 `--help` 和 Plan 00 冻结验收属于历史证据，不能证明该镜像
+包含本轮新增的 `--capture-only`；既有镜像未替换，也未验证其含有新 flag。新 flag 当前仅在
+工作区源码与本轮单独构建的 wheel 产物边界内做隔离验收。
+
+`--capture-only --raw-root "$RAW_ROOT"` 是确认窗口续接入口：它不是“完全不持久化”，而是
+在调用方明确提供且已获授权的隔离 raw root 中，通过同一 raw-first collector 写入并校验
+不可变 raw evidence，随后输出固定状态
+`RAW_CAPTURED_UNPERSISTED` 及 run/manifest 坐标、proof/版本、`available_at` 和派生的
+`source_nowdate`/`confirmed_through`。它不读取 `KUNLUN_POSTGRES_DSN`、不打开 repository、
+不执行 migration、不产生 accepted snapshot，也不声明 `COMPLETE` 或 caller 提供的
+`FINAL_YEAR`。非隔离目录或现有持久 raw root 需要另行授权；该模式不能与 `--replay` 或任一
+replay 坐标同时使用。缺页、重定向、漂移或结果校验失败时不输出成功 JSON。
 
 `--raw-root` 必须指向预先存在的绝对非根目录，根目录及 immediate parent 不能是 symlink、
 非目录或包含控制字符/首尾空白；POSIX 下还要求 owner 为当前用户或 root，且根目录及
@@ -88,8 +99,11 @@ parent 写权限的主体。未知 `OfficialSzseCalendarError` 只映射到固�
 且为 `FINAL_YEAR`；无 snapshot 必须为 `INDETERMINATE`；非 confirmed 的 blocked/conflict
 及其 `DUPLICATE` 可以保留 full-year proof 并返回 `INDETERMINATE`。
 
-本地定向验证为 `164 passed / 20 skipped`，其中 skipped 是未启用的 real-PostgreSQL
-fixture；Ruff 通过，BasedPyright 为 `0 errors`。一次性容器连接现有 `docker_default`、
+旧 worker 镜像/Plan 00 的冻结历史验证为 `164 passed / 20 skipped`，其中 skipped 是未启用
+的 real-PostgreSQL fixture；该数字不覆盖本轮新 flag。审计回归加入前，受影响工作区源码
+与定向测试的 fresh 结果为 `234 passed / 20 skipped`；合并本轮四类边界回归后的五文件
+定向结果为 `237 passed / 20 skipped`，其中 20 项 skipped 是未提供 real PostgreSQL DSN，
+两者都不等同于新 flag 已进入既有镜像。Ruff 通过，BasedPyright 为 `0 errors`。一次性容器连接现有 `docker_default`、
 只读 `kunlun-market-raw` 与目标 PostgreSQL 执行离线 replay，返回既有
 `run_id=3d5e39e8-551d-4868-9ca8-c2ba382a8dd2`、
 `snapshot_id=099b0d2e-5c17-5d88-946f-e64ae62650c3`、`disposition=DUPLICATE`、

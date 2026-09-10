@@ -19,7 +19,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import NoReturn, Protocol, TypeVar
+from typing import NoReturn, Protocol, TypeVar, cast
 from uuid import UUID
 
 import psycopg
@@ -29,9 +29,16 @@ from data_worker.jobs.calendars.official_calendar_repository import (
     PostgresOfficialCalendarRepository,
 )
 from data_worker.jobs.calendars.official_szse_daily import (
+    SZSE_CAPTURE_STATE_VERSION,
+    SZSE_CATALOG_VERSION,
+    SZSE_CONTRACT_VERSION,
+    SZSE_IDENTITY_POLICY_VERSION,
+    SZSE_MANIFEST_VERSION,
+    SZSE_PARSER_VERSION,
     OfficialSzseCalendarError,
     OfficialSzseTransport,
     SzseOfficialCalendarCollector,
+    SzseOfficialDailyResult,
 )
 from data_worker.raw import LocalFileStorage, RawObjectManifest, RawStorage
 from data_worker.raw.manifest import validate_date_identifier, validate_identifier
@@ -47,6 +54,7 @@ _DB_ERROR = "official SZSE calendar database is unavailable"
 _RAW_ROOT_ERROR = "official SZSE calendar raw root is invalid"
 _REPLAY_ARGUMENT_ERROR = "official SZSE calendar replay arguments are invalid"
 _RESULT_ERROR = "official SZSE calendar result is invalid"
+_CAPTURE_ONLY_STATUS = "RAW_CAPTURED_UNPERSISTED"
 _SCHEMA_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,62}$", re.ASCII)
 
 _DISPOSITIONS = frozenset(
@@ -430,16 +438,15 @@ def run_official_szse_once(
     if has_coordinates:
         raise OfficialSzseCalendarError(_REPLAY_ARGUMENT_ERROR)
 
-    collector = SzseOfficialCalendarCollector(
-        raw_storage,
-        transport=transport,
-        clock=clock,
+    collected = cast(
+        SzseOfficialDailyResult,
+        _collect_official_szse_once(
+            raw_storage=raw_storage,
+            transport=transport,
+            clock=clock,
+            raw_guard=raw_guard,
+        ),
     )
-    try:
-        collected = collector.collect(exchange="SZ", year=2026)
-    finally:
-        if raw_guard is not None:
-            raw_guard.assert_stable()
     try:
         collected_run_id = collected.run_id
         manifest_reference = collected.raw_manifest_ref
@@ -455,6 +462,28 @@ def run_official_szse_once(
         manifest_capture_id=collected_capture_id,
         raw_guard=raw_guard,
     )
+
+
+def _collect_official_szse_once(
+    *,
+    raw_storage: RawStorage,
+    transport: OfficialSzseTransport | None = None,
+    clock: Callable[[], datetime] | None = None,
+    raw_guard: _RawRootGuard | None = None,
+) -> object:
+    """Capture one fixed run while keeping persistence out of the collector."""
+
+    collector = SzseOfficialCalendarCollector(
+        raw_storage,
+        transport=transport,
+        clock=clock,
+    )
+    try:
+        collected = collector.collect(exchange="SZ", year=2026)
+    finally:
+        if raw_guard is not None:
+            raw_guard.assert_stable()
+    return collected
 
 
 def _validated_raw_root(value: object) -> Path:
@@ -520,6 +549,11 @@ def _arguments(argv: Sequence[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("--raw-root", default=os.environ.get(_RAW_ROOT_ENV))
     parser.add_argument("--replay", action="store_true")
+    parser.add_argument(
+        "--capture-only",
+        action="store_true",
+        help="capture and validate raw evidence without opening the database",
+    )
     parser.add_argument("--run-id")
     parser.add_argument("--manifest-date")
     parser.add_argument("--manifest-capture-id")
@@ -599,6 +633,80 @@ def _safe_payload(result: OfficialCalendarPersistResult) -> str:
     )
 
 
+def _validated_capture_result(result: object) -> SzseOfficialDailyResult:
+    """Re-run the immutable provider-result validation at the CLI boundary."""
+
+    if type(result) is not SzseOfficialDailyResult:
+        raise OfficialSzseCalendarError(_RESULT_ERROR)
+    try:
+        return SzseOfficialDailyResult(
+            exchange=result.exchange,
+            year=result.year,
+            run_id=result.run_id,
+            proof=result.proof,
+            raw_manifest_ref=result.raw_manifest_ref,
+            identity_assets=result.identity_assets,
+            catalog_refs=result.catalog_refs,
+            attempts=result.attempts,
+        )
+    except Exception:
+        raise OfficialSzseCalendarError(_RESULT_ERROR) from None
+
+
+def _safe_capture_payload(result: object) -> str:
+    """Serialize only derived, non-sensitive evidence for an unpersisted run."""
+
+    validated = _validated_capture_result(result)
+    proof = validated.proof
+    manifest = validated.raw_manifest_ref
+    coverage = proof.coverage
+    if (
+        proof.parser_version != SZSE_PARSER_VERSION
+        or proof.contract_version != SZSE_CONTRACT_VERSION
+        or manifest.available_at != proof.cutoff_at
+        or manifest.observed_at != proof.cutoff_at
+    ):
+        raise OfficialSzseCalendarError(_RESULT_ERROR)
+    try:
+        payload = {
+            "status": _CAPTURE_ONLY_STATUS,
+            "exchange": "SZ",
+            "year": 2026,
+            "run_id": str(validated.run_id),
+            "manifest_date": manifest.raw_date,
+            "manifest_capture_id": manifest.capture_id,
+            "manifest_sha256": manifest.checksum,
+            "proof_digest": proof.proof_digest,
+            "parser_version": proof.parser_version,
+            "contract_version": proof.contract_version,
+            "manifest_version": SZSE_MANIFEST_VERSION,
+            "capture_state_version": SZSE_CAPTURE_STATE_VERSION,
+            "catalog_version": SZSE_CATALOG_VERSION,
+            "identity_policy_version": SZSE_IDENTITY_POLICY_VERSION,
+            "coverage_level": coverage.level.value,
+            "confirmed_through": (
+                None
+                if coverage.confirmed_through is None
+                else coverage.confirmed_through.isoformat()
+            ),
+            "source_nowdate": coverage.source_nowdate.isoformat(),
+            "available_at": proof.cutoff_at.isoformat(),
+            "identity_count": len(validated.identity_assets),
+            "catalog_count": len(validated.catalog_refs),
+            "attempt_count": len(validated.attempts),
+            "page_count": proof.page_count,
+            "daily_day_count": len(proof.daily_days),
+        }
+    except Exception:
+        raise OfficialSzseCalendarError(_RESULT_ERROR) from None
+    return json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
 def _map_cli_error(error: OfficialSzseCalendarError) -> str:
     message = str(error)
     return message if message in _CLI_ERROR_MESSAGES else _CLI_ERROR
@@ -633,11 +741,12 @@ def _close_resources(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run one fixed SZSE collect/replay and close the DB connection."""
+    """Run one fixed SZSE collect/replay and close resources deterministically."""
 
     connection: _Closeable | None = None
     guard: _RawRootGuard | None = None
     result: OfficialCalendarPersistResult | None = None
+    capture_result: SzseOfficialDailyResult | None = None
     failure: str | None = None
     cleanup_failure: str | None = None
     cleanup_base_exception: BaseException | None = None
@@ -646,7 +755,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         raw_root = _validated_raw_root(args.raw_root)
         guard = _RawRootGuard.open(raw_root)
         coordinates = (args.run_id, args.manifest_date, args.manifest_capture_id)
-        if args.replay:
+        if args.capture_only:
+            if args.replay or any(value is not None for value in coordinates):
+                raise OfficialSzseCalendarError(_REPLAY_ARGUMENT_ERROR)
+            parsed_run_id = None
+            parsed_date = None
+            parsed_capture_id = None
+        elif args.replay:
             if not all(value is not None for value in coordinates):
                 raise OfficialSzseCalendarError(_REPLAY_ARGUMENT_ERROR)
             parsed_run_id = _parse_run_id(args.run_id)
@@ -662,19 +777,24 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         raw_storage = _GuardedRawStorage(LocalFileStorage(raw_root), guard)
         guard.assert_stable()
-        connection, repository = _open_repository(
-            os.environ.get(_DSN_ENV, ""),
-            os.environ.get(_SCHEMA_ENV, _DEFAULT_SCHEMA),
-        )
-        result = run_official_szse_once(
-            raw_storage=raw_storage,
-            repository=repository,
-            replay=args.replay,
-            run_id=parsed_run_id,
-            manifest_date=parsed_date,
-            manifest_capture_id=parsed_capture_id,
-            raw_guard=guard,
-        )
+        if args.capture_only:
+            capture_result = _validated_capture_result(
+                _collect_official_szse_once(raw_storage=raw_storage, raw_guard=guard)
+            )
+        else:
+            connection, repository = _open_repository(
+                os.environ.get(_DSN_ENV, ""),
+                os.environ.get(_SCHEMA_ENV, _DEFAULT_SCHEMA),
+            )
+            result = run_official_szse_once(
+                raw_storage=raw_storage,
+                repository=repository,
+                replay=args.replay,
+                run_id=parsed_run_id,
+                manifest_date=parsed_date,
+                manifest_capture_id=parsed_capture_id,
+                raw_guard=guard,
+            )
     except OfficialSzseCalendarError as error:
         failure = _map_cli_error(error)
     except OfficialCalendarPersistenceError:
@@ -692,11 +812,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     if failure is not None:
         print(failure, file=sys.stderr)
         return 1
-    if result is None:
+    if capture_result is None and result is None:
         print(_CLI_ERROR, file=sys.stderr)
         return 1
     try:
-        payload = _safe_payload(result)
+        if capture_result is not None:
+            payload = _safe_capture_payload(capture_result)
+        elif result is not None:
+            payload = _safe_payload(result)
+        else:
+            print(_CLI_ERROR, file=sys.stderr)
+            return 1
     except OfficialSzseCalendarError as error:
         print(_map_cli_error(error), file=sys.stderr)
         return 1
