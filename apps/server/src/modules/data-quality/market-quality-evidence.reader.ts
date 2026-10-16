@@ -17,8 +17,7 @@ const HEX_64 = /^[0-9a-f]{64}$/;
 const EVIDENCE_ID = /^mqe-[0-9a-f]{64}$/;
 const CODE = /^\d{6}\.(SH|SZ|BJ)$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const RFC3339 =
-  /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/;
+const RFC3339 = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/;
 const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_POINTER_BYTES = 4096;
 const MAX_RECORDS = 10_000;
@@ -156,9 +155,7 @@ function instant(value: unknown): string {
 function isLegalDateParts(year: number, month: number, day: number): boolean {
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
 }
 
@@ -173,7 +170,10 @@ function nullableCode(value: unknown, expected: string): string | null {
   return candidate;
 }
 
-function validateEvent(value: unknown, expectedCode: string): MarketQualityEvidenceRecord["qualityEvents"][number] {
+function validateEvent(
+  value: unknown,
+  expectedCode: string,
+): MarketQualityEvidenceRecord["qualityEvents"][number] {
   const input = exactObject(value, ["kind", "unifiedCode", "timestamp"]);
   return {
     kind: enumeration(input.kind, KINDS),
@@ -216,7 +216,11 @@ function validateFilteredRecord(
   };
 }
 
-function validateRecord(value: unknown, now: bigint, publishedNanos: bigint): MarketQualityEvidenceRecord {
+function validateRecord(
+  value: unknown,
+  now: bigint,
+  publishedNanos: bigint,
+): MarketQualityEvidenceRecord {
   const input = exactObject(value, [
     "evidenceId",
     "source",
@@ -281,9 +285,7 @@ function validateRecord(value: unknown, now: bigint, publishedNanos: bigint): Ma
     filteredRecordCount !== parsedFilteredRecords.length ||
     (status === "FILTERED" &&
       (filteredRecordCount === 0 || rejectedRecordCount !== 0 || qualityEventCount !== 0)) ||
-    (status === "REJECTED" &&
-      filteredRecordCount !== 0 &&
-      reasonCode !== "BAR_QUALITY_REJECTED") ||
+    (status === "REJECTED" && filteredRecordCount !== 0 && reasonCode !== "BAR_QUALITY_REJECTED") ||
     ((status === "FILTERED" || filteredRecordCount !== 0) && source !== "akshare-sina")
   ) {
     invalid();
@@ -337,7 +339,10 @@ async function readBoundedFile(filePath: string, maxBytes: number): Promise<Buff
     if (!parentStat.isDirectory()) invalid();
     const parentRealpath = await realpath(parent);
     const fileStat = await lstat(filePath);
-    if (!fileStat.isFile() || (await realpath(filePath)) !== join(parentRealpath, basename(filePath))) {
+    if (
+      !fileStat.isFile() ||
+      (await realpath(filePath)) !== join(parentRealpath, basename(filePath))
+    ) {
       invalid();
     }
     const noFollow = (constants as { O_NOFOLLOW?: number }).O_NOFOLLOW ?? 0;
@@ -447,9 +452,7 @@ export class FileMarketQualityEvidenceSnapshotReader implements MarketQualityEvi
   }
 }
 
-export class UnavailableMarketQualityEvidenceSnapshotReader
-  implements MarketQualityEvidenceSnapshotReader
-{
+export class UnavailableMarketQualityEvidenceSnapshotReader implements MarketQualityEvidenceSnapshotReader {
   async readCurrent(): Promise<LoadedMarketQualityEvidenceSnapshot> {
     throw new MarketQualityEvidenceReadError();
   }

@@ -10,18 +10,22 @@ const SNAPSHOT_ID = /^[0-9a-f]{64}$/;
 const EVIDENCE_ID = /^mqe-[0-9a-f]{64}$/;
 const CODE = /^\d{6}\.(SH|SZ|BJ)$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const RFC3339 =
-  /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/;
-const SOURCES = [
-  "tushare-pro",
-  "akshare-tencent",
-  "akshare-sina",
-  "akshare-eastmoney",
-] as const;
+const RFC3339 = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/;
+const SOURCES = ["tushare-pro", "akshare-tencent", "akshare-sina", "akshare-eastmoney"] as const;
 const INTERVALS = ["DAILY", "MINUTE_1", "MINUTE_5"] as const;
 const STATUSES = ["REJECTED", "FILTERED"] as const;
-const REASONS = ["PROVIDER_PARSE_ERROR", "BAR_QUALITY_REJECTED", "SINA_OVERFETCH_OUTSIDE_REQUEST"] as const;
-const KINDS = ["OUT_OF_ORDER", "DUPLICATE", "NEGATIVE_PRICE", "ABNORMAL_VOLUME", "MISSING_FIELD"] as const;
+const REASONS = [
+  "PROVIDER_PARSE_ERROR",
+  "BAR_QUALITY_REJECTED",
+  "SINA_OVERFETCH_OUTSIDE_REQUEST",
+] as const;
+const KINDS = [
+  "OUT_OF_ORDER",
+  "DUPLICATE",
+  "NEGATIVE_PRICE",
+  "ABNORMAL_VOLUME",
+  "MISSING_FIELD",
+] as const;
 const MAX_TEXT = 256;
 
 export class MarketQualityEvidenceResponseError extends Error {
@@ -208,7 +212,9 @@ function parseRecord(value: unknown, publishedNanos: bigint): MarketQualityEvide
   }
   if (
     status === "FILTERED" &&
-    (input.source !== "akshare-sina" || input.rejectedRecordCount !== 0 || input.qualityEventCount !== 0)
+    (input.source !== "akshare-sina" ||
+      input.rejectedRecordCount !== 0 ||
+      input.qualityEventCount !== 0)
   ) {
     invalid();
   }
@@ -227,9 +233,7 @@ function parseRecord(value: unknown, publishedNanos: bigint): MarketQualityEvide
     filteredRecordCount !== parsedFilteredRecords.length ||
     (status === "FILTERED" && (filteredRecordCount === 0 || rejectedRecordCount !== 0)) ||
     (status === "FILTERED" && qualityEventCount !== 0) ||
-    (status === "REJECTED" &&
-      filteredRecordCount !== 0 &&
-      reasonCode !== "BAR_QUALITY_REJECTED") ||
+    (status === "REJECTED" && filteredRecordCount !== 0 && reasonCode !== "BAR_QUALITY_REJECTED") ||
     ((status === "FILTERED" || filteredRecordCount !== 0) && input.source !== "akshare-sina")
   ) {
     invalid();
@@ -278,8 +282,17 @@ export function parseMarketQualityEvidencePage(value: unknown): MarketQualityEvi
     "hasMore",
     "records",
   ]);
-  if (input.schemaVersion !== "market-quality-evidence-v1" || !SNAPSHOT_ID.test(text(input.snapshotId))) invalid();
-  if (typeof input.hasMore !== "boolean" || !Array.isArray(input.records) || input.records.length > 100) invalid();
+  if (
+    input.schemaVersion !== "market-quality-evidence-v1" ||
+    !SNAPSHOT_ID.test(text(input.snapshotId))
+  )
+    invalid();
+  if (
+    typeof input.hasMore !== "boolean" ||
+    !Array.isArray(input.records) ||
+    input.records.length > 100
+  )
+    invalid();
   const publishedAt = instant(input.publishedAt);
   const publishedNanos = parseInstant(publishedAt);
   const records = input.records.map((record) => parseRecord(record, publishedNanos));
@@ -315,7 +328,11 @@ export function parseMarketQualityEvidencePage(value: unknown): MarketQualityEvi
 
 export function parseMarketQualityEvidenceDetail(value: unknown): MarketQualityEvidenceDetail {
   const input = exact(value, ["schemaVersion", "snapshotId", "publishedAt", "record"]);
-  if (input.schemaVersion !== "market-quality-evidence-v1" || !SNAPSHOT_ID.test(text(input.snapshotId))) invalid();
+  if (
+    input.schemaVersion !== "market-quality-evidence-v1" ||
+    !SNAPSHOT_ID.test(text(input.snapshotId))
+  )
+    invalid();
   const publishedAt = instant(input.publishedAt);
   return {
     schemaVersion: "market-quality-evidence-v1",

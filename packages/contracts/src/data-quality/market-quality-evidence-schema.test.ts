@@ -10,11 +10,14 @@ describe("market quality evidence contract", () => {
       additionalProperties: boolean;
       properties: Record<string, { const?: string; maxItems?: number }>;
       required: string[];
-      $defs: Record<string, {
-        additionalProperties?: boolean;
-        properties?: Record<string, { maximum?: number; const?: string; maxItems?: number }>;
-        required?: string[];
-      }>;
+      $defs: Record<
+        string,
+        {
+          additionalProperties?: boolean;
+          properties?: Record<string, { maximum?: number; const?: string; maxItems?: number }>;
+          required?: string[];
+        }
+      >;
     };
 
     expect(schema.additionalProperties).toBe(false);
@@ -54,7 +57,9 @@ describe("market quality evidence contract", () => {
     const schema = JSON.parse(readFileSync(schemaPath, "utf8")) as {
       $defs: Record<string, { properties?: Record<string, unknown> }>;
     };
-    const recordProperties = Object.keys(schema.$defs["MarketQualityEvidenceRecord"]?.properties ?? {});
+    const recordProperties = Object.keys(
+      schema.$defs["MarketQualityEvidenceRecord"]?.properties ?? {},
+    );
     const forbidden = [
       "captureId",
       "rawObjectId",

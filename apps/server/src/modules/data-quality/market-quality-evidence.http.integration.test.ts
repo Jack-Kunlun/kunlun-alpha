@@ -104,11 +104,13 @@ async function request(path: string): Promise<{ status: number; body: Record<str
     write: (chunk: unknown, encoding?: unknown, callback?: () => void) => boolean;
   };
   responseAny.write = (chunk: unknown) => {
-    if (chunk !== undefined) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+    if (chunk !== undefined)
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
     return true;
   };
   responseAny.end = (chunk?: unknown, _encoding?: unknown, callback?: () => void) => {
-    if (chunk !== undefined) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+    if (chunk !== undefined)
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
     responseWithCapture.headersSent = true;
     response.emit("finish");
     callback?.();

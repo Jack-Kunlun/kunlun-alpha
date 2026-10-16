@@ -55,7 +55,9 @@ describe("market quality evidence response boundary", () => {
     expect(() =>
       parseMarketQualityEvidencePage({
         ...page,
-        records: [{ ...record, qualityEvents: [{ ...record.qualityEvents[0], unifiedCode: "000001.SZ" }] }],
+        records: [
+          { ...record, qualityEvents: [{ ...record.qualityEvents[0], unifiedCode: "000001.SZ" }] },
+        ],
       }),
     ).toThrow(MarketQualityEvidenceResponseError);
     expect(() => parseMarketQualityEvidencePage({ ...page, extra: "secret-sentinel" })).not.toThrow(

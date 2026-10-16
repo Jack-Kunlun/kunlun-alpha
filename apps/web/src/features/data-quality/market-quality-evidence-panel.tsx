@@ -8,10 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type {
-  MarketQualityEvidenceDetail,
-  MarketQualityEvidencePage,
-} from "@kunlun/shared-types";
+import type { MarketQualityEvidenceDetail, MarketQualityEvidencePage } from "@kunlun/shared-types";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
 import { formatShanghaiTime } from "./format-shanghai-time";
 import { useMarketQualityEvidenceDetail } from "./use-market-quality-evidence";
@@ -66,7 +63,10 @@ function ArrayPager({
 function EvidenceDetail({ detail }: { detail: MarketQualityEvidenceDetail }) {
   const [eventPage, setEventPage] = useState(0);
   const [filteredPage, setFilteredPage] = useState(0);
-  const eventPageCount = Math.max(1, Math.ceil(detail.record.qualityEvents.length / DETAIL_PAGE_SIZE));
+  const eventPageCount = Math.max(
+    1,
+    Math.ceil(detail.record.qualityEvents.length / DETAIL_PAGE_SIZE),
+  );
   const filteredPageCount = Math.max(
     1,
     Math.ceil(detail.record.filteredRecords.length / DETAIL_PAGE_SIZE),
@@ -110,7 +110,9 @@ function EvidenceDetail({ detail }: { detail: MarketQualityEvidenceDetail }) {
             {events.map((event, index) => (
               <li key={`${event.kind}-${event.timestamp ?? "none"}-${index}`}>
                 {event.kind} · {event.unifiedCode ?? "未能安全解析证券"} ·{" "}
-                {event.timestamp === null ? "时间未能安全解析" : formatShanghaiTime(event.timestamp)}
+                {event.timestamp === null
+                  ? "时间未能安全解析"
+                  : formatShanghaiTime(event.timestamp)}
               </li>
             ))}
           </ul>
@@ -159,7 +161,9 @@ export function MarketQualityEvidencePanel({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const page = result.data;
   const selectedRecord =
-    selectedId === null ? undefined : page?.records.find((record) => record.evidenceId === selectedId);
+    selectedId === null
+      ? undefined
+      : page?.records.find((record) => record.evidenceId === selectedId);
   const activeSelectedId = selectedRecord?.evidenceId ?? null;
   const detailResult = useMarketQualityEvidenceDetail(activeSelectedId, page?.snapshotId ?? null);
 
@@ -189,7 +193,8 @@ export function MarketQualityEvidencePanel({
       <div className="space-y-2">
         <p className="text-muted-foreground">当前公开快照没有行情质量证据记录。</p>
         <p className="text-xs text-muted-foreground">
-          这不表示行情没有质量问题，也不表示全市场覆盖完整。快照发布时间：{formatShanghaiTime(page.publishedAt)}。
+          这不表示行情没有质量问题，也不表示全市场覆盖完整。快照发布时间：
+          {formatShanghaiTime(page.publishedAt)}。
         </p>
       </div>
     );
@@ -286,9 +291,11 @@ export function MarketQualityEvidencePanel({
           行情质量证据明细暂不可用：可能尚未发布或读取失败，不代表无异常
         </p>
       )}
-      {activeSelectedId !== null && detailResult.status === "success" && detailResult.data !== null && (
-        <EvidenceDetail key={activeSelectedId} detail={detailResult.data} />
-      )}
+      {activeSelectedId !== null &&
+        detailResult.status === "success" &&
+        detailResult.data !== null && (
+          <EvidenceDetail key={activeSelectedId} detail={detailResult.data} />
+        )}
     </div>
   );
 }

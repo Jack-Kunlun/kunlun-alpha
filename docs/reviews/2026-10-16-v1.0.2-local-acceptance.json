@@ -5,7 +5,21 @@
   "source": {
     "baselineSha": "e77f240979ad40f83b5986476c1233f28b5d872f",
     "releaseRef": "v1.0.2",
-    "note": "验收时尚未登记本版Git引用；实际发布提交以随后创建并核对的同名标签为准"
+    "releaseSha": "dd0e7d6d52ed2d66481df6723a84ed9ed897e887",
+    "note": "v1.0.2与origin/master已推送并核对；本地运行通过与远端CI状态分别记录，标签保持不变"
+  },
+  "ci": {
+    "releaseShaStatus": "FAILED",
+    "runUrl": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/38909896334",
+    "failures": [
+      "Windows/macOS的actions/setup-python@v5目录未提供锁定Python3.12.13，未进入项目检查",
+      "Linux在12个既有文件的Prettier检查停止，后续业务检查未运行"
+    ],
+    "repairNode": "P0-N14",
+    "repair": "沿用setup-uv@v6/uv0.12.3安装同一Python3.12.13；仅对CI点名12文件执行Prettier，不升级版本或移除门禁",
+    "localChecks": "13个受影响文件Prettier检查和git diff --check通过；12文件逐个与HEAD的Prettier输出完全一致；uv下载目录确认Windows x86_64/macOS aarch64提供该版本",
+    "repairCiStatus": "PENDING_REMOTE_VALIDATION",
+    "note": "修复提交的三端CI结论以对应GitHub Actions运行结果为准；不将本地定向检查写成全仓或原生三端通过"
   },
   "scope": "P1-N11 单实例每日日线调度切片；不关闭完整分布式调度节点或Phase",
   "outcome": "显式启用后按Asia/Shanghai每日09:00运行当前8个样本；迟启动补当日一次、重启不重复、不重置最多3轮预算",

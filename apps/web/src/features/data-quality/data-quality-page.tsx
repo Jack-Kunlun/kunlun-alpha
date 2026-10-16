@@ -185,7 +185,8 @@ export function DataQualityPage() {
             行情质量证据
           </h3>
           <p className="text-sm text-muted-foreground">
-            仅展示已发布的脱敏 REJECTED/FILTERED 证据快照，不读取原始行情文件，也不宣称没有质量问题或全市场覆盖完整。
+            仅展示已发布的脱敏 REJECTED/FILTERED
+            证据快照，不读取原始行情文件，也不宣称没有质量问题或全市场覆盖完整。
             日期筛选按证据请求窗口与输入日期是否相交；翻页固定在同一 snapshotId。
           </p>
         </div>

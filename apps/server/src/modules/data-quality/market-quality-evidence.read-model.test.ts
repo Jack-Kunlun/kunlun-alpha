@@ -158,9 +158,7 @@ describe("FileMarketQualityEvidenceSnapshotReader", () => {
         {
           ...filteredRecord,
           evidenceId: `mqe-${"b".repeat(64)}`,
-          filteredRecords: [
-            { ...filteredRecord.filteredRecords[0], reasonCode: "unexpected" },
-          ],
+          filteredRecords: [{ ...filteredRecord.filteredRecords[0], reasonCode: "unexpected" }],
         },
       ],
     });
@@ -282,17 +280,13 @@ describe("FileMarketQualityEvidenceSnapshotReader", () => {
       () => new Date("2026-09-01T02:00:00.000Z"),
     );
     const model = new FileMarketQualityEvidenceReadModel(reader);
-    await expect(
-      model.list({ limit: 1, offset: 0, snapshotId: id }),
-    ).resolves.toMatchObject({
+    await expect(model.list({ limit: 1, offset: 0, snapshotId: id })).resolves.toMatchObject({
       snapshotId: id,
       matchingRecordCount: 2,
       hasMore: true,
       records: [record],
     });
-    await expect(
-      model.list({ limit: 1, offset: 1, snapshotId: id }),
-    ).resolves.toMatchObject({
+    await expect(model.list({ limit: 1, offset: 1, snapshotId: id })).resolves.toMatchObject({
       snapshotId: id,
       matchingRecordCount: 2,
       hasMore: false,

@@ -1,9 +1,7 @@
 {
   "completedIterations": null,
   "elapsedWallSeconds": 86401.268,
-  "errors": [
-    "CLOCK_ELAPSED_MISMATCH"
-  ],
+  "errors": ["CLOCK_ELAPSED_MISMATCH"],
   "evidenceDigest": "68a06f5a505dfdf6ffe9e4fcd68ea52d301857e79804fd353b4536e4336c9ec3",
   "evidenceTarget": "kunlun_paper_endurance_440023dd3ef4487084b9bcb9d0b358f3",
   "gateSatisfied": false,

@@ -76,9 +76,7 @@ function isLegalDate(value: string): boolean {
   const day = Number(dayText);
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
 }
 
@@ -174,8 +172,7 @@ export function parseMarketQualityEvidenceQuery(input: unknown): MarketQualityEv
       throw new MarketQualityEvidenceValidationError("start must not be after end");
     }
     const days =
-      (Date.parse(`${query.end}T00:00:00.000Z`) -
-        Date.parse(`${query.start}T00:00:00.000Z`)) /
+      (Date.parse(`${query.end}T00:00:00.000Z`) - Date.parse(`${query.start}T00:00:00.000Z`)) /
         DAY_MS +
       1;
     if (days > MARKET_QUALITY_EVIDENCE_MAX_WINDOW_DAYS) {
@@ -186,9 +183,7 @@ export function parseMarketQualityEvidenceQuery(input: unknown): MarketQualityEv
   }
   if (record.snapshotId !== undefined) query.snapshotId = validateSnapshotId(record.snapshotId);
   if (query.offset > 0 && query.snapshotId === undefined) {
-    throw new MarketQualityEvidenceValidationError(
-      "offset greater than zero requires snapshotId",
-    );
+    throw new MarketQualityEvidenceValidationError("offset greater than zero requires snapshotId");
   }
   return query;
 }
@@ -199,7 +194,9 @@ export function parseMarketQualityEvidenceDetailQuery(
   const record = asObject(input);
   const keys = Object.keys(record);
   if (keys.length !== 1 || keys[0] !== "snapshotId") {
-    throw new MarketQualityEvidenceValidationError("snapshotId is required for market evidence detail");
+    throw new MarketQualityEvidenceValidationError(
+      "snapshotId is required for market evidence detail",
+    );
   }
   return { snapshotId: validateSnapshotId(record.snapshotId) };
 }

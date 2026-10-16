@@ -44,15 +44,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
       - uses: astral-sh/setup-uv@v6
         with:
           version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
           cache-dependency-glob: "uv.lock"
+
+      - name: Install pinned Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Bootstrap (pnpm)
         run: pnpm install --frozen-lockfile

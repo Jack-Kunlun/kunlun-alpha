@@ -25,8 +25,9 @@ const base = {
 
 function mockResult(
   status: "loading" | "empty" | "error" | "forbidden" | "unavailable" | "success",
-  data: MarketDataSettingsResponse | null =
-    status === "empty" || status === "success" ? base : null,
+  data: MarketDataSettingsResponse | null = status === "empty" || status === "success"
+    ? base
+    : null,
 ) {
   mockedUseMarketDataSettings.mockReturnValue({
     query: { status, data, error: null },
