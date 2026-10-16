@@ -16,7 +16,7 @@ class MarketDataProvider(StrEnum):
 
 class MarketDataTokenAction(StrEnum):
     keep = "KEEP"
-    replace = "REPLACE"
+    replace_ = "REPLACE"
     clear = "CLEAR"
 
 

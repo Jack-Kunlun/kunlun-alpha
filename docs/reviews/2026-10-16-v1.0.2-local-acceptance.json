@@ -18,6 +18,13 @@
     "repairNode": "P0-N14",
     "repair": "沿用setup-uv@v6/uv0.12.3安装同一Python3.12.13；仅对CI点名12文件执行Prettier，不升级版本或移除门禁",
     "localChecks": "13个受影响文件Prettier检查和git diff --check通过；12文件逐个与HEAD的Prettier输出完全一致；uv下载目录确认Windows x86_64/macOS aarch64提供该版本",
+    "firstRepairSha": "9254db59aaa1eb2060d6eddd05daf637e9a3d7ca",
+    "firstRepairRunUrl": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/38911828461",
+    "firstRepairResult": "FAILED；三端Python安装/uv同步/换行通过；Linux/macOS通过格式、lint、TS类型后在Python类型检查报55错，Windows格式子进程未启动",
+    "secondRepair": "CI同步全部锁定workspace包以补足类型/测试依赖；沿用既有StrEnum冲突修复方式将Python成员replace改为replace_且保持REPLACE接口值；格式入口分批限制命令长度并保留任何批次失败结果",
+    "secondRepairTargetedChecks": "Windows长命令回归首红后3项通过；枚举生成回归首红后2项通过，受影响模型basedpyright从1错到0错；新增代码相关Ruff/ESLint通过；uv全workspace锁定同步离线dry-run通过",
+    "nonBlockingBaselineTest": "额外执行生成器test_gen_python.py整文件为9通过/1失败；既有test_inject_deleted_condition_adds_validator使用空schema夹具，未适配当前按schema声明注入的逻辑。本次未修改删除逻辑或该旧测试；该文件不属于现有CI pytest路径，作为后续测试维护项保留",
+    "independentReview": "9254db5无代码/config阻断；第二轮新增差异待闭合审查，CI终态另行记录",
     "repairCiStatus": "PENDING_REMOTE_VALIDATION",
     "note": "修复提交的三端CI结论以对应GitHub Actions运行结果为准；不将本地定向检查写成全仓或原生三端通过"
   },

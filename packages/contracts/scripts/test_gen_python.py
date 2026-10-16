@@ -21,6 +21,32 @@ gen_python = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gen_python)
 
 
+@pytest.mark.parametrize(
+    ("relative_schema", "member", "value"),
+    [
+        ("seat/seat-profile.json", "split", "SPLIT"),
+        ("market-data/settings.json", "replace", "REPLACE"),
+    ],
+)
+def test_strenum_conflict_keeps_wire_value_and_string_methods(
+    tmp_path: Path, relative_schema: str, member: str, value: str
+) -> None:
+    generated = tmp_path / "enum_model.py"
+    generated.write_text(
+        f'from enum import StrEnum\nclass Action(StrEnum):\n    {member} = "{value}"\n',
+        encoding="utf-8",
+    )
+    gen_python.inject_strenum_member_conflicts(gen_python.SCHEMAS_DIR / relative_schema, generated)
+    spec = importlib.util.spec_from_file_location("enum_model", generated)
+    assert spec is not None and spec.loader is not None
+    model = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(model)
+    action = model.Action(value)
+    assert action.value == value
+    assert action.name == f"{member}_"
+    assert callable(getattr(action, member))
+
+
 def test_snake_case_conversion() -> None:
     assert gen_python._snake_case("authorized") == "authorized"
     assert gen_python._snake_case("deleted") == "deleted"

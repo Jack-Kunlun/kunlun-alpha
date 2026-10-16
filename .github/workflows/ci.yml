@@ -58,10 +58,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Bootstrap (uv)
-        run: uv sync --locked
+        run: uv sync --locked --all-packages
 
       - name: Line endings
         run: node scripts/ci/check-line-endings.mjs
+
+      - name: CI script regressions
+        run: node --test scripts/ci/prettier-check.test.mjs
 
       # format:check + eslint + ruff + tsc + basedpyright + vitest + pytest
       # (single cross-platform entry, see root package.json)

@@ -152,6 +152,9 @@ MARKET_DATA_SETTINGS_POSTGRES_DSN='postgresql://<settings-db>/kunlun' \
 worker credential 只会禁用 internal worker 读取和 managed mode，不影响已配置密钥的管理员浏览器
 读取。系统不会回退到内存存储或把 legacy 环境 token 混入远程配置。POST 使用 `expectedRevision` compare-and-set；
 `tokenAction` 为 `KEEP`、`REPLACE` 或 `CLEAR`，Tushare 不允许清除唯一 token。
+Python 生成模型的 `REPLACE` 成员使用 `MarketDataTokenAction.replace_`，避免覆盖继承的
+`str.replace` 方法；JSON/API 值保持 `REPLACE`，按值构造 `MarketDataTokenAction("REPLACE")`
+和序列化行为不变。仓库中没有旧 `.replace` 成员调用。
 
 管理员页面位于 `/settings/market-data`。保存成功仅代表配置已持久化；只有已启用 managed mode
 的采集进程会在下一周期边界读取它，不表示进程已经应用配置或供应商已授予数据权限。

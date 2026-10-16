@@ -1317,14 +1317,19 @@ def prepare_python_codegen_schema(schema_file: Path, tmp_dir: Path) -> Path:
 def inject_strenum_member_conflicts(schema_file: Path, generated_file: Path) -> None:
     """Rename generated StrEnum members that shadow inherited ``str`` methods."""
     relative_schema = schema_file.relative_to(SCHEMAS_DIR).as_posix()
-    if relative_schema != "seat/seat-profile.json":
+    conflict = {
+        "seat/seat-profile.json": ("split", "SPLIT"),
+        "market-data/settings.json": ("replace", "REPLACE"),
+    }.get(relative_schema)
+    if conflict is None:
         return
+    name, value = conflict
     content = generated_file.read_text(encoding="utf-8")
-    member = '    split = "SPLIT"\n'
+    member = f'    {name} = "{value}"\n'
     if member not in content:
-        raise RuntimeError("Seat profile enum output changed; split member was not found")
+        raise RuntimeError(f"Enum output changed; {relative_schema} {name} member was not found")
     generated_file.write_text(
-        content.replace(member, '    split_ = "SPLIT"\n', 1),
+        content.replace(member, f'    {name}_ = "{value}"\n', 1),
         encoding="utf-8",
         newline="\n",
     )
