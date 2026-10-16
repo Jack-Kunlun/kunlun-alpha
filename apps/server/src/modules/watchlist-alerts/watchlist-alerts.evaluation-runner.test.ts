@@ -1,5 +1,8 @@
 import type { InstrumentBarsResponse } from "@kunlun/shared-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { InstrumentBarsService } from "../instrument-intelligence/instrument-bars.service";
+import type { InstrumentIntelligenceAuthorizer } from "../instrument-intelligence/instrument-intelligence.service";
+import type { InstrumentBarsReadModel } from "../instrument-intelligence/read-model.types";
 import { InMemoryWatchlistAlertsRepository } from "./in-memory-watchlist-alerts.repository";
 import type { WatchlistAlertNotificationDispatcher } from "./watchlist-alerts.notification";
 import { WatchlistAlertsEvaluationRunner } from "./watchlist-alerts.evaluation-runner";
@@ -34,12 +37,44 @@ describe("WatchlistAlertsEvaluationRunner", () => {
     expect(workspace.history.map((item) => item.observedValue).sort()).toEqual(["1000", "11.00"]);
     expect(workspace.history.every((item) => item.outcome === "TRIGGERED")).toBe(true);
   });
+
+  it("uses the real bars query parser and keeps retries idempotent", async () => {
+    const dispatcher: WatchlistAlertNotificationDispatcher = {
+      deliver: vi.fn().mockResolvedValue(undefined),
+    };
+    const service = createService(dispatcher);
+    await createRule(service, "latest-price", "LAST_PRICE", "10.50");
+    await createRule(service, "daily-change", "CHANGE_BPS", "900");
+
+    const repository: InstrumentBarsReadModel = {
+      load: vi.fn().mockResolvedValue(barsResponse().bars),
+    };
+    const authorizer: InstrumentIntelligenceAuthorizer = {
+      canRead: vi.fn().mockResolvedValue(true),
+    };
+    const clock = { now: vi.fn(() => new Date(NOW)) };
+    const instrumentBars = new InstrumentBarsService(repository, authorizer, clock);
+    const runner = new WatchlistAlertsEvaluationRunner(service, instrumentBars, 0);
+
+    const first = await runner.runOnce();
+    const second = await runner.runOnce();
+    const workspace = await service.workspace();
+
+    expect(first).toMatchObject({ evaluated: 2, failed: 0 });
+    expect(second).toMatchObject({ evaluated: 2, failed: 0 });
+    expect(repository.load).toHaveBeenCalledTimes(2);
+    expect(repository.load).toHaveBeenNthCalledWith(1, "600519.SH", NOW, 2);
+    expect(authorizer.canRead).toHaveBeenCalledTimes(2);
+    expect(workspace.history).toHaveLength(2);
+    expect(dispatcher.deliver).toHaveBeenCalledTimes(2);
+  });
 });
 
-function createService(): WatchlistAlertsService {
-  const dispatcher: WatchlistAlertNotificationDispatcher = {
+function createService(
+  dispatcher: WatchlistAlertNotificationDispatcher = {
     deliver: vi.fn().mockResolvedValue(undefined),
-  };
+  },
+): WatchlistAlertsService {
   return new WatchlistAlertsService(
     new InMemoryWatchlistAlertsRepository(),
     dispatcher,

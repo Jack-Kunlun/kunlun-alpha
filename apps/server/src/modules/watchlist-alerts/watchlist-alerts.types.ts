@@ -1,4 +1,8 @@
-import type { InAppNotificationCenter, WatchlistAlertsWorkspace } from "@kunlun/shared-types";
+import type {
+  InAppNotificationCenter,
+  UpdateWatchlistAlertRuleRequest,
+  WatchlistAlertsWorkspace,
+} from "@kunlun/shared-types";
 
 export type WatchlistAlertRule = WatchlistAlertsWorkspace["rules"][number];
 export type WatchlistAlertHistory = WatchlistAlertsWorkspace["history"][number];
@@ -20,6 +24,8 @@ export interface ToggleWatchlistAlertRuleInput {
   clientRequestId: string;
   enabled: boolean;
 }
+
+export type UpdateWatchlistAlertRuleInput = UpdateWatchlistAlertRuleRequest;
 
 export interface EvaluateWatchlistAlertInput {
   ruleId: string;

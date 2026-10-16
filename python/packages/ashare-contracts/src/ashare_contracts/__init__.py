@@ -7,6 +7,9 @@ from ashare_contracts.alerts_in_app_notification_center import (
 from ashare_contracts.alerts_in_app_notification_center import (
     InAppNotificationCenter as InAppNotificationCenter,
 )
+from ashare_contracts.alerts_update_watchlist_alert_rule import (
+    UpdateWatchlistAlertRuleRequest as UpdateWatchlistAlertRuleRequest,
+)
 from ashare_contracts.alerts_watchlist_alert_evaluation_run import (
     WatchlistAlertEvaluationRun as WatchlistAlertEvaluationRun,
 )
@@ -689,6 +692,7 @@ __all__ = [
     "DeliveryStatus",
     "InAppNotification",
     "InAppNotificationCenter",
+    "UpdateWatchlistAlertRuleRequest",
     "WatchlistAlertEvaluationRun",
     "FeatureName",
     "InstrumentId",

@@ -17,22 +17,37 @@ vi.mock("react-router", async (importOriginal) => {
 });
 
 vi.mock("./features/data-quality/data-quality-page", () => ({
-  DataQualityPage: () => <div>DATA_QUALITY_PAGE_MARKER</div>,
+  DataQualityPage: () => <div>DEFERRED_FEATURE:data-quality</div>,
 }));
 vi.mock("./features/market-regime/market-regime-page", () => ({
-  MarketRegimePage: () => <div>MARKET_REGIME_PAGE_MARKER</div>,
+  MarketRegimePage: () => <div>DEFERRED_FEATURE:market-regime</div>,
 }));
 vi.mock("./features/event-workbench/event-workbench-page", () => ({
-  EventWorkbenchPage: () => <div>EVENT_WORKBENCH_PAGE_MARKER</div>,
+  EventWorkbenchPage: () => <div>DEFERRED_FEATURE:event-workbench</div>,
 }));
 vi.mock("./features/seat-kol/seat-kol-workbench-page", () => ({
-  SeatKolWorkbenchPage: () => <div>SEAT_KOL_WORKBENCH_MARKER</div>,
+  SeatKolWorkbenchPage: () => <div>DEFERRED_FEATURE:seat-kol</div>,
 }));
 vi.mock("./features/backtest/backtest-regression-page", () => ({
-  BacktestRegressionPage: () => <div>BACKTEST_REGRESSION_MARKER</div>,
+  BacktestRegressionPage: () => <div>DEFERRED_FEATURE:backtest-regressions</div>,
 }));
 vi.mock("./features/precious-metals/precious-metals-terminal-page", () => ({
-  PreciousMetalsTerminalPage: () => <div>PRECIOUS_METALS_TERMINAL_MARKER</div>,
+  PreciousMetalsTerminalPage: () => <div>DEFERRED_FEATURE:precious-metals</div>,
+}));
+vi.mock("./features/limit-pool/limit-pool-terminal-page", () => ({
+  LimitPoolTerminalPage: () => <div>DEFERRED_FEATURE:limit-pool</div>,
+}));
+vi.mock("./features/rotation/rotation-terminal-page", () => ({
+  RotationTerminalPage: () => <div>DEFERRED_FEATURE:rotation</div>,
+}));
+vi.mock("./features/ranking/ranking-terminal-page", () => ({
+  RankingTerminalPage: () => <div>DEFERRED_FEATURE:ranking</div>,
+}));
+vi.mock("./features/paper/paper-terminal-page", () => ({
+  PaperTerminalPage: () => <div>DEFERRED_FEATURE:paper</div>,
+}));
+vi.mock("./features/market-data-settings/market-data-settings-page", () => ({
+  MarketDataSettingsPage: () => <div>DEFERRED_FEATURE:market-data-settings</div>,
 }));
 vi.mock("./components/ui/sonner", () => ({ Toaster: () => null }));
 
@@ -46,38 +61,22 @@ async function renderApp(roles?: readonly TerminalRole[]): Promise<string> {
 
 describe("App routing", () => {
   it("renders an accessible loading state while a route chunk resolves", () => {
-    route = "/data-quality";
+    route = "/market-overview";
     const html = renderToStaticMarkup(<App roles={["platform_admin"]} />);
     expect(html).toContain('role="status"');
     expect(html).toContain("正在加载终端模块");
   });
 
-  it("serves the data-quality page", async () => {
-    route = "/data-quality";
-    expect(await renderApp(["platform_admin"])).toContain("DATA_QUALITY_PAGE_MARKER");
-  });
-
-  it("serves the persisted market-regime replay page", async () => {
-    route = "/market-regime";
-    expect(await renderApp(["platform_admin"])).toContain("MARKET_REGIME_PAGE_MARKER");
-  });
-
-  it("serves the Phase 3 event workbench", async () => {
-    route = "/event-workbench";
-    expect(await renderApp(["platform_admin"])).toContain("EVENT_WORKBENCH_PAGE_MARKER");
-  });
-
-  it("serves the Phase 4 Seat and KOL workbench", async () => {
-    route = "/seat-kol";
-    expect(await renderApp(["platform_admin"])).toContain("SEAT_KOL_WORKBENCH_MARKER");
-  });
-
-  it("serves the precious-metals funds terminal", async () => {
-    route = "/precious-metals";
-    const html = await renderApp();
-    expect(html).toContain("PRECIOUS_METALS_TERMINAL_MARKER");
-    expect(html).not.toContain("ROUTE_PLACEHOLDER:precious-metals");
-  });
+  it.each(terminalRoutes.filter((contract) => contract.status === "planned"))(
+    "renders $id at its stable route as an explicit placeholder",
+    async (contract) => {
+      route = contract.href;
+      const html = await renderApp(["platform_admin"]);
+      expect(html).toContain("此功能不在 1.0 范围");
+      expect(html).toContain(`data-route-placeholder="${contract.id}"`);
+      expect(html).not.toContain(`DEFERRED_FEATURE:${contract.id}`);
+    },
+  );
 
   it("supports dynamic instrument deep links", async () => {
     route = "/instruments/600519.SH";
@@ -100,6 +99,31 @@ describe("App routing", () => {
     expect(html).toContain('aria-label="桌面主导航"');
     expect(html).toContain('aria-label="移动端主导航"');
     expect(html).toContain("打开主导航");
+    const navs = [...html.matchAll(/<nav aria-label="(?:桌面|移动端)主导航"[\s\S]*?<\/nav>/g)];
+    expect(navs).toHaveLength(2);
+    for (const nav of navs) {
+      const markup = nav[0];
+      expect(markup).toContain('href="/market-overview"');
+      expect(markup).toContain('href="/instruments"');
+      expect(markup).toContain('href="/watchlists"');
+      expect(markup).not.toContain('href="/paper"');
+      expect(markup).not.toContain('href="/ranking"');
+    }
+  });
+
+  it("shows only the release routes on Home and uses daily research wording", async () => {
+    route = "/";
+    const html = await renderApp(["platform_admin"]);
+    expect(html).toContain("查看沪深日线行情与自选提醒");
+    expect(html).toContain("/market-overview");
+    expect(html).toContain("/instruments");
+    expect(html).toContain("/watchlists");
+    expect(html).toContain('href="/"');
+    expect(html).not.toContain("/paper");
+    expect(html).not.toContain("/ranking");
+    expect(html).not.toContain("已就绪");
+    expect(html).not.toContain("规划能力待接入");
+    expect(html).not.toContain("模拟执行");
   });
 
   it("keeps unknown deep links on the navigable 404 page", () => {
@@ -118,7 +142,7 @@ describe("App routing", () => {
     route = "/market-overview?asOf=2026-08-24T07%3A00%3A00.000Z&instrument=600519.SH";
     const html = renderToStaticMarkup(<App roles={["viewer"]} />);
     expect(html).toContain("上下文 1 标的");
-    expect(html).toContain("/ranking?asOf=2026-08-24T07%3A00%3A00.000Z");
+    expect(html).toContain("/instruments?asOf=2026-08-24T07%3A00%3A00.000Z");
     expect(html).toContain("instrument=600519.SH");
   });
 });

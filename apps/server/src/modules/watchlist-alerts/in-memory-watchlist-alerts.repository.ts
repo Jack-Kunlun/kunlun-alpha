@@ -52,10 +52,35 @@ export class InMemoryWatchlistAlertsRepository implements WatchlistAlertsReposit
     );
   }
 
-  async appendRule(revision: StoredWatchlistAlertRule): Promise<void> {
-    const command = await this.findRuleByCommand(revision.ownerRef, revision.commandRequestId);
-    if (command) return;
+  async appendRule(
+    revision: StoredWatchlistAlertRule,
+    expectedRevision: number,
+  ): Promise<"APPENDED" | "DUPLICATE" | "STALE" | "COMMAND_CONFLICT"> {
+    const command = this.rules.find(
+      (item) =>
+        item.ownerRef === revision.ownerRef && item.commandRequestId === revision.commandRequestId,
+    );
+    if (command) {
+      return command.commandHash === revision.commandHash ? "DUPLICATE" : "COMMAND_CONFLICT";
+    }
+
+    const latest = this.rules.reduce<StoredWatchlistAlertRule | null>((current, item) => {
+      if (item.ownerRef !== revision.ownerRef || item.rule.ruleId !== revision.rule.ruleId) {
+        return current;
+      }
+      return !current || current.rule.revision < item.rule.revision ? item : current;
+    }, null);
+    const actualRevision = latest?.rule.revision ?? 0;
+    if (
+      actualRevision !== expectedRevision ||
+      revision.rule.revision !== expectedRevision + 1 ||
+      revision.rule.previousRevisionId !== (latest?.rule.revisionId ?? null)
+    ) {
+      return "STALE";
+    }
+
     this.rules.push(structuredClone(revision));
+    return "APPENDED";
   }
 
   async listHistory(ownerRef: string, limit: number): Promise<WatchlistAlertHistory[]> {

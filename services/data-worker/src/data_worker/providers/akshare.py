@@ -51,12 +51,26 @@ _DAILY_SOURCE = "akshare-tencent"
 _MINUTE_SOURCE = "akshare-sina"
 _SOURCE = _LEGACY_SOURCE
 _SHANGHAI = ZoneInfo("Asia/Shanghai")
-_ADAPTER_VERSION = "v2"
+_ADAPTER_VERSION = "v3"
+_TENCENT_SHARES_V3 = "akshare:1.18.94:stock_zh_a_hist_tx:v3"
 _MINUTE_INTERVALS = {"MINUTE_1": "1", "MINUTE_5": "5"}
 _INDEX_PREFIXES = {"SH": "000", "SZ": "399"}
 _VOLUME_MULTIPLIERS = {_LEGACY_SOURCE: 100, _DAILY_SOURCE: 1, _MINUTE_SOURCE: 1}
 _CAPTURE_PROFILES = frozenset(
     {
+        (_DAILY_SOURCE, "stock_zh_a_hist_tx", "DAILY", _TENCENT_SHARES_V3),
+        (
+            _MINUTE_SOURCE,
+            "stock_zh_a_minute",
+            "MINUTE_1",
+            "akshare:1.18.94:stock_zh_a_minute:v3",
+        ),
+        (
+            _MINUTE_SOURCE,
+            "stock_zh_a_minute",
+            "MINUTE_5",
+            "akshare:1.18.94:stock_zh_a_minute:v3",
+        ),
         (
             _DAILY_SOURCE,
             "stock_zh_a_hist_tx",
@@ -497,6 +511,15 @@ class AKShareMarketDataProvider(MarketDataProvider):
         multiplier = _VOLUME_MULTIPLIERS.get(capture.source)
         if multiplier is None:
             raise ProviderDataError("AKShare source is unsupported")
+        # AKShare 1.18.94 exempts sz000 stocks along with indices from its
+        # Tencent hands-to-shares conversion. Correct only this pinned v3
+        # profile; preserve SDK payload bytes and historical v2 replay values.
+        if (
+            capture.source_version == _TENCENT_SHARES_V3
+            and exchange == "SZ"
+            and expected_code.startswith("000")
+        ):
+            multiplier = 100
         records = _decode_capture_body(capture.body)
         bars: list[Bar] = []
         exclusions: list[BarExclusion] = []

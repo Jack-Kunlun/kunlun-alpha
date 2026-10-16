@@ -68,7 +68,7 @@ export class WatchlistAlertsEvaluationRunner implements OnModuleInit, OnModuleDe
         try {
           let pending = barsByInstrument.get(instrumentId);
           if (pending === undefined) {
-            pending = this.instrumentBars.bars(instrumentId, { mode: "CURRENT", limit: 2 });
+            pending = this.instrumentBars.bars(instrumentId, { mode: "CURRENT", limit: "2" });
             barsByInstrument.set(instrumentId, pending);
           }
           const bars = await pending;

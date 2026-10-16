@@ -54,8 +54,8 @@ uv run --package data-worker offline-market-replay-check
 回放 profile。输出只给出版本、数量和覆盖面，不回显价格数据。
 
 AKShare 的公开函数返回 pandas DataFrame。适配器会在任何字段解析前把 SDK 返回的表序列化
-到 raw capture；这是“适配器 payload capture”，不是上游 HTTP wire bytes。Tencent 日线和
-Sina 分钟路径均按原始返回值保留成交量；日线时间按上海时区 15:00，分钟时间按上海时区
+到 raw capture；这是“适配器 payload capture”，不是上游 HTTP wire bytes。成交量按下述
+固定 SDK 版本规则统一为股；日线时间按上海时区 15:00，分钟时间按上海时区
 解释后保存为 UTC。Sina 分钟公开函数固定请求最多（通常为最近）1970 条（`datalen=1970`），
 不接受日期窗口；adapter 保留完整 raw payload，再依据 manifest 的 `requested_start` 与
 `requested_end` 在确定性解析阶段过滤；过滤后的结果不能反向修改 raw。Sina payload 不回显
@@ -66,6 +66,22 @@ writer 运行前写入同一 capture 关联的 `FILTERED` 质量证据，包含 
 `REJECTED` 证据并拒绝整次写入。空结果是有效的空 capture。
 
 ## 数据源限制与权限
+
+### 固定 SDK 的成交量修正
+
+当前适配器版本为 `v3`，SDK 仍固定为 AKShare `1.18.94`，没有升级依赖。
+[官方接口说明](https://github.com/akfamily/akshare/blob/main/docs/data/stock/stock.md)
+要求 Tencent 日线 `volume` 统一为股。该 SDK 的实际实现将 `sz000` 与指数一起排除在
+手转股转换之外；因此 `000001.SZ` 等 `000xxx.SZ` 股票的 SDK 表仍是手。
+
+`akshare:1.18.94:stock_zh_a_hist_tx:v3` 只对这一证券范围乘以 100，其他日线和 Sina 分钟
+成交量不额外缩放。SDK 返回的 raw 表不修改，转换仅发生在解析边界。旧 `v2` capture 仍按
+原语义回放以便审计；其中 `000xxx.SZ` 成交量存在已知单位错误，不能用于成交量分析。
+修正通过新 capture 和新行情 revision 发布，不覆盖或删除旧 raw、检查点和记录；历史
+point-in-time 查询仍可见其当时发布的版本，不应把新修正提前到旧可用时刻。
+
+1.0 精简入口使用同一 `kunlun-market-raw` volume 下的 `v1-shares-v3` 子目录保存新 raw 和
+检查点，使当日已完成的旧采集不会跳过这次规范化修正。停止后重用同一目录继续运行。
 
 AKShare 股票、ETF 和指数是默认的免费本地研究源，不需要 token，但免费只表示可以调用
 当前公开页面或开源封装；不自动保证上游数据的商业许可、可再分发权、服务等级（SLA）、
@@ -187,6 +203,30 @@ PowerShell 可使用 `$env:MARKET_DATA_PROVIDER="akshare"` 和 `$env:TUSHARE_TOK
 
 ## Compose 同步
 
+### 1.0 精简入口
+
+已有 `infra/docker/.env` 时，从仓库根目录执行：
+
+```bash
+pnpm v1:sync
+```
+
+该命令叠加 `docker-compose.v1.yml`，固定使用 AKShare、8 个显式沪深标的、once 日线模式和
+`v1-shares-v3` raw/checkpoint 子目录。摘要直接输出到终端，临时同步容器退出后删除；raw 与
+ClickHouse 数据保留。启动前置和覆盖清单见[1.0 精简启动](../development/docker-local.md#10-精简启动)。
+
+同一 `V1_MARKET_DATA_SYMBOLS` 清单也配置到 server 的 `DASHBOARD_DAILY_SYMBOLS`。1.0 总览
+只批量读取 `bars_daily_v2`，按当前可见的最新共同日期汇总；仅计入该日及至少一根更早可见日线
+同时存在的代码，成交额按 Decimal 原值求和。页面显示样本实际截止日期和来源，不把 90/300 秒
+分钟级 freshness 阈值用于日线。指数和情绪当前不接入；空样本明确显示无数据，ClickHouse 错误
+继续显示错误状态。`DASHBOARD_DAILY_SYMBOLS` 未配置时，server 保留原分钟总览路径；显式配置
+时必须为 1–100 个唯一的六位 SH/SZ 代码，否则 server 启动失败。
+
+此次 `v3` 成交量修正必须使用这一入口；不要改用下面的通用命令复用旧根目录，也不要删除
+旧检查点来强制刷新。旧根目录同日已完成的 checkpoint 可能跳过新采集，不能证明修正已落库。
+
+### 通用入口（不用于此次 1.0 修正）
+
 默认 AKShare 不需要 token。首次使用时可复制 `infra/docker/.env.example` 为未提交的
 `infra/docker/.env`；随后从仓库根目录执行：
 
@@ -230,7 +270,9 @@ fail closed。
 
 ## 核验
 
-先查看安全摘要日志：
+1.0 入口以 `pnpm v1:sync` 的终端摘要核对日期、写入数和 capture ID；同日已完成后重跑应为
+0 请求、0 写入。以下日志命令仅适用于上述通用入口的保留容器，不用于核验已删除的 1.0
+临时同步容器：
 
 ```bash
 docker compose \

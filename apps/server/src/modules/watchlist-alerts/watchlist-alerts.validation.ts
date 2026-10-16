@@ -3,6 +3,7 @@ import type {
   CreateWatchlistAlertRuleInput,
   EvaluateWatchlistAlertInput,
   ToggleWatchlistAlertRuleInput,
+  UpdateWatchlistAlertRuleInput,
   WatchlistAlertField,
   WatchlistAlertOperator,
 } from "./watchlist-alerts.types";
@@ -67,6 +68,20 @@ export function parseToggleRule(value: unknown): ToggleWatchlistAlertRuleInput {
   return {
     clientRequestId: boundedString(body.clientRequestId, "clientRequestId", 1, 128),
     enabled: boolean(body.enabled, "enabled"),
+  };
+}
+
+export function parseUpdateRule(value: unknown): UpdateWatchlistAlertRuleInput {
+  const body = object(value, "request body");
+  exactKeys(body, ["clientRequestId", "expectedRevision", "name", "threshold"], "request body");
+  if (!Number.isSafeInteger(body.expectedRevision) || (body.expectedRevision as number) < 1) {
+    invalid("expectedRevision must be a safe positive integer");
+  }
+  return {
+    clientRequestId: boundedString(body.clientRequestId, "clientRequestId", 1, 128),
+    expectedRevision: body.expectedRevision as number,
+    name: boundedString(body.name, "name", 1, 80),
+    threshold: patternString(body.threshold, DECIMAL_PATTERN, "threshold", 80),
   };
 }
 

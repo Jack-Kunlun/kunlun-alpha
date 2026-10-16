@@ -157,9 +157,9 @@ export function Layout() {
             <div className="border-t border-white/8 px-5 py-4">
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <ShieldCheck aria-hidden="true" className="size-4 text-emerald-400" />
-                <span>研究与模拟环境</span>
+                <span>沪深日线研究</span>
               </div>
-              <p className="mt-1 text-[11px] text-slate-600">无真实账户与下单路径</p>
+              <p className="mt-1 text-[11px] text-slate-600">行情查询与站内规则提醒</p>
             </div>
           </div>
         </aside>
@@ -170,10 +170,10 @@ export function Layout() {
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                   {currentRoute?.group === "research"
-                    ? "Research & audit"
+                    ? "数据与运维"
                     : currentRoute?.group === "workspace"
-                      ? "Action workspace"
-                      : "Decision terminal"}
+                      ? "自选与提醒"
+                      : "沪深日线研究"}
                 </p>
                 <h1 className="truncate text-lg font-semibold tracking-tight">
                   {currentRoute?.label ?? "未知路径"}
@@ -212,7 +212,7 @@ export function Layout() {
                   </Badge>
                 )}
                 <Badge className="hidden sm:inline-flex" variant="outline">
-                  模拟环境
+                  日线研究
                 </Badge>
                 <details className="relative lg:hidden">
                   <summary className="flex size-10 cursor-pointer list-none items-center justify-center rounded-xl border bg-card text-foreground shadow-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">

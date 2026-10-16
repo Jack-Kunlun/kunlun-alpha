@@ -1,0 +1,78 @@
+# Local, single-admin 1.0 startup. Apply after the base and apps files.
+# Requires Docker Compose >= 2.24.4 for !override. Existing data is retained.
+
+services:
+  postgres:
+    ports: !override
+      - "127.0.0.1:5432:5432"
+
+  clickhouse:
+    ports: !override
+      - "127.0.0.1:8123:8123"
+      - "127.0.0.1:9002:9000"
+
+  server:
+    depends_on: !override
+      server-migrate:
+        condition: service_completed_successfully
+      data-worker-migrate:
+        condition: service_completed_successfully
+      clickhouse-migrate:
+        condition: service_completed_successfully
+      local-terminal-reference-materialize:
+        condition: service_completed_successfully
+    environment:
+      DASHBOARD_DAILY_SYMBOLS: ${V1_MARKET_DATA_SYMBOLS:-000001.SZ,002594.SZ,300750.SZ,301236.SZ,600000.SH,600519.SH,601318.SH,688981.SH}
+    ports: !override
+      - "127.0.0.1:${SERVER_PORT:-3002}:3002"
+
+  web:
+    ports: !override
+      - "127.0.0.1:${WEB_PORT:-5173}:4173"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4173/').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1));",
+        ]
+
+  market-data-sync:
+    environment:
+      MARKET_DATA_PROVIDER: akshare
+      TUSHARE_TOKEN: ""
+      MARKET_DATA_SYMBOLS: ${V1_MARKET_DATA_SYMBOLS:-000001.SZ,002594.SZ,300750.SZ,301236.SZ,600000.SH,600519.SH,601318.SH,688981.SH}
+      MARKET_DATA_MINUTE_SYMBOLS: ""
+      MARKET_DATA_RUN_MODE: once
+      # New normalization version gets its own checkpoint; never delete or
+      # reinterpret the completed legacy run in the parent directory.
+      MARKET_DATA_RAW_ROOT: /workspace/var/market-raw/v1-shares-v3
+      MARKET_DATA_SETTINGS_URL: ""
+      MARKET_DATA_SETTINGS_WORKER_TOKEN: ""
+      MARKET_DATA_SETTINGS_ALLOW_LOCAL_HTTP: "false"
+
+  # These services remain available through the existing development stack.
+  # A plain `up` with this overlay must not run deferred or fixture workloads.
+  redis:
+    profiles: !override ["deferred"]
+  minio:
+    profiles: !override ["deferred"]
+  minio-init:
+    profiles: !override ["deferred"]
+  prometheus:
+    profiles: !override ["deferred"]
+  grafana:
+    profiles: !override ["deferred"]
+  loki:
+    profiles: !override ["deferred"]
+  tempo:
+    profiles: !override ["deferred"]
+  quant-engine:
+    profiles: !override ["deferred"]
+  sample-engine:
+    profiles: !override ["deferred"]
+  ranking-terminal-materialize:
+    profiles: !override ["deferred"]
+  limit-pool-terminal-materialize:
+    profiles: !override ["deferred"]

@@ -179,6 +179,128 @@ describe("ClickHouseDashboardRepository", () => {
     }
   });
 
+  it("uses the latest shared date when configured symbols have staggered visible dates", async () => {
+    const requests: Array<{ url: URL; sql: string }> = [];
+    const fetcher = async (input: string | URL, init?: RequestInit): Promise<Response> => {
+      requests.push({ url: new URL(input), sql: String(init?.body ?? "") });
+      return new Response(
+        JSON.stringify({
+          advancing_count: 1,
+          declining_count: 0,
+          unchanged_count: 0,
+          suspended_count: 1,
+          sample_size: 2,
+          turnover_cny: "9007199254740993.25",
+          data_time: "2026-08-25T07:00:00.000Z",
+          source_versions: ["source-current-v1", "source-previous-v2"],
+          evidence_ids: ["evidence-current", "evidence-previous"],
+        }) + "\n",
+      );
+    };
+    const repository = new ClickHouseDashboardRepository(
+      {
+        url: "http://clickhouse.test:8123",
+        database: "kunlun",
+        user: "reader",
+        emotionAlgorithmVersion: "emotion_score_v1",
+        timeoutMs: 5_000,
+        dailySymbols: ["600519.SH", "000001.SZ"],
+      },
+      fetcher,
+    );
+
+    const result = await repository.loadMarketOverview("2026-08-25T08:00:00.000Z");
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.url.searchParams.get("param_asOf")).toBe("2026-08-25T08:00:00.000Z");
+    expect(requests[0]?.url.searchParams.get("param_symbol0")).toBe("600519.SH");
+    expect(requests[0]?.url.searchParams.get("param_symbol1")).toBe("000001.SZ");
+    const sql = requests[0]?.sql ?? "";
+    expect(sql).toContain("FROM bars_daily_v2");
+    expect(sql).not.toContain("bars_minute_v2");
+    expect(sql).not.toContain("emotion_snapshots_v1");
+    expect(sql).toContain("unified_code IN ({symbol0:String}, {symbol1:String})");
+    expect(sql).toContain("interval = 'DAILY' AND price_type = 'RAW'");
+    expect(sql).toContain(
+      "event_time <= cutoff AND available_time <= cutoff AND processing_time <= cutoff",
+    );
+    expect(sql).toContain(
+      "throwIf(uniqExact(revision_fingerprint) > 1, 'revision_fingerprint conflict')",
+    );
+    const pointInTimeFilter = sql.indexOf(
+      "event_time <= cutoff AND available_time <= cutoff AND processing_time <= cutoff",
+    );
+    const sourceSelection = sql.indexOf("argMax(identity_values");
+    expect(sourceSelection).toBeGreaterThan(pointInTimeFilter);
+    expect(sql).toContain("tuple(identity_replacement_version, source_priority, source");
+    expect(sql).toContain(".4 AS selected_event_time");
+    expect(sql).not.toContain(".4 AS event_time");
+    expect(sql).toContain(
+      "event_amount, event_suspended, selected_event_time, event_source_version",
+    );
+    const commonVisibleDates = sql.indexOf("common_visible_dates AS (");
+    expect(commonVisibleDates).toBeGreaterThan(sourceSelection);
+    expect(sql).toContain(
+      "SELECT date FROM daily_events GROUP BY date HAVING uniqExact(unified_code) = 2",
+    );
+    expect(sql).toContain("max(date) AS latest_common_date");
+    expect(sql).toContain("FROM common_visible_dates HAVING count() > 0");
+    expect(sql).toContain("indexOf(dates, latest_common_date) AS current_index");
+    expect(sql).toContain("FROM sample_indices WHERE current_index > 1");
+    expect(sql).toContain("tupleElement(current_record, 1) > tupleElement(previous_record, 1)");
+    expect(sql).toContain("toString(sum(tupleElement(current_record, 3))) AS turnover_cny");
+    expect(sql).not.toMatch(/toFloat(?:32|64)/);
+    expect(result).toMatchObject({
+      indices: [],
+      breadth: { sampleSize: 2, suspendedCount: 1 },
+      turnover: { amountCny: "9007199254740993.25", sampleSize: 2 },
+      emotion: null,
+      sourceVersions: ["source-current-v1", "source-previous-v2"],
+      evidenceIds: ["evidence-current", "evidence-previous"],
+    });
+    expect(result.breadth?.dataTime).toBe("2026-08-25T07:00:00.000Z");
+  });
+
+  it("keeps daily empty samples null and propagates daily query failures", async () => {
+    const dailySymbols = ["600519.SH"];
+    const emptyRepository = new ClickHouseDashboardRepository(
+      {
+        url: "http://clickhouse.test:8123",
+        database: "kunlun",
+        user: "reader",
+        emotionAlgorithmVersion: "emotion_score_v1",
+        timeoutMs: 5_000,
+        dailySymbols,
+      },
+      async () => new Response(""),
+    );
+    await expect(
+      emptyRepository.loadMarketOverview("2026-08-25T08:00:00.000Z"),
+    ).resolves.toMatchObject({
+      indices: [],
+      breadth: null,
+      turnover: null,
+      emotion: null,
+      sourceVersions: [],
+      evidenceIds: [],
+    });
+
+    const failingRepository = new ClickHouseDashboardRepository(
+      {
+        url: "http://clickhouse.test:8123",
+        database: "kunlun",
+        user: "reader",
+        emotionAlgorithmVersion: "emotion_score_v1",
+        timeoutMs: 5_000,
+        dailySymbols,
+      },
+      async () => new Response("unavailable", { status: 503 }),
+    );
+    await expect(failingRepository.loadMarketOverview("2026-08-25T08:00:00.000Z")).rejects.toThrow(
+      "ClickHouse dashboard query failed (503)",
+    );
+  });
+
   it("propagates ClickHouse disconnection instead of returning fake empties", async () => {
     const repository = new ClickHouseDashboardRepository(
       {

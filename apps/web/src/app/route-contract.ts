@@ -41,9 +41,9 @@ export const terminalNavigationGroups: ReadonlyArray<{
   label: string;
   description: string;
 }> = [
-  { id: "decision", label: "决策视野", description: "从市场到标的的解释链" },
-  { id: "workspace", label: "行动工作台", description: "自选、预警与模拟组合" },
-  { id: "research", label: "研究与审计", description: "历史证据与回归验证" },
+  { id: "decision", label: "行情研究", description: "市场日线与标的查询" },
+  { id: "workspace", label: "自选与提醒", description: "自选标的和价格规则" },
+  { id: "research", label: "数据与运维", description: "行情来源和运行状态" },
 ];
 
 export const terminalRolePermissions: Readonly<
@@ -60,9 +60,9 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     id: "home",
     path: "/",
     href: "/",
-    label: "决策总览",
-    shortLabel: "总览",
-    description: "跨模块入口、状态与解释链索引",
+    label: "首页",
+    shortLabel: "首页",
+    description: "沪深日线行情与自选提醒入口",
     group: "decision",
     permission: "terminal:read",
     status: "ready",
@@ -72,9 +72,9 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     id: "market-overview",
     path: "/market-overview",
     href: "/market-overview",
-    label: "市场总览",
+    label: "市场日线",
     shortLabel: "市场",
-    description: "指数、宽度、成交额、情绪与风险状态",
+    description: "已接入标的的历史日线和行情日期",
     group: "decision",
     permission: "terminal:read",
     status: "ready",
@@ -89,8 +89,8 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "池、梯队、晋级率与个股证据",
     group: "decision",
     permission: "terminal:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "rotation",
@@ -101,8 +101,8 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "热点生命周期、板块交叉事件与历史回放",
     group: "decision",
     permission: "terminal:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "ranking",
@@ -113,16 +113,16 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "版本化特征贡献与可解释排行",
     group: "decision",
     permission: "terminal:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "instruments",
     path: "/instruments",
     href: "/instruments",
-    label: "个股透视",
-    shortLabel: "个股",
-    description: "行情、事件、席位、KOL 与特征聚合",
+    label: "标的日线",
+    shortLabel: "标的",
+    description: "已接入沪深标的的历史日线和行情来源",
     group: "decision",
     permission: "terminal:read",
     status: "ready",
@@ -132,9 +132,9 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     id: "instrument-detail",
     path: "/instruments/:instrumentId",
     href: "/instruments/600519.SH",
-    label: "个股 Intelligence 详情",
-    shortLabel: "个股详情",
-    description: "标的级点时一致详情与证据链接",
+    label: "标的日线详情",
+    shortLabel: "日线详情",
+    description: "单个标的的历史日线详情",
     group: "decision",
     permission: "terminal:read",
     status: "ready",
@@ -149,16 +149,16 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "场内黄金、白银基金的行情、估值参考与事件",
     group: "decision",
     permission: "terminal:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "watchlists",
     path: "/watchlists",
     href: "/watchlists",
-    label: "自选与预警",
+    label: "自选与提醒",
     shortLabel: "自选",
-    description: "组合条件、静默期、通知历史与预览",
+    description: "管理自选标的及价格、涨跌幅站内提醒",
     group: "workspace",
     permission: "terminal:read",
     status: "ready",
@@ -173,8 +173,8 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "PaperAccount、OrderIntent、模拟成交与对账",
     group: "workspace",
     permission: "paper:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "market-regime",
@@ -185,8 +185,8 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "已落库的情绪与轮动历史快照",
     group: "research",
     permission: "research:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "event-workbench",
@@ -197,8 +197,8 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "事件、主题、证据与人工反馈",
     group: "research",
     permission: "research:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "seat-kol",
@@ -209,8 +209,8 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "席位证据、Claim 与绩效审计",
     group: "research",
     permission: "research:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "backtest-regressions",
@@ -221,8 +221,8 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "确定性制品、差异与基线审计",
     group: "research",
     permission: "research:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "data-quality",
@@ -233,8 +233,8 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "数据异常、恢复状态与运维证据",
     group: "research",
     permission: "operations:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
   {
     id: "market-data-settings",
@@ -245,8 +245,8 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     description: "实例级 AKShare / Tushare 采集配置与 token 状态",
     group: "research",
     permission: "operations:read",
-    status: "ready",
-    navigation: true,
+    status: "planned",
+    navigation: false,
   },
 ];
 
@@ -264,5 +264,7 @@ export function canAccessTerminalRoute(
 }
 
 export function visibleTerminalRoutes(roles: readonly TerminalRole[]): TerminalRouteContract[] {
-  return terminalRoutes.filter((route) => route.navigation && canAccessTerminalRoute(route, roles));
+  return terminalRoutes.filter(
+    (route) => route.status === "ready" && route.navigation && canAccessTerminalRoute(route, roles),
+  );
 }

@@ -10,11 +10,12 @@ import { env } from "./env";
 import { initTelemetry } from "@kunlun/observability";
 import type { AuthConfig } from "./modules/auth/auth.config";
 import { AUTH_CONFIG } from "./modules/auth/auth.tokens";
+import { APP_VERSION } from "./app-version";
 
 async function bootstrap(): Promise<void> {
   const telemetry = initTelemetry({
     serviceName: "kunlun-server",
-    serviceVersion: "0.0.0",
+    serviceVersion: APP_VERSION,
     otlpEndpoint: process.env["OTEL_EXPORTER_OTLP_ENDPOINT"],
   });
   const logger = new Logger("Bootstrap");
@@ -44,7 +45,7 @@ async function bootstrap(): Promise<void> {
     const config = new DocumentBuilder()
       .setTitle("昆仑智策 API")
       .setDescription("Kunlun Alpha — A-Share Intelligence & Quant Platform")
-      .setVersion("0.0.0")
+      .setVersion(APP_VERSION)
       .build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup("api/docs", app, document);

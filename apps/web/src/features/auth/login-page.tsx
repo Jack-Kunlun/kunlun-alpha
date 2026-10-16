@@ -94,7 +94,7 @@ export function LoginPage({ onLogin, pending, error }: LoginPageProps) {
           </form>
           <div className="mt-6 flex items-center justify-center gap-2 border-t border-white/10 pt-5 text-xs text-slate-400">
             <ShieldCheck aria-hidden="true" className="size-4 text-emerald-400" />
-            <span>研究与模拟环境 · 无真实下单路径</span>
+            <span>历史日线研究环境 · 无真实下单路径</span>
           </div>
         </CardContent>
       </Card>

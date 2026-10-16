@@ -12,6 +12,7 @@ export interface ClickHouseDashboardConfig {
   user: string;
   emotionAlgorithmVersion: string;
   timeoutMs: number;
+  dailySymbols?: readonly string[];
   password?: string;
 }
 
@@ -25,6 +26,88 @@ const MINUTE_SOURCE_RANK =
   "tuple(identity_replacement_version, source_priority, source, source_version, data_version, interval, session, price_type)";
 const DAILY_SOURCE_RANK =
   "tuple(identity_replacement_version, source_priority, source, source_version, data_version, interval, session, price_type, toString(event_time))";
+
+function dailyMarketOverviewSql(symbolCount: number): string {
+  if (!Number.isSafeInteger(symbolCount) || symbolCount < 1 || symbolCount > 100) {
+    throw new Error("daily dashboard symbol count must be between 1 and 100");
+  }
+  const symbolParameters = Array.from(
+    { length: symbolCount },
+    (_, index) => `{symbol${index}:String}`,
+  );
+  return [
+    "WITH",
+    "  parseDateTime64BestEffort({asOf:String}, 3, 'UTC') AS cutoff,",
+    "  toDate(toTimeZone(cutoff, 'Asia/Shanghai')) AS trading_date,",
+    "  daily_revision_groups AS (",
+    "    SELECT unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version, date,",
+    "      any(close) AS revision_close, any(amount) AS revision_amount, any(suspended) AS revision_suspended,",
+    "      any(revision_fingerprint) AS revision_evidence_id, uniqExact(revision_fingerprint) AS revision_count",
+    "    FROM bars_daily_v2",
+    `    WHERE unified_code IN (${symbolParameters.join(", ")})`,
+    "      AND interval = 'DAILY' AND price_type = 'RAW' AND date <= trading_date",
+    "      AND event_time <= cutoff AND available_time <= cutoff AND processing_time <= cutoff",
+    `      AND ${MARKET_SOURCE_FILTER}`,
+    "    GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version, replacement_version, date",
+    "    HAVING throwIf(uniqExact(revision_fingerprint) > 1, 'revision_fingerprint conflict') = 0",
+    "  ),",
+    "  daily_identities AS (",
+    "    SELECT unified_code, interval, event_time, session, price_type, data_version, source, source_version, date,",
+    "      argMax(tuple(revision_close, revision_amount, revision_suspended, event_time, source_version, revision_evidence_id), replacement_version) AS identity_values,",
+    "      max(replacement_version) AS identity_replacement_version,",
+    `      ${MARKET_SOURCE_PRIORITY} AS source_priority`,
+    "    FROM daily_revision_groups",
+    "    GROUP BY unified_code, interval, event_time, session, price_type, data_version, source, source_version, date",
+    "    HAVING max(revision_count) = 1",
+    "  ),",
+    "  daily_events AS (",
+    "    SELECT unified_code, date,",
+    `      argMax(identity_values, ${DAILY_SOURCE_RANK}).1 AS event_close,`,
+    `      argMax(identity_values, ${DAILY_SOURCE_RANK}).2 AS event_amount,`,
+    `      argMax(identity_values, ${DAILY_SOURCE_RANK}).3 AS event_suspended,`,
+    // Keep this output alias distinct from the source event_time used in DAILY_SOURCE_RANK.
+    // ClickHouse expands same-SELECT aliases and can otherwise nest argMax inside argMax.
+    `      argMax(identity_values, ${DAILY_SOURCE_RANK}).4 AS selected_event_time,`,
+    `      argMax(identity_values, ${DAILY_SOURCE_RANK}).5 AS event_source_version,`,
+    `      argMax(identity_values, ${DAILY_SOURCE_RANK}).6 AS event_evidence_id`,
+    "    FROM daily_identities GROUP BY unified_code, date",
+    "  ),",
+    "  common_visible_dates AS (",
+    `    SELECT date FROM daily_events GROUP BY date HAVING uniqExact(unified_code) = ${symbolCount}`,
+    "  ),",
+    "  latest_common_date AS (SELECT max(date) AS latest_common_date FROM common_visible_dates HAVING count() > 0),",
+    "  daily_histories AS (",
+    "    SELECT unified_code, arraySort(value -> value.1, groupArray(tuple(date, event_close, event_amount, event_suspended, selected_event_time, event_source_version, event_evidence_id))) AS events",
+    "    FROM daily_events GROUP BY unified_code",
+    "  ),",
+    "  daily_history_dates AS (",
+    "    SELECT unified_code, events, arrayMap(value -> value.1, events) AS dates",
+    "    FROM daily_histories",
+    "  ),",
+    "  sample_indices AS (",
+    "    SELECT unified_code, events, indexOf(dates, latest_common_date) AS current_index",
+    "    FROM daily_history_dates CROSS JOIN latest_common_date",
+    "  ),",
+    "  sample_pairs AS (",
+    "    SELECT unified_code, arrayElement(events, current_index) AS current_record, arrayElement(events, current_index - 1) AS previous_record",
+    "    FROM sample_indices WHERE current_index > 1",
+    "  ),",
+    "  sample_rows AS (",
+    "    SELECT * FROM sample_pairs",
+    "    WHERE tupleElement(current_record, 1) > tupleElement(previous_record, 1)",
+    "  )",
+    "SELECT countIf(tupleElement(current_record, 4) = 0 AND tupleElement(current_record, 2) > tupleElement(previous_record, 2)) AS advancing_count,",
+    "  countIf(tupleElement(current_record, 4) = 0 AND tupleElement(current_record, 2) < tupleElement(previous_record, 2)) AS declining_count,",
+    "  countIf(tupleElement(current_record, 4) = 0 AND tupleElement(current_record, 2) = tupleElement(previous_record, 2)) AS unchanged_count,",
+    "  countIf(tupleElement(current_record, 4) = 1) AS suspended_count, count() AS sample_size,",
+    "  toString(sum(tupleElement(current_record, 3))) AS turnover_cny,",
+    "  concat(replaceOne(toString(min(tupleElement(current_record, 5))), ' ', 'T'), 'Z') AS data_time,",
+    "  arraySort(arrayDistinct(arrayConcat(groupArray(tupleElement(current_record, 6)), groupArray(tupleElement(previous_record, 6))))) AS source_versions,",
+    "  arraySort(arrayDistinct(arrayConcat(groupArray(tupleElement(current_record, 7)), groupArray(tupleElement(previous_record, 7))))) AS evidence_ids",
+    "FROM sample_rows HAVING sample_size > 0",
+    "FORMAT JSONEachRow",
+  ].join("\n");
+}
 
 function minuteBarCtes(filter: string): string[] {
   return [
@@ -351,6 +434,26 @@ export class ClickHouseDashboardRepository implements DashboardRepository {
   ) {}
 
   async loadMarketOverview(asOf: string): Promise<MarketOverviewRepositoryData> {
+    const dailySymbols = this.config.dailySymbols;
+    if (dailySymbols !== undefined) {
+      const symbolParameters = Object.fromEntries(
+        dailySymbols.map((symbol, index) => [`symbol${index}`, symbol]),
+      );
+      const [market] = await this.request(
+        dailyMarketOverviewSql(dailySymbols.length),
+        { asOf, ...symbolParameters },
+        marketOf,
+      );
+      return {
+        indices: [],
+        breadth: market?.breadth ?? null,
+        turnover: market?.turnover ?? null,
+        emotion: null,
+        sourceVersions: market?.breadth.sourceVersions ?? [],
+        evidenceIds: market?.breadth.evidenceIds ?? [],
+      };
+    }
+
     const [indices, marketRows, emotions] = await Promise.all([
       this.request(INDEX_SQL, { asOf }, indexOf),
       this.request(MARKET_SQL, { asOf }, marketOf),

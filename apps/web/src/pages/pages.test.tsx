@@ -6,15 +6,17 @@ import { Home } from "./Home";
 import { NotFound } from "./NotFound";
 
 describe("terminal page states", () => {
-  it("renders the current decision-terminal information architecture", () => {
+  it("renders the frozen 1.0 daily research scope", () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <Home />
       </MemoryRouter>,
     );
-    expect(html).toContain("从证据到决策");
-    expect(html).toContain("Decision Terminal");
-    expect(html).toContain("研究与模拟");
+    expect(html).toContain("查看沪深日线行情与自选提醒");
+    expect(html).toContain("日线研究终端");
+    expect(html).toContain('href="/watchlists"');
+    expect(html).not.toContain('href="/paper"');
+    expect(html).not.toContain("模拟执行");
   });
 
   it("renders a navigable 404 state", () => {

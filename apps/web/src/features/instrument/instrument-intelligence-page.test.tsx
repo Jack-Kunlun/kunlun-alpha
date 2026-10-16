@@ -86,7 +86,7 @@ const detail = {
 } as unknown as InstrumentIntelligenceDetail;
 
 describe("InstrumentIntelligenceView", () => {
-  it("renders point-in-time semantics, section failures and Claim warnings", () => {
+  it("keeps the daily research view free of deferred intelligence sections", () => {
     const html = renderToStaticMarkup(
       <InstrumentIntelligenceView
         instrumentId="600519.SH"
@@ -94,10 +94,10 @@ describe("InstrumentIntelligenceView", () => {
       />,
     );
     expect(html).toContain("BEST_EFFORT_CROSS_STORE");
-    expect(html).toContain("公开表述 Claim");
-    expect(html).toContain("CLICKHOUSE_FEATURE_QUERY_FAILED");
-    expect(html).toContain("不代表真实成交");
-    expect(html).toContain("https://example.test/evidence/1");
+    expect(html).toContain("历史日线与来源");
+    expect(html).not.toContain("公开表述 Claim");
+    expect(html).not.toContain("CLICKHOUSE_FEATURE_QUERY_FAILED");
+    expect(html).not.toContain("公开证据节选");
   });
 
   it.each([
@@ -135,7 +135,9 @@ describe("InstrumentIntelligenceView", () => {
         <InstrumentDirectoryPage />
       </MemoryRouter>,
     );
-    expect(html).toContain("本地已载入股票");
+    expect(html).toContain("首发日线样本");
+    expect(html).toContain("目录不代表实时可用性");
+    expect(html).not.toContain("920799.BJ");
     for (const marker of [
       "平安银行",
       "比亚迪",
@@ -145,7 +147,6 @@ describe("InstrumentIntelligenceView", () => {
       "贵州茅台",
       "中国平安",
       "中芯国际",
-      "艾融软件",
     ]) {
       expect(html).toContain(marker);
     }
@@ -158,7 +159,6 @@ describe("InstrumentIntelligenceView", () => {
       "600519.SH",
       "601318.SH",
       "688981.SH",
-      "920799.BJ",
     ]) {
       expect(html).toContain(marker);
     }

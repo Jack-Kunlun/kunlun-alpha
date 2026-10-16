@@ -233,7 +233,9 @@ function DetailContent({
   barsResult,
   barsWindow,
   onBarsWindowChange,
+  showResearchSections = false,
 }: {
+  showResearchSections?: boolean;
   detail: InstrumentIntelligenceDetail;
   barsResult?: ObjectQueryResult<InstrumentBarsResponse>;
   barsWindow: InstrumentBarWindow;
@@ -261,8 +263,7 @@ function DetailContent({
               {identity?.name ?? "个股 Intelligence"}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-              行情、市场情绪、板块、事件、公开龙虎榜、KOL Claim 与特征在同一 effectiveAsOf
-              下聚合。跨库一致性为明确披露的 best effort。
+              历史日线与来源按请求点时展示。日线截至上一可用交易日，不是实时或可成交价格。
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-right text-xs text-slate-400">
@@ -284,7 +285,7 @@ function DetailContent({
         />
       )}
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 lg:grid-cols-2">
         <SectionFrame title="证券身份" eyebrow="Identity" section={detail.sections.identity}>
           {identity && (
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
@@ -331,153 +332,179 @@ function DetailContent({
           )}
         </SectionFrame>
 
-        <SectionFrame title="市场情绪" eyebrow="Emotion" section={detail.sections.emotion}>
-          {emotion && (
-            <div>
-              <strong className="font-mono text-3xl">{emotion.score}</strong>
-              <p className="mt-2 text-sm text-muted-foreground">
-                置信度 {(emotion.confidenceBps / 100).toFixed(1)}% · 样本 {emotion.sampleSize}
-              </p>
-              <p className="mt-3 text-xs text-muted-foreground">{emotion.algorithmVersion}</p>
-            </div>
-          )}
-        </SectionFrame>
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <SectionFrame title="点时板块归属" eyebrow="Sector" section={detail.sections.sector}>
-          <div className="flex flex-wrap gap-2">
-            {detail.sections.sector.data.map((item) => (
-              <span
-                key={item.sectorId}
-                className="rounded-full border bg-slate-50 px-3 py-1.5 text-sm"
-              >
-                {item.name} <span className="text-xs text-muted-foreground">{item.kind}</span>
-              </span>
-            ))}
-          </div>
-        </SectionFrame>
-
-        <SectionFrame title="历史特征" eyebrow="Feature store" section={detail.sections.features}>
-          <div className="space-y-3">
-            {detail.sections.features.data.map((item) => (
-              <article
-                key={item.revisionId}
-                className="grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_auto]"
-              >
-                <div>
-                  <h4 className="font-medium">{item.featureName}</h4>
-                  <p className="text-xs text-muted-foreground">
-                    {item.featureVersion} · {item.algorithmVersion}
-                  </p>
-                </div>
-                <code className="max-w-64 overflow-hidden text-ellipsis rounded bg-slate-100 px-2 py-1 text-xs">
-                  {JSON.stringify(item.value)}
-                </code>
-              </article>
-            ))}
-          </div>
-        </SectionFrame>
-      </section>
-
-      <SectionFrame title="事件时间线" eyebrow="Market event" section={detail.sections.events}>
-        <div className="space-y-3">
-          {detail.sections.events.data.map((event) => (
-            <article key={event.eventId} className="rounded-2xl border p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Badge variant="outline">{event.eventType}</Badge>
-                <time className="text-xs text-muted-foreground">
-                  {shanghaiTime(event.publishTime)}
-                </time>
+        {showResearchSections && (
+          <SectionFrame title="市场情绪" eyebrow="Emotion" section={detail.sections.emotion}>
+            {emotion && (
+              <div>
+                <strong className="font-mono text-3xl">{emotion.score}</strong>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  置信度 {(emotion.confidenceBps / 100).toFixed(1)}% · 样本 {emotion.sampleSize}
+                </p>
+                <p className="mt-3 text-xs text-muted-foreground">{emotion.algorithmVersion}</p>
               </div>
-              <h4 className="mt-3 font-semibold">{event.headline}</h4>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{event.summary}</p>
-              <p className="mt-3 text-xs text-muted-foreground">
-                置信 {(event.confidenceBps / 100).toFixed(1)}% · {event.modelVersion}
-              </p>
-            </article>
-          ))}
-        </div>
-      </SectionFrame>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <SectionFrame title="公开龙虎榜席位" eyebrow="Seat facts" section={detail.sections.seats}>
-          <div className="space-y-3">
-            {detail.sections.seats.data.map((seat) => (
-              <article key={seat.revisionId} className="rounded-xl border p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="font-medium">{seat.rawSeatName}</h4>
-                    <p className="text-xs text-muted-foreground">
-                      {seat.tradeDate} · {seat.seatId}
-                    </p>
-                  </div>
-                  <strong className="font-mono">{decimal(seat.netAmount)}</strong>
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  公开龙虎榜事实，不是券商订单、账户成交或持仓。
-                </p>
-              </article>
-            ))}
-          </div>
-        </SectionFrame>
-
-        <SectionFrame
-          title="KOL 公开表述"
-          eyebrow="Claim, not trade"
-          section={detail.sections.kolClaims}
-        >
-          <div className="space-y-3">
-            {detail.sections.kolClaims.data.map((claim) => (
-              <article
-                key={claim.revisionId}
-                className="rounded-xl border border-amber-200 bg-amber-50/50 p-4"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{claim.reviewStatus}</Badge>
-                  <Badge variant="outline">{claim.direction}</Badge>
-                  <span className="text-xs text-muted-foreground">
-                    置信 {(claim.confidenceBps / 100).toFixed(1)}%
-                  </span>
-                </div>
-                <blockquote className="mt-3 text-sm leading-6">{claim.statement}</blockquote>
-                <p className="mt-3 text-xs font-medium text-amber-900">
-                  这是公开表述 Claim，不代表真实成交、订单或持仓事实。
-                </p>
-              </article>
-            ))}
-          </div>
-        </SectionFrame>
+            )}
+          </SectionFrame>
+        )}
       </section>
+
+      {showResearchSections && (
+        <>
+          <section className="grid gap-4 xl:grid-cols-2">
+            <SectionFrame title="点时板块归属" eyebrow="Sector" section={detail.sections.sector}>
+              <div className="flex flex-wrap gap-2">
+                {detail.sections.sector.data.map((item) => (
+                  <span
+                    key={item.sectorId}
+                    className="rounded-full border bg-slate-50 px-3 py-1.5 text-sm"
+                  >
+                    {item.name} <span className="text-xs text-muted-foreground">{item.kind}</span>
+                  </span>
+                ))}
+              </div>
+            </SectionFrame>
+
+            <SectionFrame
+              title="历史特征"
+              eyebrow="Feature store"
+              section={detail.sections.features}
+            >
+              <div className="space-y-3">
+                {detail.sections.features.data.map((item) => (
+                  <article
+                    key={item.revisionId}
+                    className="grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_auto]"
+                  >
+                    <div>
+                      <h4 className="font-medium">{item.featureName}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        {item.featureVersion} · {item.algorithmVersion}
+                      </p>
+                    </div>
+                    <code className="max-w-64 overflow-hidden text-ellipsis rounded bg-slate-100 px-2 py-1 text-xs">
+                      {JSON.stringify(item.value)}
+                    </code>
+                  </article>
+                ))}
+              </div>
+            </SectionFrame>
+          </section>
+
+          <SectionFrame title="事件时间线" eyebrow="Market event" section={detail.sections.events}>
+            <div className="space-y-3">
+              {detail.sections.events.data.map((event) => (
+                <article key={event.eventId} className="rounded-2xl border p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge variant="outline">{event.eventType}</Badge>
+                    <time className="text-xs text-muted-foreground">
+                      {shanghaiTime(event.publishTime)}
+                    </time>
+                  </div>
+                  <h4 className="mt-3 font-semibold">{event.headline}</h4>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{event.summary}</p>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    置信 {(event.confidenceBps / 100).toFixed(1)}% · {event.modelVersion}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </SectionFrame>
+
+          <section className="grid gap-4 xl:grid-cols-2">
+            <SectionFrame
+              title="公开龙虎榜席位"
+              eyebrow="Seat facts"
+              section={detail.sections.seats}
+            >
+              <div className="space-y-3">
+                {detail.sections.seats.data.map((seat) => (
+                  <article key={seat.revisionId} className="rounded-xl border p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="font-medium">{seat.rawSeatName}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {seat.tradeDate} · {seat.seatId}
+                        </p>
+                      </div>
+                      <strong className="font-mono">{decimal(seat.netAmount)}</strong>
+                    </div>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      公开龙虎榜事实，不是券商订单、账户成交或持仓。
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </SectionFrame>
+
+            <SectionFrame
+              title="KOL 公开表述"
+              eyebrow="Claim, not trade"
+              section={detail.sections.kolClaims}
+            >
+              <div className="space-y-3">
+                {detail.sections.kolClaims.data.map((claim) => (
+                  <article
+                    key={claim.revisionId}
+                    className="rounded-xl border border-amber-200 bg-amber-50/50 p-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{claim.reviewStatus}</Badge>
+                      <Badge variant="outline">{claim.direction}</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        置信 {(claim.confidenceBps / 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <blockquote className="mt-3 text-sm leading-6">{claim.statement}</blockquote>
+                    <p className="mt-3 text-xs font-medium text-amber-900">
+                      这是公开表述 Claim，不代表真实成交、订单或持仓事实。
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </SectionFrame>
+          </section>
+        </>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>证据索引</CardTitle>
         </CardHeader>
         <CardContent>
-          {detail.evidence.length === 0 ? (
+          {detail.evidence.filter(
+            (item) =>
+              showResearchSections ||
+              detail.sections.identity.evidenceIds.includes(item.evidenceId) ||
+              detail.sections.market.evidenceIds.includes(item.evidenceId),
+          ).length === 0 ? (
             <p className="text-sm text-muted-foreground">该点时没有可展示的证据引用。</p>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {detail.evidence.map((evidence) => (
-                <article key={evidence.evidenceId} className="rounded-xl border p-4">
-                  <p className="break-all font-mono text-xs">{evidence.evidenceId}</p>
-                  <p className="mt-2 text-sm">{evidence.excerpt ?? "仅保留受控引用标识"}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {evidence.source ?? "来源待解析"} · {shanghaiTime(evidence.availableTime)}
-                  </p>
-                  {evidence.locator && (
-                    <a
-                      className="mt-3 inline-flex text-sm font-medium text-blue-700 underline underline-offset-4"
-                      href={evidence.locator}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      打开受控证据
-                    </a>
-                  )}
-                </article>
-              ))}
+              {detail.evidence
+                .filter(
+                  (item) =>
+                    showResearchSections ||
+                    detail.sections.identity.evidenceIds.includes(item.evidenceId) ||
+                    detail.sections.market.evidenceIds.includes(item.evidenceId),
+                )
+                .map((evidence) => (
+                  <article key={evidence.evidenceId} className="rounded-xl border p-4">
+                    <p className="break-all font-mono text-xs">{evidence.evidenceId}</p>
+                    <p className="mt-2 text-sm">{evidence.excerpt ?? "仅保留受控引用标识"}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {evidence.source ?? "来源待解析"} · {shanghaiTime(evidence.availableTime)}
+                    </p>
+                    {evidence.locator && (
+                      <a
+                        className="mt-3 inline-flex text-sm font-medium text-blue-700 underline underline-offset-4"
+                        href={evidence.locator}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        打开受控证据
+                      </a>
+                    )}
+                  </article>
+                ))}
             </div>
           )}
         </CardContent>
@@ -496,7 +523,9 @@ export function InstrumentIntelligenceView({
   barsResult,
   barsWindow = 250,
   onBarsWindowChange,
+  showResearchSections = false,
 }: {
+  showResearchSections?: boolean;
   instrumentId: string;
   result: ObjectQueryResult<InstrumentIntelligenceDetail>;
   barsResult?: ObjectQueryResult<InstrumentBarsResponse>;
@@ -530,6 +559,7 @@ export function InstrumentIntelligenceView({
   return (
     <DetailContent
       detail={result.data}
+      showResearchSections={showResearchSections}
       barsResult={barsResult}
       barsWindow={barsWindow}
       onBarsWindowChange={onBarsWindowChange}
@@ -546,7 +576,6 @@ const LOCAL_TERMINAL_STOCKS = [
   { instrumentId: "600519.SH", name: "贵州茅台", sector: "食品饮料" },
   { instrumentId: "601318.SH", name: "中国平安", sector: "非银金融" },
   { instrumentId: "688981.SH", name: "中芯国际", sector: "电子" },
-  { instrumentId: "920799.BJ", name: "艾融软件", sector: "计算机" },
 ] as const;
 
 export function InstrumentDirectoryPage() {
@@ -562,10 +591,10 @@ export function InstrumentDirectoryPage() {
       <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
         Instrument lens · Point-in-time
       </p>
-      <h2 className="mt-3 text-3xl font-semibold tracking-tight">进入一只标的的证据链</h2>
+      <h2 className="mt-3 text-3xl font-semibold tracking-tight">查看标的历史日线</h2>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-        输入统一证券代码，查询同一 effectiveAsOf 下的行情、情绪、板块、事件、席位、KOL Claim
-        与特征。
+        首发默认覆盖下列 8
+        个沪深股票日线样本。目录不代表实时可用性，具体日期、来源与空缺以查询结果为准。其他代码可查询，但不承诺已入库。
       </p>
       <form
         className="mt-8 flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm sm:flex-row"
@@ -578,7 +607,7 @@ export function InstrumentDirectoryPage() {
           placeholder="600519.SH"
         />
         <Button type="submit" disabled={!valid}>
-          查看 Intelligence
+          查看日线
         </Button>
       </form>
       {!valid && (
@@ -586,7 +615,7 @@ export function InstrumentDirectoryPage() {
       )}
       <div className="mt-8">
         <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-          本地已载入股票
+          首发日线样本
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {LOCAL_TERMINAL_STOCKS.map((stock) => (

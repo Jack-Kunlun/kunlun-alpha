@@ -31,6 +31,16 @@ export interface InAppNotification {
 }
 
 /**
+ * Append a name and decimal-threshold revision to an existing owned watchlist alert rule
+ */
+export interface UpdateWatchlistAlertRuleRequest {
+  clientRequestId: string;
+  expectedRevision: number;
+  name: string;
+  threshold: string;
+}
+
+/**
  * Bounded evaluation summary for latest persisted daily market bars
  */
 export interface WatchlistAlertEvaluationRun {

@@ -7,14 +7,10 @@
 
 ## 首次初始化
 
-先应用 PostgreSQL migration 并启动本地应用：
+1.0 使用精简入口应用现有 PostgreSQL migration 并启动本地应用：
 
 ```bash
-docker compose \
-  -f infra/docker/docker-compose.yml \
-  -f infra/docker/docker-compose.apps.yml \
-  --env-file infra/docker/.env \
-  up -d --build
+pnpm v1:up
 ```
 
 随后在交互式终端中创建首个管理员。密码输入不会回显，也不能通过参数或环境变量传入：

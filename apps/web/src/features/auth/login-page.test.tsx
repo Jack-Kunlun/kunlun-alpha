@@ -9,7 +9,7 @@ describe("LoginPage", () => {
     expect(html).toContain("<h1");
     expect(html).toContain('autoComplete="username"');
     expect(html).toContain('autoComplete="current-password"');
-    expect(html).toContain("研究与模拟环境");
+    expect(html).toContain("历史日线研究环境");
     expect(html).not.toContain("注册");
   });
 

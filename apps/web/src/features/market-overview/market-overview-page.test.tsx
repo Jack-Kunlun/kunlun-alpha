@@ -93,6 +93,60 @@ describe("MarketOverviewView", () => {
     expect(html).toContain("9,007,199,254,740,993.25");
     expect(html).toContain("上证指数");
     expect(html).toContain("当前系统没有真实账户或真实下单路径");
+    expect(html).toContain("仅代表当前入库样本，不代表全市场");
+    expect(html).not.toContain("完整度 COMPLETE");
+    expect(html).not.toContain("市场情绪");
+    expect(html).not.toContain("研究型风险温度");
+  });
+
+  it("labels current daily data by its historical date instead of minute freshness thresholds", () => {
+    const daily = {
+      ...snapshot,
+      mode: "CURRENT" as const,
+      freshness: {
+        status: "STALE" as const,
+        ageSeconds: 86_400,
+        delayedAfterSeconds: 90,
+        staleAfterSeconds: 300,
+      },
+    };
+    const html = renderToStaticMarkup(
+      <MarketOverviewView result={{ status: "success", data: daily, error: null }} />,
+    );
+
+    expect(html).toContain("历史日线");
+    expect(html).toContain("数据截止");
+    expect(html).toContain("bars-v2");
+    expect(html).toContain("可比较样本 4620");
+    expect(html).not.toContain("数据过期");
+    expect(html).not.toContain("完整度 COMPLETE");
+  });
+
+  it("labels a missing daily sample without turning it into a freshness error", () => {
+    const empty = {
+      ...snapshot,
+      mode: "CURRENT" as const,
+      dataCutoffTime: null,
+      freshness: {
+        status: "NO_DATA" as const,
+        ageSeconds: null,
+        delayedAfterSeconds: 90,
+        staleAfterSeconds: 300,
+      },
+      indices: [],
+      breadth: null,
+      turnover: null,
+      emotion: null,
+      sourceVersions: [],
+      evidenceIds: [],
+    };
+    const html = renderToStaticMarkup(
+      <MarketOverviewView result={{ status: "success", data: empty, error: null }} />,
+    );
+
+    expect(html).toContain("无数据");
+    expect(html).toContain("当前点时无可用数据");
+    expect(html).not.toContain("数据过期");
   });
 
   it("renders missing regions explicitly instead of displaying zero", () => {
@@ -105,6 +159,6 @@ describe("MarketOverviewView", () => {
         }}
       />,
     );
-    expect(html.match(/不以零值代替/g)).toHaveLength(3);
+    expect(html.match(/不以零值代替/g)).toHaveLength(2);
   });
 });

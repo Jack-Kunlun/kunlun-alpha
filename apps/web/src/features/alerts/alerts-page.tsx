@@ -10,7 +10,10 @@ import {
   RefreshCw,
   ShieldCheck,
 } from "lucide-react";
-import type { WatchlistAlertEvaluationRun } from "@kunlun/shared-types";
+import type {
+  UpdateWatchlistAlertRuleRequest,
+  WatchlistAlertEvaluationRun,
+} from "@kunlun/shared-types";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import {
@@ -46,10 +49,35 @@ const OUTCOME_LABELS: Record<string, string> = {
   RULE_DISABLED: "已停用",
 };
 
+type AutoEvaluatedField = Extract<
+  WatchlistAlertRule["condition"]["field"],
+  "LAST_PRICE" | "CHANGE_BPS"
+>;
+
+export function evaluationRunStatus(run: Pick<WatchlistAlertEvaluationRun, "failed">): {
+  title: string;
+  role: "alert" | "status";
+  tone: "failure" | "success";
+} {
+  return run.failed > 0
+    ? { title: "行情评估存在失败", role: "alert", tone: "failure" }
+    : { title: "最新行情评估完成", role: "status", tone: "success" };
+}
+
 export function AlertsPage() {
   const alerts = useWatchlistAlerts();
   const [preview, setPreview] = useState<AlertPreview | null>(null);
   const [evaluationRun, setEvaluationRun] = useState<WatchlistAlertEvaluationRun | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function evaluateLatest() {
+    setActionError(null);
+    try {
+      setEvaluationRun(await alerts.evaluateLatest());
+    } catch (cause) {
+      setActionError(errorMessage(cause, "最新行情评估失败"));
+    }
+  }
 
   if (alerts.state === "loading")
     return <PageState title="正在读取预警规则" detail="同步规则版本与投递历史。" />;
@@ -73,6 +101,7 @@ export function AlertsPage() {
 
   const workspace = alerts.workspace;
   if (!workspace) return null;
+  const evaluationStatus = evaluationRun ? evaluationRunStatus(evaluationRun) : null;
 
   return (
     <div className="space-y-6">
@@ -98,14 +127,16 @@ export function AlertsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">规则清单</h2>
-              <p className="text-sm text-muted-foreground">只支持白名单字段与比较运算符。</p>
+              <p className="text-sm text-muted-foreground">
+                新规则仅可选择当前支持自动评估的字段。
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={alerts.submitting || workspace.rules.length === 0}
-                onClick={() => void alerts.evaluateLatest().then(setEvaluationRun)}
+                onClick={() => void evaluateLatest()}
               >
                 <Activity className="mr-2 h-4 w-4" /> 立即评估最新行情
               </Button>
@@ -124,20 +155,36 @@ export function AlertsPage() {
                   rule={rule}
                   disabled={alerts.submitting}
                   onToggle={alerts.toggleRule}
+                  onUpdate={alerts.updateRule}
                   onPreview={async (request) => setPreview(await alerts.preview(request))}
                 />
               ))}
             </div>
           )}
+          {actionError ? (
+            <p
+              role="alert"
+              className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive"
+            >
+              {actionError}
+            </p>
+          ) : null}
           {preview ? (
             <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/30">
               <strong>{OUTCOME_LABELS[preview.outcome] ?? preview.outcome}</strong>
               <span className="ml-2 text-muted-foreground">{preview.detail}</span>
             </div>
           ) : null}
-          {evaluationRun ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm dark:border-emerald-900 dark:bg-emerald-950/30">
-              <strong>最新行情评估完成</strong>
+          {evaluationRun && evaluationStatus ? (
+            <div
+              role={evaluationStatus.role}
+              className={
+                evaluationStatus.tone === "failure"
+                  ? "rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
+                  : "rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm dark:border-emerald-900 dark:bg-emerald-950/30"
+              }
+            >
+              <strong>{evaluationStatus.title}</strong>
               <span className="ml-2 text-muted-foreground">
                 已评估 {evaluationRun.evaluated}，数据不足 {evaluationRun.skippedNoData}，暂不支持{" "}
                 {evaluationRun.skippedUnsupported}，失败 {evaluationRun.failed}
@@ -161,10 +208,9 @@ function RuleComposer({
 }) {
   const [name, setName] = useState("价格突破提醒");
   const [instrumentId, setInstrumentId] = useState("600519.SH");
-  const [field, setField] = useState<WatchlistAlertRule["condition"]["field"]>("LAST_PRICE");
+  const [field, setField] = useState<AutoEvaluatedField>("LAST_PRICE");
   const [operator, setOperator] = useState<WatchlistAlertRule["condition"]["operator"]>("GTE");
   const [threshold, setThreshold] = useState("1500.00");
-  const [featureName, setFeatureName] = useState("momentum_20d");
   const [throttleSeconds, setThrottleSeconds] = useState("300");
   const [quietEnabled, setQuietEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +228,7 @@ function RuleComposer({
           field,
           operator,
           threshold,
-          featureName: field === "FEATURE_VALUE" ? featureName : null,
+          featureName: null,
         },
         quietPeriod: quietEnabled
           ? { timezone: "Asia/Shanghai", startMinute: 23 * 60, endMinute: 7 * 60 }
@@ -220,12 +266,10 @@ function RuleComposer({
               <select
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 value={field}
-                onChange={(event) => setField(event.target.value as typeof field)}
+                onChange={(event) => setField(event.target.value as AutoEvaluatedField)}
               >
                 <option value="LAST_PRICE">最新价</option>
                 <option value="CHANGE_BPS">涨跌幅 BPS</option>
-                <option value="EMOTION_SCORE_BPS">情绪分 BPS</option>
-                <option value="FEATURE_VALUE">特征值</option>
               </select>
             </Field>
             <Field label="运算符">
@@ -242,11 +286,6 @@ function RuleComposer({
               </select>
             </Field>
           </div>
-          {field === "FEATURE_VALUE" ? (
-            <Field label="特征名称">
-              <Input value={featureName} onChange={(event) => setFeatureName(event.target.value)} />
-            </Field>
-          ) : null}
           <Field label="阈值">
             <Input
               inputMode="decimal"
@@ -285,17 +324,101 @@ function RuleCard({
   rule,
   disabled,
   onToggle,
+  onUpdate,
   onPreview,
 }: {
   rule: WatchlistAlertRule;
   disabled: boolean;
   onToggle: (ruleId: string, enabled: boolean) => Promise<void>;
+  onUpdate: (ruleId: string, request: UpdateWatchlistAlertRuleRequest) => Promise<void>;
   onPreview: (
     request: Parameters<ReturnType<typeof useWatchlistAlerts>["preview"]>[0],
   ) => Promise<void>;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(rule.name);
+  const [draftThreshold, setDraftThreshold] = useState(rule.condition.threshold);
+  const [expectedRevision, setExpectedRevision] = useState(rule.revision);
+  const [clientRequestId, setClientRequestId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const instrumentId = rule.instrumentIds[0];
   const now = new Date().toISOString();
+  const automaticallyEvaluated =
+    rule.condition.field === "LAST_PRICE" || rule.condition.field === "CHANGE_BPS";
+
+  function beginEdit() {
+    setDraftName(rule.name);
+    setDraftThreshold(rule.condition.threshold);
+    setExpectedRevision(rule.revision);
+    setClientRequestId(requestId("edit"));
+    setActionError(null);
+    setEditing(true);
+  }
+
+  function cancelEdit() {
+    setDraftName(rule.name);
+    setDraftThreshold(rule.condition.threshold);
+    setClientRequestId(null);
+    setActionError(null);
+    setEditing(false);
+  }
+
+  async function saveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (saving) return;
+    const commandRequestId = clientRequestId ?? requestId("edit");
+    setClientRequestId(commandRequestId);
+    setSaving(true);
+    setActionError(null);
+    try {
+      await onUpdate(rule.ruleId, {
+        clientRequestId: commandRequestId,
+        expectedRevision,
+        name: draftName,
+        threshold: draftThreshold,
+      });
+      setEditing(false);
+      setClientRequestId(null);
+    } catch (cause) {
+      setActionError(
+        httpStatus(cause) === 409
+          ? "规则版本已变化或请求标识冲突；刷新后重新编辑。"
+          : errorMessage(cause, "规则修改失败；请检查版本后重试"),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggle() {
+    setActionError(null);
+    try {
+      await onToggle(rule.ruleId, !rule.enabled);
+    } catch (cause) {
+      setActionError(errorMessage(cause, "规则状态修改失败"));
+    }
+  }
+
+  async function showPreview() {
+    if (!instrumentId) return;
+    setActionError(null);
+    try {
+      await onPreview({
+        ruleId: rule.ruleId,
+        eventId: requestId("preview"),
+        instrumentId,
+        field: rule.condition.field,
+        featureName: rule.condition.featureName,
+        observedValue: rule.condition.threshold,
+        eventTime: now,
+        availableTime: now,
+      });
+    } catch (cause) {
+      setActionError(errorMessage(cause, "规则预览失败"));
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -315,40 +438,93 @@ function RuleCard({
         <div className="rounded-lg bg-muted/60 p-3 font-mono text-sm">
           {rule.condition.field} {rule.condition.operator} {rule.condition.threshold}
         </div>
+        {!automaticallyEvaluated ? (
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            该规则使用的指标本版本不自动评估。
+          </p>
+        ) : null}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock3 className="h-3.5 w-3.5" /> 节流 {rule.throttleSeconds} 秒 ·{" "}
           {rule.quietPeriod ? "已设免打扰" : "无免打扰"}
         </div>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={disabled || !instrumentId}
-            onClick={() =>
-              instrumentId &&
-              void onPreview({
-                ruleId: rule.ruleId,
-                eventId: requestId("preview"),
-                instrumentId,
-                field: rule.condition.field,
-                featureName: rule.condition.featureName,
-                observedValue: rule.condition.threshold,
-                eventTime: now,
-                availableTime: now,
-              })
-            }
+        {editing ? (
+          <form
+            className="space-y-3 rounded-lg border p-3"
+            onSubmit={(event) => void saveEdit(event)}
           >
-            阈值预览
-          </Button>
-          <Button
-            size="sm"
-            variant={rule.enabled ? "secondary" : "default"}
-            disabled={disabled}
-            onClick={() => void onToggle(rule.ruleId, !rule.enabled)}
-          >
-            {rule.enabled ? "停用" : "启用"}
-          </Button>
-        </div>
+            <Field label="规则名称">
+              <Input
+                value={draftName}
+                maxLength={80}
+                onChange={(event) => {
+                  setDraftName(event.target.value);
+                  setClientRequestId(requestId("edit"));
+                  setActionError(null);
+                }}
+              />
+            </Field>
+            <Field label="十进制阈值">
+              <Input
+                inputMode="decimal"
+                value={draftThreshold}
+                maxLength={80}
+                onChange={(event) => {
+                  setDraftThreshold(event.target.value);
+                  setClientRequestId(requestId("edit"));
+                  setActionError(null);
+                }}
+              />
+            </Field>
+            {actionError ? (
+              <p role="alert" className="text-sm text-destructive">
+                {actionError}
+              </p>
+            ) : null}
+            <div className="flex gap-2">
+              <Button size="sm" disabled={disabled || saving} type="submit">
+                保存修改
+              </Button>
+              <Button
+                size="sm"
+                type="button"
+                variant="outline"
+                disabled={saving}
+                onClick={cancelEdit}
+              >
+                取消
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {automaticallyEvaluated ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={disabled || !instrumentId}
+                onClick={() => void showPreview()}
+              >
+                阈值预览
+              </Button>
+            ) : null}
+            <Button size="sm" variant="outline" disabled={disabled} onClick={beginEdit}>
+              编辑
+            </Button>
+            <Button
+              size="sm"
+              variant={rule.enabled ? "secondary" : "default"}
+              disabled={disabled}
+              onClick={() => void toggle()}
+            >
+              {rule.enabled ? "停用" : "启用"}
+            </Button>
+          </div>
+        )}
+        {!editing && actionError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {actionError}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -456,4 +632,14 @@ function formatTime(value: string): string {
     minute: "2-digit",
     second: "2-digit",
   }).format(new Date(value));
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function httpStatus(error: unknown): number | null {
+  if (typeof error !== "object" || error === null) return null;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === "number" ? status : null;
 }

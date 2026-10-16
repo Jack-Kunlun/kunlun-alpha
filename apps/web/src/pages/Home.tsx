@@ -1,13 +1,15 @@
 import { ArrowUpRight, Compass, ShieldCheck } from "lucide-react";
 import { Link } from "react-router";
-import { terminalNavigationGroups, terminalRoutes } from "@/app/route-contract";
+import { useTerminalRoles } from "@/app/access-control";
+import { terminalNavigationGroups, visibleTerminalRoutes } from "@/app/route-contract";
 import { useTerminalFilters } from "@/app/filter-context";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function Home() {
   const { hrefForRoute } = useTerminalFilters();
-  const productRoutes = terminalRoutes.filter((route) => route.navigation);
+  const roles = useTerminalRoles();
+  const productRoutes = visibleTerminalRoutes(roles);
   return (
     <div className="space-y-8">
       <section className="relative overflow-hidden rounded-3xl border bg-slate-950 px-6 py-8 text-white shadow-2xl shadow-slate-950/10 sm:px-10 sm:py-12">
@@ -15,26 +17,26 @@ export function Home() {
         <div className="relative max-w-3xl">
           <div className="mb-5 flex flex-wrap items-center gap-2">
             <Badge className="border-white/15 bg-white/10 text-white" variant="outline">
-              Decision Terminal
+              日线研究终端
             </Badge>
             <Badge className="border-amber-300/30 bg-amber-300/10 text-amber-200" variant="outline">
-              只读研究 · 模拟执行
+              历史日线 · 站内提醒
             </Badge>
           </div>
           <div className="flex items-start gap-4">
             <Compass aria-hidden="true" className="mt-1 hidden size-9 text-amber-300 sm:block" />
             <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">
-                从证据到决策，一条路径看清
+                查看沪深日线行情与自选提醒
               </h2>
               <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-                终端不按后端服务拆分，而按“观势、研究、行动”组织。规划能力保留稳定深链接；尚未接入的页面只展示边界，不伪造行情或结论。
+                查询已接入标的的历史日线，查看行情来源和日期，并管理价格、涨跌幅站内提醒。数据以最近完成的日线采集为准。
               </p>
             </div>
           </div>
           <div className="mt-8 flex items-center gap-2 text-xs text-emerald-300">
             <ShieldCheck aria-hidden="true" className="size-4" />
-            <span>当前系统仅研究与模拟，不连接真实账户</span>
+            <span>页面展示历史行情，不代表实时行情</span>
           </div>
         </div>
       </section>
@@ -46,19 +48,14 @@ export function Home() {
               Terminal map
             </p>
             <h2 id="terminal-map-title" className="mt-1 text-2xl font-semibold tracking-tight">
-              三个视野，统一上下文
+              1.0 可用入口
             </h2>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {productRoutes.filter((route) => route.status === "ready").length} 已就绪 ·{" "}
-            {productRoutes.filter((route) => route.status === "planned").length} 项规划能力待接入
-          </p>
         </div>
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-4 xl:grid-cols-2">
           {terminalNavigationGroups.map((group) => {
-            const routes = terminalRoutes.filter(
-              (route) => route.group === group.id && route.navigation,
-            );
+            const routes = productRoutes.filter((route) => route.group === group.id);
+            if (routes.length === 0) return null;
             return (
               <Card
                 key={group.id}

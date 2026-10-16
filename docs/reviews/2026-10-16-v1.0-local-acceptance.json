@@ -1,0 +1,457 @@
+{
+  "status": "LOCAL_ACCEPTANCE_PASSED_NOT_RELEASED",
+  "verifiedAt": "2026-10-16T17:21:49+08:00",
+  "baseSha": "01c0e49681fa136dc389bc26330f07a0e714c939",
+  "uncommittedChanges": true,
+  "candidateSha": null,
+  "scope": "单管理员、受控本地实例、显式8个沪深股票历史日线、样本总览、价格与涨跌幅站内提醒",
+  "notIncluded": [
+    "模拟交易",
+    "真实买卖或QMT",
+    "实时或全市场覆盖",
+    "邮件短信",
+    "后移的情报与研究功能"
+  ],
+  "implementationSlices": [
+    "P6-N01 首发路由范围",
+    "P6-N02 日线样本总览",
+    "P6-N06 标的日线展示",
+    "P6-N07 规则编辑与提醒"
+  ],
+  "functionalAcceptance": {
+    "navigation": "首页、市场日线、标的日线、自选提醒；11个后移路径的定向测试通过，浏览器/paper明确提示后续版本",
+    "authentication": "既有管理员登录、退出和重新登录通过；全服务重启后会话仍可用；未改凭据或授权模型",
+    "dailySource": "akshare-tencent / akshare:1.18.94:stock_zh_a_hist_tx:v3",
+    "symbols": [
+      "000001.SZ",
+      "002594.SZ",
+      "300750.SZ",
+      "301236.SZ",
+      "600000.SH",
+      "600519.SH",
+      "601318.SH",
+      "688981.SH"
+    ],
+    "updateCycles": [
+      {
+        "captureDate": "2026-10-12",
+        "latestDate": "2026-10-09"
+      },
+      {
+        "captureDate": "2026-10-16",
+        "latestDate": "2026-10-15"
+      }
+    ],
+    "latestSync": {
+      "logicalRequests": 8,
+      "captures": 8,
+      "writtenBars": 3874,
+      "latestDate": "2026-10-15",
+      "sameDayRerunRequests": 0,
+      "sameDayRerunWrites": 0
+    },
+    "rawStoredValuesMatch": true,
+    "duplicateVersions": 0,
+    "dailyOverview": {
+      "status": "PASS",
+      "realClickHouse": "25.8.24.21",
+      "current": {
+        "sampleSize": 8,
+        "latestCommonDate": "2026-10-15",
+        "up": 4,
+        "down": 4,
+        "unchanged": 0,
+        "suspended": 0,
+        "turnoverCny": "33027314800"
+      },
+      "independentRawCaptureRowsCompared": 16,
+      "staggeredAvailability": {
+        "asOf": "2026-10-16T08:15:04.205000+00:00",
+        "onlyNewCapturesVisible": 1,
+        "sampleSize": 8,
+        "latestCommonDate": "2026-10-09"
+      },
+      "noCommonDate": "empty, no fabricated rows"
+    },
+    "alerts": {
+      "browserOperations": [
+        "创建",
+        "编辑名称和阈值",
+        "停用和启用",
+        "行情评估",
+        "查看通知",
+        "标记已读"
+      ],
+      "realObservedPrice": "11.41",
+      "realObservedChangeBps": -78,
+      "delivered": 3,
+      "deliveryAttemptsEach": 1,
+      "repeatedEvaluationNewNotifications": 0,
+      "unreadBeforeRead": 3,
+      "unreadAfterRead": 2,
+      "editConcurrency": {
+        "status": "PASS",
+        "realPostgres": true,
+        "concurrentEdits": "one success, one 409",
+        "concurrentRetry": "idempotent",
+        "revisions": 2,
+        "oldRevisionPreserved": true,
+        "ownerIsolation": 404
+      }
+    },
+    "marketFailure": "ClickHouse停止时浏览器显示请求失败500；恢复后显示8个真实样本，无fixture或假空数据替代"
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run",
+      "cwd": ".",
+      "scope": [
+        "watchlist-alerts.service.test.ts",
+        "watchlist-alerts.evaluation-runner.test.ts",
+        "postgres-watchlist-alerts.repository.test.ts",
+        "clickhouse-dashboard.repository.test.ts",
+        "dashboard.module.test.ts"
+      ],
+      "result": "33 passed / 5 files"
+    },
+    {
+      "command": "pnpm exec vitest run",
+      "cwd": "apps/web",
+      "scope": [
+        "route-contract.test.ts",
+        "App.test.tsx",
+        "pages.test.tsx",
+        "alerts-page.test.tsx",
+        "notification-center.test.tsx",
+        "instrument-intelligence-page.test.tsx",
+        "market-overview-page.test.tsx",
+        "login-page.test.tsx"
+      ],
+      "result": "48 passed / 8 files"
+    },
+    {
+      "command": "pnpm v1:config:check",
+      "result": "4 passed"
+    },
+    {
+      "command": ".venv/bin/python -m pytest --no-cov services/data-worker/tests/test_market_data_runtime.py -k checkpoint",
+      "result": "6 passed, 14 deselected"
+    },
+    {
+      "check": "受影响 shared-types/server/web 类型检查、定向 ESLint/Prettier、TS/Python 契约生成同步、新生成 Python 模型 Ruff",
+      "result": "PASS",
+      "evidence": "主代理与执行代理本轮最终命令输出；未将全仓检查计入"
+    },
+    {
+      "check": "server/web 最终 Docker 构建",
+      "result": "PASS",
+      "evidence": "work/v1-release-20261016/app-build-final.log"
+    },
+    {
+      "check": "真实行情同步、同日重跑、隔离网络只读raw回放",
+      "result": "PASS",
+      "evidence": "work/v1-release-20261016/market-verification.json"
+    },
+    {
+      "result": "PASS on real PostgreSQL",
+      "check": "在kunlun-server容器中以node运行rule-concurrency.cjs，连接本地真实PostgreSQL",
+      "evidence": "work/v1-release-20261016/rule-concurrency.json"
+    },
+    {
+      "check": "隔离 PostgreSQL/ClickHouse 恢复、全服务重启和业务记录比对",
+      "result": "PASS",
+      "evidence": "work/v1-release-20261016/restart-verification.json"
+    },
+    {
+      "command": "python3 work/v1-release-20261016/cleanup-acceptance.py",
+      "result": "PASS after correcting JSON field selector; exact temporary rows removed"
+    },
+    {
+      "command": "python3 work/v1-release-20261016/pg-state.py pg-state-after-cleanup.json",
+      "result": "1 auth user retained; all four temporary alert tables zero"
+    },
+    {
+      "check": "Chrome 实际登录、日线、规则与提醒、故障与恢复、重启保留、退出再登录",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm exec prettier --check docs/superpowers/plans/2026-10-12-v1.0-release-plan.md docs/reviews/2026-10-16-v1.0-local-acceptance.json",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "testFirstEvidence": [
+    "首发导航/直达范围和隐藏高级规则字段在实现前定向失败，实现后通过",
+    "编辑规则端点缺失、并发修订与重试场景先失败，实现后通过",
+    "行情评估使用真实 InstrumentBarsService 参数解析器时 limit 数字导致失败；改为字符串后通过",
+    "日线总览缺失与共同日期语义先用定向用例验证，再实现和核对真实ClickHouse/raw"
+  ],
+  "resolvedFailures": [
+    "初次Web较广检查239通过2失败：旧首页断言与新选项断言；修正范围预期和测试选择后8个受影响文件48项通过；未重跑全Web套件",
+    "首次Web检查工作目录不匹配导致别名解析失败；改为应用目录执行",
+    "真实ClickHouse返回Code184：输出别名与输入event_time冲突；改为selected_event_time后定向测试和真实查询通过",
+    "首次恢复验证未保留错误详情，后续确认schema search_path问题；显式kunlun schema并验证目标数据库就绪后恢复通过",
+    "临时清理首次使用不存在的name列，事务回滚；核对payload结构后精确清理通过"
+  ],
+  "runtime": {
+    "health": {
+      "postgres": "healthy",
+      "clickhouse": "healthy",
+      "server": "healthy",
+      "web": "healthy"
+    },
+    "migrationAndReferenceJobs": "server/data-worker/ClickHouse migrations and local reference materialization exit 0",
+    "publishedPorts": "127.0.0.1 only",
+    "images": {
+      "server": "sha256:bf1b6bd8394f16c00ebaa75a0a3cd19bc60aa5f41ecfbde4f90836afdc474c2f",
+      "web": "sha256:0db6bb5db578b541503f9967383116245f99253d8d9417ddf3cf2db555446f61"
+    }
+  },
+  "recovery": {
+    "isolation": "network none, no published ports, tmpfs only",
+    "nonemptyRestoredTableCounts": {
+      "auth_users": 1,
+      "watchlist_alert_rule_revisions": 6,
+      "watchlist_alert_history": 3,
+      "watchlist_notification_outbox": 3,
+      "watchlist_notification_receipts": 1
+    },
+    "exactBusinessRowsPreservedAfterRestart": true,
+    "dailyRowsRestored": 12470,
+    "allDailyFieldsAndVersionsMatch": true,
+    "privateBackup": {
+      "file": "postgres-with-reminders.dump",
+      "bytes": 335758,
+      "sha256": "38de13d3d2f6bb0618ce91e20ce45b3936df853dca2ccf9b85d2599b1ed94f92"
+    },
+    "marketBackupSha256": "2eca5978363bc6888fe381a41e8cd156bfc69694223e0ca0d0c8ccc3f42ab036",
+    "privacy": "备份含本地认证状态，仅保存在忽略目录；不纳入版本产物或提交"
+  },
+  "temporaryDataCleanup": {
+    "status": "PASS",
+    "exactTemporaryRules": 3,
+    "deletedRows": {
+      "receipts": 1,
+      "outbox": 3,
+      "history": 3,
+      "revisions": 6
+    },
+    "unrelatedStatePreserved": true,
+    "recoveryBackup": "postgres-with-reminders.dump"
+  },
+  "independentReview": {
+    "role": "review",
+    "status": "no unresolved blocking findings",
+    "scope": "最终高风险规则持久化与日线PIT/共同日期差异；不重复已通过检查"
+  },
+  "securityAndDataIntegrity": "不改凭据/权限，不连接真实券商；保留历史修订、来源与可用时间；既有用户手册和12份9月材料未修改",
+  "limits": [
+    "日线需显式执行pnpm v1:sync，未设置自动定时采集",
+    "仅显式8个沪深标的，指数显示明确空态",
+    "macOS与Docker Linux已验证；原生Windows/Linux未验证",
+    "未执行全仓测试",
+    "当前package版本仍为开发基线0.0.0；没有候选提交/tag或正式发布"
+  ],
+  "remainingReleaseWork": [
+    "10月23日18:00冻结候选SHA和版本产物（Git/tag操作仍按原计划单独授权）",
+    "10月26日12:00发布判断；18:00目标正式发布，仅修阻断、不加功能、不重复恢复演练"
+  ],
+  "browserProof": "work/v1-release-20261016/market-overview-final.jpg",
+  "filesChanged": [
+    {
+      "path": "README.md",
+      "sha256": "347430c144e4300b04ccb25d257248257c9d717a7eb64ffcf1ef0cbd8ee4605d"
+    },
+    {
+      "path": "apps/server/src/modules/dashboard/clickhouse-dashboard.repository.test.ts",
+      "sha256": "d450b30e5bb8e33877504824ebcff6819a0e0501a4aa7bdcc000be875983360f"
+    },
+    {
+      "path": "apps/server/src/modules/dashboard/clickhouse-dashboard.repository.ts",
+      "sha256": "4970bdff19fd9e3e7e78b7ac79666f054001227d37fefbe7990113f8c4266614"
+    },
+    {
+      "path": "apps/server/src/modules/dashboard/dashboard.module.test.ts",
+      "sha256": "4b765bdc8d8692eee73bad042e6b0a8387cb7d14f5e96dba5892e8cf9a8a878b"
+    },
+    {
+      "path": "apps/server/src/modules/dashboard/dashboard.module.ts",
+      "sha256": "47d0bd0d0c7aa0adef18b79b9ddadf37328e7d5c4aaa57d2311148440fa9da82"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/in-memory-watchlist-alerts.repository.ts",
+      "sha256": "e32b915e4f193b870bd1843b740a89eb3b840d5dbede98ec0c6fdad7b95fa707"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/postgres-watchlist-alerts.repository.test.ts",
+      "sha256": "6cc61b25d07f29188bc7e7da202098e50466d0edc4f9ea915c405b242269ec2d"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/postgres-watchlist-alerts.repository.ts",
+      "sha256": "311e5fe217691e5296e34962c9c7d0ed5dfa19e199a36678a8622afb1ba9a5d9"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/watchlist-alerts.controller.ts",
+      "sha256": "ea5a4f681dc424265e2fac71e94b35b620542d17e8be7bb2114ebaa09af030c0"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/watchlist-alerts.evaluation-runner.test.ts",
+      "sha256": "4892f5f4e2c2d71097df3afa2a8af26acf0c4832d4316304011339d78b663c83"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/watchlist-alerts.evaluation-runner.ts",
+      "sha256": "ee572cd449648cd795e721ff8997c9f53ea74d21d59b015261f70e2b1eaee9e1"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/watchlist-alerts.repository.ts",
+      "sha256": "9ff5bb22d179a55d3e91a5c45f961fde9b70ff0d6cfecad3995f5c6b4ebd4101"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/watchlist-alerts.service.test.ts",
+      "sha256": "92eeff3851e83002c47cb1281f1cf275bfc9a10a91327a594563bafdc5978fba"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/watchlist-alerts.service.ts",
+      "sha256": "e7f3477847d78752f9188d507c32c11f976ddde6b9e4c32687e74ca8176ce22c"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/watchlist-alerts.types.ts",
+      "sha256": "ab903ddd6c6f4280de1a0652a46536608e8fd0a9605d3132d97fc3d5ae04bef1"
+    },
+    {
+      "path": "apps/server/src/modules/watchlist-alerts/watchlist-alerts.validation.ts",
+      "sha256": "81d6271b3798b34a0396cb86d6fbe586165c9115986242ea0fead303f3276e43"
+    },
+    {
+      "path": "apps/web/src/App.test.tsx",
+      "sha256": "c188d55b47e0a2566678bf9e4adc4f438c97693989ceb29e59475dc787c2d89d"
+    },
+    {
+      "path": "apps/web/src/App.tsx",
+      "sha256": "23be0265ccdd951355648fb1b47f06636935e2410bac888a1edfe812474f66e3"
+    },
+    {
+      "path": "apps/web/src/app/route-contract.test.ts",
+      "sha256": "11cc2fffec88b83bb79c22696cd83293fcd6f09978857a766016e979dbc3d454"
+    },
+    {
+      "path": "apps/web/src/app/route-contract.ts",
+      "sha256": "a8e71baa49c7f793cedc0ed2e8c6eba9f97d42bff562ed6a92b246d1a6b4cf25"
+    },
+    {
+      "path": "apps/web/src/components/Layout.tsx",
+      "sha256": "39a3cd86d11f004bb985ae7fa3c95800284fc70fe6984da8ec7748312c5b04b3"
+    },
+    {
+      "path": "apps/web/src/features/alerts/alerts-page.test.tsx",
+      "sha256": "c6709f479ffc32a91cd951e3ca7bbf11b9c0b1df3fa45b9e79e998bec4e373de"
+    },
+    {
+      "path": "apps/web/src/features/alerts/alerts-page.tsx",
+      "sha256": "7403423424d5e2765aa7e6169171613632e5353da40c4467824c234cdbc02076"
+    },
+    {
+      "path": "apps/web/src/features/alerts/use-watchlist-alerts.ts",
+      "sha256": "6a04ad6044e3a3a1c1aeb8b026738e4bbd0618098c72b1da30efad108168b2b0"
+    },
+    {
+      "path": "apps/web/src/features/auth/login-page.test.tsx",
+      "sha256": "103a5c9cacc9eec391ef32a748e1e0e52f806dd6340868bc903052a134266130"
+    },
+    {
+      "path": "apps/web/src/features/auth/login-page.tsx",
+      "sha256": "6a1033df7f3b9e9aaad2174353e5c99c1f40552c62e6c0559f9263c6b195de79"
+    },
+    {
+      "path": "apps/web/src/features/instrument/instrument-intelligence-page.test.tsx",
+      "sha256": "e15b762bb5523d21c735611b75f1e1a4d4f4f2bdbca16eba07d8c2f2835a2b1b"
+    },
+    {
+      "path": "apps/web/src/features/instrument/instrument-intelligence-page.tsx",
+      "sha256": "43253b5d47d03a83c6a124f149a1f0a7407ea0f51750d04e9402481104149482"
+    },
+    {
+      "path": "apps/web/src/features/market-overview/market-overview-page.test.tsx",
+      "sha256": "4ee648e397953827a9701e0562588fe1d092e8920f7027c62cace48212ed46f3"
+    },
+    {
+      "path": "apps/web/src/features/market-overview/market-overview-page.tsx",
+      "sha256": "4d67137b901217c7eb921c69a998b49f7e11f2ea98e413c42eb57c025f336c3d"
+    },
+    {
+      "path": "apps/web/src/pages/Home.tsx",
+      "sha256": "b96bc88b63d23b892f098156615c86561699b50b695ba42677a77ec919e6cfb1"
+    },
+    {
+      "path": "apps/web/src/pages/TerminalModulePlaceholder.tsx",
+      "sha256": "8862ae7e3bfd670d0a76fa86ea760cf2fbcb0bbfc3452c619424dcfcfae4cf87"
+    },
+    {
+      "path": "apps/web/src/pages/pages.test.tsx",
+      "sha256": "9ad44724cd0b2063c71694f8039aaa6ff6ef11a2bfa343a82942d358e16b4194"
+    },
+    {
+      "path": "docs/development/docker-local.md",
+      "sha256": "982b26072fa93ae96c2c74396a3860d394e3455effdd78fb3b3e55187b6ddbf7"
+    },
+    {
+      "path": "docs/runbooks/local-authentication.md",
+      "sha256": "f5bd4f73f27912b57b4d90bb5b1d36c9860f288630bbf2ee66a085eacba7f72d"
+    },
+    {
+      "path": "docs/runbooks/market-data-source.md",
+      "sha256": "419309cec27b7e5a0674e8fb8cfb5c73e314acf32d47959ac29e06b1630667d7"
+    },
+    {
+      "path": "docs/runbooks/watchlist-alerts.md",
+      "sha256": "10290ddfed09bc70326254d29509c67503370e80efd215587bb4aa43a2c57352"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-12-v1.0-release-plan.md",
+      "sha256": "fe83d4ecd354e56e84d5c1bb4f2e1df167639de6358a7151c490da848955667b"
+    },
+    {
+      "path": "docs/ui/terminal-information-architecture.md",
+      "sha256": "66ba9be801826a622e7c34005c3c5a95109909ea67d5c43bcfc67598aff88803"
+    },
+    {
+      "path": "infra/docker/docker-compose.v1.yml",
+      "sha256": "99694deee87753719d8c6a67762d606c0cdab04942f7b2d7e71bf57eefff1230"
+    },
+    {
+      "path": "package.json",
+      "sha256": "3e3775d3415619b16d46e8db09dfc7b26c04d3ed1f95ba63bb3e3ec3eb24a16b"
+    },
+    {
+      "path": "packages/contracts/schemas/alerts/update-watchlist-alert-rule.json",
+      "sha256": "4dc721514413084237273a0269e10a20eb1050d30651d2801220fae2b0bcc3c9"
+    },
+    {
+      "path": "packages/shared-types/src/index.ts",
+      "sha256": "b19f60868d9138b5f389687c35cf6a23622fb32392e947d70129830331b83819"
+    },
+    {
+      "path": "python/packages/ashare-contracts/src/ashare_contracts/__init__.py",
+      "sha256": "14336796948a6a6674b1e3a0aeaca679cde632c257fd1b2bac66afc75bbad291"
+    },
+    {
+      "path": "python/packages/ashare-contracts/src/ashare_contracts/alerts_update_watchlist_alert_rule.py",
+      "sha256": "7f17371c3d8a69ebd555f81e230659263944edf90d1a1276f7e7e83be668cd57"
+    },
+    {
+      "path": "scripts/ci/v1-compose.test.mjs",
+      "sha256": "33ebbb0a39868cad9facd032d2c778c8663aefef9b8dd8fde05c3b792a06f956"
+    },
+    {
+      "path": "services/data-worker/src/data_worker/providers/akshare.py",
+      "sha256": "482d901ae56003c4b2d680bd8a873e2c6f03c4297781fabc1f1ec84b2783734f"
+    },
+    {
+      "path": "services/data-worker/tests/test_akshare_provider.py",
+      "sha256": "e62bdc7ed0f47e301b151cf1f81173bd9c0fdfa0a2d3417565eb63ad99fbc26b"
+    }
+  ]
+}

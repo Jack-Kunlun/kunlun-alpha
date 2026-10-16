@@ -35,6 +35,11 @@ export class WatchlistAlertsController {
     return this.service.createRule(body);
   }
 
+  @Post("rules/:ruleId")
+  updateRule(@Param("ruleId") ruleId: string, @Body() body: unknown) {
+    return this.service.updateRule(ruleId, body);
+  }
+
   @Post("rules/:ruleId/toggle")
   toggleRule(@Param("ruleId") ruleId: string, @Body() body: unknown) {
     return this.service.toggleRule(ruleId, body);

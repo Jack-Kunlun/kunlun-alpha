@@ -15,19 +15,19 @@ export function TerminalModulePlaceholder({ routeId }: { routeId: TerminalRouteI
         <div className="h-1 bg-gradient-to-r from-amber-400 via-sky-500 to-emerald-500" />
         <CardHeader className="space-y-5 sm:p-8">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">规划能力</Badge>
-            <Badge variant="secondary">路由已就绪</Badge>
+            <Badge variant="outline">后续版本</Badge>
           </div>
           <div className="flex items-start gap-4">
             <div className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-2xl bg-muted">
               <Construction aria-hidden="true" className="size-5 text-muted-foreground" />
             </div>
             <div>
-              <span className="sr-only">ROUTE_PLACEHOLDER:{route.id}</span>
+              <span aria-hidden="true" className="sr-only" data-route-placeholder={route.id}>
+                ROUTE_PLACEHOLDER:{route.id}
+              </span>
               <CardTitle className="text-2xl sm:text-3xl">{route.label}</CardTitle>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-                {route.description}
-                。当前页面只保留稳定深链接；真实业务数据接入前不展示模拟行情或结论。
+                此功能不在 1.0 范围。当前保留原有访问路径，后续版本再开放。
               </p>
             </div>
           </div>
@@ -36,7 +36,7 @@ export function TerminalModulePlaceholder({ routeId }: { routeId: TerminalRouteI
           <Button asChild variant="ghost">
             <Link to={hrefForRoute("/")}>
               <ArrowLeft aria-hidden="true" />
-              返回决策总览
+              返回首页
             </Link>
           </Button>
         </CardContent>

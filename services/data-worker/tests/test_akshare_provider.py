@@ -141,7 +141,7 @@ def test_public_endpoint_routing_uses_prefixed_symbols(
 
     assert capture.api_name == method
     assert capture.source == source
-    assert capture.source_version == f"akshare:1.18.94:{method}:v2"
+    assert capture.source_version == f"akshare:1.18.94:{method}:v3"
     assert capture.content_type == "application/json; charset=utf-8"
     assert len(client.calls) == 1
     called_method, kwargs = client.calls[0]
@@ -179,6 +179,46 @@ def test_dataframe_payload_is_captured_before_exact_normalization() -> None:
     assert provider.capabilities() == frozenset(
         {Capability.FETCH_DAILY_BARS, Capability.FETCH_MINUTE_BARS}
     )
+
+
+@pytest.mark.parametrize(
+    ("code", "expected_volume"),
+    [
+        ("000001.SZ", 1234500),
+        ("000002.SZ", 1234500),
+        ("002594.SZ", 12345),
+        ("300750.SZ", 12345),
+        ("600000.SH", 12345),
+        ("688981.SH", 12345),
+        ("000001.SH", 12345),
+        ("399001.SZ", 12345),
+    ],
+)
+def test_tencent_v3_normalizes_shenzhen_000_stock_hands_only(
+    code: str, expected_volume: int
+) -> None:
+    row = _daily_row(**{"股票代码": code[:6]})
+    provider = AKShareMarketDataProvider(
+        AKShareConfig(sdk_version="1.18.94", max_attempts=1),
+        client=FakeAKShareClient({"stock_zh_a_hist_tx": FakeDataFrame([row])}),
+    )
+    capture = provider.fetch_raw_bars(code, "DAILY", "2026-08-26", "2026-08-26")
+
+    assert json.loads(capture.body)[0]["成交量"] == "12345"
+    assert provider.parse_bars(capture)[0].volume == expected_volume
+    assert capture.source_version == "akshare:1.18.94:stock_zh_a_hist_tx:v3"
+
+
+def test_tencent_v2_capture_preserves_historical_replay_volume() -> None:
+    capture = _profile_capture(
+        source="akshare-tencent",
+        api_name="stock_zh_a_hist_tx",
+        interval="DAILY",
+        source_version="akshare:1.18.94:stock_zh_a_hist_tx:v2",
+        unified_code="000001.SZ",
+    )
+
+    assert AKShareMarketDataProvider().parse_bars(capture)[0].volume == 12345
 
 
 def test_serialized_capture_body_is_the_only_replay_input() -> None:

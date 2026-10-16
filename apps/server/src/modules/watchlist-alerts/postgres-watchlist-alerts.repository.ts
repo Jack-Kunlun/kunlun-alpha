@@ -1,5 +1,8 @@
 import { Pool } from "pg";
-import type { WatchlistAlertsRepository } from "./watchlist-alerts.repository";
+import type {
+  AppendWatchlistAlertRuleResult,
+  WatchlistAlertsRepository,
+} from "./watchlist-alerts.repository";
 import type {
   AppendHistoryResult,
   InAppNotificationList,
@@ -54,26 +57,99 @@ export class PostgresWatchlistAlertsRepository implements WatchlistAlertsReposit
     return result.rows[0]?.payload ?? null;
   }
 
-  async appendRule(revision: StoredWatchlistAlertRule): Promise<void> {
-    await this.pool.query(
-      `INSERT INTO watchlist_alert_rule_revisions (
-         revision_id, rule_id, owner_ref, command_request_id, command_hash,
-         revision, enabled, available_at, payload, created_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
-       ON CONFLICT (owner_ref, command_request_id) DO NOTHING`,
-      [
-        revision.rule.revisionId,
-        revision.rule.ruleId,
+  async appendRule(
+    revision: StoredWatchlistAlertRule,
+    expectedRevision: number,
+  ): Promise<AppendWatchlistAlertRuleResult> {
+    const client = await this.pool.connect();
+    let transactionStarted = false;
+    try {
+      await client.query("BEGIN");
+      transactionStarted = true;
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))", [
         revision.ownerRef,
-        revision.commandRequestId,
-        revision.commandHash,
-        revision.rule.revision,
-        revision.rule.enabled,
-        revision.rule.availableAt,
-        JSON.stringify(revision),
-        revision.rule.createdAt,
-      ],
-    );
+        revision.rule.ruleId,
+      ]);
+
+      const existingCommand = await client.query<{ command_hash: string }>(
+        `SELECT command_hash
+         FROM watchlist_alert_rule_revisions
+         WHERE owner_ref = $1 AND command_request_id = $2
+         LIMIT 1`,
+        [revision.ownerRef, revision.commandRequestId],
+      );
+      const existingHash = existingCommand.rows[0]?.command_hash;
+      if (existingHash) {
+        await client.query("COMMIT");
+        transactionStarted = false;
+        return existingHash === revision.commandHash ? "DUPLICATE" : "COMMAND_CONFLICT";
+      }
+
+      const latest = await client.query<{ revision: number | string; revision_id: string }>(
+        `SELECT revision, revision_id
+         FROM watchlist_alert_rule_revisions
+         WHERE owner_ref = $1 AND rule_id = $2
+         ORDER BY revision DESC
+         LIMIT 1
+         FOR UPDATE`,
+        [revision.ownerRef, revision.rule.ruleId],
+      );
+      const actualRevision = Number(latest.rows[0]?.revision ?? 0);
+      const actualRevisionId = latest.rows[0]?.revision_id ?? null;
+      if (
+        actualRevision !== expectedRevision ||
+        revision.rule.revision !== expectedRevision + 1 ||
+        revision.rule.previousRevisionId !== actualRevisionId
+      ) {
+        await client.query("COMMIT");
+        transactionStarted = false;
+        return "STALE";
+      }
+
+      const inserted = await client.query(
+        `INSERT INTO watchlist_alert_rule_revisions (
+           revision_id, rule_id, owner_ref, command_request_id, command_hash,
+           revision, enabled, available_at, payload, created_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
+         ON CONFLICT (owner_ref, command_request_id) DO NOTHING
+         RETURNING command_hash`,
+        [
+          revision.rule.revisionId,
+          revision.rule.ruleId,
+          revision.ownerRef,
+          revision.commandRequestId,
+          revision.commandHash,
+          revision.rule.revision,
+          revision.rule.enabled,
+          revision.rule.availableAt,
+          JSON.stringify(revision),
+          revision.rule.createdAt,
+        ],
+      );
+      if (inserted.rowCount === 0) {
+        const racedCommand = await client.query<{ command_hash: string }>(
+          `SELECT command_hash
+           FROM watchlist_alert_rule_revisions
+           WHERE owner_ref = $1 AND command_request_id = $2
+           LIMIT 1`,
+          [revision.ownerRef, revision.commandRequestId],
+        );
+        await client.query("COMMIT");
+        transactionStarted = false;
+        return racedCommand.rows[0]?.command_hash === revision.commandHash
+          ? "DUPLICATE"
+          : "COMMAND_CONFLICT";
+      }
+
+      await client.query("COMMIT");
+      transactionStarted = false;
+      return "APPENDED";
+    } catch (error) {
+      if (transactionStarted) await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async listHistory(ownerRef: string, limit: number): Promise<WatchlistAlertHistory[]> {

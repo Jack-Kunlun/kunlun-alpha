@@ -145,6 +145,199 @@ describe("WatchlistAlertsService", () => {
     expect(after.notifications.every((item) => item.readAt === NOW)).toBe(true);
     expect((await service.workspace()).history).toHaveLength(2);
   });
+
+  it("appends a name and threshold edit without rewriting legacy rule fields or history", async () => {
+    const repository = new InMemoryWatchlistAlertsRepository();
+    const dispatcher = { deliver: vi.fn().mockResolvedValue(undefined) };
+    const service = new WatchlistAlertsService(repository, dispatcher, "local-research-user");
+    const ruleId = await createRule(service, {
+      name: "动量提醒",
+      enabled: false,
+      condition: {
+        field: "FEATURE_VALUE",
+        operator: "GTE",
+        threshold: "0.50",
+        featureName: "momentum_20d",
+      },
+      quietPeriod: { timezone: "Asia/Shanghai", startMinute: 60, endMinute: 120 },
+      throttleSeconds: 60,
+    });
+    await service.evaluate({
+      ...evaluation(ruleId, "legacy-rule-event", "2026-08-26T01:59:00.000Z"),
+      field: "FEATURE_VALUE",
+      featureName: "momentum_20d",
+      observedValue: "0.75",
+    });
+    const before = await service.workspace();
+    const original = before.rules[0];
+    if (!original) throw new Error("expected initial rule revision");
+
+    const edited = await service.updateRule(ruleId, {
+      clientRequestId: "edit-legacy-rule",
+      expectedRevision: 1,
+      name: "动量阈值提醒",
+      threshold: "0.80",
+    });
+    const latest = edited.rules[0];
+    if (!latest) throw new Error("expected edited rule revision");
+
+    expect(latest).toMatchObject({
+      ruleId,
+      revision: 2,
+      name: "动量阈值提醒",
+      enabled: false,
+      instrumentIds: ["600519.SH"],
+      condition: {
+        field: "FEATURE_VALUE",
+        operator: "GTE",
+        threshold: "0.80",
+        featureName: "momentum_20d",
+      },
+      quietPeriod: { timezone: "Asia/Shanghai", startMinute: 60, endMinute: 120 },
+      throttleSeconds: 60,
+      notificationChannel: "IN_APP",
+      createdAt: original.createdAt,
+      previousRevisionId: original.revisionId,
+    });
+    expect(edited.history).toHaveLength(1);
+    expect(edited.history[0]).toMatchObject({ revisionId: original.revisionId });
+
+    const restarted = new WatchlistAlertsService(repository, dispatcher, "local-research-user");
+    expect(await restarted.workspace()).toMatchObject({
+      rules: [latest],
+      history: [{ revisionId: original.revisionId, eventId: "legacy-rule-event" }],
+    });
+  });
+
+  it("makes edit retries idempotent and rejects reused command IDs with different content or path", async () => {
+    const repository = new InMemoryWatchlistAlertsRepository();
+    const dispatcher = { deliver: vi.fn().mockResolvedValue(undefined) };
+    const service = new WatchlistAlertsService(repository, dispatcher, "local-research-user");
+    const firstRuleId = await createRule(service);
+    await service.createRule({
+      ...createRuleBody(),
+      clientRequestId: "create-second-rule",
+      name: "第二条提醒",
+    });
+    const secondRuleId = (await service.workspace()).rules.find(
+      (item) => item.name === "第二条提醒",
+    )?.ruleId;
+    if (!secondRuleId) throw new Error("expected second rule");
+
+    const command = {
+      clientRequestId: "single-edit-command",
+      expectedRevision: 1,
+      name: "修订后的提醒",
+      threshold: "1600.00",
+    };
+    const first = await service.updateRule(firstRuleId, command);
+    const retry = await service.updateRule(firstRuleId, command);
+    expect(retry.rules.find((item) => item.ruleId === firstRuleId)?.revision).toBe(2);
+    expect(first.rules.find((item) => item.ruleId === firstRuleId)?.revision).toBe(2);
+    await service.toggleRule(firstRuleId, {
+      clientRequestId: "later-toggle-after-edit",
+      enabled: false,
+    });
+    const lateRetry = await service.updateRule(firstRuleId, command);
+    expect(lateRetry.rules.find((item) => item.ruleId === firstRuleId)?.revision).toBe(3);
+
+    await expect(
+      service.updateRule(firstRuleId, { ...command, threshold: "1700.00" }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.updateRule(secondRuleId, { ...command, expectedRevision: 1 }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(
+      (await service.workspace()).rules.find((item) => item.ruleId === firstRuleId)?.revision,
+    ).toBe(3);
+  });
+
+  it("allows only one concurrent edit or toggle from the same expected revision", async () => {
+    const service = createService({ deliver: vi.fn().mockResolvedValue(undefined) });
+    const ruleId = await createRule(service);
+
+    const results = await Promise.allSettled([
+      service.updateRule(ruleId, {
+        clientRequestId: "racing-edit",
+        expectedRevision: 1,
+        name: "并发修改",
+        threshold: "1550.00",
+      }),
+      service.toggleRule(ruleId, { clientRequestId: "racing-toggle", enabled: false }),
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const rejected = results.find((result) => result.status === "rejected");
+    expect(rejected?.status).toBe("rejected");
+    if (rejected?.status === "rejected") {
+      expect(rejected.reason).toBeInstanceOf(ConflictException);
+    }
+    expect((await service.workspace()).rules[0]?.revision).toBe(2);
+  });
+
+  it("deduplicates simultaneous identical rule creation commands", async () => {
+    const service = createService({ deliver: vi.fn().mockResolvedValue(undefined) });
+
+    const workspaces = await Promise.all([
+      service.createRule(createRuleBody()),
+      service.createRule(createRuleBody()),
+    ]);
+
+    expect(workspaces.map((workspace) => workspace.rules[0]?.revision)).toEqual([1, 1]);
+    expect((await service.workspace()).rules).toHaveLength(1);
+  });
+
+  it("deduplicates concurrent identical edits and validates owner, revision, and decimal bounds", async () => {
+    const repository = new InMemoryWatchlistAlertsRepository();
+    const dispatcher = { deliver: vi.fn().mockResolvedValue(undefined) };
+    const service = new WatchlistAlertsService(repository, dispatcher, "local-research-user");
+    const ruleId = await createRule(service);
+    const command = {
+      clientRequestId: "concurrent-edit-retry",
+      expectedRevision: 1,
+      name: "并发重试提醒",
+      threshold: "1550.25",
+    };
+
+    const retries = await Promise.all([
+      service.updateRule(ruleId, command),
+      service.updateRule(ruleId, command),
+    ]);
+    expect(retries.map((result) => result.rules[0]?.revision)).toEqual([2, 2]);
+
+    await expect(
+      service.updateRule(ruleId, { ...command, clientRequestId: "stale-edit" }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.updateRule("f".repeat(64), {
+        ...command,
+        clientRequestId: "unknown-rule-edit",
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    const otherOwner = new WatchlistAlertsService(repository, dispatcher, "another-owner");
+    await expect(otherOwner.updateRule(ruleId, command)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.updateRule(ruleId, {
+        ...command,
+        clientRequestId: "unsafe-revision",
+        expectedRevision: Number.MAX_SAFE_INTEGER + 1,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.updateRule(ruleId, {
+        ...command,
+        clientRequestId: "invalid-decimal",
+        threshold: "1.234567891",
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.updateRule(ruleId, {
+        ...command,
+        clientRequestId: "unknown-body-field",
+        unexpected: true,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
 });
 
 function createService(dispatcher: WatchlistAlertNotificationDispatcher) {

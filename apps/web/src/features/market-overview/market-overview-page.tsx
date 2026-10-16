@@ -4,21 +4,6 @@ import { useTerminalFilters } from "@/app/filter-context";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
 import { useMarketOverview } from "./use-market-overview";
 
-const FRESHNESS_LABEL: Readonly<Record<MarketOverviewSnapshot["freshness"]["status"], string>> = {
-  FRESH: "数据新鲜",
-  DELAYED: "数据延迟",
-  STALE: "数据过期",
-  HISTORICAL: "历史点时",
-  NO_DATA: "无数据",
-};
-
-const RISK_LABEL: Readonly<Record<MarketOverviewSnapshot["risk"]["state"], string>> = {
-  CALM: "平稳",
-  WATCH: "观察",
-  STRESSED: "承压",
-  UNKNOWN: "未知",
-};
-
 function shanghaiTime(value: string | null): string {
   if (value === null) return "暂无";
   return new Intl.DateTimeFormat("zh-CN", {
@@ -69,23 +54,22 @@ function MissingMetric({ label }: { label: string }) {
 }
 
 function OverviewContent({ snapshot }: { snapshot: MarketOverviewSnapshot }) {
-  const freshnessVariant =
-    snapshot.freshness.status === "STALE" || snapshot.freshness.status === "NO_DATA"
-      ? "destructive"
-      : "outline";
+  const sampleLabel =
+    snapshot.dataCutoffTime === null
+      ? "无数据"
+      : snapshot.mode === "HISTORICAL"
+        ? "历史点时"
+        : "历史日线";
+  const sampleVariant = snapshot.dataCutoffTime === null ? "destructive" : "outline";
   const breadth = snapshot.breadth;
   const turnover = snapshot.turnover;
-  const emotion = snapshot.emotion;
   return (
     <div className="space-y-6">
       <section className="grid gap-4 rounded-2xl border bg-card/70 p-5 md:grid-cols-[1fr_auto]">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={freshnessVariant}>{FRESHNESS_LABEL[snapshot.freshness.status]}</Badge>
-            <Badge variant="outline">
-              {snapshot.mode === "CURRENT" ? "当前模式 · 30 秒刷新" : "历史模式 · 固定点时"}
-            </Badge>
-            <Badge variant="outline">完整度 {snapshot.completeness}</Badge>
+            <Badge variant={sampleVariant}>{sampleLabel}</Badge>
+            <Badge variant="outline">仅代表当前入库样本，不代表全市场</Badge>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
             请求点时 {shanghaiTime(snapshot.requestedAsOf)} · 数据截止{" "}
@@ -95,6 +79,7 @@ function OverviewContent({ snapshot }: { snapshot: MarketOverviewSnapshot }) {
         <div className="text-left text-xs text-muted-foreground md:text-right">
           <p>{snapshot.sourceVersions.length} 个源版本</p>
           <p>{snapshot.evidenceIds.length} 条证据标识</p>
+          <p className="mt-2 max-w-xl break-all">{snapshot.sourceVersions.join(" · ")}</p>
         </div>
       </section>
 
@@ -123,17 +108,14 @@ function OverviewContent({ snapshot }: { snapshot: MarketOverviewSnapshot }) {
         </div>
       </section>
 
-      <section
-        aria-label="市场宽度、成交额、情绪与风险"
-        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-      >
+      <section aria-label="样本涨跌分布与成交额" className="grid gap-4 md:grid-cols-2">
         {breadth === null ? (
-          <MissingMetric label="市场宽度" />
+          <MissingMetric label="样本涨跌分布" />
         ) : (
           <MetricCard
-            eyebrow="市场宽度"
+            eyebrow="样本涨跌分布"
             value={`${breadth.advancingCount} ↑ / ${breadth.decliningCount} ↓`}
-            detail={`上涨占比 ${(breadth.advancingRatioBps / 100).toFixed(1)}% · 样本 ${breadth.sampleSize}`}
+            detail={`上涨占比 ${(breadth.advancingRatioBps / 100).toFixed(1)}% · 可比较样本 ${breadth.sampleSize}`}
           />
         )}
         {turnover === null ? (
@@ -142,27 +124,13 @@ function OverviewContent({ snapshot }: { snapshot: MarketOverviewSnapshot }) {
           <MetricCard
             eyebrow="样本成交额"
             value={`¥${exactDecimal(turnover.amountCny)}`}
-            detail={`${turnover.sampleSize} 个样本 · 精确十进制汇总`}
+            detail={`${turnover.sampleSize} 个可比较样本 · 精确十进制汇总`}
           />
         )}
-        {emotion === null ? (
-          <MissingMetric label="市场情绪" />
-        ) : (
-          <MetricCard
-            eyebrow="市场情绪"
-            value={(emotion.scoreBps / 100).toFixed(1)}
-            detail={`置信 ${(emotion.confidenceBps / 100).toFixed(0)}% · ${emotion.algorithmVersion}`}
-          />
-        )}
-        <MetricCard
-          eyebrow="研究型风险温度"
-          value={RISK_LABEL[snapshot.risk.state]}
-          detail={snapshot.risk.explanation}
-        />
       </section>
 
       <p className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
-        风险温度仅用于研究上下文，不是订单风控结论。当前系统没有真实账户或真实下单路径。
+        日线截至上一可用交易日，不是实时行情。刷新页面只重新查询已入库数据。当前系统没有真实账户或真实下单路径。
       </p>
     </div>
   );
@@ -205,9 +173,9 @@ export function MarketOverviewPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           Market overview · Point-in-time
         </p>
-        <h2 className="text-2xl font-semibold tracking-tight">一屏判断市场所处位置</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">已入库日线样本概览</h2>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          汇总指数、A 股代码样本宽度、成交额、版本化情绪与研究型风险温度；所有结果均受点时约束。
+          汇总已入库股票样本的涨跌分布与成交额，显示实际日期和来源；样本数量不代表全市场覆盖。
         </p>
       </header>
       <MarketOverviewView result={result} />

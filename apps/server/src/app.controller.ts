@@ -2,6 +2,7 @@ import { Controller, Get } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { HealthStatus } from "@kunlun/shared-types";
 import { PublicRoute } from "./modules/auth/public-route.decorator";
+import { APP_VERSION } from "./app-version";
 
 @ApiTags("health")
 @Controller()
@@ -20,7 +21,7 @@ export class AppController {
     return {
       status: "ok",
       timestamp: new Date().toISOString(),
-      version: "0.0.0",
+      version: APP_VERSION,
     };
   }
 }

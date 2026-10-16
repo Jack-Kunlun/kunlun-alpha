@@ -25,7 +25,12 @@ import type {
   WatchlistAlertOperator,
   WatchlistAlertRule,
 } from "./watchlist-alerts.types";
-import { parseCreateRule, parseEvaluation, parseToggleRule } from "./watchlist-alerts.validation";
+import {
+  parseCreateRule,
+  parseEvaluation,
+  parseToggleRule,
+  parseUpdateRule,
+} from "./watchlist-alerts.validation";
 
 const SUPPORTED_FIELDS = [
   "LAST_PRICE",
@@ -79,12 +84,15 @@ export class WatchlistAlertsService {
     const ruleId = hash(`watchlist-rule\u0000${ownerRef}\u0000${input.clientRequestId}`);
     const latest = await this.repository.findLatestRule(ownerRef, ruleId);
     const rule = this.buildRule(input, ruleId, latest, now);
-    await this.repository.appendRule({
-      ownerRef,
-      commandRequestId: input.clientRequestId,
-      commandHash,
-      rule,
-    });
+    await this.appendRule(
+      {
+        ownerRef,
+        commandRequestId: input.clientRequestId,
+        commandHash,
+        rule,
+      },
+      latest?.rule.revision ?? 0,
+    );
     await this.verifyCommittedCommand(ownerRef, input.clientRequestId, commandHash);
     return this.workspace();
   }
@@ -114,19 +122,68 @@ export class WatchlistAlertsService {
         availableAt: now,
       }),
     );
-    await this.repository.appendRule({
-      ownerRef,
-      commandRequestId: input.clientRequestId,
-      commandHash,
-      rule: {
-        ...latest.rule,
-        revisionId,
-        revision,
-        enabled: input.enabled,
-        availableAt: now,
-        previousRevisionId: latest.rule.revisionId,
+    await this.appendRule(
+      {
+        ownerRef,
+        commandRequestId: input.clientRequestId,
+        commandHash,
+        rule: {
+          ...latest.rule,
+          revisionId,
+          revision,
+          enabled: input.enabled,
+          availableAt: now,
+          previousRevisionId: latest.rule.revisionId,
+        },
       },
-    });
+      latest.rule.revision,
+    );
+    await this.verifyCommittedCommand(ownerRef, input.clientRequestId, commandHash);
+    return this.workspace();
+  }
+
+  async updateRule(ruleId: string, raw: unknown): Promise<WatchlistAlertsWorkspace> {
+    const ownerRef = this.ownerRef();
+    const input = parseUpdateRule(raw);
+    const commandHash = hash(stableStringify({ ruleId, ...input }));
+    const existing = await this.repository.findRuleByCommand(ownerRef, input.clientRequestId);
+    if (existing) {
+      if (existing.commandHash !== commandHash) {
+        throw new ConflictException("clientRequestId was already used with different rule content");
+      }
+      return this.workspace();
+    }
+
+    const latest = await this.requireRule(ownerRef, ruleId);
+    const now = new Date().toISOString();
+    const revision = latest.rule.revision + 1;
+    const nextRule: WatchlistAlertRule = {
+      ...latest.rule,
+      revisionId: hash(
+        stableStringify({
+          ruleId,
+          revision,
+          name: input.name,
+          threshold: input.threshold,
+          previousRevisionId: latest.rule.revisionId,
+          availableAt: now,
+        }),
+      ),
+      revision,
+      name: input.name,
+      condition: { ...latest.rule.condition, threshold: input.threshold },
+      availableAt: now,
+      previousRevisionId: latest.rule.revisionId,
+    };
+    await this.appendRule(
+      {
+        ownerRef,
+        commandRequestId: input.clientRequestId,
+        commandHash,
+        rule: nextRule,
+      },
+      input.expectedRevision,
+    );
     await this.verifyCommittedCommand(ownerRef, input.clientRequestId, commandHash);
     return this.workspace();
   }
@@ -357,6 +414,19 @@ export class WatchlistAlertsService {
     if (!committed) throw new Error("watchlist alert rule command was not persisted");
     if (committed.commandHash !== commandHash) {
       throw new ConflictException("clientRequestId raced with different rule content");
+    }
+  }
+
+  private async appendRule(
+    revision: StoredWatchlistAlertRule,
+    expectedRevision: number,
+  ): Promise<void> {
+    const result = await this.repository.appendRule(revision, expectedRevision);
+    if (result === "STALE") {
+      throw new ConflictException("rule revision changed before the new revision was committed");
+    }
+    if (result === "COMMAND_CONFLICT") {
+      throw new ConflictException("clientRequestId was already used with different rule content");
     }
   }
 }

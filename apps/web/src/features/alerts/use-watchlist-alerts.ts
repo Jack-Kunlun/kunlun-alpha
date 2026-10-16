@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { WatchlistAlertEvaluationRun, WatchlistAlertsWorkspace } from "@kunlun/shared-types";
+import type {
+  UpdateWatchlistAlertRuleRequest,
+  WatchlistAlertEvaluationRun,
+  WatchlistAlertsWorkspace,
+} from "@kunlun/shared-types";
 import { apiClient } from "../../lib/api-client";
 
 export type WatchlistAlertRule = WatchlistAlertsWorkspace["rules"][number];
@@ -114,6 +118,23 @@ export function useWatchlistAlerts() {
     [accept],
   );
 
+  const updateRule = useCallback(
+    async (ruleId: string, request: UpdateWatchlistAlertRuleRequest) => {
+      setSubmitting(true);
+      try {
+        accept(
+          await apiClient.post<UpdateWatchlistAlertRuleRequest, WatchlistAlertsWorkspace>(
+            `/v1/watchlist-alerts/rules/${encodeURIComponent(ruleId)}`,
+            request,
+          ),
+        );
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [accept],
+  );
+
   const preview = useCallback(async (request: PreviewWatchlistAlertRequest) => {
     return apiClient.post<PreviewWatchlistAlertRequest, AlertPreview>(
       "/v1/watchlist-alerts/preview",
@@ -143,6 +164,7 @@ export function useWatchlistAlerts() {
     refresh,
     createRule,
     toggleRule,
+    updateRule,
     preview,
     evaluateLatest,
   };

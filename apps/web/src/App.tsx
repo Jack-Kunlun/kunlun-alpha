@@ -18,6 +18,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Layout } from "./components/Layout";
 import { NotFound } from "./pages/NotFound";
 import { Forbidden } from "./pages/Forbidden";
+import { TerminalModulePlaceholder } from "./pages/TerminalModulePlaceholder";
 
 function ProtectedRoute({ routeId, children }: { routeId: TerminalRouteId; children: ReactNode }) {
   const roles = useTerminalRoles();
@@ -26,6 +27,17 @@ function ProtectedRoute({ routeId, children }: { routeId: TerminalRouteId; child
 
 function protectedPage(routeId: TerminalRouteId, children: ReactNode) {
   return <ProtectedRoute routeId={routeId}>{children}</ProtectedRoute>;
+}
+
+function routePage(routeId: TerminalRouteId) {
+  const route = getTerminalRoute(routeId);
+  const page =
+    route.status === "ready" ? (
+      terminalRouteElements[route.id]
+    ) : (
+      <TerminalModulePlaceholder routeId={route.id} />
+    );
+  return protectedPage(route.id, page);
 }
 
 export function App({ roles = ANONYMOUS_TERMINAL_ROLES }: { roles?: readonly TerminalRole[] }) {
@@ -42,17 +54,9 @@ export function App({ roles = ANONYMOUS_TERMINAL_ROLES }: { roles?: readonly Ter
           >
             {terminalRoutes.map((route) =>
               route.path === "/" ? (
-                <Route
-                  key={route.id}
-                  index
-                  element={protectedPage(route.id, terminalRouteElements[route.id])}
-                />
+                <Route key={route.id} index element={routePage(route.id)} />
               ) : (
-                <Route
-                  key={route.id}
-                  path={route.path.slice(1)}
-                  element={protectedPage(route.id, terminalRouteElements[route.id])}
-                />
+                <Route key={route.id} path={route.path.slice(1)} element={routePage(route.id)} />
               ),
             )}
             <Route path="*" element={<NotFound />} />

@@ -32,7 +32,12 @@ describe("terminal route contract", () => {
 
   it("applies the role matrix without exposing operations or paper routes to viewers", () => {
     const viewerRoutes = visibleTerminalRoutes(["viewer"]);
-    expect(viewerRoutes.map((route) => route.id)).toContain("precious-metals");
+    expect(viewerRoutes.map((route) => route.id)).toEqual([
+      "home",
+      "market-overview",
+      "instruments",
+      "watchlists",
+    ]);
     expect(viewerRoutes.map((route) => route.id)).not.toContain("paper");
     expect(viewerRoutes.map((route) => route.id)).not.toContain("data-quality");
     expect(canAccessTerminalRoute(getTerminalRoute("paper"), ["paper_operator"])).toBe(true);
@@ -41,9 +46,21 @@ describe("terminal route contract", () => {
     );
   });
 
-  it("marks both instrument entry and deep-link routes ready", () => {
-    expect(getTerminalRoute("instruments").status).toBe("ready");
-    expect(getTerminalRoute("instrument-detail").status).toBe("ready");
+  it("limits the 1.0 navigation and ready routes to the daily research surface", () => {
+    expect(
+      terminalRoutes.filter((route) => route.status === "ready").map((route) => route.id),
+    ).toEqual(["home", "market-overview", "instruments", "instrument-detail", "watchlists"]);
+    expect(terminalRoutes.filter((route) => route.navigation).map((route) => route.id)).toEqual([
+      "home",
+      "market-overview",
+      "instruments",
+      "watchlists",
+    ]);
+    expect(
+      terminalRoutes
+        .filter((route) => route.status === "planned")
+        .every((route) => !route.navigation),
+    ).toBe(true);
   });
 
   it("keeps market-data settings instance-scoped and administrator-only", () => {
@@ -51,8 +68,8 @@ describe("terminal route contract", () => {
     expect(route.path).toBe("/settings/market-data");
     expect(route.group).toBe("research");
     expect(route.permission).toBe("operations:read");
-    expect(route.navigation).toBe(true);
-    expect(route.status).toBe("ready");
+    expect(route.navigation).toBe(false);
+    expect(route.status).toBe("planned");
     expect(canAccessTerminalRoute(route, ["platform_admin"])).toBe(true);
     expect(canAccessTerminalRoute(route, ["researcher"])).toBe(false);
   });

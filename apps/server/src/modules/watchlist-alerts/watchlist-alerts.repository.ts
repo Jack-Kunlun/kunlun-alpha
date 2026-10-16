@@ -13,7 +13,10 @@ export interface WatchlistAlertsRepository {
     ownerRef: string,
     commandRequestId: string,
   ): Promise<StoredWatchlistAlertRule | null>;
-  appendRule(revision: StoredWatchlistAlertRule): Promise<void>;
+  appendRule(
+    revision: StoredWatchlistAlertRule,
+    expectedRevision: number,
+  ): Promise<AppendWatchlistAlertRuleResult>;
   listHistory(ownerRef: string, limit: number): Promise<WatchlistAlertHistory[]>;
   appendHistory(
     ownerRef: string,
@@ -36,3 +39,6 @@ export interface WatchlistAlertsRepository {
   markNotificationRead(ownerRef: string, notificationId: string, readAt: string): Promise<boolean>;
   markAllNotificationsRead(ownerRef: string, readAt: string): Promise<number>;
 }
+
+export type AppendWatchlistAlertRuleResult =
+  "APPENDED" | "DUPLICATE" | "STALE" | "COMMAND_CONFLICT";

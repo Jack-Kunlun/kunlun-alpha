@@ -16,6 +16,8 @@
 ## 数据与恢复
 
 - 规则变更追加新版本，不覆盖旧版本。
+- 页面提供创建和编辑入口的自动评估字段仅为 `LAST_PRICE` 与 `CHANGE_BPS`。编辑只接受规则名称和十进制阈值，其他规则属性沿用当前版本。
+- 已保存的 `EMOTION_SCORE_BPS` 与 `FEATURE_VALUE` 规则保留原字段和值；页面标记为“本版本不自动评估”，不展示阈值预览，也不会由日线调度器评估。
 - 同一 `ruleId + revisionId + eventId` 只产生一条评估历史和一条通知。
 - 评估按 `availableTime` 执行免打扰和节流，展示时区固定为 `Asia/Shanghai`。
 - 通知失败保留为 `FAILED`，不会删除已触发历史。恢复投递前应先核对 `notificationId`，避免重复展示。
@@ -30,6 +32,25 @@
 - `EMOTION_SCORE_BPS` 与 `FEATURE_VALUE` 保留为受控规则/预览能力，但当前不会由日线调度器
   自动评估；运行摘要会把它们计入 `skippedUnsupported`，不会用零值替代。
 - 同一事件身份若带不同证券、时间或观测值重放，服务返回冲突，不会把不同事实静默当成重复。
+
+## 编辑规则与冲突恢复
+
+使用 `POST /api/v1/watchlist-alerts/rules/:ruleId` 追加名称或阈值修订。请求体只允许以下四个字段：
+
+```json
+{
+  "clientRequestId": "edit-rule-<stable-id>",
+  "expectedRevision": 3,
+  "name": "贵州茅台价格提醒",
+  "threshold": "1532.50"
+}
+```
+
+`expectedRevision` 必须是安全范围内的正整数，阈值为最多 8 位小数的十进制文本。成功仍返回完整工作区；新修订保留证券、启停状态、比较符、免打扰、节流、通知渠道和创建时间，并通过 `previousRevisionId` 指向旧修订。旧修订与已记录历史不会被覆盖。
+
+同一所有者、规则路径、`clientRequestId` 和请求体的重试只提交一次；网络结果不确定时，客户端应原样重试这组值。相同 ID 被用于不同路径或请求体、或 `expectedRevision` 已过期时返回 `409`。未知规则或其他所有者的规则返回 `404`，格式错误返回 `400`。刷新规则后再开始新的编辑；不要以更换请求 ID 的方式绕过 `409`。
+
+新建和启停接口的请求与响应形状保持不变。
 
 ## 故障排查
 
