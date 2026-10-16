@@ -1,6 +1,6 @@
 {
   "name": "kunlun-alpha",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "昆仑智策 - A-Share Intelligence & Quant Platform",
   "engines": {
@@ -35,8 +35,11 @@
     "v1:config:check": "node --test scripts/ci/v1-compose.test.mjs",
     "v1:up": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml --env-file infra/docker/.env up -d --build web",
     "v1:sync": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml --env-file infra/docker/.env --profile real-market-data run --rm --build market-data-sync",
-    "v1:ps": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml --env-file infra/docker/.env ps -a",
-    "v1:stop": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml --env-file infra/docker/.env stop web server postgres clickhouse"
+    "v1:ps": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml --env-file infra/docker/.env --profile real-market-data ps -a",
+    "v1:stop": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml --env-file infra/docker/.env --profile real-market-data stop market-data-sync web server postgres clickhouse",
+    "v1:auto:start": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml -f infra/docker/docker-compose.v1-auto.yml --env-file infra/docker/.env --profile real-market-data up -d --build market-data-sync",
+    "v1:auto:stop": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml -f infra/docker/docker-compose.v1-auto.yml --env-file infra/docker/.env --profile real-market-data stop market-data-sync",
+    "v1:auto:logs": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml -f infra/docker/docker-compose.v1-auto.yml --env-file infra/docker/.env --profile real-market-data logs --tail=50 market-data-sync"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import json
 import os
 import re
@@ -25,6 +26,10 @@ _RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 class MarketDataCheckpointError(RuntimeError):
     """Checkpoint state is corrupt, inconsistent, or currently unavailable."""
+
+
+class MarketDataCheckpointBusyError(MarketDataCheckpointError):
+    """Another process temporarily owns the unchanged checkpoint lock."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -245,8 +250,12 @@ class MarketDataCheckpointStore:
                     _acquire_os_lock(handle)
                     acquired = True
                 except OSError as error:
-                    if time.monotonic() >= deadline:
+                    if error.errno not in {errno.EAGAIN, errno.EWOULDBLOCK, errno.EACCES}:
                         raise MarketDataCheckpointError(
+                            "market-data checkpoint lock failed"
+                        ) from error
+                    if time.monotonic() >= deadline:
+                        raise MarketDataCheckpointBusyError(
                             "market-data checkpoint is locked by another process"
                         ) from error
                     time.sleep(_LOCK_POLL_SECONDS)

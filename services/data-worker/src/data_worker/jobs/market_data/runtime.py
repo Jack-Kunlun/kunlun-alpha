@@ -1,4 +1,4 @@
-"""One-shot or continuous runtime for raw-first real market-data synchronization."""
+"""Explicit one-shot, daily or continuous raw-first market-data synchronization."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import time as time_module
 from collections.abc import Callable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass, field, replace
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Protocol, cast
 from uuid import uuid4
@@ -116,10 +116,15 @@ class MarketDataSyncSettings:
     managed_revision: int | None = None
     quality_public_root: Path | None = None
     status_public_root: Path | None = None
+    daily_at: time | None = None
 
     def __post_init__(self) -> None:
         if self.continuous and self.poll_seconds < 60:
             raise ValueError("continuous market-data mode requires poll_seconds at least 60")
+        if self.daily_at is not None and (
+            self.continuous or self.minute_symbols or self.managed_settings_url is not None
+        ):
+            raise ValueError("scheduled market-data mode requires daily-only local settings")
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,7 +198,17 @@ def load_market_data_settings(
 ) -> MarketDataSyncSettings:
     """Parse the explicit process environment without loading credential files."""
 
+    mode = environ.get("MARKET_DATA_RUN_MODE", "once").strip().lower()
+    if mode not in {"once", "continuous", "daily"}:
+        raise RuntimeError("MARKET_DATA_RUN_MODE must be once, daily or continuous")
+    daily_at = None
+    if mode == "daily":
+        from data_worker.jobs.market_data.daily_schedule import parse_daily_schedule_time
+
+        daily_at = parse_daily_schedule_time(environ.get("MARKET_DATA_DAILY_AT", "09:00"))
     remote_source = remote_market_data_settings_source(environ)
+    if mode == "daily" and remote_source is not None:
+        raise ValueError("scheduled market-data mode requires daily-only local settings")
     provider = environ.get("MARKET_DATA_PROVIDER", "akshare").strip()
     if remote_source is None and provider not in {"akshare", "tushare"}:
         raise RuntimeError("MARKET_DATA_PROVIDER must be akshare or tushare")
@@ -212,9 +227,6 @@ def load_market_data_settings(
         if provider == "tushare" and token is None:
             raise RuntimeError("TUSHARE_TOKEN is required when MARKET_DATA_PROVIDER=tushare")
         tushare_endpoint = environ.get("TUSHARE_API_URL", _MANAGED_TUSHARE_ENDPOINT).strip()
-    mode = environ.get("MARKET_DATA_RUN_MODE", "once").strip().lower()
-    if mode not in {"once", "continuous"}:
-        raise RuntimeError("MARKET_DATA_RUN_MODE must be once or continuous")
     minute_interval = environ.get("MARKET_DATA_MINUTE_INTERVAL", "MINUTE_1").strip()
     if minute_interval not in {"MINUTE_1", "MINUTE_5"}:
         raise RuntimeError("MARKET_DATA_MINUTE_INTERVAL must be MINUTE_1 or MINUTE_5")
@@ -263,6 +275,7 @@ def load_market_data_settings(
         managed_revision=None if managed is None else managed.revision,
         quality_public_root=quality_public_root,
         status_public_root=status_public_root,
+        daily_at=daily_at,
     )
 
 
@@ -832,10 +845,48 @@ def run_market_data_sync(
     sleeper: Sleeper = time_module.sleep,
     remote_transport: RemoteSettingsTransport | None = None,
 ) -> None:
-    """Run once by default, or continuously when explicitly configured."""
+    """Run once by default; daily and continuous modes require explicit settings."""
 
     current_settings = settings
     runner = build_market_data_runner(current_settings, clock=clock)
+    if current_settings.daily_at is not None:
+        from data_worker.jobs.market_data.daily_schedule import DailyMarketDataScheduler
+
+        scope = hashlib.sha256(
+            json.dumps(
+                {
+                    "provider": current_settings.provider,
+                    "symbols": sorted(current_settings.symbols),
+                    "lookbackDays": current_settings.daily_lookback_days,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+        ).hexdigest()
+
+        def run_daily() -> None:
+            summary = runner.run_cycle()
+            print(json.dumps(summary.to_dict(), ensure_ascii=False, sort_keys=True), flush=True)
+
+        print(
+            json.dumps(
+                {
+                    "event": "market_data_daily_schedule_started",
+                    "dailyAt": current_settings.daily_at.isoformat(timespec="minutes"),
+                    "timeZone": "Asia/Shanghai",
+                    "symbolCount": len(current_settings.symbols),
+                },
+                sort_keys=True,
+            ),
+            flush=True,
+        )
+        DailyMarketDataScheduler(
+            current_settings.raw_root / "daily-schedule-v1",
+            at=current_settings.daily_at,
+            scope=scope,
+            clock=clock,
+        ).run(run_daily, sleeper=sleeper)
+        return
     while True:
         refreshed_settings = refresh_managed_market_data_settings(
             current_settings,

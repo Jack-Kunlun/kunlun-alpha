@@ -11,12 +11,12 @@ const files = [
   "infra/docker/docker-compose.v1.yml",
 ];
 
-function configuration(profile = []) {
+function configuration(profile = [], extraFiles = []) {
   const result = spawnSync(
     "docker",
     [
       "compose",
-      ...files.flatMap((file) => ["-f", file]),
+      ...[...files, ...extraFiles].flatMap((file) => ["-f", file]),
       "--env-file",
       "infra/docker/.env.example",
       ...profile.flatMap((name) => ["--profile", name]),
@@ -119,4 +119,25 @@ test("task status shares sanitized metadata read-only without giving the server 
   assert.equal(services["market-data-sync"].environment.MARKET_DATA_STATUS_PUBLIC_ROOT, target);
   assert.ok(!services.server.volumes.some((mount) => mount.source === "kunlun-market-raw"));
   assert.equal(services["market-data-sync"].environment.MARKET_DATA_RUN_MODE, "once");
+});
+
+test("optional daily scheduling reuses the v1 sample, checkpoint and public status", () => {
+  const { services } = configuration(
+    ["real-market-data"],
+    ["infra/docker/docker-compose.v1-auto.yml"],
+  );
+  const sync = services["market-data-sync"];
+  assert.equal(sync.environment.MARKET_DATA_RUN_MODE, "daily");
+  assert.equal(sync.environment.MARKET_DATA_DAILY_AT, "09:00");
+  assert.equal(sync.environment.MARKET_DATA_MINUTE_SYMBOLS, "");
+  assert.equal(sync.environment.MARKET_DATA_SETTINGS_URL, "");
+  assert.equal(sync.environment.MARKET_DATA_RAW_ROOT, "/workspace/var/market-raw/v1-shares-v3");
+  assert.equal(
+    sync.environment.MARKET_DATA_SYMBOLS,
+    services.server.environment.DASHBOARD_DAILY_SYMBOLS,
+  );
+  assert.equal(sync.restart, "unless-stopped");
+  assert.ok(sync.volumes.some((mount) => mount.source === "kunlun-market-raw"));
+  assert.ok(sync.volumes.some((mount) => mount.source === "kunlun-market-status"));
+  assert.ok(!sync.ports?.length);
 });

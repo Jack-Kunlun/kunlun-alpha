@@ -1,0 +1,192 @@
+{
+  "status": "LOCAL_ACCEPTANCE_PASSED",
+  "version": "1.0.2",
+  "verifiedAtUtc": "2026-10-16 13:39:22 UTC",
+  "source": {
+    "baselineSha": "e77f240979ad40f83b5986476c1233f28b5d872f",
+    "releaseRef": "v1.0.2",
+    "note": "验收时尚未登记本版Git引用；实际发布提交以随后创建并核对的同名标签为准"
+  },
+  "scope": "P1-N11 单实例每日日线调度切片；不关闭完整分布式调度节点或Phase",
+  "outcome": "显式启用后按Asia/Shanghai每日09:00运行当前8个样本；迟启动补当日一次、重启不重复、不重置最多3轮预算",
+  "filesChanged": [
+    "README.md",
+    "package.json",
+    "apps/server/package.json",
+    "apps/server/src/app-version.ts",
+    "apps/server/src/app.controller.test.ts",
+    "apps/web/package.json",
+    "infra/docker/.env.example",
+    "infra/docker/docker-compose.v1-auto.yml",
+    "scripts/ci/v1-compose.test.mjs",
+    "services/data-worker/src/data_worker/jobs/market_data/checkpoint.py",
+    "services/data-worker/src/data_worker/jobs/market_data/runtime.py",
+    "services/data-worker/src/data_worker/jobs/market_data/daily_schedule.py",
+    "services/data-worker/tests/test_market_data_runtime.py",
+    "services/data-worker/tests/test_market_data_daily_schedule.py",
+    "docs/development/docker-local.md",
+    "docs/runbooks/market-data-source.md",
+    "docs/superpowers/plans/2026-10-16-post-v1-roadmap.md",
+    "docs/reviews/2026-10-16-v1.0.1-local-acceptance.json",
+    "docs/reviews/2026-10-16-v1.0.2-local-acceptance.json"
+  ],
+  "decisions": [
+    "沿用原v3 raw/checkpoint与OS锁，不引入新依赖或数据库迁移；新增私有原子调度账本",
+    "只允许本地静态日线模式；daily在任何远程设置请求前拒绝managed配置",
+    "仅明确的来源暂时错误和锁竞争退避60/120秒；其它错误或耗尽后本日DEAD",
+    "调度日是上海自然日，行情日期仍来自已有日线；普通启动及手动once保持原行为"
+  ],
+  "verification": [
+    {
+      "command": "./.venv/bin/pytest --no-cov -q services/data-worker/tests/test_market_data_daily_schedule.py services/data-worker/tests/test_market_data_runtime.py services/data-worker/tests/test_market_data_remote_settings.py",
+      "result": "98 passed；因设置加载顺序修复，纳入直接受影响的原managed检查"
+    },
+    {
+      "command": "pnpm v1:config:check",
+      "result": "6 passed"
+    },
+    {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+      "result": "2 passed"
+    },
+    {
+      "command": "./.venv/bin/ruff check + ruff format --check + basedpyright（runtime.py/checkpoint.py/test_market_data_runtime.py）",
+      "result": "通过；类型0 errors/0 warnings"
+    },
+    {
+      "command": "uv run --project . ruff check / ruff format --check / basedpyright（daily_schedule.py/test_market_data_daily_schedule.py）",
+      "result": "执行代理已执行并通过；复用未变模块结果"
+    },
+    {
+      "command": "pnpm exec prettier --check（受影响配置、版本元数据和文档）；git diff --check",
+      "result": "通过；格式修正后未改变行为"
+    },
+    {
+      "command": "docker compose (base/apps/v1/auto) build server web market-data-sync data-worker-migrate",
+      "result": "四镜像构建通过；审查后仅重建worker/migrator，未受影响Node构建复用"
+    },
+    {
+      "command": "docker run --rm -i --network none --entrypoint python kunlun-data-worker:local（两处修复隔离验证）",
+      "result": "daily managed在fake transport前被拒绝；EIO为普通CheckpointError"
+    },
+    {
+      "command": "docker compose (base/apps/v1) up -d --no-build --no-deps server web；(base/apps/v1/auto) --profile real-market-data up -d --no-build --no-deps market-data-sync",
+      "result": "本地1.0.2已运行；四核心服务healthy，采集容器running"
+    },
+    {
+      "command": "curl http://localhost:3002/api/v1/health",
+      "result": "ok/version=1.0.2"
+    },
+    {
+      "command": "docker exec读取实际账本和公开状态；docker restart kunlun-market-data-sync；再次逐字段比较",
+      "result": "补跑0请求/0接收/0写入；重启后账本/公开状态完全不变，attempts=1，未产生第二条业务摘要"
+    },
+    {
+      "command": "ClickHouse只读按8代码及akshare-tencent/v3来源汇总max(date)",
+      "result": "8个样本均为2026-10-15"
+    }
+  ],
+  "redToGreen": [
+    "daily配置测试先因无daily_at/不支持daily失败；实现后通过",
+    "可选Compose检查先因文件缺失失败；新增后通过",
+    "Busy子类回归先因仍抛父类失败；明确锁竞争分类后通过",
+    "独立审查两回归：旧daily实际调用fake远程transport；旧EIO实际被归类BusyError。修复后均通过",
+    "根代理入口测试夹具首次漏daily_lookback_days，已修正；静态格式/行长失败已修正，最终检查通过"
+  ],
+  "independentReview": {
+    "status": "NO_REMAINING_BLOCKERS",
+    "fixedFindings": ["daily远程设置请求前置隔离", "只有明确竞争errno可标BusyError"],
+    "runtimeClosure": "最终worker隔离验证和实际启动/重启均已通过"
+  },
+  "runtime": {
+    "dailyAt": "09:00",
+    "directoryMode": "0o700",
+    "ledger": {
+      "attempts": 1,
+      "lastAttemptAt": "2026-10-16T13:30:43.020107Z",
+      "nextAttemptAt": null,
+      "scheduleDate": "2026-10-16",
+      "schemaVersion": "market-data-daily-schedule-v1",
+      "scope": "7884457b9ab64bfaf528dca3b5702140b8d827036a84b43b33a798e5fab3516c",
+      "status": "SUCCEEDED"
+    },
+    "ledgerMode": "0o600",
+    "public": {
+      "errorCode": null,
+      "lastAttemptAt": "2026-10-16T13:30:43.023061Z",
+      "lastFinishedAt": "2026-10-16T13:30:43.025855Z",
+      "lastSuccessAt": "2026-10-16T13:30:43.025855Z",
+      "lastSuccessResult": {
+        "dailyRefreshed": false,
+        "receivedBars": 0,
+        "requests": 0,
+        "writtenBars": 0
+      },
+      "provider": "akshare",
+      "schemaVersion": "market-data-sync-status-v1",
+      "status": "SUCCEEDED",
+      "symbols": [
+        "000001.SZ",
+        "002594.SZ",
+        "300750.SZ",
+        "301236.SZ",
+        "600000.SH",
+        "600519.SH",
+        "601318.SH",
+        "688981.SH"
+      ]
+    },
+    "uid": 10001,
+    "nextScheduledAt": "2026-10-17T09:00:00+08:00",
+    "nextCycleObserved": false,
+    "dataSource": "akshare-tencent / akshare:1.18.94:stock_zh_a_hist_tx:v3",
+    "dataDates": [
+      {
+        "unified_code": "000001.SZ",
+        "latestDate": "2026-10-15"
+      },
+      {
+        "unified_code": "002594.SZ",
+        "latestDate": "2026-10-15"
+      },
+      {
+        "unified_code": "300750.SZ",
+        "latestDate": "2026-10-15"
+      },
+      {
+        "unified_code": "301236.SZ",
+        "latestDate": "2026-10-15"
+      },
+      {
+        "unified_code": "600000.SH",
+        "latestDate": "2026-10-15"
+      },
+      {
+        "unified_code": "600519.SH",
+        "latestDate": "2026-10-15"
+      },
+      {
+        "unified_code": "601318.SH",
+        "latestDate": "2026-10-15"
+      },
+      {
+        "unified_code": "688981.SH",
+        "latestDate": "2026-10-15"
+      }
+    ],
+    "images": {
+      "kunlun-server:1.0.2": "sha256:1c29fa9aa9795f2179c01ff63c43ee64f65157660e7e7fe412ef43300ea4c057",
+      "kunlun-web:1.0.2": "sha256:b4da3f7579bb80116d889f96ce5f278a25ca24f7f57acc169b1b82751eb76c8b",
+      "kunlun-data-worker:1.0.2": "sha256:8666b1cc2e4472ae710f3aa61507c2861d84ee743e465be75f3dda40dc18055c",
+      "kunlun-data-worker-migrate:1.0.2": "sha256:6bf2a8ddcdd51e4e9265c85ae64943777f394bb037a6f18605e299b71544134a"
+    }
+  },
+  "reusedEvidence": "1.0.1未变UI/状态契约/认证及原持久化恢复结果有效；不重跑全仓或备份恢复。原Chrome标签在本轮工具重置后不可用，本轮未重建登录或宣称新的浏览器验收，实际任务状态通过只读容器/库检查确认。",
+  "securityDataTradingImpact": "无秘密/权限/端口/数据库schema变更；server仍只读公开状态，不挂raw/私有调度账本；不启用模拟、QMT或真实买卖。",
+  "limits": [
+    "本机和Docker需保持运行；下一日自动周期尚未到时观察",
+    "AKShare SDK沿用已有有界重试，未提供硬请求时限",
+    "macOS与Docker Linux通过；原生Windows/Linux未运行验证"
+  ],
+  "nextPlannedVersion": "1.0.3最多新增10个符合前置的沪深股票；本轮未实施"
+}

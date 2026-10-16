@@ -186,14 +186,17 @@
   },
   "crossPlatform": "macOS本地工具与Docker Linux实际通过；使用Path/path、os.tmpdir、POSIX条件权限与原子替换。原生Windows/Linux未执行。",
   "securityDataTradingImpact": "无凭据、账号权限或数据库模型变更；只读认证接口，不挂raw；不改行情、不删检查点，不启用真实或模拟下单。",
-  "remainingRisks": [
-    "来源仍按显式命令更新，不保证实时或全市场",
-    "1.0.1增量未提交；首发58文件已独立提交并标记v1.0.0，未混入本次增量",
-    "原生Windows/Linux行为未运行验证"
-  ],
+  "remainingRisks": ["来源仍按显式命令更新，不保证实时或全市场", "原生Windows/Linux行为未运行验证"],
   "nonGoals": ["自动采集(1.0.2)", "增加标的(1.0.3)", "新的运维后台", "模拟交易、QMT或真实买卖"],
   "nextPlannedVersion": "1.0.2 受控自动更新；本轮未开始",
   "remotePublication": false,
   "releaseBaselineSha": "72984d581d2afc2f449ca8c3956d2b88f05a4ab7",
-  "releaseBaselineTag": "v1.0.0"
+  "releaseBaselineTag": "v1.0.0",
+  "gitRegistration": {
+    "commitSha": "e77f240979ad40f83b5986476c1233f28b5d872f",
+    "gitTag": "v1.0.1",
+    "remoteBranch": "origin/master",
+    "remoteVerified": true,
+    "note": "1.0.1源码已独立提交/tag/推送；原本地验收快照保留"
+  }
 }

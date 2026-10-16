@@ -1,0 +1,8 @@
+# Optional local daily scheduler. Apply after docker-compose.v1.yml.
+# One container shares the same checkpoint and status volumes as manual sync.
+services:
+  market-data-sync:
+    restart: unless-stopped
+    environment:
+      MARKET_DATA_RUN_MODE: daily
+      MARKET_DATA_DAILY_AT: ${V1_MARKET_DATA_DAILY_AT:-09:00}

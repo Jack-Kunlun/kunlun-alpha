@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import errno
 import json
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import cast
+from typing import BinaryIO, Never, cast
+from urllib.request import Request
 
 import pytest
 from ashare_contracts.market_data_bar import Bar
 from data_worker.jobs.market_data import checkpoint as checkpoint_module
 from data_worker.jobs.market_data.checkpoint import (
+    MarketDataCheckpointBusyError,
     MarketDataCheckpointError,
     MarketDataCheckpointStore,
 )
@@ -89,6 +92,89 @@ def test_settings_default_to_akshare_without_token() -> None:
     assert settings.continuous is False
     assert settings.quality_public_root is None
     assert settings.status_public_root is None
+
+
+def test_daily_mode_uses_an_explicit_shanghai_time_and_keeps_once_default() -> None:
+    from datetime import time
+
+    assert load_market_data_settings({}).daily_at is None
+    daily = load_market_data_settings(
+        {"MARKET_DATA_RUN_MODE": "daily", "MARKET_DATA_DAILY_AT": "10:15"}
+    )
+    assert daily.daily_at == time(10, 15)
+    assert daily.continuous is False
+    assert load_market_data_settings({"MARKET_DATA_RUN_MODE": "daily"}).daily_at == time(9)
+
+
+@pytest.mark.parametrize("value", ["24:00", "9:00", "09:60", "09:00:00"])
+def test_daily_mode_rejects_invalid_schedule_time(value: str) -> None:
+    with pytest.raises((RuntimeError, ValueError), match="HH:MM"):
+        load_market_data_settings({"MARKET_DATA_RUN_MODE": "daily", "MARKET_DATA_DAILY_AT": value})
+
+
+def test_daily_mode_rejects_minute_collection_before_startup() -> None:
+    with pytest.raises(ValueError, match="daily-only"):
+        load_market_data_settings(
+            {"MARKET_DATA_RUN_MODE": "daily", "MARKET_DATA_MINUTE_SYMBOLS": "600519.SH"}
+        )
+
+
+def test_daily_mode_rejects_managed_settings_before_any_remote_request() -> None:
+    calls: list[Request] = []
+
+    def transport(request: Request, _timeout: float) -> Never:
+        calls.append(request)
+        raise AssertionError("daily mode must not fetch managed settings")
+
+    with pytest.raises(ValueError, match="daily-only local settings"):
+        load_market_data_settings(
+            {
+                "MARKET_DATA_RUN_MODE": "daily",
+                "MARKET_DATA_SETTINGS_URL": "https://control.example.test/api/v1/internal/market-data/settings",
+                "MARKET_DATA_SETTINGS_WORKER_TOKEN": "worker-token-" + "x" * 32,
+            },
+            remote_transport=transport,
+        )
+    assert calls == []
+
+
+def test_daily_entrypoint_restarts_without_repeating_the_confirmed_cycle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from data_worker.jobs.market_data import runtime
+
+    now = datetime(2026, 10, 16, 2, tzinfo=UTC)
+    settings = load_market_data_settings(
+        {
+            "MARKET_DATA_RUN_MODE": "daily",
+            "MARKET_DATA_RAW_ROOT": str(tmp_path / "raw"),
+            "MARKET_DATA_STATUS_PUBLIC_ROOT": str(tmp_path / "public"),
+        }
+    )
+    collector = RecordingCollector()
+
+    def build(selected: MarketDataSyncSettings, **_kwargs: object) -> MarketDataRunner:
+        return MarketDataRunner(
+            collector,
+            symbols=selected.symbols,
+            daily_lookback_days=selected.daily_lookback_days,
+            clock=lambda: now,
+            checkpoint_root=selected.raw_root,
+            status_public_root=selected.status_public_root,
+        )
+
+    def stop_waiting(seconds: float) -> None:
+        assert 0 < seconds <= 60
+        raise InterruptedError("test stop after one scheduler step")
+
+    monkeypatch.setattr(runtime, "build_market_data_runner", build)
+    for _ in range(2):
+        with pytest.raises(InterruptedError, match="test stop"):
+            runtime.run_market_data_sync(settings, clock=lambda: now, sleeper=stop_waiting)
+    assert len(collector.calls) == 1
+    public = json.loads((tmp_path / "public" / "market-data-sync-status.json").read_text())
+    assert public["status"] == "SUCCEEDED"
+    assert public["lastSuccessResult"]["requests"] == 1
 
 
 def test_settings_enable_public_sync_status_only_for_explicit_nonempty_root(
@@ -497,10 +583,26 @@ def test_checkpoint_lock_rejects_a_concurrent_runner(
 
     with (
         store.locked(),
-        pytest.raises(MarketDataCheckpointError, match="locked"),
+        pytest.raises(MarketDataCheckpointBusyError, match="locked"),
         store.locked(),
     ):
         pass
+
+
+def test_checkpoint_lock_io_failure_is_not_classified_as_competition(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(_handle: BinaryIO) -> None:
+        raise OSError(errno.EIO, "fixture filesystem failure")
+
+    monkeypatch.setattr(checkpoint_module, "_acquire_os_lock", fail)
+    monkeypatch.setattr(checkpoint_module, "_LOCK_WAIT_SECONDS", 0.01)
+    with (
+        pytest.raises(MarketDataCheckpointError) as error,
+        MarketDataCheckpointStore(tmp_path).locked(),
+    ):
+        pytest.fail("lock I/O error must stop before work")
+    assert not isinstance(error.value, MarketDataCheckpointBusyError)
 
 
 def test_checkpoint_status_records_zero_request_success(tmp_path: Path) -> None:
