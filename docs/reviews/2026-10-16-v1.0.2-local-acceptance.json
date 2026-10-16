@@ -28,8 +28,8 @@
     "secondRepairSha": "010f4d0e830189b9f0355fb4dcee64667578a243",
     "secondRepairRunUrl": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/38913427600",
     "secondRepairObservedResult": "三端终态FAILED；安装、全workspace同步、换行、脚本回归、静态与JS检查通过；Linux Python为2779通过/235跳过/2失败，均因旧回测基线指纹漂移；macOS也报同一基线漂移；Windows为2762通过/251跳过/3失败，多一项打开文件替换被OS拒绝时的错误信息假设。后续独立回归步/Linux构建被跳过",
-    "windowsTestClosure": "测试显式验证成功替换与PermissionError拒绝两种路径：都抛MarketQualityExportError，且分别核对错误信息/原因及文件内容；本地首红后2项通过，Ruff/格式通过。未改生产读取防护，将与已批准基线合并推送后核对原生Windows CI",
-    "repairCiStatus": "PENDING_APPROVED_BASELINE_CI",
+    "windowsTestClosure": "本地首红后2项通过；b0922ec的原生Windows CI Quality gates及后续独立回归均成功。替换成功/PermissionError拒绝两种路径都核对领域错误、cause或最终bytes，生产读取防护未改",
+    "repairCiStatus": "SUCCESS",
     "postApprovalChecks": [
       "针对Windows替换/拒绝两路径、CLI只读、结果漂移仍非零和隔离零写入共5项通过",
       "pnpm backtest:regression返回MATCHED，五类categoryCounts均为0，isolated closure had zero mutation",
@@ -58,7 +58,30 @@
       "reviewedAt": "2026-10-16T14:54:54.600710Z",
       "humanResponse": "批准此候选，更新基线并继续"
     },
-    "note": "用户明确批准候选04d5e1c0…后更新基线与绑定approval；fresh smoke字节与获批候选完全一致。只接受已审provenance变化，不改变结果、输入、比较门禁或既有标签；三端CI终态单独记录"
+    "note": "b0922ec的三端CI全部成功；只接受用户明确批准的来源指纹变更，结果/输入/版本和门禁保持不变。原v1.0.2标签和本地镜像身份保持原样，历史失败记录保留。此后仅更新回执/路线图，复用该代码提交的CI证据",
+    "approvedBaselineRepairSha": "b0922ec54519509b0b1c33e6cd09294eadd276bb",
+    "approvedBaselineRunUrl": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/38920030433",
+    "approvedBaselineIndependentReview": "NO_BLOCKERS；获批候选、内部摘要和approval绑定准确，3条内容证据hash匹配且refs排序正确，结果/输入/版本未变；Windows测试保留领域错误、cause和最终bytes断言",
+    "approvedBaselineJobs": {
+      "gates (ubuntu-latest)": {
+        "conclusion": "success",
+        "completedAt": "2026-10-16T15:01:34Z"
+      },
+      "gates (macos-latest)": {
+        "conclusion": "success",
+        "completedAt": "2026-10-16T15:03:58Z"
+      },
+      "gates (windows-latest)": {
+        "conclusion": "success",
+        "completedAt": "2026-10-16T15:09:11Z"
+      }
+    },
+    "approvedBaselineVerifiedAtUtc": "2026-10-16T15:10:23.350509Z",
+    "approvedBaselineChecks": [
+      "三端pnpm check完整命令成功：格式、lint、TS/Python类型、Vitest/Pytest；保留既有条件跳过，不冒充已执行缺少环境的集成用例",
+      "三端独立backtest:regression与零写入snapshot成功；随后clean-tree成功",
+      "Linux全包构建与构建后clean-tree成功；Windows/macOS按原配置不执行全包build"
+    ]
   },
   "scope": "P1-N11 单实例每日日线调度切片；不关闭完整分布式调度节点或Phase",
   "outcome": "显式启用后按Asia/Shanghai每日09:00运行当前8个样本；迟启动补当日一次、重启不重复、不重置最多3轮预算",
@@ -239,7 +262,7 @@
   "limits": [
     "本机和Docker需保持运行；下一日自动周期尚未到时观察",
     "AKShare SDK沿用已有有界重试，未提供硬请求时限",
-    "macOS与Docker Linux通过；原生Windows/Linux未运行验证"
+    "三端CI使用隔离fixture；真实行情/容器运行证据来自本地macOS与Docker Linux，未宣称原生Windows部署及真实来源运行已验收"
   ],
   "nextPlannedVersion": "1.0.3最多新增10个符合前置的沪深股票；本轮未实施"
 }
