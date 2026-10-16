@@ -230,6 +230,8 @@ All source code and text configuration must be UTF-8 with LF line endings.
 - Integrate TradingView Lightweight Charts through an internal adapter, not directly throughout page components.
 - Display data timestamp, freshness, algorithm/model version, sample size, and confidence where relevant.
 - Clearly distinguish facts, model inferences, low-confidence results, and KOL Claims in the UI.
+- Keep creation forms out of the resting list view. The list owns browsing, filtering and management, with an explicit create button. Use a Dialog for short, simple forms and a drawer for longer or grouped forms; choose based on task complexity, rather than automatically creating a new page.
+- Reuse the existing Dialog/Radix primitives for overlays and drawers. Keep headings, focus containment/return, keyboard dismissal, responsive scrolling and visible actions accessible. On successful save, close the overlay and update the list; on failure, keep the user's input and show an error. Do not turn a create form into a permanent side column or top section of a list.
 
 ## 16. Testing and verification
 

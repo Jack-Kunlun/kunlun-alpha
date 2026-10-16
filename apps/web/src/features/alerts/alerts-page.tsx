@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import {
-  Activity,
-  AlertCircle,
-  BellRing,
-  Clock3,
-  Plus,
-  RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
+import { Activity, AlertCircle, BellRing, Clock3, RefreshCw, ShieldCheck } from "lucide-react";
 import type {
   UpdateWatchlistAlertRuleRequest,
   WatchlistAlertEvaluationRun,
@@ -37,9 +29,10 @@ import {
   requestId,
   useWatchlistAlerts,
   type AlertPreview,
-  type CreateWatchlistAlertRuleRequest,
   type WatchlistAlertRule,
 } from "./use-watchlist-alerts";
+
+import { CreateRuleDrawer } from "./create-rule-drawer";
 
 const OUTCOME_LABELS: Record<string, string> = {
   TRIGGERED: "已触发",
@@ -48,11 +41,6 @@ const OUTCOME_LABELS: Record<string, string> = {
   QUIET_PERIOD: "免打扰",
   RULE_DISABLED: "已停用",
 };
-
-type AutoEvaluatedField = Extract<
-  WatchlistAlertRule["condition"]["field"],
-  "LAST_PRICE" | "CHANGE_BPS"
->;
 
 export function evaluationRunStatus(run: Pick<WatchlistAlertEvaluationRun, "failed">): {
   title: string;
@@ -121,202 +109,77 @@ export function AlertsPage() {
         </div>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <RuleComposer disabled={alerts.submitting} onCreate={alerts.createRule} />
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">规则清单</h2>
-              <p className="text-sm text-muted-foreground">
-                新规则仅可选择当前支持自动评估的字段。
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={alerts.submitting || workspace.rules.length === 0}
-                onClick={() => void evaluateLatest()}
-              >
-                <Activity className="mr-2 h-4 w-4" /> 立即评估最新行情
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => void alerts.refresh()}>
-                <RefreshCw className="mr-2 h-4 w-4" /> 刷新
-              </Button>
-            </div>
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">规则清单</h2>
+            <p className="text-sm text-muted-foreground">新规则仅可选择当前支持自动评估的字段。</p>
           </div>
-          {workspace.rules.length === 0 ? (
-            <EmptyRules />
-          ) : (
-            <div className="grid gap-3 lg:grid-cols-2">
-              {workspace.rules.map((rule) => (
-                <RuleCard
-                  key={rule.ruleId}
-                  rule={rule}
-                  disabled={alerts.submitting}
-                  onToggle={alerts.toggleRule}
-                  onUpdate={alerts.updateRule}
-                  onPreview={async (request) => setPreview(await alerts.preview(request))}
-                />
-              ))}
-            </div>
-          )}
-          {actionError ? (
-            <p
-              role="alert"
-              className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive"
+          <div className="flex flex-wrap gap-2">
+            <CreateRuleDrawer disabled={alerts.submitting} onCreate={alerts.createRule} />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={alerts.submitting || workspace.rules.length === 0}
+              onClick={() => void evaluateLatest()}
             >
-              {actionError}
-            </p>
-          ) : null}
-          {preview ? (
-            <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/30">
-              <strong>{OUTCOME_LABELS[preview.outcome] ?? preview.outcome}</strong>
-              <span className="ml-2 text-muted-foreground">{preview.detail}</span>
-            </div>
-          ) : null}
-          {evaluationRun && evaluationStatus ? (
-            <div
-              role={evaluationStatus.role}
-              className={
-                evaluationStatus.tone === "failure"
-                  ? "rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
-                  : "rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm dark:border-emerald-900 dark:bg-emerald-950/30"
-              }
-            >
-              <strong>{evaluationStatus.title}</strong>
-              <span className="ml-2 text-muted-foreground">
-                已评估 {evaluationRun.evaluated}，数据不足 {evaluationRun.skippedNoData}，暂不支持{" "}
-                {evaluationRun.skippedUnsupported}，失败 {evaluationRun.failed}
-              </span>
-            </div>
-          ) : null}
-        </section>
-      </div>
+              <Activity className="mr-2 h-4 w-4" /> 立即评估最新行情
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void alerts.refresh()}>
+              <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+            </Button>
+          </div>
+        </div>
+        {workspace.rules.length === 0 ? (
+          <EmptyRules />
+        ) : (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {workspace.rules.map((rule) => (
+              <RuleCard
+                key={rule.ruleId}
+                rule={rule}
+                disabled={alerts.submitting}
+                onToggle={alerts.toggleRule}
+                onUpdate={alerts.updateRule}
+                onPreview={async (request) => setPreview(await alerts.preview(request))}
+              />
+            ))}
+          </div>
+        )}
+        {actionError ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive"
+          >
+            {actionError}
+          </p>
+        ) : null}
+        {preview ? (
+          <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/30">
+            <strong>{OUTCOME_LABELS[preview.outcome] ?? preview.outcome}</strong>
+            <span className="ml-2 text-muted-foreground">{preview.detail}</span>
+          </div>
+        ) : null}
+        {evaluationRun && evaluationStatus ? (
+          <div
+            role={evaluationStatus.role}
+            className={
+              evaluationStatus.tone === "failure"
+                ? "rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
+                : "rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm dark:border-emerald-900 dark:bg-emerald-950/30"
+            }
+          >
+            <strong>{evaluationStatus.title}</strong>
+            <span className="ml-2 text-muted-foreground">
+              已评估 {evaluationRun.evaluated}，数据不足 {evaluationRun.skippedNoData}，暂不支持{" "}
+              {evaluationRun.skippedUnsupported}，失败 {evaluationRun.failed}
+            </span>
+          </div>
+        ) : null}
+      </section>
 
       <HistoryTable history={workspace.history} />
     </div>
-  );
-}
-
-function RuleComposer({
-  disabled,
-  onCreate,
-}: {
-  disabled: boolean;
-  onCreate: (request: CreateWatchlistAlertRuleRequest) => Promise<void>;
-}) {
-  const [name, setName] = useState("价格突破提醒");
-  const [instrumentId, setInstrumentId] = useState("600519.SH");
-  const [field, setField] = useState<AutoEvaluatedField>("LAST_PRICE");
-  const [operator, setOperator] = useState<WatchlistAlertRule["condition"]["operator"]>("GTE");
-  const [threshold, setThreshold] = useState("1500.00");
-  const [throttleSeconds, setThrottleSeconds] = useState("300");
-  const [quietEnabled, setQuietEnabled] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    try {
-      await onCreate({
-        clientRequestId: requestId("create"),
-        name,
-        enabled: true,
-        instrumentIds: [instrumentId.toUpperCase()],
-        condition: {
-          field,
-          operator,
-          threshold,
-          featureName: null,
-        },
-        quietPeriod: quietEnabled
-          ? { timezone: "Asia/Shanghai", startMinute: 23 * 60, endMinute: 7 * 60 }
-          : null,
-        throttleSeconds: Number(throttleSeconds),
-        notificationChannel: "IN_APP",
-      });
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "规则保存失败");
-    }
-  }
-
-  return (
-    <Card className="h-fit xl:sticky xl:top-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="h-5 w-5" /> 新建规则
-        </CardTitle>
-        <CardDescription>阈值使用最多 8 位小数的十进制文本，避免价格比较误差。</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form className="space-y-4" onSubmit={(event) => void submit(event)}>
-          <Field label="规则名称">
-            <Input value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
-          </Field>
-          <Field label="证券代码">
-            <Input
-              value={instrumentId}
-              placeholder="600519.SH"
-              onChange={(event) => setInstrumentId(event.target.value)}
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="指标">
-              <select
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                value={field}
-                onChange={(event) => setField(event.target.value as AutoEvaluatedField)}
-              >
-                <option value="LAST_PRICE">最新价</option>
-                <option value="CHANGE_BPS">涨跌幅 BPS</option>
-              </select>
-            </Field>
-            <Field label="运算符">
-              <select
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                value={operator}
-                onChange={(event) => setOperator(event.target.value as typeof operator)}
-              >
-                <option value="GT">大于</option>
-                <option value="GTE">大于等于</option>
-                <option value="LT">小于</option>
-                <option value="LTE">小于等于</option>
-                <option value="EQ">等于</option>
-              </select>
-            </Field>
-          </div>
-          <Field label="阈值">
-            <Input
-              inputMode="decimal"
-              value={threshold}
-              onChange={(event) => setThreshold(event.target.value)}
-            />
-          </Field>
-          <Field label="节流秒数">
-            <Input
-              type="number"
-              min={0}
-              max={86400}
-              value={throttleSeconds}
-              onChange={(event) => setThrottleSeconds(event.target.value)}
-            />
-          </Field>
-          <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-            <input
-              type="checkbox"
-              checked={quietEnabled}
-              onChange={(event) => setQuietEnabled(event.target.checked)}
-            />
-            23:00 至次日 07:00 免打扰
-          </label>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <Button className="w-full" disabled={disabled} type="submit">
-            <BellRing className="mr-2 h-4 w-4" /> 保存规则
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -588,15 +451,15 @@ function EmptyRules() {
     <div className="rounded-xl border border-dashed p-10 text-center">
       <BellRing className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
       <h3 className="font-medium">还没有预警规则</h3>
-      <p className="mt-1 text-sm text-muted-foreground">从左侧创建第一条固定条件规则。</p>
+      <p className="mt-1 text-sm text-muted-foreground">点击“新建规则”创建第一条提醒。</p>
     </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Label className="block space-y-2">
-      <span>{label}</span>
+    <Label className="flex flex-col items-stretch gap-2">
+      <span className="leading-5">{label}</span>
       {children}
     </Label>
   );

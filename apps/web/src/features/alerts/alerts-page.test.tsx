@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AlertsPage, evaluationRunStatus } from "./alerts-page";
+import { CreateRuleForm } from "./create-rule-drawer";
+import { Dialog } from "../../components/ui/dialog";
 import { useWatchlistAlerts } from "./use-watchlist-alerts";
 
 vi.mock("./use-watchlist-alerts", () => ({
@@ -13,14 +15,17 @@ const mockedUseWatchlistAlerts = vi.mocked(useWatchlistAlerts);
 describe("AlertsPage", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("renders an explicit empty state and bounded rule composer", () => {
+  it("keeps the rule list separate from creation until the user opens the drawer", () => {
     mockedUseWatchlistAlerts.mockReturnValue(model("empty"));
 
     const html = renderToStaticMarkup(<AlertsPage />);
 
     expect(html).toContain("自选规则与预警");
     expect(html).toContain("还没有预警规则");
-    expect(html).toContain("指标");
+    expect(html).toContain("新建规则");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("规则名称");
+    expect(html).not.toContain("从左侧创建");
     expect(html).toContain("立即评估最新行情");
     expect(html).not.toMatch(/P6|Phase/);
   });
@@ -35,15 +40,23 @@ describe("AlertsPage", () => {
     expect(errorHtml).toContain("重新加载");
   });
 
-  it("offers only auto-evaluated fields and marks legacy fields as unsupported for this release", () => {
+  it("keeps legacy rule management in the list and auto-evaluated fields in the drawer form", () => {
     mockedUseWatchlistAlerts.mockReturnValue(model("ready"));
 
     const html = renderToStaticMarkup(<AlertsPage />);
+    const formHtml = renderToStaticMarkup(
+      <Dialog open>
+        <CreateRuleForm disabled={false} onCreate={vi.fn()} onCancel={vi.fn()} />
+      </Dialog>,
+    );
 
-    expect(html).toMatch(/<option[^>]+value="LAST_PRICE"[^>]*>最新价<\/option>/);
-    expect(html).toMatch(/<option[^>]+value="CHANGE_BPS"[^>]*>涨跌幅 BPS<\/option>/);
-    expect(html).not.toMatch(/<option[^>]+value="EMOTION_SCORE_BPS"/);
-    expect(html).not.toMatch(/<option[^>]+value="FEATURE_VALUE"/);
+    expect(formHtml).toMatch(/<option[^>]+value="LAST_PRICE"[^>]*>最新价<\/option>/);
+    expect(formHtml).toMatch(/<option[^>]+value="CHANGE_BPS"[^>]*>涨跌幅 BPS<\/option>/);
+    expect(formHtml).not.toMatch(/<option[^>]+value="EMOTION_SCORE_BPS"/);
+    expect(formHtml).not.toMatch(/<option[^>]+value="FEATURE_VALUE"/);
+    expect(formHtml).toContain("取消");
+    expect(formHtml).toContain("保存规则");
+    expect(html).not.toContain("<form");
     expect(html).toContain("本版本不自动评估");
     expect(html.match(/阈值预览/g)).toHaveLength(1);
     expect(html.match(/>编辑</g)).toHaveLength(2);
