@@ -580,28 +580,45 @@ def test_limited_read_rejects_fifo_without_blocking(tmp_path: Path) -> None:
         _read_limited(fifo, 1024)
 
 
+@pytest.mark.parametrize("deny_replacement", [False, True])
 def test_limited_read_rejects_path_replacement_after_open(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, deny_replacement: bool
 ) -> None:
     path = tmp_path / "candidate.json"
     path.write_bytes(b"old")
     original_read = os.read
     swapped = False
+    replacement_denied = False
 
     def read_and_swap(descriptor: int, size: int) -> bytes:
-        nonlocal swapped
+        nonlocal swapped, replacement_denied
         data = original_read(descriptor, size)
         if not swapped:
             swapped = True
             replacement = tmp_path / "replacement.json"
             replacement.write_bytes(b"new")
-            path.unlink()
-            os.replace(replacement, path)
+            try:
+                if deny_replacement:
+                    raise PermissionError("open file replacement denied")
+                path.unlink()
+                os.replace(replacement, path)
+            except PermissionError:
+                # Windows can deny removal of the still-open file. Both that
+                # denial and a successful POSIX replacement must fail closed.
+                replacement_denied = True
+                raise
         return data
 
     monkeypatch.setattr("data_worker.jobs.market_data.quality_export.os.read", read_and_swap)
-    with pytest.raises(MarketQualityExportError, match="changed"):
+    with pytest.raises(MarketQualityExportError) as rejected:
         _read_limited(path, 1024)
+    if replacement_denied:
+        assert str(rejected.value) == "market-quality candidate cannot be read"
+        assert isinstance(rejected.value.__cause__, PermissionError)
+        assert path.read_bytes() == b"old"
+    else:
+        assert str(rejected.value) == "market-quality candidate changed during read"
+        assert path.read_bytes() == b"new"
 
 
 def test_runtime_publisher_initializes_clean_quality_tree_for_zero_snapshot(

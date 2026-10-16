@@ -24,9 +24,41 @@
     "secondRepair": "CI同步全部锁定workspace包以补足类型/测试依赖；沿用既有StrEnum冲突修复方式将Python成员replace改为replace_且保持REPLACE接口值；格式入口分批限制命令长度并保留任何批次失败结果",
     "secondRepairTargetedChecks": "Windows长命令回归首红后3项通过；枚举生成回归首红后2项通过，受影响模型basedpyright从1错到0错；新增代码相关Ruff/ESLint通过；uv全workspace锁定同步离线dry-run通过",
     "nonBlockingBaselineTest": "额外执行生成器test_gen_python.py整文件为9通过/1失败；既有test_inject_deleted_condition_adds_validator使用空schema夹具，未适配当前按schema声明注入的逻辑。本次未修改删除逻辑或该旧测试；该文件不属于现有CI pytest路径，作为后续测试维护项保留",
-    "independentReview": "9254db5无代码/config阻断；第二轮新增差异待闭合审查，CI终态另行记录",
-    "repairCiStatus": "PENDING_REMOTE_VALIDATION",
-    "note": "修复提交的三端CI结论以对应GitHub Actions运行结果为准；不将本地定向检查写成全仓或原生三端通过"
+    "independentReview": "9254db5及010f4d0新增代码/config均无剩余审查阻断；不等于CI全套通过",
+    "secondRepairSha": "010f4d0e830189b9f0355fb4dcee64667578a243",
+    "secondRepairRunUrl": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/38913427600",
+    "secondRepairObservedResult": "三端终态FAILED；安装、全workspace同步、换行、脚本回归、静态与JS检查通过；Linux Python为2779通过/235跳过/2失败，均因旧回测基线指纹漂移；macOS也报同一基线漂移；Windows为2762通过/251跳过/3失败，多一项打开文件替换被OS拒绝时的错误信息假设。后续独立回归步/Linux构建被跳过",
+    "windowsTestClosure": "测试显式验证成功替换与PermissionError拒绝两种路径：都抛MarketQualityExportError，且分别核对错误信息/原因及文件内容；本地首红后2项通过，Ruff/格式通过。未改生产读取防护，将与已批准基线合并推送后核对原生Windows CI",
+    "repairCiStatus": "PENDING_APPROVED_BASELINE_CI",
+    "postApprovalChecks": [
+      "针对Windows替换/拒绝两路径、CLI只读、结果漂移仍非零和隔离零写入共5项通过",
+      "pnpm backtest:regression返回MATCHED，五类categoryCounts均为0，isolated closure had zero mutation",
+      "新基线保持canonical JSON；expectedArtifactSha256、approval.reviewedArtifactSha256及内部制品摘要全部绑定获批04d5e1c0…；除provenance/绑定摘要/approval外逐字段与旧基线一致"
+    ],
+    "baselineReview": {
+      "currentArtifactSha256": "a77a3f38720eb814acb05eb63f886606c0a8012c97788b6539ff0a91ec56a8a4",
+      "candidateArtifactSha256": "04d5e1c0a90fe6ca8fc5dc6edf7aef2b04b7331ec409a4348324d094db98b322",
+      "categoryCounts": {
+        "SCHEMA": 0,
+        "MANIFEST_INPUT": 0,
+        "ALGORITHM_CONFIG": 230,
+        "DEPENDENCY_TOOLCHAIN": 1,
+        "RESULT": 0
+      },
+      "normalizedDelta": "按路径归一仅新增6个已交付契约文件及公共__init__.py导出变化，无移除或回测计算代码变化；唯一非code差异为ashare-contracts来源汇总SHA",
+      "unchanged": "schema/identity/trust/manifest/inputs/versions/results逐字段完全一致；230项code差异含有序清单位置平移，不代表230处算法行为变化",
+      "baselineModified": true,
+      "approvalRequiredBy": "docs/architecture/backtest-regression.md:19",
+      "candidateLocation": "work/v1-release-20261016/ci-regression-candidate-010f4d0.json",
+      "summaryLocation": "work/v1-release-20261016/ci-regression-summary-010f4d0.json",
+      "independentReview": "CANDIDATE_VALID_FOR_HUMAN_APPROVAL；独立复算内部制品摘要与canonical bytes一致，字段级不变和路径归一差异已核对；此结论不代替人工批准",
+      "status": "HUMAN_APPROVED_AND_APPLIED",
+      "approvalId": "release-contract-provenance-20261016",
+      "reviewedBy": "human-user",
+      "reviewedAt": "2026-10-16T14:54:54.600710Z",
+      "humanResponse": "批准此候选，更新基线并继续"
+    },
+    "note": "用户明确批准候选04d5e1c0…后更新基线与绑定approval；fresh smoke字节与获批候选完全一致。只接受已审provenance变化，不改变结果、输入、比较门禁或既有标签；三端CI终态单独记录"
   },
   "scope": "P1-N11 单实例每日日线调度切片；不关闭完整分布式调度节点或Phase",
   "outcome": "显式启用后按Asia/Shanghai每日09:00运行当前8个样本；迟启动补当日一次、重启不重复、不重置最多3轮预算",
