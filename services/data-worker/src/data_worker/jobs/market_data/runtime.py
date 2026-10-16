@@ -38,13 +38,18 @@ from data_worker.jobs.market_data.remote_settings import (
     remote_market_data_settings_source,
     validate_remote_settings_worker_token,
 )
+from data_worker.jobs.market_data.status import (
+    MarketDataSyncStatusError,
+    MarketDataSyncStatusPublisher,
+    WorkerStatusErrorCode,
+)
 from data_worker.providers.akshare import AKShareMarketDataProvider, ClientFactory
 from data_worker.raw import LocalFileStorage
 from market_core.instrument.code_parser import (
     ExchangeCode,
     is_market_data_code_for_exchange,
 )
-from market_core.providers import ProviderError
+from market_core.providers import ProviderDataError, ProviderError
 from market_core.providers.tushare import TushareConfig, TushareMarketDataProvider
 from market_core.storage import ClickHouseBarConfig, ClickHouseBarWriter
 
@@ -110,6 +115,7 @@ class MarketDataSyncSettings:
     managed_settings_allow_local_http: bool = False
     managed_revision: int | None = None
     quality_public_root: Path | None = None
+    status_public_root: Path | None = None
 
     def __post_init__(self) -> None:
         if self.continuous and self.poll_seconds < 60:
@@ -225,6 +231,12 @@ def load_market_data_settings(
         if quality_public_root_value is None or not quality_public_root_value.strip()
         else Path(quality_public_root_value.strip())
     )
+    status_public_root_value = environ.get("MARKET_DATA_STATUS_PUBLIC_ROOT")
+    status_public_root = (
+        None
+        if status_public_root_value is None or not status_public_root_value.strip()
+        else Path(status_public_root_value.strip())
+    )
     return MarketDataSyncSettings(
         token=token,
         tushare_endpoint=tushare_endpoint,
@@ -250,6 +262,7 @@ def load_market_data_settings(
         ),
         managed_revision=None if managed is None else managed.revision,
         quality_public_root=quality_public_root,
+        status_public_root=status_public_root,
     )
 
 
@@ -268,6 +281,8 @@ class MarketDataRunner:
         checkpoint_root: Path | None = None,
         clock: Clock = _utc_now,
         quality_publisher: QualityCyclePublisher | None = None,
+        provider: str = "akshare",
+        status_public_root: Path | None = None,
     ) -> None:
         if not symbols:
             raise ValueError("symbols must not be empty")
@@ -284,6 +299,17 @@ class MarketDataRunner:
         self._run_id = run_id or (None if checkpoint_root is not None else f"market-{uuid4().hex}")
         self._clock = clock
         self._quality_publisher = quality_publisher
+        status_symbols = tuple(dict.fromkeys((*symbols, *minute_symbols)))
+        self._status_publisher = (
+            None
+            if status_public_root is None
+            else MarketDataSyncStatusPublisher(
+                status_public_root,
+                provider=provider,
+                symbols=status_symbols,
+                clock=clock,
+            )
+        )
         self._capture_ordinal = 0
         self._daily_refreshed_for: date | None = None
         self._checkpoint_store = (
@@ -493,13 +519,53 @@ class MarketDataRunner:
             self._quality_publisher.publish_cycle()
         return summary
 
+    @staticmethod
+    def _status_error_code(error: Exception) -> WorkerStatusErrorCode:
+        if isinstance(error, ProviderDataError):
+            return "VALIDATION_ERROR"
+        if isinstance(error, ProviderError):
+            return "SOURCE_ERROR"
+        if isinstance(error, (TypeError, ValueError)):
+            return "VALIDATION_ERROR"
+        return "SYNC_ERROR"
+
+    def _run_with_status(
+        self, operation: Callable[[], MarketDataSyncSummary]
+    ) -> MarketDataSyncSummary:
+        publisher = self._status_publisher
+        if publisher is None:
+            return operation()
+
+        publisher.publish_running()
+        try:
+            summary = operation()
+        except Exception as error:
+            try:
+                publisher.publish_failed(self._status_error_code(error))
+            except MarketDataSyncStatusError as status_error:
+                raise error from status_error
+            raise
+
+        publisher.publish_succeeded(
+            requests=summary.requests,
+            received_bars=summary.received_bars,
+            written_bars=summary.written_bars,
+            daily_refreshed=summary.daily_refreshed,
+        )
+        return summary
+
     def run_cycle(self) -> MarketDataSyncSummary:
-        if self._checkpoint_store is None:
-            return self._run_cycle_without_checkpoint()
-        with self._checkpoint_store.locked():
-            checkpoint = self._checkpoint_store.load_or_create(self._requested_run_id)
-            self._run_id = checkpoint.run_id
-            return self._run_cycle_with_checkpoint(checkpoint)
+        checkpoint_store = self._checkpoint_store
+        if checkpoint_store is None:
+            return self._run_with_status(self._run_cycle_without_checkpoint)
+        with checkpoint_store.locked():
+
+            def run_locked() -> MarketDataSyncSummary:
+                checkpoint = checkpoint_store.load_or_create(self._requested_run_id)
+                self._run_id = checkpoint.run_id
+                return self._run_cycle_with_checkpoint(checkpoint)
+
+            return self._run_with_status(run_locked)
 
 
 def _managed_settings_digest(settings: MarketDataSyncSettings) -> str:
@@ -754,6 +820,8 @@ def build_market_data_runner(
         checkpoint_root=selected_checkpoint_root,
         clock=clock,
         quality_publisher=quality_publisher,
+        provider=settings.provider,
+        status_public_root=settings.status_public_root,
     )
 
 

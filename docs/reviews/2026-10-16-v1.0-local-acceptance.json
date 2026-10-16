@@ -453,5 +453,62 @@
       "path": "services/data-worker/tests/test_akshare_provider.py",
       "sha256": "e62bdc7ed0f47e301b151cf1f81173bd9c0fdfa0a2d3417565eb63ad99fbc26b"
     }
-  ]
+  ],
+  "localFinalization": {
+    "recordedAt": "2026-10-16T18:48:50.892105+08:00",
+    "version": "1.0.0",
+    "sourceBaseSha": "01c0e49681fa136dc389bc26330f07a0e714c939",
+    "stagedFileCount": 58,
+    "stagedPatchSha256": "e630c07e0975d76ed076c47519e01a7cdfc4f49f332d0327d0c278f58e27022e",
+    "images": [
+      {
+        "image": "kunlun-server:local",
+        "id": "sha256:2962f45d46cd8470ba6bf94aab79051abf464f8793b2975252d9e5f24e398b6e",
+        "env": false,
+        "backup": false,
+        "example": true,
+        "frozenTag": "kunlun-server:1.0.0"
+      },
+      {
+        "image": "kunlun-web:local",
+        "id": "sha256:d75a97bb6dc5e435d0e05726349ccaf872d4b9459328e116dd710bfbaab7fe64",
+        "env": false,
+        "backup": false,
+        "example": true,
+        "frozenTag": "kunlun-web:1.0.0"
+      },
+      {
+        "image": "kunlun-data-worker:local",
+        "id": "sha256:5b5420919bb09d6b903dbdd61ef1851d3468af0eb85425fc264b1207cf773f01",
+        "env": false,
+        "backup": false,
+        "example": true,
+        "frozenTag": "kunlun-data-worker:1.0.0"
+      },
+      {
+        "image": "kunlun-data-worker-migrate:local",
+        "id": "sha256:0cae4a29c781c0a694ffe4e92e6316e425e0210cf745034a47543a333becf92f",
+        "env": false,
+        "backup": false,
+        "example": true,
+        "frozenTag": "kunlun-data-worker-migrate:1.0.0"
+      }
+    ],
+    "runtime": "本地镜像构建并启动通过，health=ok/version=1.0.0；此后工作区进入独立的1.0.1状态模块",
+    "securityBlocker": "递归排除真实.env和work/var；四个首发镜像均确认未含本地环境文件与备份，保留不可用.env.example",
+    "review": "版本身份及镜像排除修复经独立审查，无未关闭阻断；复用前述业务验收，不重复恢复演练",
+    "gitStatus": "已获明确授权创建提交/tag并推送origin/master和v1.0.0；远端指向已核对",
+    "commitSha": "72984d581d2afc2f449ca8c3956d2b88f05a4ab7",
+    "gitTag": "v1.0.0",
+    "remotePublication": false,
+    "preservedUnstaged": "用户Word手册与9月材料；1.0.1增量均未加入首发提交",
+    "status": "GIT_VERSION_PUSHED",
+    "gitRecordedAt": "2026-10-16T20:23:19.026949+08:00",
+    "gitVerification": "提交差异与获准冻结差异SHA-256一致，标签解析到同一提交，暂存区为空，工作区应用版本仍为1.0.1",
+    "gitRemote": {
+      "branch": "master",
+      "tag": "v1.0.0",
+      "commitSha": "72984d581d2afc2f449ca8c3956d2b88f05a4ab7"
+    }
+  }
 }

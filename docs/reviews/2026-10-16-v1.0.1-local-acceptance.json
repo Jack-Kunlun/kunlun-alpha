@@ -1,0 +1,199 @@
+{
+  "status": "LOCAL_ACCEPTANCE_PASSED_NOT_RELEASED",
+  "version": "1.0.1",
+  "verifiedAt": "2026-10-16T18:59:48.175455+08:00",
+  "baseSha": "01c0e49681fa136dc389bc26330f07a0e714c939",
+  "commitSha": null,
+  "gitTag": null,
+  "scope": "P1-N11 状态记录/查询切片，验收后接入 P6-N02/N06 现有日线页面；不关闭完整调度节点或 Phase",
+  "outcome": "最近尝试、最近任务成功和行情日期分别展示；失败保留同来源/同清单的先前成功，无记录/坏记录明确未知",
+  "filesChanged": [
+    "Dockerfile",
+    "README.md",
+    "apps/server/package.json",
+    "apps/server/src/app-version.ts",
+    "apps/server/src/app.controller.test.ts",
+    "apps/server/src/app.module.ts",
+    "apps/server/src/modules/market-data-status/market-data-status.controller.test.ts",
+    "apps/server/src/modules/market-data-status/market-data-status.controller.ts",
+    "apps/server/src/modules/market-data-status/market-data-status.module.ts",
+    "apps/server/src/modules/market-data-status/market-data-status.reader.test.ts",
+    "apps/server/src/modules/market-data-status/market-data-status.reader.ts",
+    "apps/web/package.json",
+    "apps/web/src/features/instrument/instrument-intelligence-page.tsx",
+    "apps/web/src/features/market-data-status/market-data-status.test.tsx",
+    "apps/web/src/features/market-data-status/market-data-status.tsx",
+    "apps/web/src/features/market-data-status/use-market-data-status.ts",
+    "apps/web/src/features/market-overview/market-overview-page.tsx",
+    "docs/development/docker-local.md",
+    "docs/runbooks/market-data-source.md",
+    "docs/superpowers/plans/2026-10-16-post-v1-roadmap.md",
+    "infra/docker/docker-compose.v1.yml",
+    "package.json",
+    "packages/contracts/schemas/data-quality/market-data-sync-status.json",
+    "packages/shared-types/src/index.ts",
+    "python/packages/ashare-contracts/src/ashare_contracts/__init__.py",
+    "python/packages/ashare-contracts/src/ashare_contracts/data_quality_market_data_sync_status.py",
+    "scripts/ci/v1-compose.test.mjs",
+    "services/data-worker/src/data_worker/jobs/market_data/runtime.py",
+    "services/data-worker/src/data_worker/jobs/market_data/status.py",
+    "services/data-worker/tests/test_market_data_runtime.py",
+    "services/data-worker/tests/test_market_data_sync_status.py"
+  ],
+  "designDecisions": [
+    "显式 opt-in 的独立原子元数据文件，无新增依赖、DB角色或迁移；server只读元数据卷，worker沿用检查点锁",
+    "生成并共享版本化闭合契约；固定错误码，拒绝额外字段、坏时间、坏计数、范围不符和符号链接",
+    "任务成功不等于产生新行情；历史视图明确标记当前任务状态，清单外标的不借用任务成功",
+    "超过15分钟的未结束记录仅表示状态待确认；不添加心跳、自动恢复或调度器"
+  ],
+  "failingEvidenceBeforeFix": [
+    "新 API reader 和新页面测试首先因缺少对应实现失败，随后各自通过",
+    "worker时钟回拨、状态写入错误掩盖原错误、启用状态时1..100清单边界回归先红后绿",
+    "SUCCEEDED/FAILED→RUNNING两例先因旧lastFinishedAt被保留失败，清空本次结束时间后43项通过",
+    "health先观察到1.0.0而要求1.0.1，更新应用版本后通过",
+    "独立审查发现T24被Node归一化接受；回归先实际返回SUCCEEDED，修复后UNKNOWN/INVALID_STATUS",
+    "未知页面的最初反向文案断言误匹配字段标题，改为检查没有伪造time元素，最终25项通过"
+  ],
+  "verification": [
+    {
+      "command": "./.venv/bin/pytest --no-cov -q services/data-worker/tests/test_market_data_sync_status.py services/data-worker/tests/test_market_data_runtime.py",
+      "result": "43 passed"
+    },
+    {
+      "command": "./.venv/bin/ruff check services/data-worker/src/data_worker/jobs/market_data/status.py services/data-worker/src/data_worker/jobs/market_data/runtime.py services/data-worker/tests/test_market_data_sync_status.py services/data-worker/tests/test_market_data_runtime.py",
+      "result": "All checks passed"
+    },
+    {
+      "command": "./.venv/bin/ruff format --check services/data-worker/src/data_worker/jobs/market_data/status.py services/data-worker/src/data_worker/jobs/market_data/runtime.py services/data-worker/tests/test_market_data_sync_status.py services/data-worker/tests/test_market_data_runtime.py",
+      "result": "4 files already formatted"
+    },
+    {
+      "command": "./.venv/bin/basedpyright services/data-worker/src/data_worker/jobs/market_data/status.py services/data-worker/src/data_worker/jobs/market_data/runtime.py services/data-worker/tests/test_market_data_sync_status.py services/data-worker/tests/test_market_data_runtime.py",
+      "result": "0 errors, 0 warnings"
+    },
+    {
+      "command": "node packages/contracts/scripts/gen-typescript.mjs --check",
+      "result": "passed"
+    },
+    {
+      "command": "./.venv/bin/python packages/contracts/scripts/gen-python.py --check",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm --filter @kunlun/shared-types build",
+      "result": "passed; refreshed local generated declaration output before server typecheck"
+    },
+    {
+      "command": "pnpm --filter @kunlun/server typecheck",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts src/modules/market-data-status",
+      "result": "18 passed after final time validation fix"
+    },
+    {
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/market-data-status/market-data-status.test.tsx src/features/market-overview/market-overview-page.test.tsx src/features/instrument/instrument-intelligence-page.test.tsx",
+      "result": "25 passed"
+    },
+    {
+      "command": "pnpm --filter @kunlun/web typecheck",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm exec eslint apps/server/src/modules/market-data-status apps/server/src/app.module.ts",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm exec eslint apps/web/src/features/market-data-status apps/web/src/features/market-overview/market-overview-page.tsx apps/web/src/features/instrument/instrument-intelligence-page.tsx",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm v1:config:check",
+      "result": "5 passed"
+    },
+    {
+      "command": "pnpm exec prettier --check (affected TypeScript/schema/generated types, package metadata, Compose/config test and release docs)",
+      "result": "passed; final documentation check recorded after this receipt was saved"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed; no index changes"
+    },
+    {
+      "command": "docker compose (base + apps + v1) build server web market-data-sync data-worker-migrate",
+      "result": "passed; 4 local images built"
+    },
+    {
+      "command": "docker compose (base + apps + v1) up -d --no-build web",
+      "result": "passed; retained data, migration prerequisites exited 0"
+    },
+    {
+      "command": "docker compose (base + apps + v1) --profile real-market-data run --rm --no-deps market-data-sync",
+      "result": "passed; requests=0, receivedBars=0, writtenBars=0, dailyRefreshed=false, rawCaptureIds=[]"
+    },
+    {
+      "command": "docker compose (base + apps + v1) build server web",
+      "result": "passed after review fix"
+    },
+    {
+      "command": "docker compose (base + apps + v1) up -d --no-build --no-deps server web",
+      "result": "passed; final Node images replaced, persistence retained"
+    },
+    {
+      "command": "curl http://localhost:3002/api/v1/health; anonymous GET /api/v1/market-data/status",
+      "result": "health ok/version=1.0.1; anonymous 401"
+    },
+    {
+      "command": "docker exec -i kunlun-server node (live reader plus isolated invalid-time fixture)",
+      "result": "actual live SUCCEEDED with 0 counts; T24 fixture UNKNOWN/INVALID_STATUS; fixture cleaned"
+    },
+    {
+      "command": "docker ps / image inspect; metadata-only stat and bounded status read",
+      "result": "4 required services healthy; directory 10001:10001/0755, file 10001:10001/0644, server no raw mount; local env and backup absent"
+    },
+    {
+      "command": "CUA browser: overview before/after task, instrument 600519.SH, final overview after image replacement",
+      "result": "unknown before first recorded run; latest success at 18:49:35 Shanghai, market data cutoff remains 2026-10-15 15:00:00"
+    }
+  ],
+  "attemptLimitations": [
+    "初次Web命令 test -- path 意外选择全Web模块，既有244项通过、新实现缺失导致失败；随后使用exec vitest run只选受影响3文件",
+    "初次server类型检查遇到旧shared-types dist，构建该包后通过；最终应用构建含server/web类型编译",
+    "直接沙箱curl无法连接本机，提权后健康和401检查通过；首次Docker stdin检查未带-i而未运行脚本，修正为-i后获得实际断言输出",
+    "不重复备份恢复，不再执行全仓检查，不人为制造真实来源失败"
+  ],
+  "independentReview": {
+    "status": "NO_REMAINING_BLOCKERS",
+    "fixedFinding": "非法T24时间戳验证",
+    "runtimeClosure": "最终Node镜像内实际坏时间夹具返回UNKNOWN/INVALID_STATUS，真实状态与只读卷继续可用"
+  },
+  "runtime": {
+    "healthVersion": "1.0.1",
+    "requiredServices": "postgres/clickhouse/server/web healthy",
+    "anonymousStatusHttp": 401,
+    "lastTaskSuccessAt": "2026-10-16T10:49:35.536033Z",
+    "requests": 0,
+    "receivedBars": 0,
+    "writtenBars": 0,
+    "dailyDataCutoff": "2026-10-15T15:00:00+08:00",
+    "images": {
+      "kunlun-server:local": "sha256:c6284f706e6f521aeba096ed42e2397923b63a02cb01359fc6ede7b19b4243f9",
+      "kunlun-web:local": "sha256:11350249d0f359d789134432bf8a4e29528afc87c4842ccb87c9040a77549ae6",
+      "kunlun-data-worker:local": "sha256:611600bdec2d0343c2c45a44df1eaa63110a4ac8fc09580ce3cdab6176930936",
+      "kunlun-data-worker-migrate:local": "sha256:86a9351ea0b4a4ee92392a3224a4730b1440beda03c207d7b5ffd13f3022d713"
+    },
+    "screenshot": "work/v1-release-20261016/status-module-overview.png"
+  },
+  "crossPlatform": "macOS本地工具与Docker Linux实际通过；使用Path/path、os.tmpdir、POSIX条件权限与原子替换。原生Windows/Linux未执行。",
+  "securityDataTradingImpact": "无凭据、账号权限或数据库模型变更；只读认证接口，不挂raw；不改行情、不删检查点，不启用真实或模拟下单。",
+  "remainingRisks": [
+    "来源仍按显式命令更新，不保证实时或全市场",
+    "1.0.1增量未提交；首发58文件已独立提交并标记v1.0.0，未混入本次增量",
+    "原生Windows/Linux行为未运行验证"
+  ],
+  "nonGoals": ["自动采集(1.0.2)", "增加标的(1.0.3)", "新的运维后台", "模拟交易、QMT或真实买卖"],
+  "nextPlannedVersion": "1.0.2 受控自动更新；本轮未开始",
+  "remotePublication": false,
+  "releaseBaselineSha": "72984d581d2afc2f449ca8c3956d2b88f05a4ab7",
+  "releaseBaselineTag": "v1.0.0"
+}

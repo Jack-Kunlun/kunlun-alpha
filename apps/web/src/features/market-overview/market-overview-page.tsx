@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTerminalFilters } from "@/app/filter-context";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
 import { useMarketOverview } from "./use-market-overview";
+import { MarketDataStatus } from "@/features/market-data-status/market-data-status";
 
 function shanghaiTime(value: string | null): string {
   if (value === null) return "暂无";
@@ -178,6 +179,7 @@ export function MarketOverviewPage() {
           汇总已入库股票样本的涨跌分布与成交额，显示实际日期和来源；样本数量不代表全市场覆盖。
         </p>
       </header>
+      <MarketDataStatus historical={filters.asOf !== null} />
       <MarketOverviewView result={result} />
     </div>
   );

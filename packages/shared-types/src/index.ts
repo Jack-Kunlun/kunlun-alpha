@@ -937,6 +937,63 @@ export interface MarketCoverageRow {
 }
 
 /**
+ * This interface was referenced by `MarketDataSyncStatus`'s JSON-Schema
+ * via the `definition` "MarketDataSyncStatusValue".
+ */
+export type MarketDataSyncStatusValue = "UNKNOWN" | "RUNNING" | "SUCCEEDED" | "FAILED";
+/**
+ * This interface was referenced by `MarketDataSyncStatus`'s JSON-Schema
+ * via the `definition` "MarketDataSyncProvider".
+ */
+export type MarketDataSyncProvider = "akshare" | "tushare";
+/**
+ * This interface was referenced by `MarketDataSyncStatus`'s JSON-Schema
+ * via the `definition` "MarketDataSyncSymbol".
+ */
+export type MarketDataSyncSymbol = string;
+/**
+ * This interface was referenced by `MarketDataSyncStatus`'s JSON-Schema
+ * via the `definition` "MarketDataSyncErrorCode".
+ */
+export type MarketDataSyncErrorCode =
+  | "SOURCE_ERROR"
+  | "VALIDATION_ERROR"
+  | "SYNC_ERROR"
+  | "NO_RUN"
+  | "STATUS_UNAVAILABLE"
+  | "INVALID_STATUS"
+  | "SCOPE_MISMATCH"
+  | "RUN_STATUS_EXPIRED";
+
+/**
+ * Sanitized status of an explicitly run market-data synchronization attempt.
+ */
+export interface MarketDataSyncStatus {
+  schemaVersion: "market-data-sync-status-v1";
+  status: MarketDataSyncStatusValue;
+  provider: MarketDataSyncProvider;
+  /**
+   * @maxItems 100
+   */
+  symbols: MarketDataSyncSymbol[];
+  lastAttemptAt: string | null;
+  lastFinishedAt: string | null;
+  lastSuccessAt: string | null;
+  lastSuccessResult: MarketDataSyncStatusResult | null;
+  errorCode: MarketDataSyncErrorCode | null;
+}
+/**
+ * This interface was referenced by `MarketDataSyncStatus`'s JSON-Schema
+ * via the `definition` "MarketDataSyncStatusResult".
+ */
+export interface MarketDataSyncStatusResult {
+  requests: number;
+  receivedBars: number;
+  writtenBars: number;
+  dailyRefreshed: boolean;
+}
+
+/**
  * This interface was referenced by `MarketQualityEvidencePage`'s JSON-Schema
  * via the `definition` "MarketQualitySource".
  */

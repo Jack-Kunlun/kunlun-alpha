@@ -105,3 +105,18 @@ test("real market sync is explicit, raw-first, daily-only and bounded to the con
   assert.equal(volumes["kunlun-market-raw"].name, "kunlun-market-raw");
   assert.deepEqual(Object.keys(sync.depends_on), ["clickhouse-migrate"]);
 });
+
+test("task status shares sanitized metadata read-only without giving the server raw access", () => {
+  const { services } = configuration(["real-market-data"]);
+  const target = "/workspace/var/market-status-public";
+  const reader = services.server.volumes.find((mount) => mount.target === target);
+  const writer = services["market-data-sync"].volumes.find((mount) => mount.target === target);
+  assert.ok(reader && writer);
+  assert.equal(reader.source, writer.source);
+  assert.equal(reader.read_only, true);
+  assert.notEqual(writer.read_only, true);
+  assert.equal(services.server.environment.MARKET_DATA_STATUS_PUBLIC_ROOT, target);
+  assert.equal(services["market-data-sync"].environment.MARKET_DATA_STATUS_PUBLIC_ROOT, target);
+  assert.ok(!services.server.volumes.some((mount) => mount.source === "kunlun-market-raw"));
+  assert.equal(services["market-data-sync"].environment.MARKET_DATA_RUN_MODE, "once");
+});

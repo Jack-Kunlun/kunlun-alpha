@@ -23,6 +23,10 @@ services:
         condition: service_completed_successfully
     environment:
       DASHBOARD_DAILY_SYMBOLS: ${V1_MARKET_DATA_SYMBOLS:-000001.SZ,002594.SZ,300750.SZ,301236.SZ,600000.SH,600519.SH,601318.SH,688981.SH}
+      MARKET_DATA_STATUS_PUBLIC_ROOT: /workspace/var/market-status-public
+      MARKET_DATA_STATUS_PROVIDER: akshare
+    volumes:
+      - kunlun-market-status:/workspace/var/market-status-public:ro
     ports: !override
       - "127.0.0.1:${SERVER_PORT:-3002}:3002"
 
@@ -51,6 +55,9 @@ services:
       MARKET_DATA_SETTINGS_URL: ""
       MARKET_DATA_SETTINGS_WORKER_TOKEN: ""
       MARKET_DATA_SETTINGS_ALLOW_LOCAL_HTTP: "false"
+      MARKET_DATA_STATUS_PUBLIC_ROOT: /workspace/var/market-status-public
+    volumes:
+      - kunlun-market-status:/workspace/var/market-status-public
 
   # These services remain available through the existing development stack.
   # A plain `up` with this overlay must not run deferred or fixture workloads.
@@ -76,3 +83,6 @@ services:
     profiles: !override ["deferred"]
   limit-pool-terminal-materialize:
     profiles: !override ["deferred"]
+
+volumes:
+  kunlun-market-status:

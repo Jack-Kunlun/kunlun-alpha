@@ -13,6 +13,12 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @kunlun/server... run build \
     && pnpm --filter @kunlun/web... run build
 
+# Both the first reader and writer initialize this metadata-only volume with
+# the worker UID. The Node service mounts it read-only and needs no raw access.
+RUN mkdir -p /workspace/var/market-status-public \
+    && chown 10001:10001 /workspace/var/market-status-public \
+    && chmod 0755 /workspace/var/market-status-public
+
 FROM node-build AS server
 
 ENV NODE_ENV=production
@@ -79,7 +85,7 @@ COPY . .
 RUN uv sync --locked --no-dev --package data-worker
 RUN groupadd --gid 10001 kunlun \
     && useradd --create-home --uid 10001 --gid 10001 kunlun \
-    && mkdir -p /workspace/var/market-raw /workspace/var/market-quality-public \
+    && mkdir -p /workspace/var/market-raw /workspace/var/market-quality-public /workspace/var/market-status-public \
     && chown -R 10001:10001 /workspace/var \
     && chmod 0755 /workspace/var/market-quality-public
 

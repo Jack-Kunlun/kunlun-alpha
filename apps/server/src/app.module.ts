@@ -17,11 +17,13 @@ import { PaperTerminalModule } from "./modules/paper/paper-terminal.module";
 import { RankingTerminalModule } from "./modules/ranking/ranking-terminal.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { MarketDataSettingsModule } from "./modules/market-data-settings/market-data-settings.module";
+import { MarketDataStatusModule } from "./modules/market-data-status/market-data-status.module";
 
 @Module({
   imports: [
     AuthModule,
     MarketDataSettingsModule,
+    MarketDataStatusModule,
     DataQualityModule,
     EmotionModule,
     EventFeedbackModule,

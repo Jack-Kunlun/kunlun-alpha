@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
+import { MarketDataStatus } from "@/features/market-data-status/market-data-status";
 import { isCanonicalInstrumentId, useInstrumentIntelligence } from "./use-instrument-intelligence";
 import { InstrumentKlineChart } from "./instrument-kline-chart";
 import { summarizeInstrumentBars } from "./instrument-bars-summary";
@@ -646,12 +647,15 @@ export function InstrumentIntelligencePage() {
   const result = useInstrumentIntelligence(instrumentId, filters.asOf);
   const barsResult = useInstrumentBars(instrumentId, filters.asOf, barsWindow);
   return (
-    <InstrumentIntelligenceView
-      instrumentId={instrumentId}
-      result={result}
-      barsResult={barsResult}
-      barsWindow={barsWindow}
-      onBarsWindowChange={setBarsWindow}
-    />
+    <div className="space-y-6">
+      <MarketDataStatus historical={filters.asOf !== null} instrumentId={instrumentId} />
+      <InstrumentIntelligenceView
+        instrumentId={instrumentId}
+        result={result}
+        barsResult={barsResult}
+        barsWindow={barsWindow}
+        onBarsWindowChange={setBarsWindow}
+      />
+    </div>
   );
 }

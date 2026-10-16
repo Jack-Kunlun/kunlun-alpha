@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -28,8 +29,13 @@ from data_worker.jobs.market_data.runtime import (
     build_market_data_runner,
     load_market_data_settings,
 )
+from data_worker.jobs.market_data.status import (
+    STATUS_FILENAME,
+    MarketDataSyncStatusError,
+)
 from data_worker.providers.akshare import AKShareMarketDataProvider
 from data_worker.raw.storage import LocalFileStorage
+from market_core.providers import ProviderAuthError, ProviderDataError
 from market_core.providers.tushare import TushareMarketDataProvider
 from market_core.storage import StoredBar
 
@@ -82,6 +88,101 @@ def test_settings_default_to_akshare_without_token() -> None:
     assert settings.daily_lookback_days == 730
     assert settings.continuous is False
     assert settings.quality_public_root is None
+    assert settings.status_public_root is None
+
+
+def test_settings_enable_public_sync_status_only_for_explicit_nonempty_root(
+    tmp_path: Path,
+) -> None:
+    assert (
+        load_market_data_settings({"MARKET_DATA_STATUS_PUBLIC_ROOT": " "}).status_public_root
+        is None
+    )
+    settings = load_market_data_settings(
+        {"MARKET_DATA_STATUS_PUBLIC_ROOT": str(tmp_path / "public-status")}
+    )
+    assert settings.status_public_root == tmp_path / "public-status"
+
+
+def test_status_scope_limit_is_opt_in_and_accepts_one_hundred_symbols(
+    tmp_path: Path,
+) -> None:
+    symbols_100 = tuple(f"{index:06d}.SH" for index in range(1, 101))
+    enabled = MarketDataRunner(
+        RecordingCollector(),
+        symbols=symbols_100,
+        daily_lookback_days=2,
+        status_public_root=tmp_path / "status-100",
+    )
+
+    enabled.run_cycle()
+
+    status = json.loads((tmp_path / "status-100" / STATUS_FILENAME).read_text(encoding="utf-8"))
+    assert len(status["symbols"]) == 100
+    symbols_101 = tuple(f"{index:06d}.SH" for index in range(1, 102))
+    disabled = MarketDataRunner(
+        RecordingCollector(),
+        symbols=symbols_101,
+        daily_lookback_days=2,
+    )
+    assert disabled.run_cycle().requests == 101
+
+    with pytest.raises(MarketDataSyncStatusError, match="between 1 and 100 unique symbols"):
+        MarketDataRunner(
+            RecordingCollector(),
+            symbols=symbols_101,
+            daily_lookback_days=2,
+            status_public_root=tmp_path / "status-101",
+        )
+
+
+@pytest.mark.parametrize(
+    ("error", "error_code"),
+    (
+        (ProviderAuthError("provider secret-marker"), "SOURCE_ERROR"),
+        (ProviderDataError("malformed secret-marker"), "VALIDATION_ERROR"),
+        (ValueError("invalid secret-marker"), "VALIDATION_ERROR"),
+        (RuntimeError("internal secret-marker"), "SYNC_ERROR"),
+    ),
+    ids=("provider", "provider-data", "validation", "sync"),
+)
+def test_status_failure_publishes_only_fixed_error_categories(
+    tmp_path: Path,
+    error: Exception,
+    error_code: str,
+) -> None:
+    class FailingCollector:
+        def collect(
+            self,
+            unified_code: str,
+            interval: str,
+            start_date: str,
+            end_date: str,
+            *,
+            run_id: str,
+            capture_ordinal: int,
+            processing_time: datetime | None = None,
+        ) -> MarketDataCollectionResult:
+            _ = (unified_code, interval, start_date, end_date, run_id, capture_ordinal)
+            _ = processing_time
+            raise error
+
+    runner = MarketDataRunner(
+        FailingCollector(),
+        symbols=("600519.SH",),
+        daily_lookback_days=2,
+        clock=lambda: datetime(2026, 10, 16, 1, 0, tzinfo=UTC),
+        status_public_root=tmp_path,
+    )
+
+    with pytest.raises(type(error)):
+        runner.run_cycle()
+
+    status_text = (tmp_path / STATUS_FILENAME).read_text(encoding="utf-8")
+    status = json.loads(status_text)
+    assert status["status"] == "FAILED"
+    assert status["errorCode"] == error_code
+    assert "secret-marker" not in status_text
 
 
 def test_settings_enable_public_quality_only_for_explicit_nonempty_root() -> None:
@@ -400,6 +501,194 @@ def test_checkpoint_lock_rejects_a_concurrent_runner(
         store.locked(),
     ):
         pass
+
+
+def test_checkpoint_status_records_zero_request_success(tmp_path: Path) -> None:
+    status_root = tmp_path / "public-status"
+    checkpoint_root = tmp_path / "checkpoint"
+
+    def clock() -> datetime:
+        return datetime(2026, 10, 16, 1, 0, tzinfo=UTC)
+
+    runner = MarketDataRunner(
+        RecordingCollector(),
+        symbols=("600519.SH",),
+        minute_symbols=(),
+        daily_lookback_days=2,
+        checkpoint_root=checkpoint_root,
+        clock=clock,
+        status_public_root=status_root,
+    )
+
+    first = runner.run_cycle()
+    assert first.requests == 1
+    second = runner.run_cycle()
+    assert second.requests == 0
+
+    payload = json.loads((status_root / STATUS_FILENAME).read_text(encoding="utf-8"))
+    assert payload["status"] == "SUCCEEDED"
+    assert payload["lastSuccessResult"] == {
+        "requests": 0,
+        "receivedBars": 0,
+        "writtenBars": 0,
+        "dailyRefreshed": False,
+    }
+
+
+def test_status_is_not_written_when_not_configured(tmp_path: Path) -> None:
+    runner = MarketDataRunner(
+        RecordingCollector(),
+        symbols=("600519.SH",),
+        daily_lookback_days=2,
+        checkpoint_root=tmp_path / "checkpoint",
+        clock=lambda: datetime(2026, 10, 16, 1, 0, tzinfo=UTC),
+    )
+
+    runner.run_cycle()
+
+    assert list(tmp_path.rglob(STATUS_FILENAME)) == []
+
+
+def test_checkpoint_status_failure_keeps_last_success_without_error_text(
+    tmp_path: Path,
+) -> None:
+    status_root = tmp_path / "public-status"
+    checkpoint_root = tmp_path / "checkpoint"
+    first = MarketDataRunner(
+        RecordingCollector(),
+        symbols=("600519.SH",),
+        minute_symbols=(),
+        daily_lookback_days=2,
+        checkpoint_root=checkpoint_root,
+        clock=lambda: datetime(2026, 10, 16, 1, 0, tzinfo=UTC),
+        status_public_root=status_root,
+    )
+    first.run_cycle()
+    successful = json.loads((status_root / STATUS_FILENAME).read_text(encoding="utf-8"))
+
+    class FailingCollector(RecordingCollector):
+        def collect(
+            self,
+            unified_code: str,
+            interval: str,
+            start_date: str,
+            end_date: str,
+            *,
+            run_id: str,
+            capture_ordinal: int,
+            processing_time: datetime | None = None,
+        ) -> MarketDataCollectionResult:
+            raise RuntimeError("provider token secret-marker")
+
+    failed = MarketDataRunner(
+        FailingCollector(),
+        symbols=("600519.SH",),
+        minute_symbols=(),
+        daily_lookback_days=2,
+        checkpoint_root=checkpoint_root,
+        clock=lambda: datetime(2026, 10, 17, 1, 0, tzinfo=UTC),
+        status_public_root=status_root,
+    )
+    with pytest.raises(RuntimeError, match="provider token secret-marker"):
+        failed.run_cycle()
+
+    status_text = (status_root / STATUS_FILENAME).read_text(encoding="utf-8")
+    status = json.loads(status_text)
+    assert status["status"] == "FAILED"
+    assert status["errorCode"] == "SYNC_ERROR"
+    assert status["lastSuccessAt"] == successful["lastSuccessAt"]
+    assert status["lastSuccessResult"] == successful["lastSuccessResult"]
+    assert "secret-marker" not in status_text
+
+
+def test_status_write_rollback_does_not_swallow_sync_failure(
+    tmp_path: Path,
+) -> None:
+    status_root = tmp_path / "public-status"
+    first = MarketDataRunner(
+        RecordingCollector(),
+        symbols=("600519.SH",),
+        daily_lookback_days=2,
+        clock=lambda: datetime(2026, 10, 16, 1, 0, tzinfo=UTC),
+        status_public_root=status_root,
+    )
+    first.run_cycle()
+    prior_status = json.loads((status_root / STATUS_FILENAME).read_text(encoding="utf-8"))
+    times = iter(
+        (
+            datetime(2026, 10, 17, 1, 0, tzinfo=UTC),
+            datetime(2026, 10, 17, 1, 0, tzinfo=UTC),
+            datetime(2026, 10, 17, 1, 0, tzinfo=UTC),
+            datetime(2026, 10, 16, 1, 0, tzinfo=UTC),
+        )
+    )
+
+    class FailingCollector(RecordingCollector):
+        def collect(
+            self,
+            unified_code: str,
+            interval: str,
+            start_date: str,
+            end_date: str,
+            *,
+            run_id: str,
+            capture_ordinal: int,
+            processing_time: datetime | None = None,
+        ) -> MarketDataCollectionResult:
+            raise RuntimeError("worker-secret-marker")
+
+    runner = MarketDataRunner(
+        FailingCollector(),
+        symbols=("600519.SH",),
+        daily_lookback_days=2,
+        clock=lambda: next(times),
+        status_public_root=status_root,
+    )
+
+    with pytest.raises(RuntimeError, match="worker-secret-marker"):
+        runner.run_cycle()
+
+    status_text = (status_root / STATUS_FILENAME).read_text(encoding="utf-8")
+    status = json.loads(status_text)
+    assert status["status"] == "RUNNING"
+    assert status["lastSuccessAt"] == prior_status["lastSuccessAt"]
+    assert status["lastSuccessResult"] == prior_status["lastSuccessResult"]
+    assert "worker-secret-marker" not in status_text
+
+
+def test_lock_contention_does_not_publish_or_replace_status(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkpoint_root = tmp_path / "checkpoint"
+    status_root = tmp_path / "public-status"
+    store = MarketDataCheckpointStore(checkpoint_root)
+    first = MarketDataRunner(
+        RecordingCollector(),
+        symbols=("600519.SH",),
+        daily_lookback_days=2,
+        checkpoint_root=checkpoint_root,
+        clock=lambda: datetime(2026, 10, 16, 1, 0, tzinfo=UTC),
+        status_public_root=status_root,
+    )
+    first.run_cycle()
+    status_path = status_root / STATUS_FILENAME
+    before = status_path.read_bytes()
+
+    competitor = MarketDataRunner(
+        RecordingCollector(),
+        symbols=("000001.SZ",),
+        daily_lookback_days=2,
+        checkpoint_root=checkpoint_root,
+        clock=lambda: datetime(2026, 10, 17, 1, 0, tzinfo=UTC),
+        provider="tushare",
+        status_public_root=status_root,
+    )
+    monkeypatch.setattr(checkpoint_module, "_LOCK_WAIT_SECONDS", 0.01)
+    with store.locked(), pytest.raises(MarketDataCheckpointError, match="locked"):
+        competitor.run_cycle()
+
+    assert status_path.read_bytes() == before
 
 
 def test_checkpoint_recovery_replays_raw_before_provider_fetch(tmp_path: Path) -> None:

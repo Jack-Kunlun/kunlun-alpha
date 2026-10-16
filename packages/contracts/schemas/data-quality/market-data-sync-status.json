@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun.local/contracts/data-quality/market-data-sync-status-v1.json",
+  "title": "MarketDataSyncStatus",
+  "description": "Sanitized status of an explicitly run market-data synchronization attempt.",
+  "x-python-strict-rfc3339": true,
+  "x-python-strict-rfc3339-calendar": true,
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "provider",
+    "symbols",
+    "lastAttemptAt",
+    "lastFinishedAt",
+    "lastSuccessAt",
+    "lastSuccessResult",
+    "errorCode"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "market-data-sync-status-v1"
+    },
+    "status": {
+      "$ref": "#/definitions/MarketDataSyncStatusValue"
+    },
+    "provider": {
+      "$ref": "#/definitions/MarketDataSyncProvider"
+    },
+    "symbols": {
+      "type": "array",
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/MarketDataSyncSymbol"
+      }
+    },
+    "lastAttemptAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "lastFinishedAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "lastSuccessAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "lastSuccessResult": {
+      "anyOf": [{ "$ref": "#/definitions/MarketDataSyncStatusResult" }, { "type": "null" }]
+    },
+    "errorCode": {
+      "anyOf": [{ "$ref": "#/definitions/MarketDataSyncErrorCode" }, { "type": "null" }]
+    }
+  },
+  "definitions": {
+    "MarketDataSyncStatusValue": {
+      "title": "MarketDataSyncStatusValue",
+      "type": "string",
+      "enum": ["UNKNOWN", "RUNNING", "SUCCEEDED", "FAILED"]
+    },
+    "MarketDataSyncProvider": {
+      "title": "MarketDataSyncProvider",
+      "type": "string",
+      "enum": ["akshare", "tushare"]
+    },
+    "MarketDataSyncSymbol": {
+      "title": "MarketDataSyncSymbol",
+      "type": "string",
+      "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$",
+      "x-python-strict": true
+    },
+    "MarketDataSyncErrorCode": {
+      "title": "MarketDataSyncErrorCode",
+      "type": "string",
+      "enum": [
+        "SOURCE_ERROR",
+        "VALIDATION_ERROR",
+        "SYNC_ERROR",
+        "NO_RUN",
+        "STATUS_UNAVAILABLE",
+        "INVALID_STATUS",
+        "SCOPE_MISMATCH",
+        "RUN_STATUS_EXPIRED"
+      ]
+    },
+    "MarketDataSyncStatusResult": {
+      "title": "MarketDataSyncStatusResult",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requests", "receivedBars", "writtenBars", "dailyRefreshed"],
+      "properties": {
+        "requests": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "x-python-strict": true
+        },
+        "receivedBars": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "x-python-strict": true
+        },
+        "writtenBars": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "x-python-strict": true
+        },
+        "dailyRefreshed": {
+          "type": "boolean",
+          "x-python-strict": true
+        }
+      }
+    }
+  }
+}

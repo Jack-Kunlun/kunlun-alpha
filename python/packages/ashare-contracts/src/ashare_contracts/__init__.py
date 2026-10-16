@@ -138,6 +138,24 @@ from ashare_contracts.data_quality_market_coverage_days import (
 from ashare_contracts.data_quality_market_coverage_days import (
     MarketCoverageObservedDay as MarketCoverageObservedDay,
 )
+from ashare_contracts.data_quality_market_data_sync_status import (
+    MarketDataSyncErrorCode as MarketDataSyncErrorCode,
+)
+from ashare_contracts.data_quality_market_data_sync_status import (
+    MarketDataSyncProvider as MarketDataSyncProvider,
+)
+from ashare_contracts.data_quality_market_data_sync_status import (
+    MarketDataSyncStatus as MarketDataSyncStatus,
+)
+from ashare_contracts.data_quality_market_data_sync_status import (
+    MarketDataSyncStatusResult as MarketDataSyncStatusResult,
+)
+from ashare_contracts.data_quality_market_data_sync_status import (
+    MarketDataSyncStatusValue as MarketDataSyncStatusValue,
+)
+from ashare_contracts.data_quality_market_data_sync_status import (
+    MarketDataSyncSymbol as MarketDataSyncSymbol,
+)
 from ashare_contracts.data_quality_market_quality_evidence import (
     MarketQualityEvent as MarketQualityEvent,
 )
@@ -777,6 +795,12 @@ __all__ = [
     "MarketCoverageDaysSource",
     "MarketCoverageDaysWindow",
     "MarketCoverageObservedDay",
+    "MarketDataSyncErrorCode",
+    "MarketDataSyncProvider",
+    "MarketDataSyncStatus",
+    "MarketDataSyncStatusResult",
+    "MarketDataSyncStatusValue",
+    "MarketDataSyncSymbol",
     "MarketQualityEvent",
     "MarketQualityEvidenceCurrent",
     "MarketQualityEvidenceDetail",
