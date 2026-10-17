@@ -1,0 +1,38 @@
+{
+  "version": "1.0.4",
+  "date": "2026-10-17",
+  "status": "LOCAL_ACCEPTED_CI_PENDING",
+  "sourceCandidate": "8e926fddca2b05263d06ed05e4684404e0b3de7c",
+  "nodeSlices": ["P0-N07 basic interactions", "P6-N07 personal browser watchlist"],
+  "outcome": [
+    "Shared field spacing/focus, pending/disabled feedback, draft-preserving refresh and accessible mobile navigation repaired.",
+    "Personal watchlist supports validated batch import, deduplication, search and existing daily-detail links. User data is excluded from Git and image build context."
+  ],
+  "verification": {
+    "tdd": "Seven expected UI state assertions failed before their fixes. The import test initially failed because the feature module was absent; its final 12 behavior cases passed.",
+    "webTargeted": "7 files, 50 tests passed: login, account security panel, notifications, alerts, personal watchlist, instrument directory and route accessibility.",
+    "serverVersion": "app.controller.test.ts: 2 tests passed.",
+    "static": "Affected ESLint, Prettier and git diff --check passed.",
+    "build": "Final affected Web/server shared Node build passed, including TypeScript and Vite. No local full-repository suite.",
+    "independentReview": "One read-only data-integrity review: no blocking findings. Duplicate canonical-code validation and automated two-tab/account-switch coverage remain non-blocking follow-ups.",
+    "browser": [
+      "Isolated API fixture: refresh/save failure retains drafts; submission locks fields with progress feedback; notification read actions disabled during refresh.",
+      "Real browser: 8px field gaps, visible select focus, mobile navigation closes after route selection, cancellation/Escape returns focus, short-viewport dialog scroll works.",
+      "User-requested list: 195 unique entries imported; fresh reload matches all codes and names, 191 canonical-code links and 4 observation-only entries; search and invalid-import error verified.",
+      "A personal-watchlist link opens an existing configured stock daily detail, with 250 real bars, actual 2026-10-16 cutoff and provider version shown; no ingestion was triggered.",
+      "Final local candidate update preserved all 195 entries. Responsive override reset; temporary fixture stopped."
+    ]
+  },
+  "runtime": {
+    "health": "GET /api/v1/health: ok, version 1.0.4",
+    "webImage": "sha256:390c793131cfacd5874977af8a886f5718f8ba6b11ea9e1ae72200d6b899b956",
+    "serverImage": "sha256:5929ace894a91bbc0d98f6f5dd5e38ee630e0332d62cd22f57327716bfa2f7a5",
+    "scope": "Local Web/server only; daily worker and database configuration unchanged."
+  },
+  "limits": [
+    "Watchlist is localStorage on the current browser and origin, namespaced by authenticated user ID; no server/device sync or security isolation claim. Clearing site data removes it; original import text retained locally outside Git.",
+    "Personal favorites are not official instrument master/lifecycle/classification or verified market coverage. Existing 8-symbol daily collection scope remains unchanged. HK/NEEQ/SGE references have no query/trading path.",
+    "Current candidate CI remains pending after push; no v1.0.4 tag, publication or production deployment is claimed."
+  ],
+  "next": "1.0.5 planned: same-date comparison of already ingested daily samples. Market-coverage expansion remains dependent on real master/lifecycle/calendar prerequisites."
+}
