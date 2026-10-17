@@ -34,7 +34,7 @@ function Field({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="grid gap-2">
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}

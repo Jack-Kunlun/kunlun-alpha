@@ -111,8 +111,8 @@ export function NotificationCenter() {
           ) : null}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[88vh] overflow-hidden p-0 sm:max-w-xl">
-        <DialogHeader className="border-b px-6 pt-6 pb-4">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-0 sm:max-w-xl">
+        <DialogHeader className="border-b px-6 pt-6 pr-12 pb-4">
           <DialogTitle>通知中心</DialogTitle>
           <DialogDescription>持久保存自选预警及已读状态，仅用于站内研究提醒。</DialogDescription>
         </DialogHeader>
@@ -148,8 +148,8 @@ export function NotificationCenterPanel({
   onReadAll: () => void | Promise<void>;
 }) {
   return (
-    <div className="min-h-48">
-      <div className="flex items-center justify-between gap-3 border-b px-6 py-3">
+    <div className="min-h-0 overflow-y-auto" aria-busy={loading || pending}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-3">
         <div className="flex items-center gap-2">
           <Badge variant={center?.unreadCount ? "default" : "secondary"}>
             {center?.unreadCount ?? 0} 条未读
@@ -161,7 +161,7 @@ export function NotificationCenterPanel({
             type="button"
             variant="ghost"
             size="sm"
-            disabled={pending || !center?.unreadCount}
+            disabled={loading || pending || !center?.unreadCount}
             onClick={() => void onReadAll()}
           >
             <CheckCheck aria-hidden="true" /> 全部已读
@@ -191,13 +191,13 @@ export function NotificationCenterPanel({
           正在读取通知…
         </p>
       ) : center?.notifications.length ? (
-        <ul className="max-h-[60vh] divide-y overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <ul className="divide-y">
           {center.notifications.map((item) => {
             const unread = item.readAt === null;
             return (
               <li key={item.notificationId} className={unread ? "bg-amber-50/60" : undefined}>
                 <article className="space-y-2 px-6 py-4">
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="truncate text-sm font-semibold">{item.title}</h3>
@@ -214,7 +214,7 @@ export function NotificationCenterPanel({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        disabled={pending}
+                        disabled={loading || pending}
                         onClick={() => void onRead(item.notificationId)}
                       >
                         <Check aria-hidden="true" /> 标记已读

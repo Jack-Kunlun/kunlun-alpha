@@ -73,7 +73,7 @@ describe("terminal route accessibility contract", () => {
     expect(count(html, /<h1(?:\s|>)/g), "page-level heading count").toBe(1);
     expect(html).toContain('href="#terminal-main"');
     expect(html).toContain('aria-label="桌面主导航"');
-    expect(html).toContain('aria-label="移动端主导航"');
+    expect(html).toContain('aria-label="打开主导航"');
     assertAriaReferencesResolve(html);
     assertInteractiveNames(html);
   });

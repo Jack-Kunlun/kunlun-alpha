@@ -42,8 +42,8 @@ export function LoginPage({ onLogin, pending, error }: LoginPageProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <form className="space-y-5" onSubmit={submit}>
-            <div className="space-y-2">
+          <form className="space-y-5" onSubmit={submit} aria-busy={pending}>
+            <div className="grid gap-2">
               <Label htmlFor="kunlun-username">用户名</Label>
               <Input
                 id="kunlun-username"
@@ -60,7 +60,7 @@ export function LoginPage({ onLogin, pending, error }: LoginPageProps) {
                 className="border-white/10 bg-slate-950/60 text-slate-100"
               />
             </div>
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="kunlun-password">密码</Label>
               <Input
                 id="kunlun-password"
@@ -87,7 +87,7 @@ export function LoginPage({ onLogin, pending, error }: LoginPageProps) {
             <Button
               type="submit"
               disabled={pending || username.length === 0 || password.length === 0}
-              className="w-full bg-amber-400 text-center text-slate-950 hover:bg-amber-300"
+              className="w-full bg-amber-400 text-center text-slate-950 not-disabled:hover:bg-amber-300"
             >
               {pending ? "正在验证…" : "登录"}
             </Button>

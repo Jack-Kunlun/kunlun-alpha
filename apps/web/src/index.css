@@ -135,6 +135,21 @@
   input[type="file"]::file-selector-button {
     cursor: inherit;
   }
+
+  select,
+  textarea {
+    @apply min-w-0 max-w-full disabled:opacity-50;
+  }
+
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply border-ring outline-none ring-[3px] ring-ring/50;
+  }
+
+  input[type="checkbox"]:focus-visible,
+  input[type="radio"]:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
 }
 
 @layer utilities {

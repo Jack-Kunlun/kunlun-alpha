@@ -20,4 +20,11 @@ describe("LoginPage", () => {
     expect(html).toContain("用户名或密码错误");
     expect(html).toContain('role="alert"');
   });
+
+  it("announces a pending login and locks its fields", () => {
+    const html = renderToStaticMarkup(<LoginPage onLogin={vi.fn()} pending error={null} />);
+    expect(html).toContain('aria-busy="true"');
+    expect([...html.matchAll(/<input[^>]*disabled=""/g)]).toHaveLength(2);
+    expect(html).toContain("正在验证…");
+  });
 });

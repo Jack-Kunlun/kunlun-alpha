@@ -45,4 +45,22 @@ describe("AccountSecurityPanel", () => {
     expect(html).toContain('autoComplete="current-password"');
     expect(html).toContain('autoComplete="new-password"');
   });
+
+  it("keeps password inputs stable while the update is pending", () => {
+    const html = renderToStaticMarkup(
+      <AccountSecurityPanel
+        sessions={sessions}
+        sessionsLoading={false}
+        sessionsError={null}
+        revokingSessionId={null}
+        passwordPending
+        onRefresh={async () => undefined}
+        onRevoke={async () => undefined}
+        onChangePassword={async () => true}
+      />,
+    );
+    expect(html).toContain('aria-busy="true"');
+    expect([...html.matchAll(/<input[^>]*disabled=""/g)]).toHaveLength(3);
+    expect(html).toContain("正在更新…");
+  });
 });

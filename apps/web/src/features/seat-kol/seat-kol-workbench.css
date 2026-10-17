@@ -92,7 +92,7 @@
 }
 .seat-kol-filter-grid > div {
   display: grid;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 .seat-kol-filter-grid select {
   min-height: 2.25rem;

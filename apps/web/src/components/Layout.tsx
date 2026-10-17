@@ -20,6 +20,7 @@ import {
   WalletCards,
   type LucideIcon,
 } from "lucide-react";
+import { useState } from "react";
 import { matchPath, NavLink, Outlet, useLocation } from "react-router";
 import { useTerminalRoles } from "@/app/access-control";
 import { useTerminalFilters } from "@/app/filter-context";
@@ -32,6 +33,14 @@ import {
 } from "@/app/route-contract";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useOptionalAuth } from "@/features/auth/auth-context";
 import { AccountSecurityDialog } from "@/features/auth/account-security-dialog";
 import { NotificationCenter } from "@/features/alerts/notification-center";
@@ -56,13 +65,22 @@ const routeIcons: Record<TerminalRouteId, LucideIcon> = {
   "market-data-settings": Settings2,
 };
 
-function RouteLink({ route, mobile = false }: { route: TerminalRouteContract; mobile?: boolean }) {
+function RouteLink({
+  route,
+  mobile = false,
+  onNavigate,
+}: {
+  route: TerminalRouteContract;
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
   const Icon = routeIcons[route.id];
   const { hrefForRoute } = useTerminalFilters();
   return (
     <NavLink
       to={hrefForRoute(route.href)}
       end={route.path === "/"}
+      onClick={onNavigate}
       className={({ isActive }) =>
         [
           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-amber-400/80",
@@ -87,7 +105,7 @@ function RouteLink({ route, mobile = false }: { route: TerminalRouteContract; mo
   );
 }
 
-function Navigation({ mobile = false }: { mobile?: boolean }) {
+function Navigation({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const roles = useTerminalRoles();
   const routes = visibleTerminalRoutes(roles);
   return (
@@ -111,13 +129,39 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
             </div>
             <div className="space-y-1">
               {groupRoutes.map((route) => (
-                <RouteLink key={route.id} route={route} mobile={mobile} />
+                <RouteLink key={route.id} route={route} mobile={mobile} onNavigate={onNavigate} />
               ))}
             </div>
           </section>
         );
       })}
     </nav>
+  );
+}
+
+function MobileNavigation() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="lg:hidden"
+          aria-label="打开主导航"
+        >
+          <Menu aria-hidden="true" className="size-5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="top-4 right-4 left-auto w-[min(22rem,calc(100vw-2rem))] translate-x-0 translate-y-0">
+        <DialogHeader className="pr-6 text-left">
+          <DialogTitle>昆仑智策</DialogTitle>
+          <DialogDescription>观势 · 知势 · 策势</DialogDescription>
+        </DialogHeader>
+        <Navigation mobile onNavigate={() => setOpen(false)} />
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -187,17 +231,19 @@ export function Layout() {
                 )}
                 {auth?.session !== null && auth?.session !== undefined && <NotificationCenter />}
                 {auth?.session !== null && auth?.session !== undefined && (
-                  <div className="hidden items-center gap-2 md:flex">
+                  <div className="flex items-center gap-1 sm:gap-2">
                     <AccountSecurityDialog displayName={auth.session.user.displayName} />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       disabled={auth.pending}
+                      aria-busy={auth.pending}
+                      aria-label="退出登录"
                       onClick={() => void auth.logout()}
                     >
                       <LogOut aria-hidden="true" className="size-4" />
-                      退出
+                      <span className="hidden sm:inline">退出</span>
                     </Button>
                   </div>
                 )}
@@ -214,19 +260,7 @@ export function Layout() {
                 <Badge className="hidden sm:inline-flex" variant="outline">
                   日线研究
                 </Badge>
-                <details className="relative lg:hidden">
-                  <summary className="flex size-10 cursor-pointer list-none items-center justify-center rounded-xl border bg-card text-foreground shadow-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-                    <Menu aria-hidden="true" className="size-5" />
-                    <span className="sr-only">打开主导航</span>
-                  </summary>
-                  <div className="absolute top-12 right-0 max-h-[calc(100vh-5rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl border bg-card p-4 shadow-2xl">
-                    <div className="mb-5 border-b pb-4">
-                      <p className="font-semibold">昆仑智策</p>
-                      <p className="text-xs text-muted-foreground">观势 · 知势 · 策势</p>
-                    </div>
-                    <Navigation mobile />
-                  </div>
-                </details>
+                <MobileNavigation />
               </div>
             </div>
           </header>

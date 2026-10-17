@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
 import { MarketDataStatus } from "@/features/market-data-status/market-data-status";
 import { isCanonicalInstrumentId, useInstrumentIntelligence } from "./use-instrument-intelligence";
@@ -603,21 +604,28 @@ export function InstrumentDirectoryPage() {
         个沪深股票日线样本。目录不代表实时可用性，具体日期、来源与空缺以查询结果为准。其他代码可查询，但不承诺已入库。
       </p>
       <form
-        className="mt-8 flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm sm:flex-row"
+        className="mt-8 flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm sm:flex-row sm:items-end"
         onSubmit={submit}
       >
-        <Input
-          aria-label="统一证券代码"
-          value={value}
-          onChange={(event) => setValue(event.target.value.toUpperCase())}
-          placeholder="600519.SH"
-        />
+        <Label htmlFor="instrument-directory-code" className="grid flex-1 items-stretch gap-2">
+          <span className="leading-5">统一证券代码</span>
+          <Input
+            id="instrument-directory-code"
+            value={value}
+            aria-invalid={!valid}
+            aria-describedby={!valid ? "instrument-code-error" : undefined}
+            onChange={(event) => setValue(event.target.value.toUpperCase())}
+            placeholder="600519.SH"
+          />
+        </Label>
         <Button type="submit" disabled={!valid}>
           查看日线
         </Button>
       </form>
       {!valid && (
-        <p className="mt-2 text-sm text-destructive">格式示例：600519.SH、000001.SZ、430047.BJ</p>
+        <p id="instrument-code-error" role="alert" className="mt-2 text-sm text-destructive">
+          格式示例：600519.SH、000001.SZ、430047.BJ
+        </p>
       )}
       <div className="mt-8">
         <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">

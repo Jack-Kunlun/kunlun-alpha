@@ -47,4 +47,23 @@ describe("NotificationCenterPanel", () => {
     expect(html).toContain("仅站内研究提醒");
     expect(html).not.toMatch(/真实下单|broker/i);
   });
+
+  it.each([
+    { loading: true, pending: false },
+    { loading: false, pending: true },
+  ])("locks read actions during refresh or update: %j", ({ loading, pending }) => {
+    const html = renderToStaticMarkup(
+      <NotificationCenterPanel
+        center={center}
+        loading={loading}
+        error={null}
+        pending={pending}
+        onRefresh={vi.fn()}
+        onRead={vi.fn()}
+        onReadAll={vi.fn()}
+      />,
+    );
+    expect(html).toContain('aria-busy="true"');
+    expect([...html.matchAll(/<button[^>]*disabled=""/g)]).toHaveLength(3);
+  });
 });

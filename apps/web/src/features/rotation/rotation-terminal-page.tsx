@@ -460,7 +460,7 @@ export function RotationTerminalPage() {
           });
         }}
       >
-        <div className="grid gap-1.5">
+        <div className="grid gap-2">
           <Label htmlFor="rotation-date">交易日</Label>
           <Input
             id="rotation-date"
@@ -472,7 +472,7 @@ export function RotationTerminalPage() {
             }}
           />
         </div>
-        <div className="grid gap-1.5 xl:col-span-2">
+        <div className="grid gap-2 xl:col-span-2">
           <Label htmlFor="rotation-as-of">回放点（上海时间）</Label>
           <Input
             id="rotation-as-of"
@@ -483,7 +483,7 @@ export function RotationTerminalPage() {
             }
           />
         </div>
-        <div className="grid gap-1.5">
+        <div className="grid gap-2">
           <Label htmlFor="rotation-version">轮动算法版本</Label>
           <Input
             id="rotation-version"
@@ -494,7 +494,7 @@ export function RotationTerminalPage() {
             }
           />
         </div>
-        <div className="grid gap-1.5">
+        <div className="grid gap-2">
           <Label htmlFor="rotation-sector">板块 ID</Label>
           <Input
             id="rotation-sector"
@@ -505,7 +505,7 @@ export function RotationTerminalPage() {
             }
           />
         </div>
-        <div className="grid gap-1.5">
+        <div className="grid gap-2">
           <Label htmlFor="rotation-lifecycle">热点阶段</Label>
           <select
             id="rotation-lifecycle"

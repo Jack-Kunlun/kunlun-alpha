@@ -172,7 +172,7 @@ export function PaperTerminalPage() {
             </CardHeader>
             <CardContent>
               <form className="grid gap-4 md:grid-cols-[1fr_1fr_auto]" onSubmit={createAccount}>
-                <label className="space-y-2 text-sm font-medium">
+                <label className="grid gap-2 text-sm font-medium">
                   账户名称
                   <Input
                     value={accountName}
@@ -180,7 +180,7 @@ export function PaperTerminalPage() {
                     onChange={(event) => setAccountName(event.target.value)}
                   />
                 </label>
-                <label className="space-y-2 text-sm font-medium">
+                <label className="grid gap-2 text-sm font-medium">
                   初始资金（CNY）
                   <Input
                     value={initialCapital}
@@ -221,14 +221,14 @@ export function PaperTerminalPage() {
               </CardHeader>
               <CardContent>
                 <form className="grid gap-4 md:grid-cols-[1fr_1fr_auto]" onSubmit={simulate}>
-                  <label className="space-y-2 text-sm font-medium">
+                  <label className="grid gap-2 text-sm font-medium">
                     证券代码
                     <Input
                       value={instrumentId}
                       onChange={(event) => setInstrumentId(event.target.value)}
                     />
                   </label>
-                  <label className="space-y-2 text-sm font-medium">
+                  <label className="grid gap-2 text-sm font-medium">
                     模拟可执行报价（CNY）
                     <Input
                       value={price}

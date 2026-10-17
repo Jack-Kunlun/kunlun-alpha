@@ -58,6 +58,31 @@ describe("AlertsPage", () => {
     expect(errorHtml).toContain("重新加载");
   });
 
+  it("retains the workspace and reports background refresh failure", () => {
+    mockedUseWatchlistAlerts.mockReturnValue({ ...model("ready"), error: "刷新失败" });
+    const html = renderAlerts();
+    expect(html).toContain("价格提醒");
+    expect(html).toContain("刷新失败");
+    expect(html).toContain('role="alert"');
+  });
+
+  it("prevents rule mutations from overlapping a refresh", () => {
+    mockedUseWatchlistAlerts.mockReturnValue({ ...model("ready"), refreshing: true });
+    const html = renderAlerts();
+    expect(html).toContain("刷新中…");
+    expect([...html.matchAll(/<button[^>]*disabled=""/g)]).toHaveLength(9);
+  });
+
+  it("locks the creation fields during save", () => {
+    const html = renderToStaticMarkup(
+      <Dialog open>
+        <CreateRuleForm disabled onCreate={vi.fn()} onCancel={vi.fn()} />
+      </Dialog>,
+    );
+    expect(html).toMatch(/<fieldset[^>]*disabled=""/);
+    expect(html).toContain("保存中…");
+  });
+
   it("keeps legacy rule management in the list and auto-evaluated fields in the drawer form", () => {
     mockedUseWatchlistAlerts.mockReturnValue(model("ready"));
 
@@ -151,6 +176,7 @@ function model(state: "empty" | "forbidden" | "error" | "ready") {
     state,
     error: state === "error" ? "server unavailable" : null,
     submitting: false,
+    refreshing: false,
     refresh: vi.fn().mockResolvedValue(undefined),
     createRule: vi.fn().mockResolvedValue(undefined),
     toggleRule: vi.fn().mockResolvedValue(undefined),

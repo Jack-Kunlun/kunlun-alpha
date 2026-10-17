@@ -109,6 +109,7 @@ export function AccountSecurityPanel({
             variant="outline"
             size="sm"
             disabled={sessionsLoading}
+            aria-busy={sessionsLoading}
             onClick={() => void onRefresh()}
           >
             <RefreshCcw aria-hidden="true" className="size-3.5" />
@@ -150,6 +151,7 @@ export function AccountSecurityPanel({
                   variant="outline"
                   size="sm"
                   disabled={revokingSessionId !== null}
+                  aria-busy={revokingSessionId === session.sessionId}
                   onClick={() => void onRevoke(session.sessionId)}
                 >
                   {revokingSessionId === session.sessionId ? "正在撤销…" : "撤销会话"}
@@ -160,7 +162,11 @@ export function AccountSecurityPanel({
         </div>
       </section>
 
-      <form className="grid gap-4 border-t pt-5" onSubmit={(event) => void submit(event)}>
+      <form
+        className="grid gap-4 border-t pt-5"
+        aria-busy={passwordPending}
+        onSubmit={(event) => void submit(event)}
+      >
         <div>
           <h3 className="flex items-center gap-2 font-medium">
             <KeyRound aria-hidden="true" className="size-4" />
@@ -180,6 +186,7 @@ export function AccountSecurityPanel({
             maxLength={256}
             required
             value={currentPassword}
+            disabled={passwordPending}
             onChange={(event) => setCurrentPassword(event.currentTarget.value)}
           />
         </div>
@@ -194,6 +201,7 @@ export function AccountSecurityPanel({
               maxLength={256}
               required
               value={newPassword}
+              disabled={passwordPending}
               onChange={(event) => setNewPassword(event.currentTarget.value)}
             />
           </div>
@@ -207,6 +215,7 @@ export function AccountSecurityPanel({
               maxLength={256}
               required
               value={confirmation}
+              disabled={passwordPending}
               onChange={(event) => setConfirmation(event.currentTarget.value)}
             />
           </div>
@@ -307,7 +316,7 @@ export function AccountSecurityDialog({ displayName }: { displayName: string }) 
       <DialogTrigger asChild>
         <Button type="button" variant="ghost" size="sm" className="max-w-48">
           <UserRoundCog aria-hidden="true" className="size-4" />
-          <span className="truncate">{displayName}</span>
+          <span className="hidden truncate sm:inline">{displayName}</span>
           <span className="sr-only">打开账户安全设置</span>
         </Button>
       </DialogTrigger>

@@ -140,7 +140,7 @@ export function AlertsPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <CreateRuleDrawer
-              disabled={alerts.submitting}
+              disabled={alerts.submitting || alerts.refreshing}
               requestedInstrumentId={requestedInstrumentId}
               onClose={clearCreateRequest}
               onCreate={async (request) => {
@@ -151,16 +151,28 @@ export function AlertsPage() {
             <Button
               variant="outline"
               size="sm"
-              disabled={alerts.submitting || workspace.rules.length === 0}
+              disabled={alerts.submitting || alerts.refreshing || workspace.rules.length === 0}
+              aria-busy={alerts.submitting}
               onClick={() => void evaluateLatest()}
             >
               <Activity className="mr-2 h-4 w-4" /> 立即评估最新行情
             </Button>
-            <Button variant="outline" size="sm" onClick={() => void alerts.refresh()}>
-              <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={alerts.submitting || alerts.refreshing}
+              aria-busy={alerts.refreshing}
+              onClick={() => void alerts.refresh()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" /> {alerts.refreshing ? "刷新中…" : "刷新"}
             </Button>
           </div>
         </div>
+        {alerts.error && (
+          <p role="alert" className="text-sm text-destructive">
+            {alerts.error}；保留上次读取的规则和当前输入，可重试刷新。
+          </p>
+        )}
         <div className="grid items-end gap-4 rounded-xl border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
           <Field label="证券代码筛选">
             <Input
@@ -207,7 +219,7 @@ export function AlertsPage() {
               <RuleCard
                 key={rule.ruleId}
                 rule={rule}
-                disabled={alerts.submitting}
+                disabled={alerts.submitting || alerts.refreshing}
                 onToggle={alerts.toggleRule}
                 onUpdate={alerts.updateRule}
                 onPreview={async (request) => setPreview(await alerts.preview(request))}
@@ -273,6 +285,7 @@ function RuleCard({
   const [expectedRevision, setExpectedRevision] = useState(rule.revision);
   const [clientRequestId, setClientRequestId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const instrumentId = rule.instrumentIds[0];
   const now = new Date().toISOString();
@@ -333,7 +346,8 @@ function RuleCard({
   }
 
   async function showPreview() {
-    if (!instrumentId) return;
+    if (!instrumentId || previewing) return;
+    setPreviewing(true);
     setActionError(null);
     try {
       await onPreview({
@@ -348,6 +362,8 @@ function RuleCard({
       });
     } catch (cause) {
       setActionError(errorMessage(cause, "规则预览失败"));
+    } finally {
+      setPreviewing(false);
     }
   }
 
@@ -382,11 +398,14 @@ function RuleCard({
         {editing ? (
           <form
             className="space-y-3 rounded-lg border p-3"
+            aria-busy={saving}
             onSubmit={(event) => void saveEdit(event)}
           >
             <Field label="规则名称">
               <Input
                 value={draftName}
+                disabled={disabled || saving}
+                required
                 maxLength={80}
                 onChange={(event) => {
                   setDraftName(event.target.value);
@@ -399,6 +418,8 @@ function RuleCard({
               <Input
                 inputMode="decimal"
                 value={draftThreshold}
+                disabled={disabled || saving}
+                required
                 maxLength={80}
                 onChange={(event) => {
                   setDraftThreshold(event.target.value);
@@ -414,7 +435,7 @@ function RuleCard({
             ) : null}
             <div className="flex gap-2">
               <Button size="sm" disabled={disabled || saving} type="submit">
-                保存修改
+                {saving ? "保存中…" : "保存修改"}
               </Button>
               <Button
                 size="sm"
@@ -433,10 +454,11 @@ function RuleCard({
               <Button
                 size="sm"
                 variant="outline"
-                disabled={disabled || !instrumentId}
+                disabled={disabled || previewing || !instrumentId}
+                aria-busy={previewing}
                 onClick={() => void showPreview()}
               >
-                阈值预览
+                {previewing ? "预览中…" : "阈值预览"}
               </Button>
             ) : null}
             <Button size="sm" variant="outline" disabled={disabled} onClick={beginEdit}>
@@ -446,6 +468,7 @@ function RuleCard({
               size="sm"
               variant={rule.enabled ? "secondary" : "default"}
               disabled={disabled}
+              aria-busy={disabled}
               onClick={() => void toggle()}
             >
               {rule.enabled ? "停用" : "启用"}

@@ -321,14 +321,18 @@ export function MarketDataSettingsPage() {
             </p>
           )}
 
-          <form onSubmit={(event) => void handleSubmit(event)} className="space-y-6">
+          <form
+            onSubmit={(event) => void handleSubmit(event)}
+            className="space-y-6"
+            aria-busy={saving}
+          >
             <Card>
               <CardHeader>
                 <CardTitle>编辑配置</CardTitle>
                 <CardDescription>只提交 provider 与明确选择的 token 操作。</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
+                <div className="grid gap-2">
                   <Label htmlFor="market-data-provider">行情源</Label>
                   <select
                     id="market-data-provider"
@@ -409,7 +413,7 @@ export function MarketDataSettingsPage() {
                   </div>
                 </fieldset>
 
-                <div className="space-y-2">
+                <div className="grid gap-2">
                   <Label htmlFor="market-data-token">新 token（仅替换时填写）</Label>
                   <Input
                     id="market-data-token"

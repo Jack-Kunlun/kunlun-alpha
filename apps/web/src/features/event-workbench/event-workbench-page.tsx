@@ -121,7 +121,7 @@ function FeedbackPanel({ event }: { event: MarketEvent }) {
         <Badge variant="outline">追加式审计</Badge>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
+        <div className="grid gap-2">
           <Label htmlFor="event-feedback-action">判断</Label>
           <select
             id="event-feedback-action"
@@ -141,7 +141,7 @@ function FeedbackPanel({ event }: { event: MarketEvent }) {
             <option value="CORRECT">提交更正</option>
           </select>
         </div>
-        <div className="space-y-1">
+        <div className="grid gap-2">
           <Label htmlFor="event-feedback-reason">原因</Label>
           <select
             id="event-feedback-reason"
@@ -165,7 +165,7 @@ function FeedbackPanel({ event }: { event: MarketEvent }) {
         </div>
       </div>
       {draft.action === "CORRECT" && (
-        <div className="space-y-1">
+        <div className="grid gap-2">
           <Label htmlFor="event-feedback-instrument">更正证券</Label>
           <Input
             id="event-feedback-instrument"
@@ -177,7 +177,7 @@ function FeedbackPanel({ event }: { event: MarketEvent }) {
           />
         </div>
       )}
-      <div className="space-y-1">
+      <div className="grid gap-2">
         <Label htmlFor="event-feedback-comment">备注（可选，不进入日志）</Label>
         <Input
           id="event-feedback-comment"

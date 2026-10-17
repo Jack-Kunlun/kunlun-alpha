@@ -304,7 +304,7 @@ export function LimitPoolTerminalView({
             </Button>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="limit-pool-search">证券</Label>
               <div className="relative">
                 <Search
@@ -320,7 +320,7 @@ export function LimitPoolTerminalView({
                 />
               </div>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="limit-pool-side">方向</Label>
               <select
                 id="limit-pool-side"
@@ -335,7 +335,7 @@ export function LimitPoolTerminalView({
                 <option value="LIMIT_DOWN">跌停</option>
               </select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="limit-pool-state">状态</Label>
               <select
                 id="limit-pool-state"
@@ -351,7 +351,7 @@ export function LimitPoolTerminalView({
                 <option value="LIMIT_DOWN">跌停</option>
               </select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="limit-pool-streak">最少连板</Label>
               <Input
                 id="limit-pool-streak"
@@ -481,7 +481,7 @@ export function LimitPoolTerminalPage() {
             历史
           </Button>
           {mode === "HISTORICAL" && (
-            <div className="grid gap-1">
+            <div className="grid gap-2">
               <Label htmlFor="limit-pool-asof" className="text-xs">
                 历史时点（上海）
               </Label>
@@ -494,7 +494,7 @@ export function LimitPoolTerminalPage() {
             </div>
           )}
           <div className="grid w-full gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="grid gap-1">
+            <div className="grid gap-2">
               <Label htmlFor="limit-pool-version" className="text-xs">
                 池算法版本
               </Label>
@@ -505,7 +505,7 @@ export function LimitPoolTerminalPage() {
                 onChange={(event) => setAlgorithmVersion(event.target.value)}
               />
             </div>
-            <div className="grid gap-1">
+            <div className="grid gap-2">
               <Label htmlFor="limit-pool-ladder-version" className="text-xs">
                 梯队算法版本
               </Label>
@@ -516,7 +516,7 @@ export function LimitPoolTerminalPage() {
                 onChange={(event) => setLadderAlgorithmVersion(event.target.value)}
               />
             </div>
-            <div className="grid gap-1">
+            <div className="grid gap-2">
               <Label htmlFor="limit-pool-rule-version" className="text-xs">
                 涨跌停规则版本
               </Label>
@@ -527,7 +527,7 @@ export function LimitPoolTerminalPage() {
                 onChange={(event) => setLimitRuleVersion(event.target.value)}
               />
             </div>
-            <div className="grid gap-1">
+            <div className="grid gap-2">
               <Label htmlFor="limit-pool-materializer-version" className="text-xs">
                 物化器版本
               </Label>

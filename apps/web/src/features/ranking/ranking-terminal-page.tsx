@@ -333,7 +333,7 @@ function RankingSuccess({
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <label className="space-y-2 text-sm font-medium xl:col-span-2">
+              <label className="grid gap-2 text-sm font-medium xl:col-span-2">
                 股票代码或名称
                 <Input
                   value={filters.query}
@@ -343,7 +343,7 @@ function RankingSuccess({
                   }
                 />
               </label>
-              <label className="space-y-2 text-sm font-medium">
+              <label className="grid gap-2 text-sm font-medium">
                 行业
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -363,7 +363,7 @@ function RankingSuccess({
                   ))}
                 </select>
               </label>
-              <label className="space-y-2 text-sm font-medium">
+              <label className="grid gap-2 text-sm font-medium">
                 最低分（0-100）
                 <Input
                   inputMode="decimal"

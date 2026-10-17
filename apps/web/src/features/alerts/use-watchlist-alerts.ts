@@ -44,6 +44,7 @@ export function useWatchlistAlerts() {
   const [state, setState] = useState<LoadState>("loading");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const accept = useCallback((next: WatchlistAlertsWorkspace) => {
     setWorkspace(next);
@@ -52,14 +53,23 @@ export function useWatchlistAlerts() {
   }, []);
 
   const refresh = useCallback(async () => {
-    setState("loading");
+    setRefreshing(true);
+    setState((current) => (current === "ready" || current === "empty" ? current : "loading"));
     setError(null);
     try {
       accept(await apiClient.get<WatchlistAlertsWorkspace>("/v1/watchlist-alerts"));
     } catch (cause) {
       const status = httpStatus(cause);
-      setState(status === 401 || status === 403 ? "forbidden" : "error");
+      setState((current) =>
+        status === 401 || status === 403
+          ? "forbidden"
+          : current === "ready" || current === "empty"
+            ? current
+            : "error",
+      );
       setError(message(cause));
+    } finally {
+      setRefreshing(false);
     }
   }, [accept]);
 
@@ -161,6 +171,7 @@ export function useWatchlistAlerts() {
     state,
     error,
     submitting,
+    refreshing,
     refresh,
     createRule,
     toggleRule,

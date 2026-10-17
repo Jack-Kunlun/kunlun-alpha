@@ -148,13 +148,23 @@ export function CreateRuleForm({
         aria-busy={disabled}
         onSubmit={(event) => void submit(event)}
       >
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+        <fieldset
+          disabled={disabled}
+          className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto px-6 py-5"
+        >
+          <legend className="sr-only">规则内容</legend>
           <Field label="规则名称">
-            <Input value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
+            <Input
+              value={name}
+              required
+              maxLength={80}
+              onChange={(event) => setName(event.target.value)}
+            />
           </Field>
           <Field label="证券代码">
             <Input
               value={instrumentId}
+              required
               placeholder="600519.SH"
               onChange={(event) => setInstrumentId(event.target.value)}
             />
@@ -213,13 +223,13 @@ export function CreateRuleForm({
               {error}
             </p>
           ) : null}
-        </div>
+        </fieldset>
         <DialogFooter className="shrink-0 border-t px-6 py-4">
           <Button type="button" variant="outline" disabled={disabled} onClick={onCancel}>
             取消
           </Button>
           <Button disabled={disabled} type="submit">
-            <BellRing className="mr-2 h-4 w-4" /> 保存规则
+            <BellRing className="mr-2 h-4 w-4" /> {disabled ? "保存中…" : "保存规则"}
           </Button>
         </DialogFooter>
       </form>

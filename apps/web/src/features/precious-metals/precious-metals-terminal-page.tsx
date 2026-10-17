@@ -258,7 +258,7 @@ function TerminalContent({ snapshot }: { snapshot: PreciousMetalsTerminalSnapsho
       </section>
 
       <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row sm:items-end">
-        <label className="flex-1 space-y-2 text-sm font-medium">
+        <label className="grid gap-2 flex-1  text-sm font-medium">
           基金代码或类型
           <Input
             value={query}
@@ -266,7 +266,7 @@ function TerminalContent({ snapshot }: { snapshot: PreciousMetalsTerminalSnapsho
             placeholder="518880.SH 或 黄金"
           />
         </label>
-        <label className="space-y-2 text-sm font-medium">
+        <label className="grid gap-2 text-sm font-medium">
           底层品类
           <select
             className="flex h-9 min-w-40 rounded-md border border-input bg-transparent px-3 text-sm"
