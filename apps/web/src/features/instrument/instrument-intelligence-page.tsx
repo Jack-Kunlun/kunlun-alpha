@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useOptionalAuth } from "@/features/auth/auth-context";
+import { PersonalWatchlist } from "./personal-watchlist-panel";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
 import { MarketDataStatus } from "@/features/market-data-status/market-data-status";
 import { isCanonicalInstrumentId, useInstrumentIntelligence } from "./use-instrument-intelligence";
@@ -587,6 +589,7 @@ const LOCAL_TERMINAL_STOCKS = [
 
 export function InstrumentDirectoryPage() {
   const navigate = useNavigate();
+  const auth = useOptionalAuth();
   const [value, setValue] = useState("600519.SH");
   const valid = isCanonicalInstrumentId(value);
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -627,6 +630,10 @@ export function InstrumentDirectoryPage() {
           格式示例：600519.SH、000001.SZ、430047.BJ
         </p>
       )}
+      <PersonalWatchlist
+        key={auth?.session?.user.userId ?? "anonymous"}
+        ownerId={auth?.session?.user.userId ?? null}
+      />
       <div className="mt-8">
         <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
           首发日线样本
