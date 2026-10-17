@@ -1,0 +1,88 @@
+{
+  "version": "1.0.3",
+  "date": "2026-10-17",
+  "status": "LOCAL_ACCEPTED",
+  "nodeSlice": "P6-N07 reminder user experience",
+  "sourceCandidate": "79461c880c14d0c6cece884097fc7309dd0d3fa2",
+  "outcome": [
+    "The existing instrument daily page links to the existing rule page and opens the creation drawer with only the canonical instrument code prefilled.",
+    "The rule list supports combined instrument-code and enabled-state filters with explicit empty results and reset.",
+    "Creation and editing retain 8px label-to-control spacing; successful creation clears filters and displays the new rule."
+  ],
+  "verification": {
+    "tdd": "Before implementation, the focused page tests showed 3 expected failures for the missing entry, prefill and filters; 8 existing tests passed.",
+    "webTargetedTests": {
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/alerts/alerts-page.test.tsx src/features/alerts/alert-rule-filters.test.ts src/features/alerts/notification-center.test.tsx src/features/instrument/instrument-intelligence-page.test.tsx src/features/instrument/instrument-intelligence-bars-page.test.tsx",
+      "result": "5 files, 20 tests passed"
+    },
+    "versionTests": {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+      "result": "2 tests passed"
+    },
+    "staticChecks": "ESLint passed for the 7 affected Web source/test files. Selected source, package and documentation Prettier checks plus git diff --check passed.",
+    "build": {
+      "scope": "Existing shared Node Docker build for web and server, including TypeScript and Vite; no local full-repository check.",
+      "initialFailure": "The new test fixture inferred string[] instead of the existing non-empty instrument tuple. The fixture was annotated with the shared rule type.",
+      "finalResult": "Same affected build passed after the fixture type correction; no application behavior was changed to silence the error."
+    },
+    "browser": {
+      "environment": "The deployed Web static build served on a temporary loopback-only in-memory API fixture; no real credentials, external provider or database writes.",
+      "passed": [
+        "Instrument entry opens the drawer with 002594.SZ; no historical price or as-of is copied.",
+        "Cancel closes the drawer, removes createFor, returns focus to New Rule, and refresh stays closed.",
+        "Code filter shows 1/2 rules; combining with enabled state shows 0/2 and an explicit empty result.",
+        "A 400 save failure preserves the name, code, threshold and open drawer.",
+        "Successful save closes the drawer, clears filters, returns focus and shows 3/3 rules including the new one.",
+        "Desktop creation fields, list filters and editor labels each measure 8px to their controls.",
+        "At 390x640, the drawer fills the viewport, its body scrolls, and Save/Cancel remain visible; Escape closes and returns focus."
+      ],
+      "cleanup": "Temporary service stopped, fixture script/static copy removed, responsive override reset. Screenshots retained locally."
+    },
+    "ci": {
+      "headSha": "79461c880c14d0c6cece884097fc7309dd0d3fa2",
+      "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/38990005091",
+      "status": "completed",
+      "conclusion": "success",
+      "platforms": {
+        "linux": "success",
+        "macos": "success",
+        "windows": "success"
+      }
+    }
+  },
+  "runtime": {
+    "health": "GET /api/v1/health: status ok, version 1.0.3",
+    "webImage": "sha256:7b867bb8ba640480b40b1f4de357f5bdb405473bab514ac8c05d3cbd30b827fa",
+    "serverImage": "sha256:cece2b7f7aba13fba4ef3ebeba00cc666ba988daf01bd58c27a834d072cec0d7",
+    "containers": "Web, server, PostgreSQL and ClickHouse healthy; original daily scheduler running.",
+    "observedDailyTask": {
+      "status": "SUCCEEDED",
+      "provider": "akshare",
+      "lastAttemptAt": "2026-10-17T01:02:20.520440Z",
+      "lastSuccessAt": "2026-10-17T01:02:31.146164Z",
+      "requests": 8,
+      "receivedBars": 3874,
+      "writtenBars": 3874,
+      "meaning": "Real existing scheduled task observed read-only; task timestamps do not establish market-data cutoff dates."
+    },
+    "webImageTag": "kunlun-web:1.0.3",
+    "serverImageTag": "kunlun-server:1.0.3"
+  },
+  "reusedEvidence": [
+    "2026-10-16-v1.0-local-acceptance.json: existing authentication, owned-rule persistence and recovery evidence; those backend paths and schemas are unchanged.",
+    "2026-10-16-v1.0.2-local-acceptance.json: scheduler checkpoint, restart and bounded-retry behavior; scheduler code/configuration unchanged."
+  ],
+  "limits": [
+    "Browser behavior was verified with an isolated API fixture; the current in-app production-backed tab has no logged-in session. No claim of a new real-database rule write is made.",
+    "No new API contract, migration, source, indicator, external notification or real-order path.",
+    "The next stock-expansion slice remains planned: real instrument-master runs, snapshots, revisions and heads in the local provider schema were all 0 at preflight. Curated directory data does not replace lifecycle evidence.",
+    "No public deployment or complete Phase 6 exit is claimed."
+  ],
+  "git": {
+    "sourcePushed": true,
+    "tag": "v1.0.3",
+    "releaseReceiptNote": "This is the sole incremental receipt. Later receipt/roadmap-only commits do not invalidate the verified application build.",
+    "tagTarget": "79461c880c14d0c6cece884097fc7309dd0d3fa2",
+    "tagPushed": true
+  }
+}
