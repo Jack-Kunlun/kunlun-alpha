@@ -226,6 +226,7 @@ All source code and text configuration must be UTF-8 with LF line endings.
 - Preserve Radix/shadcn accessibility semantics when styling or composing components.
 - Every page and data region must define loading, empty, error, and forbidden states.
 - Support keyboard navigation, visible focus, dark mode, responsive layouts, and reduced-motion preferences.
+- Use pointer cursors for actionable controls, not-allowed for disabled controls and progress for busy actions. Preserve native disabled behavior and keyboard focus; do not rely on pointer-events alone.
 - Dense market tables must remain readable and performant; use deliberate column widths and virtualization when evidence shows it is needed.
 - Integrate TradingView Lightweight Charts through an internal adapter, not directly throughout page components.
 - Display data timestamp, freshness, algorithm/model version, sample size, and confidence where relevant.

@@ -101,6 +101,40 @@
   :focus-visible {
     scroll-margin: 1rem;
   }
+
+  :where(
+    button,
+    [role="button"],
+    a[href],
+    select,
+    summary,
+    input[type="checkbox"],
+    input[type="radio"],
+    input[type="range"],
+    input[type="file"],
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"],
+    label:has(input[type="checkbox"], input[type="radio"])
+  ) {
+    cursor: pointer;
+  }
+
+  :where(button, input, select, textarea):disabled,
+  [aria-disabled="true"],
+  [data-disabled],
+  label:has(input[type="checkbox"]:disabled, input[type="radio"]:disabled) {
+    cursor: not-allowed;
+  }
+
+  :where(button, [role="button"])[aria-busy="true"],
+  [aria-busy="true"] :where(button, input, select, textarea):disabled {
+    cursor: progress;
+  }
+
+  input[type="file"]::file-selector-button {
+    cursor: inherit;
+  }
 }
 
 @layer utilities {
