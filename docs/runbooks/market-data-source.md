@@ -8,7 +8,7 @@ data-worker 提供两个可切换的真实行情源。默认源是无需 token �
 仅在显式选择并提供授权 token 时使用。适配器将未复权行情写入现有 ClickHouse
 `bars_daily_v2` 与 `bars_minute_v2` 表。默认 AKShare 路径覆盖以下行情类型：
 
-- A 股、场内 ETF 和交易所指数的日线；
+- A 股、场内 ETF/LOF 和交易所指数的日线；
 - A 股、场内 ETF 和交易所指数的 1 分钟或 5 分钟 Bar；
 - 每次响应先写入不可变 raw landing zone，再解析、校验和版本化落库；
 - 价格、成交量和成交额在适配器边界通过 `Decimal` 解析，来源、接口身份、raw capture、
@@ -18,8 +18,8 @@ data-worker 提供两个可切换的真实行情源。默认源是无需 token �
   这只改变 JSONEachRow 持久化表示，不改 raw 或领域原值。旧 revision 不删除，新同步以新的
   `replacement_version` 参与 point-in-time 读取并成为可用时刻内的最新版本。
 
-AKShare 日线调用 Tencent-backed `stock_zh_a_hist_tx`，来源元数据为
-`akshare-tencent`；分钟调用 Sina-backed `stock_zh_a_minute`，来源元数据为
+AKShare 沪深日线调用 Tencent-backed `stock_zh_a_hist_tx`，来源元数据为
+`akshare-tencent`；北交所日线明确调用 `stock_zh_a_hist`，来源为 `akshare-eastmoney` / `bj-v1`，成交量按手转股。分钟调用 Sina-backed `stock_zh_a_minute`，来源元数据为
 `akshare-sina`。两条路径都固定传 `adjust=""`，解析出的 `priceType` 固定为 `RAW`。
 `source_version` 包含 AKShare 版本、公开函数名和适配器版本。历史 raw replay 仅兼容
 已证明语义的 `akshare-eastmoney` 股票日线与股票 `MINUTE_1` profile，其他 legacy profile
@@ -69,16 +69,18 @@ writer 运行前写入同一 capture 关联的 `FILTERED` 质量证据，包含 
 
 ### 固定 SDK 的成交量修正
 
-当前适配器版本为 `v3`，SDK 仍固定为 AKShare `1.18.94`，没有升级依赖。
+当前源码适配器版本为 `v4`，SDK 仍固定为 AKShare `1.18.94`，没有升级依赖。已部署的原 8 样本任务可继续保留其 `v3` 镜像；个人自选使用独立任务及检查点，见[个人自选运行说明](personal-watchlist.md)。
 [官方接口说明](https://github.com/akfamily/akshare/blob/main/docs/data/stock/stock.md)
 要求 Tencent 日线 `volume` 统一为股。该 SDK 的实际实现将 `sz000` 与指数一起排除在
 手转股转换之外；因此 `000001.SZ` 等 `000xxx.SZ` 股票的 SDK 表仍是手。
 
-`akshare:1.18.94:stock_zh_a_hist_tx:v3` 只对这一证券范围乘以 100，其他日线和 Sina 分钟
+`akshare:1.18.94:stock_zh_a_hist_tx:v3` 及 `v4` 只对这一证券范围乘以 100，其他 Tencent 日线和 Sina 分钟
 成交量不额外缩放。SDK 返回的 raw 表不修改，转换仅发生在解析边界。旧 `v2` capture 仍按
 原语义回放以便审计；其中 `000xxx.SZ` 成交量存在已知单位错误，不能用于成交量分析。
 修正通过新 capture 和新行情 revision 发布，不覆盖或删除旧 raw、检查点和记录；历史
 point-in-time 查询仍可见其当时发布的版本，不应把新修正提前到旧可用时刻。
+
+`v4` 另外使用 Decimal 和明确的 `ROUND_HALF_EVEN`，仅修正固定 SDK 浮点手转股产生的不超过 `0.000001` 股的整数尾差；真实小数股仍拒绝。历史 `v1`–`v3` 的严格解析不变，原 raw 不改写；LOF 与北交所日线分别使用独立 `lof-v1` / `bj-v1` profile。
 
 1.0 精简入口使用同一 `kunlun-market-raw` volume 下的 `v1-shares-v3` 子目录保存新 raw 和
 检查点，使当日已完成的旧采集不会跳过这次规范化修正。停止后重用同一目录继续运行。

@@ -141,7 +141,7 @@ def test_public_endpoint_routing_uses_prefixed_symbols(
 
     assert capture.api_name == method
     assert capture.source == source
-    assert capture.source_version == f"akshare:1.18.94:{method}:v3"
+    assert capture.source_version == f"akshare:1.18.94:{method}:v4"
     assert capture.content_type == "application/json; charset=utf-8"
     assert len(client.calls) == 1
     called_method, kwargs = client.calls[0]
@@ -199,7 +199,7 @@ def test_tencent_v3_normalizes_shenzhen_000_stock_hands_only(
 ) -> None:
     row = _daily_row(**{"股票代码": code[:6]})
     provider = AKShareMarketDataProvider(
-        AKShareConfig(sdk_version="1.18.94", max_attempts=1),
+        AKShareConfig(sdk_version="1.18.94", max_attempts=1, adapter_version="v3"),
         client=FakeAKShareClient({"stock_zh_a_hist_tx": FakeDataFrame([row])}),
     )
     capture = provider.fetch_raw_bars(code, "DAILY", "2026-08-26", "2026-08-26")
@@ -652,3 +652,57 @@ def test_lof_daily_uses_separate_profile_without_enabling_minutes() -> None:
     assert len(provider.parse_bars_with_evidence(capture).bars) == 1
     with pytest.raises(ProviderDataError, match="daily bars only"):
         provider.fetch_raw_bars("161226.SZ", "MINUTE_1", "2026-08-26", "2026-08-27")
+
+
+def test_tencent_v4_corrects_only_sub_micro_share_sdk_float_residue() -> None:
+    from dataclasses import replace
+
+    provider = AKShareMarketDataProvider()
+    capture = _profile_capture(
+        source="akshare-tencent",
+        api_name="stock_zh_a_hist_tx",
+        interval="DAILY",
+        source_version="akshare:1.18.94:stock_zh_a_hist_tx:v4",
+    )
+    row = _daily_row(**{"成交量": "12345678.99999999"})
+    capture = replace(capture, body=json.dumps([row]).encode())
+    assert provider.parse_bars(capture)[0].volume == 12345679
+    with pytest.raises(ProviderDataError, match="non-integral volume"):
+        provider.parse_bars(
+            replace(capture, source_version="akshare:1.18.94:stock_zh_a_hist_tx:v3")
+        )
+    with pytest.raises(ProviderDataError, match="non-integral volume"):
+        provider.parse_bars(
+            replace(capture, body=json.dumps([_daily_row(**{"成交量": "123.45"})]).encode())
+        )
+
+
+def test_bse_daily_uses_explicit_eastmoney_route_and_hands_units() -> None:
+    client = FakeAKShareClient(
+        {
+            "stock_zh_a_hist": FakeDataFrame(
+                [_daily_row(**{"股票代码": "920001", "成交量": "123.45"})]
+            )
+        }
+    )
+    provider = AKShareMarketDataProvider(
+        AKShareConfig(sdk_version="1.18.94", max_attempts=1), client=client
+    )
+    capture = provider.fetch_raw_bars("920001.BJ", "DAILY", "2026-08-26", "2026-08-27")
+    assert capture.source == "akshare-eastmoney"
+    assert capture.source_version == "akshare:1.18.94:stock_zh_a_hist:bj-v1"
+    assert client.calls[0][1]["symbol"] == "920001"
+    assert client.calls[0][1]["adjust"] == ""
+    assert provider.parse_bars(capture)[0].volume == 12345
+
+
+def test_new_tencent_bse_profile_is_rejected_during_replay() -> None:
+    capture = _profile_capture(
+        source="akshare-tencent",
+        api_name="stock_zh_a_hist_tx",
+        interval="DAILY",
+        source_version="akshare:1.18.94:stock_zh_a_hist_tx:v4",
+        unified_code="920001.BJ",
+    )
+    with pytest.raises(ProviderDataError, match="BSE capture profile"):
+        AKShareMarketDataProvider().parse_bars(capture)

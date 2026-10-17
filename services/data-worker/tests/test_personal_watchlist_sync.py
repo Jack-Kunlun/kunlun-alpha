@@ -175,3 +175,10 @@ def test_private_child_never_inherits_public_publishers(
         module.collect_code(replace(load_market_data_settings({}), raw_root=tmp_path)).written_bars
         == 1
     )
+
+
+def test_explicit_failed_recovery_keeps_daily_cap_and_successes() -> None:
+    assert due_for_sync("FAILED", NOW.date(), NOW, 1, NOW, retry_failed=True)
+    assert not due_for_sync("FAILED", NOW.date(), NOW, 3, NOW, retry_failed=True)
+    assert not due_for_sync("SUCCEEDED", NOW.date(), NOW, 1, NOW, retry_failed=True)
+    assert not due_for_sync("UNSUPPORTED", NOW.date(), NOW, 1, NOW, retry_failed=True)

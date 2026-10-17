@@ -100,7 +100,7 @@ describe("MarketDataStatusView", () => {
 
   it("does not attribute a global task result to an instrument outside its scope", () => {
     const html = render(succeeded, false, "000001.SZ");
-    expect(html).toContain("此标的不在当前采集清单");
+    expect(html).toContain("此标的不在样本任务范围");
     expect(html).not.toContain('dateTime="2026-10-16T10:20:05Z"');
   });
 });

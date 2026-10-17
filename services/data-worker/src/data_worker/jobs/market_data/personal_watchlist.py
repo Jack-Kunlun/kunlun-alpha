@@ -54,6 +54,8 @@ def due_for_sync(
     last_attempt: datetime | None,
     attempts: int,
     now: datetime,
+    *,
+    retry_failed: bool = False,
 ) -> bool:
     local = now.astimezone(_SHANGHAI)
     if status == "UNSUPPORTED":
@@ -64,7 +66,11 @@ def due_for_sync(
         return local.hour >= 9
     if status in {"SUCCEEDED", "EMPTY"} or attempts >= 3:
         return False
-    return last_attempt is None or now - last_attempt >= timedelta(hours=1)
+    return (
+        (retry_failed and status == "FAILED")
+        or last_attempt is None
+        or now - last_attempt >= timedelta(hours=1)
+    )
 
 
 def has_daily_bars(settings: MarketDataSyncSettings, code: str) -> bool:
@@ -125,6 +131,8 @@ def collect_code(settings: MarketDataSyncSettings) -> MarketDataSyncSummary:
     try:
         payload = cast(dict[str, object], json.loads(child.stdout.splitlines()[-1]))
         if child.returncode != 0:
+            if payload.get("errorCode") == "SYNC_ERROR":
+                raise RuntimeError("watchlist storage synchronization failed")
             if payload.get("errorCode") == "VALIDATION_ERROR":
                 raise ProviderDataError("watchlist source validation failed")
             raise ProviderUnavailableError("watchlist source unavailable")
@@ -150,6 +158,7 @@ def sync_watchlist(
     settings: MarketDataSyncSettings,
     *,
     runner: Runner = collect_code,
+    retry_failed: bool = False,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> dict[str, int]:
     counts = {
@@ -185,6 +194,7 @@ def sync_watchlist(
                     cast(datetime | None, row[2]),
                     int(row[3]),
                     now,
+                    retry_failed=retry_failed,
                 ):
                     continue
                 connection.execute(
@@ -268,22 +278,33 @@ def main() -> None:
             summary = build_market_data_runner(
                 child_settings,
                 checkpoint_root=settings.raw_root
-                / "watchlist-checkpoints"
+                / "watchlist-checkpoints-v2"
                 / child_settings.symbols[0],
             ).run_cycle()
             print(json.dumps(summary.to_dict()), flush=True)
         except ProviderDataError:
             print(json.dumps({"errorCode": "VALIDATION_ERROR"}), flush=True)
             raise SystemExit(1) from None
-        except (ProviderError, RuntimeError, OSError, ValueError):
+        except ProviderError:
             print(json.dumps({"errorCode": "SOURCE_ERROR"}), flush=True)
+            raise SystemExit(1) from None
+        except (RuntimeError, OSError, ValueError):
+            print(json.dumps({"errorCode": "SYNC_ERROR"}), flush=True)
             raise SystemExit(1) from None
         return
     once = os.environ.get("WATCHLIST_SYNC_RUN_MODE", "continuous") == "once"
+    retry_failed = sys.argv[1:] == ["--retry-failed-once"]
+    if retry_failed and not once:
+        raise SystemExit("failed-item recovery requires WATCHLIST_SYNC_RUN_MODE=once")
     while True:
         try:
             print(
-                json.dumps({"event": "watchlist_sync_completed", **sync_watchlist(dsn, settings)}),
+                json.dumps(
+                    {
+                        "event": "watchlist_sync_completed",
+                        **sync_watchlist(dsn, settings, retry_failed=retry_failed),
+                    }
+                ),
                 flush=True,
             )
         except psycopg.Error:

@@ -51,7 +51,9 @@ function StatusContent({
   if (result.status === "empty" || result.data === null) return <p>暂无采集任务记录。</p>;
   const data = result.data;
   if (instrumentId && data.symbols.length > 0 && !data.symbols.includes(instrumentId)) {
-    return <p>此标的不在当前采集清单，请以该标的数据截止时间为准。</p>;
+    return (
+      <p>此标的不在样本任务范围；个人自选采集状态请查看“我的自选”，行情以数据截止时间为准。</p>
+    );
   }
   return (
     <div className="space-y-3">
@@ -111,10 +113,10 @@ export function MarketDataStatusView({
 }) {
   return (
     <section
-      aria-label="当前采集任务"
+      aria-label="样本采集任务"
       className="space-y-3 rounded-2xl border bg-card/70 p-5 text-sm"
     >
-      <h3 className="font-semibold">当前采集任务</h3>
+      <h3 className="font-semibold">样本采集任务</h3>
       {historical && (
         <p className="text-xs text-muted-foreground">当前采集状态，不随历史点时变化。</p>
       )}

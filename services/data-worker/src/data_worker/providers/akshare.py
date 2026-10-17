@@ -15,7 +15,7 @@ import time as time_module
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
 from typing import Literal, cast
 from zoneinfo import ZoneInfo
 
@@ -51,8 +51,10 @@ _DAILY_SOURCE = "akshare-tencent"
 _MINUTE_SOURCE = "akshare-sina"
 _SOURCE = _LEGACY_SOURCE
 _SHANGHAI = ZoneInfo("Asia/Shanghai")
-_ADAPTER_VERSION = "v3"
+_ADAPTER_VERSION = "v4"
 _TENCENT_LOF_V1 = "akshare:1.18.94:stock_zh_a_hist_tx:lof-v1"
+_TENCENT_SHARES_V4 = "akshare:1.18.94:stock_zh_a_hist_tx:v4"
+_BSE_DAILY_V1 = "akshare:1.18.94:stock_zh_a_hist:bj-v1"
 _TENCENT_SHARES_V3 = "akshare:1.18.94:stock_zh_a_hist_tx:v3"
 _MINUTE_INTERVALS = {"MINUTE_1": "1", "MINUTE_5": "5"}
 _INDEX_PREFIXES = {"SH": "000", "SZ": "399"}
@@ -60,6 +62,10 @@ _VOLUME_MULTIPLIERS = {_LEGACY_SOURCE: 100, _DAILY_SOURCE: 1, _MINUTE_SOURCE: 1}
 _CAPTURE_PROFILES = frozenset(
     {
         (_DAILY_SOURCE, "stock_zh_a_hist_tx", "DAILY", _TENCENT_SHARES_V3),
+        (_DAILY_SOURCE, "stock_zh_a_hist_tx", "DAILY", _TENCENT_SHARES_V4),
+        (_LEGACY_SOURCE, "stock_zh_a_hist", "DAILY", _BSE_DAILY_V1),
+        (_MINUTE_SOURCE, "stock_zh_a_minute", "MINUTE_1", "akshare:1.18.94:stock_zh_a_minute:v4"),
+        (_MINUTE_SOURCE, "stock_zh_a_minute", "MINUTE_5", "akshare:1.18.94:stock_zh_a_minute:v4"),
         (_DAILY_SOURCE, "stock_zh_a_hist_tx", "DAILY", _TENCENT_LOF_V1),
         (
             _MINUTE_SOURCE,
@@ -215,12 +221,16 @@ def validate_akshare_capture_profile(capture: object) -> AKShareBarCapture:
     profile = (capture.source, capture.api_name, capture.interval, capture.source_version)
     if profile not in _CAPTURE_PROFILES:
         raise ProviderDataError("unsupported AKShare capture profile")
+    if capture.source_version == _TENCENT_SHARES_V4 and capture.unified_code.endswith(".BJ"):
+        raise ProviderDataError("unsupported Tencent v4 BSE capture profile")
     if capture.source == _LEGACY_SOURCE and _instrument_kind(capture.unified_code) != "stock":
         raise ProviderDataError("unsupported AKShare capture profile")
     if (_instrument_kind(capture.unified_code) == "lof") != (
         capture.source_version == _TENCENT_LOF_V1
     ):
         raise ProviderDataError("unsupported AKShare LOF capture profile")
+    if capture.source_version == _BSE_DAILY_V1 and not capture.unified_code.endswith(".BJ"):
+        raise ProviderDataError("unsupported AKShare BSE capture profile")
     return capture
 
 
@@ -273,6 +283,8 @@ def _route(unified_code: str, interval: str) -> tuple[str, dict[str, object], st
         raise ProviderDataError("LOF supports daily bars only")
     code, exchange = unified_code.rsplit(".", maxsplit=1)
     symbol = f"{exchange.lower()}{code}"
+    if interval == "DAILY" and exchange == "BJ":
+        return "stock_zh_a_hist", {"symbol": code, "period": "daily", "adjust": ""}, _LEGACY_SOURCE
     if interval == "DAILY":
         return "stock_zh_a_hist_tx", {"symbol": symbol, "adjust": ""}, _DAILY_SOURCE
 
@@ -302,10 +314,13 @@ def _decimal(value: object, *, field_name: str, row_index: int) -> Decimal:
     return parsed
 
 
-def _volume(value: object, row_index: int, *, multiplier: int) -> int:
+def _volume(value: object, row_index: int, *, multiplier: int, sdk_residue: bool = False) -> int:
     scaled = _decimal(value, field_name="volume", row_index=row_index) * multiplier
-    integral = scaled.to_integral_value()
-    if scaled != integral:
+    integral = scaled.to_integral_value(rounding=ROUND_HALF_EVEN)
+    # Pinned Tencent SDK multiplies float hands by 100 before DataFrame capture.
+    # v4 removes only sub-micro-share binary residue using Decimal; real
+    # fractional shares and all historical v1-v3 replay remain rejected.
+    if scaled != integral and not (sdk_residue and abs(scaled - integral) <= Decimal("0.000001")):
         raise ProviderDataError(f"row {row_index} has non-integral volume")
     return int(integral)
 
@@ -509,9 +524,13 @@ class AKShareMarketDataProvider(MarketDataProvider):
             source_version=_version(
                 self._config.sdk_version,
                 endpoint,
-                "lof-v1"
-                if _instrument_kind(unified_code) == "lof"
-                else self._config.adapter_version,
+                "bj-v1"
+                if unified_code.endswith(".BJ") and interval == "DAILY"
+                else (
+                    "lof-v1"
+                    if _instrument_kind(unified_code) == "lof"
+                    else self._config.adapter_version
+                ),
             ),
         )
 
@@ -531,7 +550,7 @@ class AKShareMarketDataProvider(MarketDataProvider):
         # Tencent hands-to-shares conversion. Correct only this pinned v3
         # profile; preserve SDK payload bytes and historical v2 replay values.
         if (
-            capture.source_version == _TENCENT_SHARES_V3
+            capture.source_version in {_TENCENT_SHARES_V3, _TENCENT_SHARES_V4}
             and exchange == "SZ"
             and expected_code.startswith("000")
         ):
@@ -600,6 +619,7 @@ class AKShareMarketDataProvider(MarketDataProvider):
                             _field(record, "volume", row_index),
                             row_index,
                             multiplier=multiplier,
+                            sdk_residue=capture.source_version == _TENCENT_SHARES_V4,
                         ),
                         "amount": _decimal(
                             _field(record, "amount", row_index),
