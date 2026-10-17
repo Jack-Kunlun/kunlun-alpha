@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import BinaryIO, Never, cast
+from unittest.mock import Mock
 from urllib.request import Request
 
 import pytest
@@ -587,6 +588,25 @@ def test_checkpoint_lock_rejects_a_concurrent_runner(
         store.locked(),
     ):
         pass
+
+
+def test_checkpoint_empty_lock_does_not_require_an_unlocked_byte_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original_fdopen = checkpoint_module.os.fdopen
+
+    def deny_marker_write(descriptor: int, mode: str, *, closefd: bool) -> BinaryIO:
+        handle = original_fdopen(descriptor, mode, closefd=closefd)
+        guarded = Mock(wraps=handle)
+        guarded.write.side_effect = PermissionError("byte is owned by another handle")
+        return cast(BinaryIO, guarded)
+
+    monkeypatch.setattr(checkpoint_module.os, "fdopen", deny_marker_write)
+    store = MarketDataCheckpointStore(tmp_path)
+    with store.locked():
+        checkpoint = store.load_or_create("empty-marker-run")
+    with store.locked():
+        assert store.load_or_create("empty-marker-run") == checkpoint
 
 
 def test_checkpoint_lock_io_failure_is_not_classified_as_competition(

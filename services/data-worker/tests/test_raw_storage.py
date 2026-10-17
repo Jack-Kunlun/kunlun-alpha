@@ -15,6 +15,8 @@ import threading
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import BinaryIO, cast
+from unittest.mock import Mock
 
 import pytest
 from data_worker.raw import manifest as manifest_module
@@ -494,6 +496,25 @@ def test_persistent_lock_file_without_owner_is_reusable(tmp_path: Path) -> None:
     lock_path = tmp_path / "capture.lock"
     lock_path.write_bytes(b"persistent lock marker")
 
+    with LocalFileStorage._exclusive_lock(lock_path):
+        assert lock_path.exists()
+
+
+def test_empty_lock_marker_does_not_require_an_unlocked_byte_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lock_path = tmp_path / "empty.lock"
+    original_fdopen = os.fdopen
+
+    def deny_marker_write(descriptor: int, mode: str, *, closefd: bool) -> BinaryIO:
+        handle = original_fdopen(descriptor, mode, closefd=closefd)
+        guarded = Mock(wraps=handle)
+        # A contender can observe an empty marker, then lose to another
+        # Windows handle before initialization. Writing its locked byte fails.
+        guarded.write.side_effect = PermissionError("byte is owned by another handle")
+        return cast(BinaryIO, guarded)
+
+    monkeypatch.setattr(os, "fdopen", deny_marker_write)
     with LocalFileStorage._exclusive_lock(lock_path):
         assert lock_path.exists()
 

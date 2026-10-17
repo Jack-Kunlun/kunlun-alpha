@@ -240,9 +240,8 @@ class MarketDataCheckpointStore:
         handle: BinaryIO = os.fdopen(descriptor, "r+b", closefd=True)
         acquired = False
         try:
-            if handle.seek(0, os.SEEK_END) == 0:
-                handle.write(b"\x00")
-                handle.flush()
+            # Windows supports locking beyond EOF; writing an empty marker
+            # before ownership can race with another handle's byte lock.
             handle.seek(0)
             deadline = time.monotonic() + _LOCK_WAIT_SECONDS
             while not acquired:

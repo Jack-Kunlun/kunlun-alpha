@@ -201,10 +201,8 @@ class LocalFileStorage(RawStorage):
         handle: BinaryIO = os.fdopen(descriptor, "r+b", closefd=True)
         acquired = False
         try:
-            handle.seek(0, os.SEEK_END)
-            if handle.tell() == 0:
-                handle.write(b"\x00")
-                handle.flush()
+            # Windows can lock bytes beyond EOF. Keep an empty marker empty:
+            # a pre-lock initialization write can hit another owner's byte.
             handle.seek(0)
             deadline = time.monotonic() + _LOCK_WAIT_SECONDS
             while not acquired:
