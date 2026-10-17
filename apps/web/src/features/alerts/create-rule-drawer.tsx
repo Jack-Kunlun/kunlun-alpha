@@ -29,16 +29,27 @@ type AutoEvaluatedField = Extract<
 export function CreateRuleDrawer({
   disabled,
   onCreate,
+  requestedInstrumentId = null,
+  onClose,
 }: {
   disabled: boolean;
   onCreate: (request: CreateWatchlistAlertRuleRequest) => Promise<void>;
+  requestedInstrumentId?: string | null;
+  onClose?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [manuallyOpen, setManuallyOpen] = useState(false);
+  const open = manuallyOpen || requestedInstrumentId !== null;
+  function close() {
+    setManuallyOpen(false);
+    onClose?.();
+  }
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!disabled) setOpen(next);
+        if (disabled) return;
+        if (next) setManuallyOpen(true);
+        else close();
       }}
     >
       <DialogTrigger asChild>
@@ -51,11 +62,13 @@ export function CreateRuleDrawer({
         showCloseButton={false}
       >
         <CreateRuleForm
+          key={requestedInstrumentId ?? "manual"}
           disabled={disabled}
-          onCancel={() => setOpen(false)}
+          initialInstrumentId={requestedInstrumentId ?? "600519.SH"}
+          onCancel={close}
           onCreate={async (request) => {
             await onCreate(request);
-            setOpen(false);
+            close();
           }}
         />
         <DialogClose asChild>
@@ -79,13 +92,15 @@ export function CreateRuleForm({
   disabled,
   onCreate,
   onCancel,
+  initialInstrumentId = "600519.SH",
 }: {
   disabled: boolean;
   onCancel: () => void;
   onCreate: (request: CreateWatchlistAlertRuleRequest) => Promise<void>;
+  initialInstrumentId?: string;
 }) {
   const [name, setName] = useState("价格突破提醒");
-  const [instrumentId, setInstrumentId] = useState("600519.SH");
+  const [instrumentId, setInstrumentId] = useState(initialInstrumentId);
   const [field, setField] = useState<AutoEvaluatedField>("LAST_PRICE");
   const [operator, setOperator] = useState<WatchlistAlertRule["condition"]["operator"]>("GTE");
   const [threshold, setThreshold] = useState("1500.00");

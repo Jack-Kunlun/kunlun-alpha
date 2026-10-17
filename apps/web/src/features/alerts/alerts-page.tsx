@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
+import { useSearchParams } from "react-router";
 import { Activity, AlertCircle, BellRing, Clock3, RefreshCw, ShieldCheck } from "lucide-react";
 import type {
   UpdateWatchlistAlertRuleRequest,
@@ -33,6 +34,11 @@ import {
 } from "./use-watchlist-alerts";
 
 import { CreateRuleDrawer } from "./create-rule-drawer";
+import {
+  createRuleInstrument,
+  filterAlertRules,
+  type RuleEnabledFilter,
+} from "./alert-rule-filters";
 
 const OUTCOME_LABELS: Record<string, string> = {
   TRIGGERED: "已触发",
@@ -54,9 +60,25 @@ export function evaluationRunStatus(run: Pick<WatchlistAlertEvaluationRun, "fail
 
 export function AlertsPage() {
   const alerts = useWatchlistAlerts();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [instrumentQuery, setInstrumentQuery] = useState("");
+  const [enabledFilter, setEnabledFilter] = useState<RuleEnabledFilter>("all");
   const [preview, setPreview] = useState<AlertPreview | null>(null);
   const [evaluationRun, setEvaluationRun] = useState<WatchlistAlertEvaluationRun | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const requestedInstrumentId = createRuleInstrument(searchParams);
+
+  function clearFilters() {
+    setInstrumentQuery("");
+    setEnabledFilter("all");
+  }
+
+  function clearCreateRequest() {
+    if (!searchParams.has("createFor")) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("createFor");
+    setSearchParams(next, { replace: true });
+  }
 
   async function evaluateLatest() {
     setActionError(null);
@@ -89,6 +111,7 @@ export function AlertsPage() {
 
   const workspace = alerts.workspace;
   if (!workspace) return null;
+  const visibleRules = filterAlertRules(workspace.rules, instrumentQuery, enabledFilter);
   const evaluationStatus = evaluationRun ? evaluationRunStatus(evaluationRun) : null;
 
   return (
@@ -116,7 +139,15 @@ export function AlertsPage() {
             <p className="text-sm text-muted-foreground">新规则仅可选择当前支持自动评估的字段。</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <CreateRuleDrawer disabled={alerts.submitting} onCreate={alerts.createRule} />
+            <CreateRuleDrawer
+              disabled={alerts.submitting}
+              requestedInstrumentId={requestedInstrumentId}
+              onClose={clearCreateRequest}
+              onCreate={async (request) => {
+                await alerts.createRule(request);
+                clearFilters();
+              }}
+            />
             <Button
               variant="outline"
               size="sm"
@@ -130,11 +161,49 @@ export function AlertsPage() {
             </Button>
           </div>
         </div>
+        <div className="grid items-end gap-4 rounded-xl border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
+          <Field label="证券代码筛选">
+            <Input
+              value={instrumentQuery}
+              placeholder="输入代码，如 600519.SH"
+              onChange={(event) => setInstrumentQuery(event.target.value)}
+            />
+          </Field>
+          <Field label="启用状态">
+            <select
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              value={enabledFilter}
+              onChange={(event) => setEnabledFilter(event.target.value as RuleEnabledFilter)}
+            >
+              <option value="all">全部状态</option>
+              <option value="enabled">已启用</option>
+              <option value="disabled">已停用</option>
+            </select>
+          </Field>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={instrumentQuery === "" && enabledFilter === "all"}
+            onClick={clearFilters}
+          >
+            清除筛选
+          </Button>
+        </div>
+        <p role="status" className="text-sm text-muted-foreground">
+          显示 {visibleRules.length} / {workspace.rules.length} 条规则
+        </p>
         {workspace.rules.length === 0 ? (
           <EmptyRules />
+        ) : visibleRules.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-8 text-center">
+            <p className="font-medium">没有符合筛选条件的规则</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              调整证券代码或启用状态，或清除筛选。
+            </p>
+          </div>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
-            {workspace.rules.map((rule) => (
+            {visibleRules.map((rule) => (
               <RuleCard
                 key={rule.ruleId}
                 rule={rule}

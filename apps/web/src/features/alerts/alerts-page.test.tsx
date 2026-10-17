@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AlertsPage, evaluationRunStatus } from "./alerts-page";
 import { CreateRuleForm } from "./create-rule-drawer";
 import { Dialog } from "../../components/ui/dialog";
+import { MemoryRouter } from "react-router";
 import { useWatchlistAlerts } from "./use-watchlist-alerts";
 
 vi.mock("./use-watchlist-alerts", () => ({
@@ -18,7 +19,7 @@ describe("AlertsPage", () => {
   it("keeps the rule list separate from creation until the user opens the drawer", () => {
     mockedUseWatchlistAlerts.mockReturnValue(model("empty"));
 
-    const html = renderToStaticMarkup(<AlertsPage />);
+    const html = renderAlerts();
 
     expect(html).toContain("自选规则与预警");
     expect(html).toContain("还没有预警规则");
@@ -27,15 +28,32 @@ describe("AlertsPage", () => {
     expect(html).not.toContain("规则名称");
     expect(html).not.toContain("从左侧创建");
     expect(html).toContain("立即评估最新行情");
+    expect(html).toContain("证券代码筛选");
+    expect(html).toContain("启用状态");
     expect(html).not.toMatch(/P6|Phase/);
+  });
+
+  it("prefills only the instrument when creating a rule from its daily page", () => {
+    const html = renderToStaticMarkup(
+      <Dialog open>
+        <CreateRuleForm
+          disabled={false}
+          initialInstrumentId="002594.SZ"
+          onCreate={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </Dialog>,
+    );
+    expect(html).toContain('value="002594.SZ"');
+    expect(html).toContain('value="1500.00"');
   });
 
   it("renders forbidden and failure recovery states", () => {
     mockedUseWatchlistAlerts.mockReturnValue(model("forbidden"));
-    expect(renderToStaticMarkup(<AlertsPage />)).toContain("当前终端未配置预警所有者");
+    expect(renderAlerts()).toContain("当前终端未配置预警所有者");
 
     mockedUseWatchlistAlerts.mockReturnValue(model("error"));
-    const errorHtml = renderToStaticMarkup(<AlertsPage />);
+    const errorHtml = renderAlerts();
     expect(errorHtml).toContain("预警工作区暂不可用");
     expect(errorHtml).toContain("重新加载");
   });
@@ -43,7 +61,7 @@ describe("AlertsPage", () => {
   it("keeps legacy rule management in the list and auto-evaluated fields in the drawer form", () => {
     mockedUseWatchlistAlerts.mockReturnValue(model("ready"));
 
-    const html = renderToStaticMarkup(<AlertsPage />);
+    const html = renderAlerts();
     const formHtml = renderToStaticMarkup(
       <Dialog open>
         <CreateRuleForm disabled={false} onCreate={vi.fn()} onCancel={vi.fn()} />
@@ -75,6 +93,14 @@ describe("AlertsPage", () => {
     });
   });
 });
+
+function renderAlerts() {
+  return renderToStaticMarkup(
+    <MemoryRouter>
+      <AlertsPage />
+    </MemoryRouter>,
+  );
+}
 
 function evaluationRun(
   values: Partial<{

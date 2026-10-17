@@ -266,6 +266,11 @@ function DetailContent({
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
               历史日线与来源按请求点时展示。日线截至上一可用交易日，不是实时或可成交价格。
             </p>
+            <Button asChild variant="secondary" size="sm" className="mt-4">
+              <a href={`/watchlists?createFor=${encodeURIComponent(detail.instrumentId)}`}>
+                新建提醒
+              </a>
+            </Button>
           </div>
           <div className="grid grid-cols-2 gap-3 text-right text-xs text-slate-400">
             <span>请求点时</span>

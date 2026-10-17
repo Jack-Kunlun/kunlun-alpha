@@ -95,6 +95,8 @@ describe("InstrumentIntelligenceView", () => {
     );
     expect(html).toContain("BEST_EFFORT_CROSS_STORE");
     expect(html).toContain("历史日线与来源");
+    expect(html).toContain('href="/watchlists?createFor=600519.SH"');
+    expect(html).toContain("新建提醒");
     expect(html).not.toContain("公开表述 Claim");
     expect(html).not.toContain("CLICKHOUSE_FEATURE_QUERY_FAILED");
     expect(html).not.toContain("公开证据节选");
