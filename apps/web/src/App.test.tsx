@@ -97,10 +97,13 @@ describe("App routing", () => {
     const html = renderToStaticMarkup(<App roles={["viewer"]} />);
     expect(html).toContain('href="#terminal-main"');
     expect(html).toContain('aria-label="桌面主导航"');
-    expect(html).toContain('aria-label="移动端主导航"');
     expect(html).toContain("打开主导航");
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('data-state="closed"');
+    // A closed Radix drawer keeps its navigation out of the DOM and tab order.
+    expect(html).not.toContain('aria-label="移动端主导航"');
     const navs = [...html.matchAll(/<nav aria-label="(?:桌面|移动端)主导航"[\s\S]*?<\/nav>/g)];
-    expect(navs).toHaveLength(2);
+    expect(navs).toHaveLength(1);
     for (const nav of navs) {
       const markup = nav[0];
       expect(markup).toContain('href="/market-overview"');
