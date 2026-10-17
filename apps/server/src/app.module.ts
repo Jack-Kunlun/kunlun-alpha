@@ -1,3 +1,4 @@
+import { PersonalWatchlistModule } from "./modules/personal-watchlist/personal-watchlist.module";
 import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { MetricsController } from "./metrics.controller";
@@ -22,6 +23,7 @@ import { MarketDataStatusModule } from "./modules/market-data-status/market-data
 @Module({
   imports: [
     AuthModule,
+    PersonalWatchlistModule,
     MarketDataSettingsModule,
     MarketDataStatusModule,
     DataQualityModule,

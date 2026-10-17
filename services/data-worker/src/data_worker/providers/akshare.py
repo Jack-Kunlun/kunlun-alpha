@@ -52,6 +52,7 @@ _MINUTE_SOURCE = "akshare-sina"
 _SOURCE = _LEGACY_SOURCE
 _SHANGHAI = ZoneInfo("Asia/Shanghai")
 _ADAPTER_VERSION = "v3"
+_TENCENT_LOF_V1 = "akshare:1.18.94:stock_zh_a_hist_tx:lof-v1"
 _TENCENT_SHARES_V3 = "akshare:1.18.94:stock_zh_a_hist_tx:v3"
 _MINUTE_INTERVALS = {"MINUTE_1": "1", "MINUTE_5": "5"}
 _INDEX_PREFIXES = {"SH": "000", "SZ": "399"}
@@ -59,6 +60,7 @@ _VOLUME_MULTIPLIERS = {_LEGACY_SOURCE: 100, _DAILY_SOURCE: 1, _MINUTE_SOURCE: 1}
 _CAPTURE_PROFILES = frozenset(
     {
         (_DAILY_SOURCE, "stock_zh_a_hist_tx", "DAILY", _TENCENT_SHARES_V3),
+        (_DAILY_SOURCE, "stock_zh_a_hist_tx", "DAILY", _TENCENT_LOF_V1),
         (
             _MINUTE_SOURCE,
             "stock_zh_a_minute",
@@ -215,6 +217,10 @@ def validate_akshare_capture_profile(capture: object) -> AKShareBarCapture:
         raise ProviderDataError("unsupported AKShare capture profile")
     if capture.source == _LEGACY_SOURCE and _instrument_kind(capture.unified_code) != "stock":
         raise ProviderDataError("unsupported AKShare capture profile")
+    if (_instrument_kind(capture.unified_code) == "lof") != (
+        capture.source_version == _TENCENT_LOF_V1
+    ):
+        raise ProviderDataError("unsupported AKShare LOF capture profile")
     return capture
 
 
@@ -241,7 +247,7 @@ def _is_index(unified_code: str) -> bool:
     return prefix is not None and code.startswith(prefix)
 
 
-InstrumentKind = Literal["stock", "index", "etf"]
+InstrumentKind = Literal["stock", "index", "etf", "lof"]
 
 
 def _instrument_kind(unified_code: str) -> InstrumentKind:
@@ -252,6 +258,8 @@ def _instrument_kind(unified_code: str) -> InstrumentKind:
     parsed = parse_instrument_code(code)
     if parsed is None or parsed.exchange != exchange:
         raise ProviderDataError("unified_code is not recognized by the instrument rules")
+    if parsed.type == "LOF":
+        return "lof"
     if parsed.type == "ETF":
         return "etf"
     if parsed.type == "STOCK":
@@ -260,7 +268,9 @@ def _instrument_kind(unified_code: str) -> InstrumentKind:
 
 
 def _route(unified_code: str, interval: str) -> tuple[str, dict[str, object], str]:
-    _instrument_kind(unified_code)
+    kind = _instrument_kind(unified_code)
+    if kind == "lof" and interval != "DAILY":
+        raise ProviderDataError("LOF supports daily bars only")
     code, exchange = unified_code.rsplit(".", maxsplit=1)
     symbol = f"{exchange.lower()}{code}"
     if interval == "DAILY":
@@ -470,7 +480,11 @@ class AKShareMarketDataProvider(MarketDataProvider):
         endpoint, params, source = _route(unified_code, interval)
         if interval == "DAILY":
             params.update(
-                {"start_date": start.strftime("%Y%m%d"), "end_date": end.strftime("%Y%m%d")}
+                {
+                    "start_date": start.strftime("%Y%m%d"),
+                    "end_date": end.strftime("%Y%m%d"),
+                    "timeout": 15,
+                }
             )
         frame = self._fetch_frame(endpoint, params)
         body = _serialize_dataframe(frame)
@@ -495,7 +509,9 @@ class AKShareMarketDataProvider(MarketDataProvider):
             source_version=_version(
                 self._config.sdk_version,
                 endpoint,
-                self._config.adapter_version,
+                "lof-v1"
+                if _instrument_kind(unified_code) == "lof"
+                else self._config.adapter_version,
             ),
         )
 

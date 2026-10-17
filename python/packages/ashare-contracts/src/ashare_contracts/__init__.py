@@ -705,6 +705,19 @@ from ashare_contracts.strategy_strategy_descriptor import (
 from ashare_contracts.strategy_strategy_descriptor import RequiredFeature as RequiredFeature
 from ashare_contracts.strategy_strategy_descriptor import StrategyDescriptor as StrategyDescriptor
 from ashare_contracts.strategy_strategy_descriptor import StringParameterSpec as StringParameterSpec
+from ashare_contracts.watchlist_personal_watchlist import ErrorCode as ErrorCode
+from ashare_contracts.watchlist_personal_watchlist import (
+    PersonalWatchlistImportRequest as PersonalWatchlistImportRequest,
+)
+from ashare_contracts.watchlist_personal_watchlist import (
+    PersonalWatchlistResponse as PersonalWatchlistResponse,
+)
+from ashare_contracts.watchlist_personal_watchlist import ServerWatchlistItem as ServerWatchlistItem
+from ashare_contracts.watchlist_personal_watchlist import Status as Status_11
+from ashare_contracts.watchlist_personal_watchlist import WatchlistInputItem as WatchlistInputItem
+from ashare_contracts.watchlist_personal_watchlist import (
+    WatchlistMarketState as WatchlistMarketState,
+)
 
 __all__ = [
     "DeliveryStatus",
@@ -1186,6 +1199,13 @@ __all__ = [
     "RequiredFeature",
     "StrategyDescriptor",
     "StringParameterSpec",
+    "ErrorCode",
+    "PersonalWatchlistImportRequest",
+    "PersonalWatchlistResponse",
+    "ServerWatchlistItem",
+    "Status_11",
+    "WatchlistInputItem",
+    "WatchlistMarketState",
     "is_canonical_benchmark_id",
     "validate_backtest_regression_comparison",
 ]

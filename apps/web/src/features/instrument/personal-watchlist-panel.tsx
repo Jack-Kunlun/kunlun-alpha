@@ -1,5 +1,6 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
+import type { InstrumentDailyBar, ServerWatchlistItem } from "@kunlun/shared-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,62 +17,123 @@ import { useTerminalFilters } from "@/app/filter-context";
 import {
   parseWatchlistText,
   personalWatchlistHref,
-  readPersonalWatchlist,
-  savePersonalWatchlist,
-  watchlistStorageKey,
   type PersonalWatchlistItem,
 } from "./personal-watchlist";
+import { usePersonalWatchlist, usePersonalWatchlistQuote } from "./use-personal-watchlist";
+
+const PAGE_SIZE = 20;
+
+function taskStatus(item: ServerWatchlistItem): string {
+  switch (item.market.status) {
+    case "PENDING":
+      return "已保存，等待真实行情采集";
+    case "RUNNING":
+      return "正在采集真实日线";
+    case "SUCCEEDED":
+      return "采集已完成";
+    case "EMPTY":
+      return "采集已完成，行情源暂无日线";
+    case "FAILED":
+      return `行情采集失败（${item.market.errorCode ?? "未知原因"}）`;
+    case "UNSUPPORTED":
+      return `当前行情源暂不支持此市场（${item.market.errorCode ?? "UNSUPPORTED_MARKET"}）`;
+  }
+}
+
+function QuoteValue({ item, enabled }: { item: ServerWatchlistItem; enabled: boolean }) {
+  const query = usePersonalWatchlistQuote(item.code, enabled);
+  const bar = query.data?.status === "AVAILABLE" ? query.data.bars[0] : undefined;
+
+  if (!personalWatchlistHref(item)) {
+    return (
+      <div className="mt-2 text-xs leading-5 text-muted-foreground">
+        {item.market.status === "UNSUPPORTED"
+          ? `已保存在服务端；港股、新三板和上金所暂未接入当前真实日线源（${item.market.errorCode ?? "UNSUPPORTED_MARKET"}）`
+          : `观察项，当前没有可查询的 A 股日线接口 · ${taskStatus(item)}`}
+      </div>
+    );
+  }
+
+  if (bar !== undefined) {
+    return <RealDailyQuote bar={bar} task={taskStatus(item)} />;
+  }
+
+  if (query.status === "forbidden") {
+    return <p className="mt-2 text-xs text-destructive">当前账号无权读取真实日线行情</p>;
+  }
+  if (query.status === "error") {
+    return (
+      <p className="mt-2 text-xs text-destructive">
+        日线查询失败：{query.error?.message ?? "请求失败"} · {taskStatus(item)}
+      </p>
+    );
+  }
+  if (query.status === "loading") {
+    return (
+      <p className="mt-2 text-xs text-muted-foreground">正在查询真实日线 · {taskStatus(item)}</p>
+    );
+  }
+  if (item.market.status === "PENDING" || item.market.status === "RUNNING") {
+    return (
+      <p className="mt-2 text-xs text-muted-foreground">尚无可查询日线 · {taskStatus(item)}</p>
+    );
+  }
+  if (item.market.status === "FAILED" || item.market.status === "UNSUPPORTED") {
+    return <p className="mt-2 text-xs text-destructive">{taskStatus(item)}</p>;
+  }
+  return (
+    <p className="mt-2 text-xs text-muted-foreground">
+      真实行情源尚无可查询日线 · {taskStatus(item)}
+    </p>
+  );
+}
+
+function RealDailyQuote({ bar, task }: { bar: InstrumentDailyBar; task: string }) {
+  return (
+    <p
+      className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+      title={`${bar.source} · ${bar.sourceVersion}`}
+    >
+      <span className="font-medium text-foreground">收盘 {bar.close}</span>
+      <span>{bar.date}</span>
+      <span>{bar.source}</span>
+      <span aria-label={`行情采集状态：${task}`}>· {task}</span>
+    </p>
+  );
+}
 
 export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
-  const [items, setItems] = useState<PersonalWatchlistItem[]>([]);
-  const [readError, setReadError] = useState<string | null>(null);
+  const watchlist = usePersonalWatchlist(ownerId);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
   const { hrefForRoute } = useTerminalFilters();
-  const key = ownerId === null ? null : watchlistStorageKey(ownerId);
-
-  useEffect(() => {
-    function read() {
-      try {
-        setItems(key === null ? [] : readPersonalWatchlist(window.localStorage, key));
-        setReadError(null);
-      } catch {
-        setItems([]);
-        setReadError("本机自选暂时无法读取，原内容未覆盖。请检查浏览器存储后刷新页面。");
-      }
-    }
-    read();
-    function onStorage(event: StorageEvent) {
-      if (event.key === key || event.key === null) read();
-    }
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [key]);
+  const items = watchlist.data?.items ?? [];
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving || key === null || readError !== null) return;
-    setError(null);
+    if (saving || watchlist.data === null || ownerId === null) return;
+    setFormError(null);
+    setMessage(null);
     setSaving(true);
     try {
-      const incoming = parseWatchlistText(draft);
-      if (!navigator.locks) throw new Error("当前浏览器不支持安全的自选保存，请使用新版浏览器");
-      const next = await navigator.locks.request(key, () =>
-        savePersonalWatchlist(window.localStorage, key, incoming),
-      );
-      setItems(next);
+      const incoming: PersonalWatchlistItem[] = parseWatchlistText(draft);
+      const result = await watchlist.importItems(incoming);
       setQuery("");
+      setPage(0);
       setMessage(
-        `已合并 ${incoming.length} 项自选，当前共 ${next.length} 项。重复代码保留原名称。`,
+        result.nameConflicts.length === 0
+          ? `服务端已确认保存 ${incoming.length} 项自选，当前共 ${result.data.items.length} 项。`
+          : `服务端已确认保存全部代码；${result.nameConflicts.length} 项已有条目保留服务端名称。`,
       );
       setDraft("");
       setOpen(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "保存失败，输入已保留，请重试");
+      setFormError(cause instanceof Error ? cause.message : "保存失败，输入已保留，请重试");
     } finally {
       setSaving(false);
     }
@@ -81,6 +143,15 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
   const visible = items.filter((item) =>
     `${item.code} ${item.name}`.toUpperCase().includes(normalized),
   );
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const visiblePage = visible.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const canImport =
+    ownerId !== null &&
+    watchlist.data !== null &&
+    watchlist.status !== "forbidden" &&
+    watchlist.migrationStatus !== "migrating";
+
   return (
     <section
       aria-labelledby="personal-watchlist-title"
@@ -92,7 +163,7 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
             我的自选
           </h3>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            保存在当前浏览器，按登录用户分开保存。加入清单不代表行情已覆盖，日线以查询结果为准。
+            自选保存在登录账号的服务端。沪深北标的展示真实日线价格、日期和来源；观察项会标明行情支持状态。
           </p>
         </div>
         <Dialog
@@ -100,12 +171,17 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
           onOpenChange={(next) => {
             if (!saving) {
               setOpen(next);
-              setError(null);
+              setFormError(null);
             }
           }}
         >
           <DialogTrigger asChild>
-            <Button type="button" variant="outline" disabled={key === null || readError !== null}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!canImport || watchlist.isImporting}
+              title={ownerId === null ? "请先登录" : undefined}
+            >
               导入自选
             </Button>
           </DialogTrigger>
@@ -113,22 +189,22 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
             <DialogHeader className="pr-6 text-left">
               <DialogTitle>导入自选</DialogTitle>
               <DialogDescription>
-                每行填写“统一代码 名称”，重复代码会自动合并。取消保留草稿，保存成功后关闭。
+                每行填写“统一代码 名称”，重复代码自动合并。保存到服务端成功后关闭；失败时保留输入。
               </DialogDescription>
             </DialogHeader>
             <form
               onSubmit={(event) => void submit(event)}
-              aria-busy={saving}
+              aria-busy={saving || watchlist.isImporting}
               className="grid gap-4"
             >
               <div className="grid gap-2">
                 <Label htmlFor="personal-watchlist-import">自选代码与名称</Label>
                 <textarea
                   id="personal-watchlist-import"
-                  className="min-h-48 w-full resize-y rounded-md border border-input bg-background p-3 font-mono text-sm disabled:opacity-50"
+                  className="min-h-48 w-full resize-y rounded-md border border-input bg-background p-3 font-mono text-sm disabled:cursor-not-allowed disabled:opacity-50"
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  disabled={saving}
+                  disabled={saving || watchlist.isImporting}
                   required
                   maxLength={250000}
                   placeholder={"600519.SH 示例股票\n512400.SH 示例基金"}
@@ -141,84 +217,176 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
                   沪深北代码需带 .SH / .SZ / .BJ；HK:、NEEQ:、SGE: 前缀仅作为观察项保存。
                 </p>
               </div>
-              {error && (
+              {formError && (
                 <p role="alert" className="text-sm text-destructive">
-                  {error}
+                  {formError}
                 </p>
               )}
               <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={saving}
+                  disabled={saving || watchlist.isImporting}
                   onClick={() => setOpen(false)}
                 >
                   取消
                 </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "保存中…" : "保存自选"}
+                <Button type="submit" disabled={saving || watchlist.isImporting}>
+                  {saving || watchlist.isImporting ? "保存中…" : "保存自选"}
                 </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
-      {readError && (
-        <p role="alert" className="text-sm text-destructive">
-          {readError}
+
+      {ownerId === null && (
+        <p role="status" className="text-sm text-muted-foreground">
+          请登录后查看和保存服务端自选。
         </p>
+      )}
+      {watchlist.status === "loading" && watchlist.data === null && (
+        <p role="status" className="text-sm text-muted-foreground">
+          正在从服务端读取自选…
+        </p>
+      )}
+      {watchlist.status === "forbidden" && (
+        <p role="alert" className="text-sm text-destructive">
+          当前账号无权读取服务端自选。
+        </p>
+      )}
+      {watchlist.status === "error" && watchlist.data === null && (
+        <div className="flex flex-wrap items-center justify-between gap-3" role="alert">
+          <p className="text-sm text-destructive">
+            服务端自选读取失败：{watchlist.error?.message ?? "请求失败"}。本机迁移备份保持不变。
+          </p>
+          <Button type="button" variant="outline" onClick={watchlist.refresh}>
+            重试读取
+          </Button>
+        </div>
+      )}
+      {watchlist.data !== null && watchlist.error !== null && (
+        <p role="status" className="text-sm text-destructive">
+          服务端刷新失败，当前显示上次已读取的数据：{watchlist.error.message}
+        </p>
+      )}
+      {watchlist.refreshing && (
+        <p role="status" className="text-xs text-muted-foreground">
+          正在刷新服务端自选…
+        </p>
+      )}
+
+      {watchlist.migrationStatus === "migrating" && (
+        <p role="status" className="text-sm text-muted-foreground">
+          正在将本机自选安全迁移到服务端；本机原清单会继续保留为备份。
+        </p>
+      )}
+      {watchlist.migrationStatus === "error" && (
+        <div className="flex flex-wrap items-center justify-between gap-3" role="alert">
+          <p className="text-sm text-destructive">
+            本机自选尚未得到服务端完整确认：{watchlist.migrationError?.message ?? "迁移失败"}
+            。原清单已保留。
+          </p>
+          <Button type="button" variant="outline" onClick={() => void watchlist.retryMigration()}>
+            重试迁移
+          </Button>
+        </div>
+      )}
+      {watchlist.migrationStatus === "complete" && (
+        <div role="status" className="space-y-1 text-sm text-emerald-700 dark:text-emerald-400">
+          <p>本机自选已由服务端确认；浏览器原清单继续保留为迁移备份。</p>
+          {watchlist.migrationNameConflicts.length > 0 && (
+            <p className="text-xs leading-5">
+              {watchlist.migrationNameConflicts.length} 项已有自选保留服务端原名称。
+            </p>
+          )}
+        </div>
       )}
       {message && (
         <p role="status" className="text-sm text-emerald-700 dark:text-emerald-400">
           {message}
         </p>
       )}
-      <div className="grid gap-2">
-        <Label htmlFor="personal-watchlist-search">搜索我的自选</Label>
-        <Input
-          id="personal-watchlist-search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="名称或代码"
-        />
-      </div>
-      <p role="status" className="text-xs text-muted-foreground">
-        显示 {visible.length} / {items.length} 项自选
-      </p>
-      {visible.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-          {items.length === 0
-            ? "尚未添加自选，点击“导入自选”批量添加。"
-            : "没有匹配的自选，请调整搜索。"}
-        </p>
-      ) : (
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {visible.map((item) => {
-            const href = personalWatchlistHref(item);
-            return (
-              <li key={item.code} className="min-w-0">
-                {href ? (
-                  <Link
-                    to={hrefForRoute(href)}
-                    className="flex h-full items-center justify-between gap-3 rounded-lg border p-3 text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+
+      {watchlist.data !== null && (
+        <>
+          <div className="grid gap-2">
+            <Label htmlFor="personal-watchlist-search">搜索我的自选</Label>
+            <Input
+              id="personal-watchlist-search"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(0);
+              }}
+              placeholder="名称或代码"
+            />
+          </div>
+          <p role="status" className="text-xs text-muted-foreground">
+            显示 {visible.length} / {items.length} 项自选
+            {visible.length > 0 ? ` · 第 ${currentPage + 1} / ${pageCount} 页` : ""}
+          </p>
+          {visible.length === 0 ? (
+            <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              {items.length === 0
+                ? "服务端尚未保存自选，点击“导入自选”批量添加。"
+                : "没有匹配的自选，请调整搜索。"}
+            </p>
+          ) : (
+            <>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {visiblePage.map((item) => {
+                  const href = personalWatchlistHref(item);
+                  return (
+                    <li key={item.code} className="min-w-0">
+                      <div className="h-full rounded-lg border p-3 text-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          {href ? (
+                            <Link
+                              to={hrefForRoute(href)}
+                              className="min-w-0 break-words font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                            >
+                              {item.name}
+                            </Link>
+                          ) : (
+                            <span className="min-w-0 break-words font-medium">{item.name}</span>
+                          )}
+                          <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                            {item.code}
+                          </span>
+                        </div>
+                        <QuoteValue item={item} enabled />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              {pageCount > 1 && (
+                <div className="flex items-center justify-between gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={currentPage === 0}
+                    onClick={() => setPage((current) => Math.max(0, current - 1))}
                   >
-                    <span className="min-w-0 break-words font-medium">{item.name}</span>
-                    <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                      {item.code}
-                    </span>
-                  </Link>
-                ) : (
-                  <div className="rounded-lg border border-dashed p-3 text-sm">
-                    <span className="font-medium">{item.name}</span>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {item.code} · 观察项，行情未接入
-                    </p>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                    上一页
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {currentPage + 1} / {pageCount}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={currentPage + 1 >= pageCount}
+                    onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+                  >
+                    下一页
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
     </section>
   );

@@ -103,3 +103,34 @@ describe("PostgresSqlDriver", () => {
     expect(releaseError?.message).toBe("rollback failed");
   });
 });
+
+describe("migration constraint literals", () => {
+  it("accepts regex punctuation only inside ordinary SQL string literals", async () => {
+    const pool = {
+      query: async () => ({ rows: [] }),
+      connect: async () => undefined,
+    } as unknown as Pool;
+    const driver = new PostgresSqlDriver(pool);
+    await expect(
+      driver.createTable({
+        name: "owned_codes",
+        columns: [{ name: "code", type: "TEXT" }],
+        constraints: ["CHECK (code ~ '^[0-9]{6}[.](SH|SZ|BJ)$')"],
+      }),
+    ).resolves.toBeUndefined();
+    for (const constraint of [
+      "CHECK (code = 'a'); DROP TABLE users",
+      "CHECK (code = 'a') /* comment */",
+      "CHECK (code = E'a\\x27')",
+      "CHECK (code = 'unterminated)",
+    ]) {
+      await expect(
+        driver.createTable({
+          name: "owned_codes",
+          columns: [{ name: "code", type: "TEXT" }],
+          constraints: [constraint],
+        }),
+      ).rejects.toThrow("unsafe migration constraint");
+    }
+  });
+});

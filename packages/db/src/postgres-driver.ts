@@ -129,7 +129,11 @@ export class PostgresSqlDriver implements SqlDriver {
       throw new Error(`table ${table.name} must define at least one column`);
     }
     const constraints = (table.constraints ?? []).map((constraint) => {
-      if (!/^[A-Za-z0-9_ ()',.=<>-]+$/.test(constraint)) {
+      // Permit regex punctuation inside ordinary SQL literals only. Escape
+      // strings/backslashes and unmatched quotes remain forbidden, as do
+      // statement separators, comment syntax and arbitrary operators outside.
+      const outsideLiterals = constraint.replace(/'(?:[^'\\]|'')*'/g, "");
+      if (!/^[A-Za-z0-9_ (),.=<>!~-]+$/.test(outsideLiterals) || outsideLiterals.includes("--")) {
         throw new Error(`unsafe migration constraint: ${constraint}`);
       }
       return constraint;

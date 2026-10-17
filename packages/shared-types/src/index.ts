@@ -4448,3 +4448,52 @@ export interface StringParameterSpec {
   description: string;
   defaultValue?: string | null;
 }
+
+export interface PersonalWatchlistResponse {
+  schemaVersion: "personal-watchlist-response-v1";
+  /**
+   * @maxItems 2000
+   */
+  items: ServerWatchlistItem[];
+}
+/**
+ * This interface was referenced by `PersonalWatchlistResponse`'s JSON-Schema
+ * via the `definition` "ServerWatchlistItem".
+ */
+export interface ServerWatchlistItem {
+  code: string;
+  name: string;
+  addedAt: string;
+  market: WatchlistMarketState;
+}
+/**
+ * This interface was referenced by `PersonalWatchlistResponse`'s JSON-Schema
+ * via the `definition` "WatchlistMarketState".
+ */
+export interface WatchlistMarketState {
+  status: "PENDING" | "RUNNING" | "SUCCEEDED" | "EMPTY" | "FAILED" | "UNSUPPORTED";
+  lastAttemptAt: string | null;
+  lastSuccessAt: string | null;
+  errorCode: null | "SOURCE_ERROR" | "VALIDATION_ERROR" | "SYNC_ERROR" | "UNSUPPORTED_MARKET";
+}
+/**
+ * This interface was referenced by `PersonalWatchlistResponse`'s JSON-Schema
+ * via the `definition` "WatchlistInputItem".
+ */
+export interface WatchlistInputItem {
+  code: string;
+  name: string;
+}
+/**
+ * This interface was referenced by `PersonalWatchlistResponse`'s JSON-Schema
+ * via the `definition` "PersonalWatchlistImportRequest".
+ */
+export interface PersonalWatchlistImportRequest {
+  schemaVersion: "personal-watchlist-import-v1";
+  clientRequestId: string;
+  /**
+   * @minItems 1
+   * @maxItems 2000
+   */
+  items: [WatchlistInputItem, ...WatchlistInputItem[]];
+}

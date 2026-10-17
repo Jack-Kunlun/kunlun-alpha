@@ -636,3 +636,19 @@ def test_schema_exception_is_classified_as_data_error_without_retry() -> None:
     with pytest.raises(ProviderDataError):
         provider.fetch_raw_bars("600000.SH", "DAILY", "2026-08-26", "2026-08-26")
     assert attempts == 1
+
+
+def test_lof_daily_uses_separate_profile_without_enabling_minutes() -> None:
+    client = FakeAKShareClient(
+        {"stock_zh_a_hist_tx": FakeDataFrame([_daily_row(**{"股票代码": "161226"})])}
+    )
+    provider = AKShareMarketDataProvider(
+        AKShareConfig(sdk_version="1.18.94", max_attempts=1),
+        client=client,
+        clock=lambda: datetime(2026, 8, 27, 4, tzinfo=UTC),
+    )
+    capture = provider.fetch_raw_bars("161226.SZ", "DAILY", "2026-08-26", "2026-08-27")
+    assert capture.source_version.endswith(":lof-v1")
+    assert len(provider.parse_bars_with_evidence(capture).bars) == 1
+    with pytest.raises(ProviderDataError, match="daily bars only"):
+        provider.fetch_raw_bars("161226.SZ", "MINUTE_1", "2026-08-26", "2026-08-27")

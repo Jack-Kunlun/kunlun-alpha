@@ -236,6 +236,38 @@ services:
       - "kunlun.service=ranking-terminal-materialize"
       - "kunlun.description=Point-in-time real local market ranking publication"
 
+  watchlist-market-data-sync:
+    profiles: ["real-market-data"]
+    image: kunlun-data-worker:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: data-worker
+    container_name: kunlun-watchlist-market-data-sync
+    restart: "on-failure:5"
+    init: true
+    depends_on:
+      server-migrate:
+        condition: service_completed_successfully
+      clickhouse-migrate:
+        condition: service_completed_successfully
+    environment:
+      KUNLUN_POSTGRES_DSN: >-
+        postgresql://${POSTGRES_USER:-kunlun}:${POSTGRES_PASSWORD:-kunlun-local-dev}@postgres:5432/${POSTGRES_DB:-kunlun}?options=-csearch_path%3Dkunlun%2Cpublic
+      MARKET_DATA_RAW_ROOT: /workspace/var/market-raw/personal-watchlist-v1
+      MARKET_DATA_DAILY_LOOKBACK_DAYS: ${MARKET_DATA_DAILY_LOOKBACK_DAYS:-730}
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-kunlun}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-kunlun}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-kunlun-local-dev}
+      CLICKHOUSE_TIMEOUT_SECONDS: ${CLICKHOUSE_TIMEOUT_SECONDS:-5}
+    volumes:
+      - kunlun-market-raw:/workspace/var/market-raw
+    command: ["personal-watchlist-sync"]
+    labels:
+      - "kunlun.service=watchlist-market-data-sync"
+      - "kunlun.description=Server-owned personal watchlist daily synchronization"
+
   market-data-sync:
     profiles: ["real-market-data"]
     image: kunlun-data-worker:local

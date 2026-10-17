@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kunlun-alpha/schemas/watchlist/personal-watchlist.json",
+  "title": "PersonalWatchlistResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "items"],
+  "properties": {
+    "schemaVersion": { "const": "personal-watchlist-response-v1" },
+    "items": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": { "$ref": "#/definitions/ServerWatchlistItem" }
+    }
+  },
+  "definitions": {
+    "WatchlistInputItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "name"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^(?:[0-9]{6}\\.(?:SH|SZ|BJ)|HK:[0-9]{5}|NEEQ:[0-9]{6}|SGE:AU99\\.99)$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[^<>\\u0000-\\u001f\\u007f]+$"
+        }
+      }
+    },
+    "ServerWatchlistItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "name", "addedAt", "market"],
+      "properties": {
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "addedAt": { "type": "string", "format": "date-time" },
+        "market": { "$ref": "#/definitions/WatchlistMarketState" }
+      }
+    },
+    "WatchlistMarketState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "lastAttemptAt", "lastSuccessAt", "errorCode"],
+      "properties": {
+        "status": { "enum": ["PENDING", "RUNNING", "SUCCEEDED", "EMPTY", "FAILED", "UNSUPPORTED"] },
+        "lastAttemptAt": { "type": ["string", "null"], "format": "date-time" },
+        "lastSuccessAt": { "type": ["string", "null"], "format": "date-time" },
+        "errorCode": {
+          "enum": [null, "SOURCE_ERROR", "VALIDATION_ERROR", "SYNC_ERROR", "UNSUPPORTED_MARKET"]
+        }
+      }
+    },
+    "PersonalWatchlistImportRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "clientRequestId", "items"],
+      "properties": {
+        "schemaVersion": { "const": "personal-watchlist-import-v1" },
+        "clientRequestId": { "type": "string", "format": "uuid" },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2000,
+          "items": { "$ref": "#/definitions/WatchlistInputItem" }
+        }
+      }
+    }
+  }
+}

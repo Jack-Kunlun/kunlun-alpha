@@ -84,7 +84,10 @@ test("v1 host ports are loopback-only and existing persistence is retained", () 
 
 test("real market sync is explicit, raw-first, daily-only and bounded to the configured sample", () => {
   const { services, volumes } = configuration(["real-market-data"]);
-  assert.deepEqual(Object.keys(services).sort(), [...required, "market-data-sync"].sort());
+  assert.deepEqual(
+    Object.keys(services).sort(),
+    [...required, "market-data-sync", "watchlist-market-data-sync"].sort(),
+  );
   const sync = services["market-data-sync"];
   assert.deepEqual(sync.command, ["market-data-sync"]);
   assert.equal(sync.environment.MARKET_DATA_PROVIDER, "akshare");
@@ -104,6 +107,18 @@ test("real market sync is explicit, raw-first, daily-only and bounded to the con
   assert.ok(sync.volumes.some((mount) => mount.source === "kunlun-market-raw"));
   assert.equal(volumes["kunlun-market-raw"].name, "kunlun-market-raw");
   assert.deepEqual(Object.keys(sync.depends_on), ["clickhouse-migrate"]);
+  const watchlist = services["watchlist-market-data-sync"];
+  assert.deepEqual(watchlist.command, ["personal-watchlist-sync"]);
+  assert.equal(watchlist.image, sync.image);
+  assert.equal(watchlist.environment.MARKET_DATA_SYMBOLS, undefined);
+  assert.equal(watchlist.environment.MARKET_DATA_SETTINGS_WORKER_TOKEN, undefined);
+  assert.equal(
+    watchlist.environment.MARKET_DATA_RAW_ROOT,
+    "/workspace/var/market-raw/personal-watchlist-v1",
+  );
+  assert.ok(watchlist.environment.KUNLUN_POSTGRES_DSN);
+  assert.ok(watchlist.volumes.some((mount) => mount.source === "kunlun-market-raw"));
+  assert.ok(!services.server.volumes.some((mount) => mount.source === "kunlun-market-raw"));
 });
 
 test("task status shares sanitized metadata read-only without giving the server raw access", () => {

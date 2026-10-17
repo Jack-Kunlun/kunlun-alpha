@@ -14,6 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
+personal-watchlist-sync = "data_worker.jobs.market_data.personal_watchlist:main"
 limit-pool-terminal-materialize = "data_worker.jobs.limit_pool_terminal.runtime:main"
 local-terminal-reference-materialize = "data_worker.jobs.local_reference.runtime:main"
 market-data-sync = "data_worker.jobs.market_data.runtime:main"

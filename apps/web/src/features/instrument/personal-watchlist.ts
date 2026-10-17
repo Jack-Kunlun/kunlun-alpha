@@ -1,32 +1,51 @@
-export interface PersonalWatchlistItem {
-  code: string;
-  name: string;
-}
+import type { WatchlistInputItem } from "@kunlun/shared-types";
+
+export type PersonalWatchlistItem = WatchlistInputItem;
 
 export interface WatchlistStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
 }
 
+export interface PersonalWatchlistMigrationCommand {
+  schemaVersion: "personal-watchlist-migration-v1";
+  itemsFingerprint: string;
+  clientRequestId: string;
+  status: "PENDING" | "COMPLETE";
+}
+
 const CANONICAL_INSTRUMENT = /^[0-9]{6}\.(SH|SZ|BJ)$/;
 const OBSERVATION_REFERENCE = /^(?:HK:[0-9]{5}|NEEQ:[0-9]{6}|SGE:AU99\.99)$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_ITEMS = 2000;
 
 export function watchlistStorageKey(ownerId: string): string {
-  if (!ownerId) throw new Error("请先登录后再导入自选");
+  if (!ownerId) throw new Error("请先登录后再迁移自选");
   return `kunlun:personal-watchlist:v1:${encodeURIComponent(ownerId)}`;
 }
 
+export function personalWatchlistMigrationKey(ownerId: string): string {
+  if (!ownerId) throw new Error("请先登录后再迁移自选");
+  return `kunlun:personal-watchlist-migration:v1:${encodeURIComponent(ownerId)}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function isPersonalWatchlistCode(value: string): boolean {
+  return CANONICAL_INSTRUMENT.test(value) || OBSERVATION_REFERENCE.test(value);
+}
+
 function validItem(value: unknown): value is PersonalWatchlistItem {
-  if (typeof value !== "object" || value === null) return false;
-  const item = value as Record<string, unknown>;
+  if (!isRecord(value)) return false;
   return (
-    typeof item.code === "string" &&
-    (CANONICAL_INSTRUMENT.test(item.code) || OBSERVATION_REFERENCE.test(item.code)) &&
-    typeof item.name === "string" &&
-    item.name.trim().length > 0 &&
-    item.name.length <= 80 &&
-    !/[<>\u0000-\u001f]/.test(item.name)
+    typeof value.code === "string" &&
+    isPersonalWatchlistCode(value.code) &&
+    typeof value.name === "string" &&
+    value.name.trim().length > 0 &&
+    value.name.length <= 80 &&
+    !/[<>\u0000-\u001f]/.test(value.name)
   );
 }
 
@@ -55,41 +74,107 @@ export function parseWatchlistText(text: string): PersonalWatchlistItem[] {
   );
 }
 
+/** Reads the previous browser list as a migration source and never writes to it. */
 export function readPersonalWatchlist(
-  storage: WatchlistStorage,
+  storage: Pick<WatchlistStorage, "getItem">,
   key: string,
 ): PersonalWatchlistItem[] {
   const raw = storage.getItem(key);
   if (raw === null) return [];
   try {
     const data: unknown = JSON.parse(raw);
-    if (typeof data !== "object" || data === null) throw new Error();
-    const record = data as Record<string, unknown>;
+    if (!isRecord(data)) throw new Error();
     if (
-      record.schemaVersion !== "personal-watchlist-v1" ||
-      !Array.isArray(record.items) ||
-      record.items.length > MAX_ITEMS ||
-      !record.items.every(validItem)
+      data.schemaVersion !== "personal-watchlist-v1" ||
+      !Array.isArray(data.items) ||
+      data.items.length > MAX_ITEMS ||
+      !data.items.every(validItem)
     )
       throw new Error();
-    const items = uniqueItems(record.items);
-    if (items.length !== record.items.length) throw new Error();
+    const items = uniqueItems(data.items);
+    if (items.length !== data.items.length) throw new Error();
     return items;
   } catch {
-    throw new Error("本机自选数据无法读取，已保留原内容，请恢复数据后重试");
+    throw new Error("本机自选备份无法读取，原内容已保留，请检查浏览器存储后重试");
   }
 }
 
-/** Called under a browser Web Lock; merge with the latest stored list before writing. */
-export function savePersonalWatchlist(
+function fingerprint(items: readonly PersonalWatchlistItem[]): string {
+  return JSON.stringify(uniqueItems(items));
+}
+
+function isMigrationCommand(value: unknown): value is PersonalWatchlistMigrationCommand {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === "personal-watchlist-migration-v1" &&
+    typeof value.itemsFingerprint === "string" &&
+    typeof value.clientRequestId === "string" &&
+    UUID.test(value.clientRequestId) &&
+    (value.status === "PENDING" || value.status === "COMPLETE")
+  );
+}
+
+export function readPersonalWatchlistMigration(
+  storage: Pick<WatchlistStorage, "getItem">,
+  ownerId: string,
+): PersonalWatchlistMigrationCommand | null {
+  const raw = storage.getItem(personalWatchlistMigrationKey(ownerId));
+  if (raw === null) return null;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!isMigrationCommand(value)) throw new Error();
+    return value;
+  } catch {
+    throw new Error("本机迁移记录无法读取，原自选备份仍保留");
+  }
+}
+
+function createRequestId(): string {
+  const randomUUID = globalThis.crypto?.randomUUID;
+  if (typeof randomUUID !== "function") throw new Error("当前浏览器无法生成安全的迁移请求编号");
+  return randomUUID.call(globalThis.crypto);
+}
+
+/** Reuses a pending id after a lost response; a completed snapshot gets a fresh id if retried. */
+export function getOrCreatePersonalWatchlistMigration(
   storage: WatchlistStorage,
-  key: string,
-  incoming: readonly PersonalWatchlistItem[],
-): PersonalWatchlistItem[] {
-  if (!incoming.every(validItem)) throw new Error("导入内容无效");
-  const items = uniqueItems([...readPersonalWatchlist(storage, key), ...incoming]);
-  storage.setItem(key, JSON.stringify({ schemaVersion: "personal-watchlist-v1", items }));
-  return items;
+  ownerId: string,
+  items: readonly PersonalWatchlistItem[],
+  requestIdFactory: () => string = createRequestId,
+): PersonalWatchlistMigrationCommand {
+  const itemsFingerprint = fingerprint(items);
+  const existing = readPersonalWatchlistMigration(storage, ownerId);
+  if (existing?.itemsFingerprint === itemsFingerprint && existing.status === "PENDING") {
+    return existing;
+  }
+  const clientRequestId = requestIdFactory();
+  if (!UUID.test(clientRequestId)) throw new Error("迁移请求编号无效");
+  const command: PersonalWatchlistMigrationCommand = {
+    schemaVersion: "personal-watchlist-migration-v1",
+    itemsFingerprint,
+    clientRequestId,
+    status: "PENDING",
+  };
+  storage.setItem(personalWatchlistMigrationKey(ownerId), JSON.stringify(command));
+  return command;
+}
+
+export function completePersonalWatchlistMigration(
+  storage: WatchlistStorage,
+  ownerId: string,
+  command: PersonalWatchlistMigrationCommand,
+): PersonalWatchlistMigrationCommand {
+  const current = readPersonalWatchlistMigration(storage, ownerId);
+  if (
+    current === null ||
+    current.clientRequestId !== command.clientRequestId ||
+    current.itemsFingerprint !== command.itemsFingerprint
+  ) {
+    throw new Error("迁移记录已变化，原自选备份仍保留");
+  }
+  const completed: PersonalWatchlistMigrationCommand = { ...current, status: "COMPLETE" };
+  storage.setItem(personalWatchlistMigrationKey(ownerId), JSON.stringify(completed));
+  return completed;
 }
 
 export function personalWatchlistHref(item: PersonalWatchlistItem): string | null {

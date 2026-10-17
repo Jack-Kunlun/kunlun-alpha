@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  completePersonalWatchlistMigration,
+  getOrCreatePersonalWatchlistMigration,
   parseWatchlistText,
   personalWatchlistHref,
   readPersonalWatchlist,
-  savePersonalWatchlist,
   watchlistStorageKey,
 } from "./personal-watchlist";
 
-function storage(initial: string | null = null) {
-  let value = initial;
+function storage(initial: Record<string, string> = {}) {
+  const values = new Map(Object.entries(initial));
   return {
-    getItem: () => value,
-    setItem: (_key: string, next: string) => {
-      value = next;
-    },
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, next: string) => values.set(key, next),
+    snapshot: (key: string) => values.get(key) ?? null,
   };
 }
 
@@ -32,46 +32,60 @@ describe("personal watchlist import", () => {
       expect(() => parseWatchlistText(text)).toThrow();
     },
   );
-  it("merges without replacing existing names and survives a fresh read", () => {
-    const store = storage();
+  it("reads and preserves the local migration backup", () => {
     const key = watchlistStorageKey("local-user");
-    expect(savePersonalWatchlist(store, key, parseWatchlistText("000001.SZ 原名称"))).toHaveLength(
-      1,
+    const backup = JSON.stringify({
+      schemaVersion: "personal-watchlist-v1",
+      items: parseWatchlistText("000001.SZ 原名称\n600519.SH 示例股票"),
+    });
+    const store = storage({ [key]: backup });
+    const items = readPersonalWatchlist(store, key);
+    expect(items).toHaveLength(2);
+    const migration = getOrCreatePersonalWatchlistMigration(
+      store,
+      "local-user",
+      items,
+      () => "18a8a7e4-6f46-4f60-9e90-05f48e6fe2b1",
     );
-    expect(
-      savePersonalWatchlist(store, key, parseWatchlistText("000001.SZ 新名称\n600519.SH 示例股票")),
-    ).toHaveLength(2);
-    expect(readPersonalWatchlist(store, key)[0]?.name).toBe("原名称");
+    completePersonalWatchlistMigration(store, "local-user", migration);
+    expect(store.snapshot(key)).toBe(backup);
   });
-  it("does not overwrite corrupt or newer-version stored content", () => {
+  it("does not overwrite corrupt or newer-version backup content", () => {
     for (const initial of ["{bad", '{"schemaVersion":"personal-watchlist-v2","items":[]}']) {
-      const store = storage(initial);
-      expect(() =>
-        savePersonalWatchlist(store, "key", parseWatchlistText("600519.SH 示例股票")),
-      ).toThrow();
-      expect(store.getItem()).toBe(initial);
+      const key = watchlistStorageKey("local-user");
+      const store = storage({ [key]: initial });
+      expect(() => readPersonalWatchlist(store, key)).toThrow();
+      expect(store.snapshot(key)).toBe(initial);
     }
-  });
-  it("reports unavailable storage without losing the existing list", () => {
-    const store = storage();
-    savePersonalWatchlist(store, "key", parseWatchlistText("000001.SZ 示例股票"));
-    const previous = store.getItem();
-    expect(() =>
-      savePersonalWatchlist(
-        {
-          ...store,
-          setItem: () => {
-            throw new Error("QuotaExceeded");
-          },
-        },
-        "key",
-        parseWatchlistText("600519.SH 新增股票"),
-      ),
-    ).toThrow();
-    expect(store.getItem()).toBe(previous);
   });
   it("keeps owner storage separate", () => {
     expect(watchlistStorageKey("one")).not.toBe(watchlistStorageKey("two"));
+  });
+  it("reuses a pending command id for the same snapshot and creates a new one after completion", () => {
+    const store = storage();
+    const items = parseWatchlistText("000001.SZ 示例股票");
+    const first = getOrCreatePersonalWatchlistMigration(
+      store,
+      "local-user",
+      items,
+      () => "18a8a7e4-6f46-4f60-9e90-05f48e6fe2b1",
+    );
+    const retry = getOrCreatePersonalWatchlistMigration(
+      store,
+      "local-user",
+      items,
+      () => "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    );
+    expect(retry).toEqual(first);
+    completePersonalWatchlistMigration(store, "local-user", first);
+    const later = getOrCreatePersonalWatchlistMigration(
+      store,
+      "local-user",
+      items,
+      () => "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    );
+    expect(later.clientRequestId).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    expect(later.status).toBe("PENDING");
   });
   it("retains unsupported observations without exposing an instrument query path", () => {
     for (const item of parseWatchlistText(
@@ -87,12 +101,11 @@ describe("personal watchlist import", () => {
     expect(() =>
       parseWatchlistText(Array.from({ length: 2001 }, () => "000001.SZ 示例股票").join("\n")),
     ).toThrow();
-    const store = storage(
-      '{"schemaVersion":"personal-watchlist-v1","items":[{"code":"BAD","name":"x"}]}',
-    );
-    expect(() =>
-      savePersonalWatchlist(store, "key", parseWatchlistText("600519.SH 示例股票")),
-    ).toThrow();
-    expect(store.getItem()).toContain("BAD");
+    const key = watchlistStorageKey("local-user");
+    const malformed =
+      '{"schemaVersion":"personal-watchlist-v1","items":[{"code":"BAD","name":"x"}]}';
+    const store = storage({ [key]: malformed });
+    expect(() => readPersonalWatchlist(store, key)).toThrow();
+    expect(store.snapshot(key)).toBe(malformed);
   });
 });
