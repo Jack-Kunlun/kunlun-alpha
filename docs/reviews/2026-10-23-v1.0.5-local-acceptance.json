@@ -1,7 +1,7 @@
 {
   "version": "1.0.5",
   "date": "2026-10-23",
-  "status": "LOCAL_CANDIDATE_BROWSER_PENDING",
+  "status": "ACCEPTED_INCLUDED_IN_1.0.6",
   "nodeSlice": "P6-N02 read-only daily comparison",
   "sourceCandidate": "af9ea27d7964a164beee53386d6e3778796c0e69",
   "outcome": [
@@ -46,8 +46,21 @@
         "At 390x844 the table scrolls within its container without page-wide horizontal overflow; light and dark views remain readable.",
         "The final fixed query instant is displayed in Beijing time and all eight rows retain actual dates and provenance."
       ],
-      "pending": "The actual application tab remains at the login form because its session expired. Login followed by real page sorting and detail navigation is not yet accepted.",
-      "cleanup": "Owned temporary HTML removed, temporary Vite process stopped, responsive override reset and isolated tab closed. Screenshot retained only in ignored local work files."
+      "pending": null,
+      "cleanup": "Owned temporary HTML removed, temporary Vite process stopped, responsive override reset and isolated tab closed. Screenshot retained only in ignored local work files.",
+      "authenticatedAcceptance": {
+        "date": "2026-10-23",
+        "runtimeVersion": "1.0.6",
+        "implementationReuse": "The comparison, instrument APIs, authentication, contracts, client, filters and lockfile have no relevant diff from af9ea27 to be01a50; prior source CI/build evidence is reused.",
+        "requestedAsOf": "2026-10-23T11:07:15.378Z",
+        "comparisonDate": "2026-10-22",
+        "baselineDate": "2026-10-21",
+        "passed": [
+          "The actual logged-in comparison displays eight real samples with dates and provenance.",
+          "Amount descending places 300750.SZ first; keyboard Enter switches to ascending with 301236.SZ first and matching aria-sort.",
+          "The 600519.SH detail link preserves the exact asOf; its actual daily view shows 250 bars, data cutoff Oct 22 and the real Tencent source version."
+        ]
+      }
     },
     "independentReview": "One independent final-code review found five timestamp, date and data-version issues. The original implementer added failing regressions and fixed them; the reviewer performed a finding-closure check and confirmed no remaining code blocker.",
     "ci": {
@@ -67,7 +80,9 @@
     "verifiedAt": "2026-10-23T11:20:42Z",
     "webImage": "sha256:64ecc6dec6b3dc405b0d3ec0ea1be987211f3bc0ff1c4562c1136b4085fb6dd1",
     "serverImage": "sha256:767e1979329cfa461ca15895718672e87f6e6f50e8ccb26fa2517e1ed427cd8e",
-    "containers": "Existing Web and server updated and healthy; Web HTTP returned 200. Databases and collection workers were preserved."
+    "containers": "Existing Web and server updated and healthy; Web HTTP returned 200. Databases and collection workers were preserved.",
+    "observationKind": "Historical 1.0.5 candidate observation; current delivery runs 1.0.6.",
+    "artifactRetention": "The former 1.0.5 candidate image references are historical and are no longer retained. Delivery uses the current verified 1.0.6 images; no old candidate was rebuilt."
   },
   "reusedEvidence": [
     "2026-10-17-v1.0.4-local-acceptance.json: unchanged authentication, account watchlist persistence, real collection and restart evidence; the Oct 23 observation confirms 195 saved items, 191 supported daily results dated Oct 22 and 4 unsupported observations.",
@@ -76,13 +91,15 @@
   "limits": [
     "Eight pre-existing research samples only, not all personal watchlist entries or a full-market ranking.",
     "Raw unadjusted price changes do not represent corporate-action-adjusted returns and adjacent visible records are not asserted to be adjacent exchange trading days.",
-    "Actual authenticated browser acceptance remains pending; no v1.0.5 release tag or production deployment is claimed.",
+    "Authenticated browser acceptance is complete for the unchanged comparison implementation. This slice is delivered in v1.0.6, with no separate v1.0.5 tag or production deployment.",
     "No API/schema, dependency, permission, data-source, broker or real-order capability changed."
   ],
   "git": {
     "sourcePushed": true,
     "tag": null,
     "tagPushed": false,
-    "releaseReceiptNote": "This is the sole incremental receipt. Documentation-only updates do not invalidate the source candidate build or its unchanged-code checks."
+    "releaseReceiptNote": "This is the sole incremental receipt. Documentation-only updates do not invalidate the source candidate build or its unchanged-code checks.",
+    "deliveredIn": "v1.0.6",
+    "deliverySource": "be01a50826bfa73b216bea2bfed14fa864c8c271"
   }
 }

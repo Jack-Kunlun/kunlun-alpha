@@ -1,0 +1,121 @@
+{
+  "version": "1.0.6",
+  "date": "2026-10-23",
+  "status": "LOCAL_ACCEPTED",
+  "nodeSlice": "P1-N12 observed daily coverage and published evidence UI",
+  "sourceCandidate": "be01a50826bfa73b216bea2bfed14fa864c8c271",
+  "outcome": [
+    "The administrator data-quality route is ready and navigable under its existing operations:read permission, with independent daily-coverage and published-evidence regions.",
+    "Date, supported source, canonical security code and evidence status filters validate input; re-query and reset reload results and discard prior evidence pagination and snapshot selection.",
+    "Returned groups, the latest returned date and relatively older dates are explicitly local to the response. Missing-day judgment remains unknown without an expected trading-calendar basis.",
+    "The existing sanitized evidence volume is restored as an API-only read-only mount; no raw mount, exporter or collection task is added."
+  ],
+  "verification": {
+    "tdd": "Initial page/filter/coverage/route tests failed before implementation. The three review regressions then failed for future logical dates in coverage and details and missing busy-button semantics; they passed after the focused fixes.",
+    "webTargetedTests": {
+      "runner": "pnpm --filter @kunlun/web exec vitest run",
+      "scope": "10 affected page, filter, coverage parser/panel, date-detail parser/panel/hook, evidence parser/panel and route-contract test files",
+      "result": "49 tests passed after all review fixes"
+    },
+    "composeTests": {
+      "command": "node --test scripts/ci/v1-compose.test.mjs",
+      "result": "The new sanitized-mount assertion first failed; all 7 configured checks passed after restoring the read-only mount."
+    },
+    "versionTests": {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+      "result": "The 1.0.6 expectation first failed against 1.0.5; both tests passed after the version update."
+    },
+    "staticChecks": "Web typecheck and the 16 related Web-file ESLint/Prettier checks passed. Parent-owned script/version lint, selected package/configuration/document formatting and diff checks passed.",
+    "build": {
+      "command": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.apps.yml -f infra/docker/docker-compose.v1.yml --env-file infra/docker/.env build server web",
+      "result": "One shared Node Docker build passed for Web and server, including TypeScript and Vite. No local aggregate repository suite was run."
+    },
+    "realReads": {
+      "environment": "Read-only existing service/read-model calls against local storage, followed by the final client parsers; this is not authenticated HTTP or browser acceptance.",
+      "coverageWindow": {
+        "dateFrom": "2026-07-26",
+        "dateTo": "2026-10-23",
+        "asOf": "2026-10-23T11:46:26.519Z"
+      },
+      "returnedGroups": 100,
+      "truncated": true,
+      "selectedSample": "600519.SH / akshare-tencent",
+      "selectedObservedDays": 58,
+      "selectedLatestDate": "2026-10-22",
+      "publicEvidence": {
+        "records": 14,
+        "source": "akshare-sina",
+        "status": "FILTERED",
+        "interval": "MINUTE_1",
+        "publishedAt": "2026-09-05T12:19:49.118900Z",
+        "detailReadable": true,
+        "meaning": "Existing historical collection evidence, not proof that current daily collection is healthy."
+      }
+    },
+    "browser": {
+      "passed": [
+        "58 observed dates expand and paginate from page 1 to page 2.",
+        "An invalid prefix code displays an accessible error without increasing API request counts.",
+        "A trimmed lowercase suffix code queries the canonical sample; keyboard Enter works and repeating the same query increases both query counts.",
+        "Reset clears the prior selection; a published FILTERED record expands with its original period, dates, reason and record counts.",
+        "All four label-to-control gaps measure 8px. At a 390px viewport the page width is 375px and both tables scroll inside 327px containers.",
+        "With controlled API delay the query button is natively disabled, aria-busy=true and computed cursor=progress. The date field uses a text cursor, and dark color-scheme makes its native calendar indicator readable."
+      ],
+      "pending": null,
+      "cleanup": "Owned temporary HTML removed, both temporary processes stopped, responsive override reset and isolated tab closed; screenshot retained in ignored local work.",
+      "isolatedEnvironment": "A temporary loopback-only API served a captured real public sample and published evidence to the actual DataQualityPage. An explicit isolated-check banner limited the meaning of the sample filters.",
+      "authenticatedAcceptance": {
+        "date": "2026-10-23",
+        "environment": "Existing local application and storage, using its normal browser login flow; no API fixtures.",
+        "passed": [
+          "The actual default coverage response displays 100 groups, truncation and unknown missing-day judgment.",
+          "Filtering 600519.SH / akshare-tencent shows 58 observed days through Oct 22; actual date detail pagination reaches page 2 of 2.",
+          "Filtering the actual published Sina evidence opens a FILTERED record with original MINUTE_1 period, dates, reason and 1732 filtered rows.",
+          "The unchanged 1.0.5 comparison also passed historical sorting, keyboard and instrument-detail navigation in this runtime."
+        ],
+        "screenshot": "Actual page screenshot retained locally; only main content and a pre-existing public sample are shown."
+      }
+    },
+    "independentReview": "One independent final-code review found three issues: logical-date cutoff in coverage/details, busy-query semantics and native date-control styling. The original implementer fixed them with regressions; a finding-closure check confirmed all three closed with no new blocker.",
+    "ci": {
+      "headSha": "be01a50826bfa73b216bea2bfed14fa864c8c271",
+      "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/39951225322",
+      "status": "completed",
+      "conclusion": "success",
+      "platforms": {
+        "linux": "success",
+        "macos": "success",
+        "windows": "success"
+      }
+    }
+  },
+  "runtime": {
+    "verifiedAt": "2026-10-23T12:09:07.667Z",
+    "health": "GET /api/v1/health: status ok, version 1.0.6; Web and server containers healthy",
+    "webImage": "sha256:90ea5d4b7b36e26ca37d86e1ba774d36921406344563d0c581a1aae4d2c5c124",
+    "serverImage": "sha256:fbe05d1f01f51e82363431be3995ea0279b8102e396a95506fb3703afd2f48da",
+    "evidenceMount": "The actual API container has read-only public-status and public-quality mounts, with no raw mount; its UID 1000 reads the 14-record public list and detail.",
+    "authentication": "Unauthenticated GET /api/v1/data-quality/market-coverage returned HTTP 401.",
+    "preserved": "Existing databases and collection workers were not recreated or migrated.",
+    "webImageTag": "kunlun-web:1.0.6",
+    "serverImageTag": "kunlun-server:1.0.6"
+  },
+  "reusedEvidence": [
+    "2026-10-17-v1.0.4-local-acceptance.json: unchanged authentication, personal-watchlist persistence, collection and restart behavior.",
+    "2026-10-23-v1.0.5-local-acceptance.json: prior comparison source/build/CI evidence reused because the relevant implementation is unchanged; its actual logged-in walk is now complete and the slice is delivered in 1.0.6."
+  ],
+  "limits": [
+    "Observed groups and date counts are not full-market completeness or expected trading-day checks. Truncated responses describe only the returned groups.",
+    "The coverage and detail client boundaries reject future logical dates. Existing backend aggregate SQL is unchanged and still relies on producer integrity for direct API consumers.",
+    "Historical public evidence retains its original period and publication time. This version does not enable a new exporter or claim current daily-source exception coverage.",
+    "Actual logged-in browser acceptance is complete and v1.0.6 is registered. No production deployment, complete P1-N12 or Phase 1 exit is claimed.",
+    "No new API/schema, dependency, credential, data source, fund-quality entry, broker or real-order capability."
+  ],
+  "git": {
+    "sourcePushed": true,
+    "tag": "v1.0.6",
+    "tagPushed": true,
+    "releaseReceiptNote": "This is the sole incremental receipt. Documentation-only changes do not invalidate the verified application build or unchanged-code checks.",
+    "tagTarget": "be01a50826bfa73b216bea2bfed14fa864c8c271"
+  }
+}
