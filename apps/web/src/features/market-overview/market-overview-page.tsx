@@ -4,6 +4,8 @@ import { useTerminalFilters } from "@/app/filter-context";
 import type { ObjectQueryResult } from "@/lib/use-api-query";
 import { useMarketOverview } from "./use-market-overview";
 import { MarketDataStatus } from "@/features/market-data-status/market-data-status";
+import { DailyComparisonTable } from "./daily-comparison-table";
+import { useDailyComparison } from "./use-daily-comparison";
 
 function shanghaiTime(value: string | null): string {
   if (value === null) return "暂无";
@@ -168,6 +170,11 @@ export function MarketOverviewView({
 export function MarketOverviewPage() {
   const { value: filters } = useTerminalFilters();
   const result = useMarketOverview(filters.asOf);
+  const comparisonSnapshot = result.status === "success" ? result.data : null;
+  const comparison = useDailyComparison(
+    comparisonSnapshot?.requestedAsOf ?? null,
+    comparisonSnapshot,
+  );
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -181,6 +188,7 @@ export function MarketOverviewPage() {
       </header>
       <MarketDataStatus historical={filters.asOf !== null} />
       <MarketOverviewView result={result} />
+      <DailyComparisonTable result={comparison} referenceStatus={result.status} />
     </div>
   );
 }
