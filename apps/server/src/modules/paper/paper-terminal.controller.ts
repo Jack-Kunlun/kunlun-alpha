@@ -14,7 +14,7 @@ export class PaperTerminalController {
   }
 
   @Post("accounts")
-  @ApiOperation({ summary: "Create one volatile local paper account" })
+  @ApiOperation({ summary: "Create one local simulation-only paper account" })
   createAccount(@Body() body: unknown) {
     return this.service.createAccount(body);
   }

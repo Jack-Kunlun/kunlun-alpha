@@ -68,6 +68,11 @@
 证据和查询点时。只使用当前已读取的结果，不查询全历史；坏数据或查询不匹配时阻止导出。
 用法见[日线导出](docs/runbooks/instrument-intelligence-detail.md#1011-当前窗口-csv-导出)。
 
+## 1.0.12 增量（实施中）
+
+模拟组合本版开放账户创建和只读资金／持仓账本，复用独立持久日志。资金与持仓成本
+仅表示模拟账本，不代表实时行情；本版不开放模拟成交。使用与边界见[模拟账本说明](docs/runbooks/paper-terminal.md)。
+
 ## 1.0.x 本地启动
 
 已有 `infra/docker/.env` 时保留原文件；首次使用才从 `.env.example` 复制，并按[登录手册](docs/runbooks/local-authentication.md)交互式创建管理员。

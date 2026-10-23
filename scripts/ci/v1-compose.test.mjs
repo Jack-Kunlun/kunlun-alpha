@@ -40,6 +40,7 @@ const required = [
   "data-worker-migrate",
   "local-terminal-reference-materialize",
   "postgres",
+  "quant-engine",
   "server",
   "server-migrate",
   "web",
@@ -80,6 +81,18 @@ test("v1 host ports are loopback-only and existing persistence is retained", () 
       (mount) => mount.type === "bind" && mount.target === "/var/lib/postgresql/data",
     ),
   );
+});
+
+test("paper account mode starts a durable engine without publishing its write endpoints", () => {
+  const { services, volumes } = configuration();
+  const engine = services["quant-engine"];
+  assert.ok(engine);
+  assert.ok(!engine.ports?.length);
+  assert.equal(engine.environment.KUNLUN_QUANT_STATE_DIR, "/var/lib/kunlun/quant-engine");
+  const mount = engine.volumes.find((item) => item.target === "/var/lib/kunlun/quant-engine");
+  assert.equal(volumes[mount.source].name, "kunlun-quant-state");
+  assert.equal(services.server.environment.PAPER_TERMINAL_ACCOUNT_ONLY, "true");
+  assert.equal(services.server.depends_on["quant-engine"].condition, "service_healthy");
 });
 
 test("real market sync is explicit, raw-first, daily-only and bounded to the configured sample", () => {

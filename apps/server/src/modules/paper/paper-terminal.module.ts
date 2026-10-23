@@ -2,12 +2,16 @@ import { Module } from "@nestjs/common";
 import { HttpPaperEngineClient } from "./paper-engine.client";
 import { PaperTerminalController } from "./paper-terminal.controller";
 import { PaperTerminalService } from "./paper-terminal.service";
-import { PAPER_ENGINE_CLIENT } from "./paper-terminal.tokens";
+import { PAPER_ENGINE_CLIENT, PAPER_TERMINAL_ACCOUNT_ONLY } from "./paper-terminal.tokens";
 
 @Module({
   controllers: [PaperTerminalController],
   providers: [
     PaperTerminalService,
+    {
+      provide: PAPER_TERMINAL_ACCOUNT_ONLY,
+      useFactory: () => process.env["PAPER_TERMINAL_ACCOUNT_ONLY"] === "true",
+    },
     {
       provide: PAPER_ENGINE_CLIENT,
       useFactory: () =>

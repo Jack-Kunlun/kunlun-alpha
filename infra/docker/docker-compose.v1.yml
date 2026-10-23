@@ -21,11 +21,14 @@ services:
         condition: service_completed_successfully
       local-terminal-reference-materialize:
         condition: service_completed_successfully
+      quant-engine:
+        condition: service_healthy
     environment:
       DASHBOARD_DAILY_SYMBOLS: ${V1_MARKET_DATA_SYMBOLS:-000001.SZ,002594.SZ,300750.SZ,301236.SZ,600000.SH,600519.SH,601318.SH,688981.SH}
       MARKET_DATA_STATUS_PUBLIC_ROOT: /workspace/var/market-status-public
       MARKET_DATA_STATUS_PROVIDER: akshare
       MARKET_DATA_QUALITY_PUBLIC_ROOT: /workspace/var/market-quality-public
+      PAPER_TERMINAL_ACCOUNT_ONLY: "true"
     volumes:
       - kunlun-market-status:/workspace/var/market-status-public:ro
       - kunlun-market-quality-public:/workspace/var/market-quality-public:ro
@@ -43,6 +46,11 @@ services:
           "-e",
           "fetch('http://127.0.0.1:4173/').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1));",
         ]
+
+  quant-engine:
+    profiles: !override []
+    # Internal account ledger only; the authenticated control plane owns access.
+    ports: !override []
 
   market-data-sync:
     environment:
@@ -76,8 +84,6 @@ services:
   loki:
     profiles: !override ["deferred"]
   tempo:
-    profiles: !override ["deferred"]
-  quant-engine:
     profiles: !override ["deferred"]
   sample-engine:
     profiles: !override ["deferred"]

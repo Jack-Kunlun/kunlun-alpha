@@ -14,22 +14,96 @@ const mocked = vi.mocked(usePaperTerminal);
 describe("PaperTerminalPage", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("renders an honest empty state and account composer", () => {
+  it("keeps account creation behind a deliberate dialog action", () => {
     mocked.mockReturnValue(model(emptyWorkspace(), "empty"));
     const html = renderToStaticMarkup(<PaperTerminalPage />);
-    expect(html).toContain("创建本地模拟账户");
-    expect(html).toContain("易失内存模式");
+    expect(html).toContain("创建账户");
+    expect(html).not.toContain("账户名称");
+    expect(html).not.toContain("初始资金");
+    expect(html).not.toContain("<form");
+    expect(html).toContain("重启后清空");
+    expect(html).toContain("当前运行期间有效，重启后清空");
+    expect(html).not.toContain("quant-engine");
+    expect(html).not.toContain("哈希日志");
     expect(html).toContain("无券商路径");
     expect(html).not.toMatch(/P6-N|Phase 6/);
   });
 
-  it("renders orders, server-side risk and reconciliation evidence", () => {
+  it("shows read-only account values without valuation or trading controls", () => {
     mocked.mockReturnValue(model(readyWorkspace(), "ready"));
     const html = renderToStaticMarkup(<PaperTerminalPage />);
     expect(html).toContain("600519.SH");
-    expect(html).toContain("FILLED");
-    expect(html).toContain("MATCHED");
-    expect(html).toContain("风险：");
+    expect(html).toContain("100000");
+    expect(html).toContain("69999");
+    expect(html).toContain("30001");
+    expect(html).toContain("账面现金");
+    expect(html).not.toContain("可用现金");
+    expect(html).toContain('dateTime="2026-08-27T02:00:00.000Z">2026/08/27 10:00:00</time>');
+    expect(html).not.toContain("99999");
+    expect(html).not.toContain("30000");
+    expect(html).not.toContain("执行模拟闭环");
+    expect(html).not.toContain("模拟订单");
+    expect(html).not.toContain("风控与对账");
+    expect(html).not.toContain("FILLED");
+    expect(html).not.toContain("MATCHED");
+  });
+
+  it("shows an explicit empty positions state", () => {
+    const workspace = readyWorkspace();
+    mocked.mockReturnValue(
+      model(
+        {
+          ...workspace,
+          account: workspace.account === null ? null : { ...workspace.account, positions: [] },
+        },
+        "ready",
+      ),
+    );
+    expect(renderToStaticMarkup(<PaperTerminalPage />)).toContain("暂无持仓");
+  });
+
+  it("warns when the ledger is degraded without changing the account status", () => {
+    const workspace = readyWorkspace();
+    mocked.mockReturnValue(model({ ...workspace, status: "DEGRADED" }, "ready"));
+    const html = renderToStaticMarkup(<PaperTerminalPage />);
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("账本存在异常，请核对后再使用资金与持仓信息");
+    expect(html).toContain("正常");
+  });
+
+  it("refuses malformed account amounts instead of displaying them as balances", () => {
+    const workspace = readyWorkspace();
+    mocked.mockReturnValue(
+      model(
+        {
+          ...workspace,
+          account: workspace.account === null ? null : { ...workspace.account, cash: "NaN" },
+        },
+        "ready",
+      ),
+    );
+    const html = renderToStaticMarkup(<PaperTerminalPage />);
+    expect(html).toContain("账户账本数据无效");
+    expect(html).not.toContain("NaN");
+  });
+
+  it("refuses future account snapshots", () => {
+    const workspace = readyWorkspace();
+    mocked.mockReturnValue(
+      model(
+        {
+          ...workspace,
+          account:
+            workspace.account === null
+              ? null
+              : { ...workspace.account, dataCutoffTime: "2999-08-27T02:00:00.000Z" },
+        },
+        "ready",
+      ),
+    );
+    const html = renderToStaticMarkup(<PaperTerminalPage />);
+    expect(html).toContain("账户账本数据无效");
+    expect(html).toContain("晚于工作区生成时间");
   });
 
   it("labels the durable command journal without implying live execution", () => {
@@ -44,32 +118,40 @@ describe("PaperTerminalPage", () => {
       ),
     );
     const html = renderToStaticMarkup(<PaperTerminalPage />);
-    expect(html).toContain("重启恢复日志");
-    expect(html).toContain("服务重启后会校验并恢复");
+    expect(html).toContain("重启后保留");
+    expect(html).toContain("服务端保存，重启后保留");
     expect(html).toContain("无券商路径");
-    expect(html).not.toContain("账户只保存在 quant-engine 当前进程内");
+    expect(html).not.toContain("quant-engine");
+    expect(html).not.toContain("哈希日志");
   });
 
   it("renders unavailable and forbidden states separately", () => {
     mocked.mockReturnValue(model({ ...emptyWorkspace(), status: "UNAVAILABLE" }, "unavailable"));
-    expect(renderToStaticMarkup(<PaperTerminalPage />)).toContain("模拟引擎暂不可用");
+    const unavailable = renderToStaticMarkup(<PaperTerminalPage />);
+    expect(unavailable).toContain("模拟账本暂不可用");
+    expect(unavailable).not.toContain("quant-engine");
     mocked.mockReturnValue(model(null, "forbidden"));
-    expect(renderToStaticMarkup(<PaperTerminalPage />)).toContain("无权访问模拟组合");
+    const forbidden = renderToStaticMarkup(<PaperTerminalPage />);
+    expect(forbidden).toContain("无权访问模拟账本");
+    expect(forbidden).toContain("当前账号无权访问此账本");
+    expect(forbidden).not.toContain("paper:read");
+    mocked.mockReturnValue(model(null, "loading"));
+    expect(renderToStaticMarkup(<PaperTerminalPage />)).toContain("正在加载模拟账本");
+    mocked.mockReturnValue(model(null, "error"));
+    expect(renderToStaticMarkup(<PaperTerminalPage />)).toContain("模拟账本加载失败");
   });
 });
 
 function model(
   workspace: PaperTerminalWorkspace | null,
-  state: "empty" | "ready" | "unavailable" | "forbidden",
+  state: "empty" | "ready" | "unavailable" | "forbidden" | "loading" | "error",
 ) {
   return {
     workspace,
     state,
-    error: null,
     submitting: false,
     refresh: vi.fn().mockResolvedValue(undefined),
     createAccount: vi.fn().mockResolvedValue(undefined),
-    simulate: vi.fn().mockResolvedValue(undefined),
   } as ReturnType<typeof usePaperTerminal>;
 }
 

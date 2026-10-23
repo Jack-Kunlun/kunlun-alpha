@@ -16,6 +16,7 @@ export function parseCreateAccount(body: unknown): PaperTerminalCreateAccountCom
   const clientRequestId = boundedString(value["clientRequestId"], "clientRequestId", 128);
   if (!REQUEST_ID.test(clientRequestId)) fail("clientRequestId");
   const name = boundedString(value["name"], "name", 80);
+  if (name.trim().length === 0) fail("name");
   const initialCapital = boundedString(value["initialCapital"], "initialCapital", 32);
   if (!POSITIVE_DECIMAL.test(initialCapital)) fail("initialCapital");
   return {

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   ServiceUnavailableException,
@@ -11,7 +12,7 @@ import type {
   PaperTerminalWorkspace,
 } from "@kunlun/shared-types";
 import { PaperEngineHttpError, type PaperEngineClient } from "./paper-engine.client";
-import { PAPER_ENGINE_CLIENT } from "./paper-terminal.tokens";
+import { PAPER_ENGINE_CLIENT, PAPER_TERMINAL_ACCOUNT_ONLY } from "./paper-terminal.tokens";
 import {
   PaperTerminalValidationError,
   parseCreateAccount,
@@ -20,7 +21,10 @@ import {
 
 @Injectable()
 export class PaperTerminalService {
-  constructor(@Inject(PAPER_ENGINE_CLIENT) private readonly client: PaperEngineClient) {}
+  constructor(
+    @Inject(PAPER_ENGINE_CLIENT) private readonly client: PaperEngineClient,
+    @Inject(PAPER_TERMINAL_ACCOUNT_ONLY) private readonly accountOnly = false,
+  ) {}
 
   async workspace(): Promise<PaperTerminalWorkspace> {
     try {
@@ -36,6 +40,9 @@ export class PaperTerminalService {
   }
 
   async simulate(body: unknown): Promise<PaperTerminalWorkspace> {
+    if (this.accountOnly) {
+      throw new ForbiddenException("当前版本只开放模拟账户与只读账本，模拟成交尚未开放");
+    }
     const command = this.parseSimulation(body);
     return this.execute(() => this.client.simulate(command));
   }

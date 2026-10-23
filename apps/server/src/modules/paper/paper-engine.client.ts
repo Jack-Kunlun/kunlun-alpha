@@ -3,6 +3,7 @@ import type {
   PaperTerminalSimulationCommand,
   PaperTerminalWorkspace,
 } from "@kunlun/shared-types";
+import { parsePaperWorkspaceResponse } from "./paper-workspace-response";
 
 export interface PaperEngineClient {
   workspace(): Promise<PaperTerminalWorkspace>;
@@ -60,11 +61,25 @@ export class HttpPaperEngineClient implements PaperEngineClient {
       );
     }
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { message?: unknown } | null;
+      await response.body?.cancel().catch(() => undefined);
       const detail =
-        typeof payload?.message === "string" ? payload.message : `HTTP ${response.status}`;
+        response.status === 409
+          ? "模拟账户已存在或请求内容冲突，请刷新账本核对"
+          : response.status === 422
+            ? "模拟账户请求未通过校验，请检查输入"
+            : "模拟引擎暂不可用";
       throw new PaperEngineHttpError(detail, response.status);
     }
-    return (await response.json()) as PaperTerminalWorkspace;
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new PaperEngineHttpError("quant-engine returned an invalid paper workspace", 502);
+    }
+    try {
+      return parsePaperWorkspaceResponse(payload);
+    } catch {
+      throw new PaperEngineHttpError("quant-engine returned an invalid paper workspace", 502);
+    }
   }
 }

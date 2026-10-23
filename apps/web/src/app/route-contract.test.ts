@@ -50,7 +50,7 @@ describe("terminal route contract", () => {
     );
   });
 
-  it("limits the 1.0 navigation and ready routes to the daily research surface", () => {
+  it("limits navigation and ready routes to daily research and account-only paper ledgers", () => {
     expect(
       terminalRoutes.filter((route) => route.status === "ready").map((route) => route.id),
     ).toEqual([
@@ -59,6 +59,7 @@ describe("terminal route contract", () => {
       "instruments",
       "instrument-detail",
       "watchlists",
+      "paper",
       "data-quality",
     ]);
     expect(terminalRoutes.filter((route) => route.navigation).map((route) => route.id)).toEqual([
@@ -66,6 +67,7 @@ describe("terminal route contract", () => {
       "market-overview",
       "instruments",
       "watchlists",
+      "paper",
       "data-quality",
     ]);
     expect(

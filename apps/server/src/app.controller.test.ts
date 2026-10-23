@@ -7,7 +7,7 @@ describe("Phase 0 API endpoints", () => {
   it("returns a versioned UTC health response", () => {
     const result = new AppController().health();
     expect(result.status).toBe("ok");
-    expect(result.version).toBe("1.0.11");
+    expect(result.version).toBe("1.0.12");
     expect(new Date(result.timestamp).toISOString()).toBe(result.timestamp);
   });
 

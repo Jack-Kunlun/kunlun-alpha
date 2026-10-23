@@ -42,7 +42,7 @@ export const terminalNavigationGroups: ReadonlyArray<{
   description: string;
 }> = [
   { id: "decision", label: "行情研究", description: "市场日线与标的查询" },
-  { id: "workspace", label: "自选与提醒", description: "自选标的和价格规则" },
+  { id: "workspace", label: "研究工作区", description: "自选、提醒与模拟账本" },
   { id: "research", label: "数据与运维", description: "行情来源和运行状态" },
 ];
 
@@ -170,11 +170,11 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     href: "/paper",
     label: "模拟组合",
     shortLabel: "模拟",
-    description: "PaperAccount、OrderIntent、模拟成交与对账",
+    description: "本地模拟账户的资金与持仓账本，不开放模拟成交",
     group: "workspace",
     permission: "paper:read",
-    status: "planned",
-    navigation: false,
+    status: "ready",
+    navigation: true,
   },
   {
     id: "market-regime",

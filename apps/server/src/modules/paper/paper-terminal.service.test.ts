@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import type { PaperTerminalWorkspace } from "@kunlun/shared-types";
 import { PaperEngineHttpError, type PaperEngineClient } from "./paper-engine.client";
@@ -45,6 +45,35 @@ describe("PaperTerminalService", () => {
       lotSize: 100,
     });
     expect(fake.simulate).toHaveBeenCalledOnce();
+  });
+
+  it("rejects simulations before parsing or forwarding in account-only mode", async () => {
+    const fake = client();
+    const service = new PaperTerminalService(fake, true);
+    await expect(service.simulate({})).rejects.toBeInstanceOf(ForbiddenException);
+    expect(fake.simulate).not.toHaveBeenCalled();
+    await expect(service.workspace()).resolves.toMatchObject({ status: "EMPTY" });
+    await service.createAccount({
+      schemaVersion: "paper-terminal-create-account-v1",
+      clientRequestId: "create-request-1",
+      name: "研究账户",
+      initialCapital: "100000",
+    });
+    expect(fake.createAccount).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a whitespace-only account name before creating an unreadable account", async () => {
+    const fake = client();
+    const service = new PaperTerminalService(fake, true);
+    await expect(
+      service.createAccount({
+        schemaVersion: "paper-terminal-create-account-v1",
+        clientRequestId: "create-request-1",
+        name: "   ",
+        initialCapital: "100000",
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(fake.createAccount).not.toHaveBeenCalled();
   });
 });
 
