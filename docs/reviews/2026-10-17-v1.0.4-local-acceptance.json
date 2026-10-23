@@ -1,7 +1,7 @@
 {
   "version": "1.0.4",
   "date": "2026-10-17",
-  "status": "LOCAL_PARTIAL_SOURCE_LIMITED_CI_PASSED",
+  "status": "LOCAL_TAGGED_ACCEPTED",
   "sourceCandidate": "f6ea6160cf2b014fe05b3b18fec3cef94aa57f06",
   "nodeSlices": [
     "P0-N07 basic interactions (reused)",
@@ -9,9 +9,9 @@
     "P1-N11 real daily ingestion"
   ],
   "outcome": [
-    "195 personal items persisted to PostgreSQL under the authenticated owner; every code/name matched the private input. Legacy browser data retained as migration backup.",
-    "190 canonical items return real latest daily bars through the existing point-in-time service, all dated 2026-10-16. Per-code collection status, pagination, search and source/date display are available.",
-    "One canonical BSE item remains SOURCE_ERROR after three attempts; four external market references are saved with UNSUPPORTED status. No synthetic quote or real-order path."
+    "Initial acceptance on 2026-10-17: 195 personal items persisted to PostgreSQL under the authenticated owner; every code/name matched the private input. Legacy browser data retained as migration backup.",
+    "Initial acceptance on 2026-10-17: 190 canonical items return real latest daily bars through the existing point-in-time service, all dated 2026-10-16. Per-code collection status, pagination, search and source/date display are available.",
+    "Initial acceptance on 2026-10-17: One canonical BSE item remains SOURCE_ERROR after three attempts; four external market references are saved with UNSUPPORTED status. No synthetic quote or real-order path."
   ],
   "verification": {
     "tdd": "New API boundary and worker checks initially failed because implementations were absent. Volume precision and explicit BSE route tests failed before their fixes; strict legacy replay and real fractional-share rejection remain covered.",
@@ -51,9 +51,26 @@
     "finalRun": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/39000281596"
   },
   "limits": [
-    "One BSE source connection remains failed at the daily retry cap. It is saved and visible with a failure reason; automatic daily processing can retry in the next Shanghai-date update window, after 09:00.",
+    "The BSE source failure from initial acceptance recovered through the existing bounded schedule. On 2026-10-23 all 191 supported items returned daily data dated 2026-10-22; task success time is not the market-data date.",
     "HK/NEEQ/SGE references are saved as observations but have no daily feed or trading path. Personal names do not imply verified official master/lifecycle or commodity classification.",
-    "Daily RAW data is research reference, not a realtime or executable quote. Current software remains a 1.0.4 candidate; no new tag, production deployment or formal release is claimed."
+    "Daily RAW data is research reference, not a realtime or executable quote. v1.0.4 records the verified local release source; no production deployment is claimed."
   ],
-  "next": "Resolve the remaining external source availability without bypassing retry/data gates; then continue the planned same-date daily comparison slice."
+  "next": "1.0.5 same-date daily comparison slice started on 2026-10-23; outside-market feeds remain deferred.",
+  "updatedDate": "2026-10-23",
+  "releaseRegistration": {
+    "date": "2026-10-23",
+    "tag": "v1.0.4",
+    "source": "f6ea6160cf2b014fe05b3b18fec3cef94aa57f06",
+    "images": "Existing verified Web/server/worker image IDs above retained locally as :1.0.4; no rebuild or repeated recovery drill.",
+    "verification": "Reused unchanged source CI and independent review. Restored the existing local containers; 195 items remain persisted. Normal scheduled collection completed 191 items successfully. Read-only actual InstrumentBarsService check returned 191 AVAILABLE and 4 UNSUPPORTED.",
+    "marketObservation": {
+      "verifiedAt": "2026-10-23T10:59:04.756Z",
+      "counts": {
+        "AVAILABLE": 191,
+        "UNSUPPORTED": 4
+      },
+      "dates": ["2026-10-22"],
+      "sources": ["akshare-tencent", "akshare-eastmoney"]
+    }
+  }
 }
