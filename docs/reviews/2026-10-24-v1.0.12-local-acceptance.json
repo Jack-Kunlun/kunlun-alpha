@@ -1,0 +1,153 @@
+{
+  "version": "1.0.12",
+  "node": "P6-N08 account/read-only ledger slice only",
+  "date": "2026-10-24",
+  "status": "LOCAL_ACCEPTED",
+  "outcome": "Create a simulation account through a Dialog when empty and read the existing durable cash/position-cost ledger. Reject malformed engine responses and disable simulation commands in the v1 product profile.",
+  "sourceCommit": "e9b58d649e966f1cf9afc7882e2d4e987bef78b1",
+  "verification": {
+    "tdd": "New UI/display behavior initially failed (five cases); the new form module initially failed to resolve. A blank name was accepted before its new service regression failed and was fixed; the degraded workspace alert also failed before the UI fix. Browser inspection found creation and manual refresh focused BODY; after the focused fix both paths focused the connected refresh button.",
+    "targetedTests": [
+      {
+        "command": "pnpm --filter @kunlun/web exec vitest run src/features/paper/paper-terminal-page.test.tsx src/features/paper/paper-terminal-display.test.ts src/features/paper/paper-terminal-form.test.ts",
+        "passed": 30,
+        "scope": "Final focus closure; the existing display, form and page regressions passed."
+      },
+      {
+        "command": "pnpm --filter @kunlun/web exec vitest run src/app/route-contract.test.ts src/app/route-elements.test.tsx src/app/access-control.test.ts src/app/full-route-accessibility.test.tsx",
+        "passed": 41,
+        "scope": "Reused final successful route/access evidence; route and access code was unchanged by the later paper-page focus fix."
+      },
+      {
+        "command": "pnpm --filter @kunlun/server exec vitest run src/modules/paper/paper-workspace-response.test.ts src/modules/paper/paper-engine.client.test.ts",
+        "passed": 31,
+        "scope": "Final response/client closure; unknown payloads, precision, NAV identity, time/calendar, nested legacy shapes and redacted errors."
+      },
+      {
+        "command": "pnpm --filter @kunlun/server exec vitest run src/modules/paper/paper-terminal.service.test.ts",
+        "passed": 5,
+        "scope": "Blank-name rejection, existing commands, account-only refusal before parse/forward."
+      },
+      {
+        "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+        "passed": 2,
+        "scope": "Version health; reused because controller/version code did not change afterward."
+      },
+      {
+        "command": "node --test scripts/ci/v1-compose.test.mjs",
+        "passed": 8,
+        "scope": "Durable internal engine, no published engine port, account-only setting and healthy dependency."
+      },
+      {
+        "command": "pnpm --filter @kunlun/web exec vitest run src/App.test.tsx",
+        "passed": 17,
+        "scope": "Final CI closure aligns administrator navigation with the released paper route and preserves viewer/deferred-route exclusions."
+      }
+    ],
+    "staticChecks": "Scoped ESLint and Prettier passed. Final Web and Server typechecks passed. Earlier test-only Server typing errors and a focus-effect lint violation were corrected and the affected checks passed afterward. No local full-repository aggregate check was run.",
+    "build": "The initial shared server/web/quant-engine Docker build passed. Actual blank-name/degraded-state findings required an affected server/web rebuild; the browser focus finding required the final Web target build. The final Web target also compiled both Node applications through the existing shared stage. The running server and quant-engine images were reused where their executed source, dependencies and configuration were unchanged; unrelated UI changes and documentation do not require rebuilding those runtimes.",
+    "browser": {
+      "actual": "Authenticated localhost application loaded the existing durable account through the real server/engine chain. Manual refresh retained the original cash 100000 CNY, zero positions, two ledger events and ledger time displayed as 2026/09/05 14:14:36 in Asia/Shanghai. No account create or simulate request was sent to the real ledger.",
+      "isolated": "A temporary loopback-only proxy served synthetic auth/workspace responses and read-only static assets. All upstream API access was blocked; POST create was held only in process, first returned 503 and then succeeded. Empty, invalid, cancel/reopen, native disabled/progress, failure input retention, retry key/payload identity and success close/refresh were verified. It did not prove a newly created real journal command; durable replay was verified separately against existing state.",
+      "isolatedAudit": {
+        "workspaceReads": 2,
+        "createAttempts": 2,
+        "otherWritesBlocked": 0,
+        "retrySameRequestAndPayload": true,
+        "createdInProxyOnly": true,
+        "upstreamWrites": 0
+      },
+      "focus": {
+        "beforeFix": {
+          "createSuccess": "BODY",
+          "manualRefresh": "BODY"
+        },
+        "afterFix": {
+          "createSuccess": {
+            "tag": "BUTTON",
+            "text": "刷新账本",
+            "connected": true
+          },
+          "manualRefreshActualRuntime": {
+            "tag": "BUTTON",
+            "text": "刷新账本",
+            "connected": true
+          }
+        },
+        "isolatedDialog": {
+          "labelsGapPx": [8, 8],
+          "narrowClientWidth": 390,
+          "narrowScrollWidth": 390,
+          "darkBackground": "rgb(7, 10, 19)",
+          "busyInputAndButtonCursor": "progress",
+          "busyNativeDisabled": true
+        },
+        "realAccountModified": false
+      },
+      "layout": "Label/input gaps were 8px. At a 390px viewport the final dark Dialog had client/scroll width 390px with readable dark fields; the account view had no horizontal overflow. The viewport was reset; synthetic tab and process were closed.",
+      "screenshot": "The actual authenticated account page, ledger timestamp, balances, empty holdings and simulation boundaries were inspected and saved in ignored local work.",
+      "keyboardRefresh": "Enter on the actual refresh button completed; the returned connected button was active and matched :focus-visible."
+    },
+    "persistence": {
+      "existingJournalRecords": 1,
+      "existingJournalBytes": 482,
+      "existingLedgerEvents": 2,
+      "existingPositions": 0,
+      "journalSha256": "c3b7283d8d8044a150763fdfcf5e6cafc3e5c4410eacba787d758f264fbb2c76",
+      "beforeAfterRestart": "Account fingerprint, cash, NAV, positions, event count and journal bytes/hash were identical before and after one quant-engine restart. Final journal bytes/hash also matched the original pre-start baseline after all browser tests.",
+      "noMigration": true,
+      "noTestWritesToRealJournal": true,
+      "recoveryScope": "Existing command-journal replay only; no schema/storage/procedure change or repeated backup-restore drill."
+    },
+    "review": "One independent S4 review of frozen afb5d69 found no unresolved blocker. The documentation scope mismatch, blank-name/degraded-state issues and browser-discovered focus defect were closed. The reviewer inspected final code, reused current test/type/build evidence, and confirmed the reported browser focus and zero-write isolation evidence. CI remained a separate final release gate.",
+    "ci": {
+      "headSha": "e9b58d649e966f1cf9afc7882e2d4e987bef78b1",
+      "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/39987208927",
+      "status": "completed",
+      "conclusion": "success",
+      "platforms": {
+        "gates (ubuntu-latest)": "success",
+        "gates (macos-latest)": "success",
+        "gates (windows-latest)": "success"
+      },
+      "receiptReuse": "The subsequent release receipt/README/roadmap commit changes documentation only; the exact-source successful CI and runtime evidence are reused."
+    },
+    "ciFollowup": {
+      "initialRun": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/39986334653",
+      "headSha": "afb5d69d95340424c571920e655753e9dba82035",
+      "conclusion": "failure",
+      "reason": "All three platforms found one obsolete App test expecting the newly released /paper navigation to be absent. Only that test expectation was updated; 17 App tests and scoped lint/format then passed. No application or runtime source changed, so build, browser and independent-review evidence is reused."
+    }
+  },
+  "localRuntime": {
+    "health": {
+      "status": "ok",
+      "timestamp": "2026-10-23T16:25:56.565Z",
+      "version": "1.0.12"
+    },
+    "webImageId": "sha256:c1cb172e1ba5295f7f0785fdda727a4398a32ee283a0220e3ea427b9e2e0a0c1",
+    "serverImageId": "sha256:f782c34fba47aad6992af4fbf860b12a39e5f6f2e1b97a9721eaf66671948e68",
+    "quantEngineImageId": "sha256:6610915c13d105b7222d18bf06b1f3e656741d1f00f2bd9db9f11b970e40eac7",
+    "fixedImageTags": ["kunlun-web:1.0.12", "kunlun-server:1.0.12", "kunlun-quant-engine:1.0.12"],
+    "accountOnly": true,
+    "engineHostPortBindings": {},
+    "unauthenticatedWorkspaceStatus": 401,
+    "containers": "Web, server and quant-engine healthy; existing databases, workers and their state preserved. No collection run, migration or production deployment."
+  },
+  "git": {
+    "sourcePushed": true,
+    "sourceRemoteShaVerified": true,
+    "tag": "v1.0.12",
+    "tagPushed": true,
+    "tagTarget": "e9b58d649e966f1cf9afc7882e2d4e987bef78b1",
+    "tagObject": "495a1d0c6d15323142485d0ca7edc43a8e262692",
+    "tagRemoteVerified": true
+  },
+  "knownLimits": [
+    "Single local administrator, single engine instance and one simulation account; no account reset/delete, multi-account isolation, order/intent entry, simulated fills, automatic valuations, PnL or real-broker capability is delivered.",
+    "Amounts are historical simulation ledger values and position costs, independent of the global historical quote context; they are not real funds or current executable prices.",
+    "The existing account has no holdings; non-empty, malformed, error/forbidden and degraded states are covered by contract-compatible tests rather than writes to the real journal.",
+    "No Python/accounting/schema/API contract/dependency/auth model changes. The development engine retains legacy simulation behavior outside the v1 product profile. This accepts only the P6-N08 release slice, not full P6-N08, Phase 6 endurance/exit, Phase 7 or production readiness."
+  ],
+  "implementationCommit": "afb5d69d95340424c571920e655753e9dba82035"
+}
