@@ -20,8 +20,11 @@ import {
   type PersonalWatchlistItem,
 } from "./personal-watchlist";
 import { usePersonalWatchlist, usePersonalWatchlistQuote } from "./use-personal-watchlist";
-
-const PAGE_SIZE = 20;
+import {
+  PERSONAL_WATCHLIST_MARKETS,
+  selectPersonalWatchlistPage,
+  type PersonalWatchlistMarketFilter,
+} from "./personal-watchlist-filters";
 
 function taskStatus(item: ServerWatchlistItem): string {
   switch (item.market.status) {
@@ -110,6 +113,7 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [market, setMarket] = useState<PersonalWatchlistMarketFilter>("ALL");
   const [page, setPage] = useState(0);
   const { hrefForRoute } = useTerminalFilters();
   const items = watchlist.data?.items ?? [];
@@ -124,6 +128,7 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
       const incoming: PersonalWatchlistItem[] = parseWatchlistText(draft);
       const result = await watchlist.importItems(incoming);
       setQuery("");
+      setMarket("ALL");
       setPage(0);
       setMessage(
         result.nameConflicts.length === 0
@@ -139,13 +144,12 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
     }
   }
 
-  const normalized = query.trim().toUpperCase();
-  const visible = items.filter((item) =>
-    `${item.code} ${item.name}`.toUpperCase().includes(normalized),
-  );
-  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount - 1);
-  const visiblePage = visible.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const {
+    items: visiblePage,
+    matchedCount,
+    pageCount,
+    currentPage,
+  } = selectPersonalWatchlistPage(items, { market, query }, page);
   const canImport =
     ownerId !== null &&
     watchlist.data !== null &&
@@ -310,27 +314,68 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
 
       {watchlist.data !== null && (
         <>
-          <div className="grid gap-2">
-            <Label htmlFor="personal-watchlist-search">搜索我的自选</Label>
-            <Input
-              id="personal-watchlist-search"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="grid min-w-40 gap-2">
+              <Label htmlFor="personal-watchlist-market">市场</Label>
+              <select
+                id="personal-watchlist-market"
+                value={market}
+                onChange={(event) => {
+                  const selected = PERSONAL_WATCHLIST_MARKETS.find(
+                    (option) => option.value === event.target.value,
+                  );
+                  if (selected !== undefined) {
+                    setMarket(selected.value);
+                    setPage(0);
+                  }
+                }}
+                aria-describedby="personal-watchlist-market-hint"
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+              >
+                {PERSONAL_WATCHLIST_MARKETS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid min-w-40 flex-1 gap-2">
+              <Label htmlFor="personal-watchlist-search">搜索我的自选</Label>
+              <Input
+                id="personal-watchlist-search"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(0);
+                }}
+                placeholder="名称或代码"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={market === "ALL" && query === ""}
+              onClick={() => {
+                setMarket("ALL");
+                setQuery("");
                 setPage(0);
               }}
-              placeholder="名称或代码"
-            />
+            >
+              重置筛选
+            </Button>
           </div>
-          <p role="status" className="text-xs text-muted-foreground">
-            显示 {visible.length} / {items.length} 项自选
-            {visible.length > 0 ? ` · 第 ${currentPage + 1} / ${pageCount} 页` : ""}
+          <p id="personal-watchlist-market-hint" className="text-xs text-muted-foreground">
+            未接入观察项按代码分类，不等同于采集失败或行情缺失。
           </p>
-          {visible.length === 0 ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            显示 {matchedCount} / {items.length} 项自选
+            {matchedCount > 0 ? ` · 第 ${currentPage + 1} / ${pageCount} 页` : ""}
+          </p>
+          {matchedCount === 0 ? (
             <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
               {items.length === 0
                 ? "服务端尚未保存自选，点击“导入自选”批量添加。"
-                : "没有匹配的自选，请调整搜索。"}
+                : "没有匹配的自选，请调整市场或搜索条件。"}
             </p>
           ) : (
             <>
@@ -367,7 +412,7 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
                     type="button"
                     variant="outline"
                     disabled={currentPage === 0}
-                    onClick={() => setPage((current) => Math.max(0, current - 1))}
+                    onClick={() => setPage(Math.max(0, currentPage - 1))}
                   >
                     上一页
                   </Button>
@@ -378,7 +423,7 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
                     type="button"
                     variant="outline"
                     disabled={currentPage + 1 >= pageCount}
-                    onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+                    onClick={() => setPage(Math.min(pageCount - 1, currentPage + 1))}
                   >
                     下一页
                   </Button>
