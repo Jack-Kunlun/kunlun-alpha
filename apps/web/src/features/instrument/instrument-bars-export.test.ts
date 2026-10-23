@@ -213,6 +213,7 @@ describe("prepareInstrumentBarsCsv", () => {
       ],
       barCount: 1,
       dataCutoffTime: "2026-08-25T07:00:00.000Z",
+      sourceVersions: ['vendor, "desk"\nline 2@ \t=IMPORTXML(1)'],
       evidenceIds: ["evidence-2026-08-25"],
     });
     const csv = prepareInstrumentBarsCsv(input).csv;
@@ -425,5 +426,21 @@ describe("prepareInstrumentBarsCsv", () => {
         }),
       ),
     ).toThrow(/日线 CSV/);
+  });
+
+  it.each<readonly [string, Partial<InstrumentBarsResponse>]>([
+    ["undeclared source", { sourceVersions: ["another-provider@vendor-2026.08"] }],
+    ["undeclared version", { sourceVersions: ["tushare-pro@another-version"] }],
+    ["undeclared evidence", { evidenceIds: ["unrelated-evidence"] }],
+    [
+      "extra source version",
+      { sourceVersions: ["tushare-pro@vendor-2026.08", "another-provider@unused"] },
+    ],
+    [
+      "extra evidence",
+      { evidenceIds: ["evidence-2026-08-24", "evidence-2026-08-25", "unused-evidence"] },
+    ],
+  ])("rejects inconsistent aggregate provenance: %s", (_label, overrides) => {
+    expect(() => prepareInstrumentBarsCsv(response(overrides))).toThrow(/溯源.*不一致/);
   });
 });

@@ -158,12 +158,28 @@ function validateResponse(data: InstrumentBarsResponse): void {
     invalid("freshnessSeconds 必须是非负有限数值或 null");
   }
 
+  const declaredSources = new Set(data.sourceVersions);
+  const declaredEvidence = new Set(data.evidenceIds);
+  const observedSources = new Set<string>();
+  const observedEvidence = new Set<string>();
   let previousDate: string | null = null;
   for (const [index, bar] of data.bars.entries()) {
     validateBar(bar, effectiveAsOf, index);
+    const sourceVersion = `${bar.source}@${bar.sourceVersion}`;
+    if (!declaredSources.has(sourceVersion) || !declaredEvidence.has(bar.evidenceId)) {
+      invalid(`第 ${index + 1} 根日线溯源与响应清单不一致`);
+    }
+    observedSources.add(sourceVersion);
+    observedEvidence.add(bar.evidenceId);
     if (previousDate !== null && bar.date <= previousDate)
       invalid("日线日期必须严格升序且不能重复");
     previousDate = bar.date;
+  }
+  if (
+    observedSources.size !== declaredSources.size ||
+    observedEvidence.size !== declaredEvidence.size
+  ) {
+    invalid("日线溯源与响应清单不一致");
   }
 
   const finalBar = data.bars.at(-1);
