@@ -122,7 +122,8 @@ describe("App routing", () => {
     expect(html).toContain("/instruments");
     expect(html).toContain("/watchlists");
     expect(html).toContain('href="/"');
-    expect(html).not.toContain("/paper");
+    expect(html).toContain('href="/paper"');
+    expect(html).toContain("模拟组合");
     expect(html).not.toContain("/ranking");
     expect(html).not.toContain("已就绪");
     expect(html).not.toContain("规划能力待接入");
