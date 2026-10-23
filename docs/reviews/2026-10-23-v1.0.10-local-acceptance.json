@@ -1,0 +1,79 @@
+{
+  "version": "1.0.10",
+  "node": "P6-N07 UI slice only",
+  "date": "2026-10-23",
+  "status": "LOCAL_ACCEPTED",
+  "outcome": "Open the corresponding current daily-research route from read or unread notifications. Ordinary click and keyboard navigation close the notification dialog without marking notifications read. Malformed codes retain their notification content but do not produce links.",
+  "sourceCommit": "9f6ac5a40649d9a1972845d10c6d4e206af333c5",
+  "verification": {
+    "tdd": "Before implementation the new link-helper suite failed on the missing module and three panel cases failed on missing navigation or invalid-code explanation; the existing seven panel cases passed. The version test failed against 1.0.9 before updating the release identity.",
+    "targetedTests": [
+      {
+        "command": "pnpm --filter @kunlun/web exec vitest run src/features/alerts/notification-instrument-link.test.ts src/features/alerts/notification-center.test.tsx src/features/alerts/notification-filters.test.ts",
+        "passed": 17
+      },
+      {
+        "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+        "passed": 2
+      }
+    ],
+    "staticChecks": "Web typecheck, related ESLint, Prettier and diff checks passed. No local aggregate repository suite was run.",
+    "build": "One shared Docker Node build of web and server passed, including TypeScript and Vite. Later receipt and release-document changes leave source, dependencies and runtime configuration unchanged; the verified build is reused.",
+    "browser": {
+      "actualEnvironment": "The authenticated local 1.0.10 application retained zero real notifications and zero unread notifications. Its real security detail page and empty notification dialog were checked.",
+      "isolatedEnvironment": "The same running application assets were served through a temporary loopback acceptance proxy. Only notification GET responses were replaced with clearly labeled public synthetic records; actual market GET requests used the existing local read-only service. Every write method was blocked. No fixture was inserted into real notification storage.",
+      "passed": [
+        "Starting with an unrelated historical asOf and security filter, clicking an unread Shanghai notification opened /instruments/600519.SH without either query parameter and closed the dialog.",
+        "The actual current daily response showed the public Shanghai sample with 250 visible bars, Oct 22 data cutoff, closing price 1318.49 and the existing AKShare Tencent v3 source.",
+        "A read Shenzhen notification remained navigable using keyboard Enter and opened /instruments/000001.SZ. Its real Oct 22 daily response showed closing price 11.3 and the same existing source version.",
+        "Filtering to one notification retained the separate 3-unread full count. Keyboard focus was visible on the link; Enter closed the dialog even when the target was already the current route.",
+        "A modifier-click opened the target in a new tab while preserving the original dialog. The extra tab was closed after verification.",
+        "A malformed Hong Kong code showed an explicit cannot-navigate explanation and no link, while preserving the notification and its independent read action. A canonical code with no stored quote opened the existing no-visible-daily-data state without inventing a price.",
+        "Actionable links computed to pointer. At a 390px override, page client/scroll widths were both 390px and dialog client/scroll widths both 388px; label gaps were 8px. Multiple entries used the existing internal vertical scroll area. The viewport override was reset."
+      ],
+      "requestAudit": {
+        "notificationReads": 8,
+        "instrumentReads": 20,
+        "writeAttempts": 0,
+        "allInstrumentRequestsCurrent": true,
+        "historicalAsOfForwarded": false
+      },
+      "cleanup": "The isolated browser tab and loopback acceptance proxy were closed; the actual application tab was retained. Synthetic responses existed only in that temporary process and ignored local work.",
+      "screenshot": "The labeled isolated notification entry and the actual local daily-research destination were visually inspected and saved in ignored local work without private notifications or account identifiers."
+    },
+    "review": "Primary-agent final diff review found no blocker. This medium-risk read-only UI slice reuses existing route validation and UI primitives; contracts, ownership, persistence, collection and read-write actions are unchanged. Existing persistence and isolation evidence is reused; no independent agent review was claimed.",
+    "ci": {
+      "headSha": "9f6ac5a40649d9a1972845d10c6d4e206af333c5",
+      "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/39971754455",
+      "status": "completed",
+      "conclusion": "success",
+      "platforms": {
+        "gates (ubuntu-latest)": "success",
+        "gates (macos-latest)": "success",
+        "gates (windows-latest)": "success"
+      }
+    }
+  },
+  "localRuntime": {
+    "healthVersion": "1.0.10",
+    "healthStatus": "ok",
+    "webImageId": "sha256:48c39a6f89716adb8c1568739a6d9a54c4586b7800b5e33e92b329924ea0b2ce",
+    "serverImageId": "sha256:538fa3a8b3e6b6016b0d2a8e4b387ae72e02c7dc708cdbf107cbba46cf3745e6",
+    "webImageTag": "kunlun-web:1.0.10",
+    "serverImageTag": "kunlun-server:1.0.10",
+    "containers": "Web and server healthy; only these application containers were recreated. Existing databases and workers were preserved. Version aliases were verified against the running image IDs."
+  },
+  "git": {
+    "sourcePushed": true,
+    "tag": "v1.0.10",
+    "tagPushed": true,
+    "tagTarget": "9f6ac5a40649d9a1972845d10c6d4e206af333c5",
+    "tagObject": "cd88e275cb6101229ae964705d961d6d518768e7"
+  },
+  "knownLimits": [
+    "The entry opens current query-time research, not the notification trigger-time price. Data cutoff, source and availability remain those reported by the destination.",
+    "Recent notification filtering remains limited to the returned latest 100 records. Navigation does not alter the full-account read-all action or persist a new read receipt.",
+    "The real account had no notifications during acceptance. Nonempty navigation was checked using isolated notifications with real existing market reads, not a newly triggered real alert.",
+    "This accepts a P6-N07 UI slice only, not the complete node, Phase 6, a production deployment or any trading capability."
+  ]
+}
