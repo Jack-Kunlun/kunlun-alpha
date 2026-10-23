@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router";
 import type { InAppNotificationCenter } from "@kunlun/shared-types";
-import { Bell, Check, CheckCheck, CircleAlert, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Bell, Check, CheckCheck, CircleAlert, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import {
   filterRecentNotifications,
   type RecentNotificationFilters,
 } from "./notification-filters";
+import { notificationInstrumentHref } from "./notification-instrument-link";
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
@@ -138,6 +140,7 @@ export function NotificationCenter() {
           onRefresh={refresh}
           onRead={read}
           onReadAll={readAll}
+          onNavigate={() => setOpen(false)}
         />
       </DialogContent>
     </Dialog>
@@ -154,6 +157,7 @@ export function NotificationCenterPanel({
   onRefresh,
   onRead,
   onReadAll,
+  onNavigate,
 }: {
   center: InAppNotificationCenter | null;
   loading: boolean;
@@ -164,6 +168,7 @@ export function NotificationCenterPanel({
   onRefresh: () => void | Promise<void>;
   onRead: (notificationId: string) => void | Promise<void>;
   onReadAll: () => void | Promise<void>;
+  onNavigate: () => void;
 }) {
   const matches = filterRecentNotifications(center?.notifications ?? [], filters);
   return (
@@ -277,50 +282,84 @@ export function NotificationCenterPanel({
           通知尚未读取，请刷新通知。
         </p>
       ) : matches.length > 0 ? (
-        <ul className="divide-y">
-          {matches.map((item) => {
-            const unread = item.readAt === null;
-            return (
-              <li key={item.notificationId} className={unread ? "bg-amber-50/60" : undefined}>
-                <article className="space-y-2 px-6 py-4">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-sm font-semibold">{item.title}</h3>
-                        <Badge variant={statusVariant(item.deliveryStatus)}>
-                          {statusLabel(item.deliveryStatus)}
-                        </Badge>
+        <>
+          <p
+            id="notification-navigation-scope"
+            className="border-b px-6 py-3 text-xs text-muted-foreground"
+          >
+            “查看标的日线”打开当前查询时点的行情，日期与来源以详情页为准，不代表提醒触发时刻价格；跳转不会标记已读。
+          </p>
+          <ul className="divide-y">
+            {matches.map((item) => {
+              const unread = item.readAt === null;
+              const instrumentHref = notificationInstrumentHref(item.instrumentId);
+              return (
+                <li key={item.notificationId} className={unread ? "bg-amber-50/60" : undefined}>
+                  <article className="space-y-2 px-6 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="truncate text-sm font-semibold">{item.title}</h3>
+                          <Badge variant={statusVariant(item.deliveryStatus)}>
+                            {statusLabel(item.deliveryStatus)}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">
+                          {item.instrumentId}
+                        </p>
                       </div>
-                      <p className="mt-1 font-mono text-xs text-muted-foreground">
-                        {item.instrumentId}
-                      </p>
+                      {unread ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={loading || pending}
+                          aria-label="标记已读"
+                          aria-busy={pending}
+                          className={pending ? "disabled:cursor-progress" : undefined}
+                          onClick={() => void onRead(item.notificationId)}
+                        >
+                          <Check aria-hidden="true" /> 标记已读
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">已读</span>
+                      )}
                     </div>
-                    {unread ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={loading || pending}
-                        aria-label="标记已读"
-                        aria-busy={pending}
-                        className={pending ? "disabled:cursor-progress" : undefined}
-                        onClick={() => void onRead(item.notificationId)}
-                      >
-                        <Check aria-hidden="true" /> 标记已读
+                    <p className="text-sm text-foreground/85">{item.body}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatTime(item.availableAt)} · 投递尝试 {item.deliveryAttempts}
+                    </p>
+                    {instrumentHref !== null ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link
+                          to={instrumentHref}
+                          aria-label={`查看 ${item.instrumentId} 标的日线`}
+                          aria-describedby="notification-navigation-scope"
+                          onClick={(event) => {
+                            if (
+                              event.button === 0 &&
+                              !event.ctrlKey &&
+                              !event.metaKey &&
+                              !event.shiftKey &&
+                              !event.altKey
+                            )
+                              onNavigate();
+                          }}
+                        >
+                          查看标的日线 <ArrowUpRight aria-hidden="true" />
+                        </Link>
                       </Button>
                     ) : (
-                      <span className="text-xs text-muted-foreground">已读</span>
+                      <p className="text-xs text-muted-foreground">
+                        证券代码不符合日线格式，无法跳转。
+                      </p>
                     )}
-                  </div>
-                  <p className="text-sm text-foreground/85">{item.body}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTime(item.availableAt)} · 投递尝试 {item.deliveryAttempts}
-                  </p>
-                </article>
-              </li>
-            );
-          })}
-        </ul>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       ) : loading || pending ? (
         <p role="status" className="p-8 text-center text-sm text-muted-foreground">
           正在更新通知，筛选条件已保留…

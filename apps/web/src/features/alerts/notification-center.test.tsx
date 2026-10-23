@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { NotificationCenterPanel } from "./notification-center";
 import type { ComponentProps } from "react";
+import { MemoryRouter } from "react-router";
+import { TerminalFilterProvider } from "@/app/filter-context";
 
 const center: InAppNotificationCenter = {
   schemaVersion: "in-app-notification-center-v1",
@@ -28,22 +30,58 @@ const center: InAppNotificationCenter = {
 
 function renderPanel(overrides: Partial<ComponentProps<typeof NotificationCenterPanel>> = {}) {
   return renderToStaticMarkup(
-    <NotificationCenterPanel
-      center={center}
-      loading={false}
-      error={null}
-      pending={false}
-      filters={{ readStatus: "ALL", instrumentQuery: "" }}
-      onFiltersChange={vi.fn()}
-      onRefresh={vi.fn()}
-      onRead={vi.fn()}
-      onReadAll={vi.fn()}
-      {...overrides}
-    />,
+    <MemoryRouter
+      initialEntries={["/watchlists?asOf=2026-08-01T00%3A00%3A00.000Z&instrument=000001.SZ"]}
+    >
+      <TerminalFilterProvider>
+        <NotificationCenterPanel
+          center={center}
+          loading={false}
+          error={null}
+          pending={false}
+          filters={{ readStatus: "ALL", instrumentQuery: "" }}
+          onFiltersChange={vi.fn()}
+          onRefresh={vi.fn()}
+          onRead={vi.fn()}
+          onReadAll={vi.fn()}
+          onNavigate={vi.fn()}
+          {...overrides}
+        />
+      </TerminalFilterProvider>
+    </MemoryRouter>,
   );
 }
 
 describe("NotificationCenterPanel", () => {
+  it.each([null, "2026-08-30T02:00:00.000Z"])(
+    "links both unread and read notifications without inheriting unrelated historical filters: %s",
+    (readAt) => {
+      const html = renderPanel({
+        center: { ...center, notifications: [{ ...center.notifications[0]!, readAt }] },
+      });
+      expect(html).toContain('href="/instruments/600519.SH"');
+      expect(html).toContain('aria-label="查看 600519.SH 标的日线"');
+      expect(html).toContain('aria-describedby="notification-navigation-scope"');
+      expect(html).toContain("当前查询时点");
+      expect(html).toContain("不代表提醒触发时刻价格");
+      expect(html).toContain("跳转不会标记已读");
+      expect(html).not.toContain("/instruments/600519.SH?");
+    },
+  );
+
+  it("keeps a malformed notification readable without an invalid navigation action", () => {
+    const html = renderPanel({
+      center: {
+        ...center,
+        notifications: [{ ...center.notifications[0]!, instrumentId: "00700.HK" }],
+      },
+    });
+    expect(html).toContain("证券代码不符合日线格式，无法跳转");
+    expect(html).not.toContain('href="/instruments/');
+    expect(html).toContain("贵州茅台价格提醒");
+    expect(html).toContain("标记已读");
+  });
+
   it("renders unread persisted alerts and bounded read actions", () => {
     const html = renderPanel();
 
