@@ -38,6 +38,12 @@
 
 管理员日线数据质量入口按日期、来源和证券查看已入库日期与公开异常证据。分组数量、最新日期只描述本次返回结果；缺少应有交易日依据时，缺口判断显示未知。异常证据按实际快照发布时间展示，不把历史记录当成当前健康状态。详细口径见[日线入库概览](docs/runbooks/market-data-coverage.md)与[异常证据说明](docs/runbooks/market-quality-evidence.md)。
 
+## 1.0.7 增量（收尾中）
+
+日线覆盖行的日期明细可选择历史起止日期，包含起止日，最多 366 个自然日。支持同条件重查、
+恢复汇总窗口和分页重置；空结果保留查询区间与时间，不推断行情缺口。复用已有只读接口，
+具体用法见[历史窗口检索](docs/runbooks/market-data-coverage.md#107-历史窗口检索)。
+
 ## 1.0.x 本地启动
 
 已有 `infra/docker/.env` 时保留原文件；首次使用才从 `.env.example` 复制，并按[登录手册](docs/runbooks/local-authentication.md)交互式创建管理员。

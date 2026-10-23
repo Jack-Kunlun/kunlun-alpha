@@ -10,9 +10,8 @@ import {
 } from "@/components/ui/table";
 import type { MarketCoverageResponse } from "@kunlun/shared-types";
 import { formatShanghaiTime } from "./format-shanghai-time";
-import { MarketCoverageDaysPanel } from "./market-coverage-days-panel";
+import { MarketCoverageHistoryPanel } from "./market-coverage-history-panel";
 import type { MarketCoverageDaysQuery } from "./market-coverage-days";
-import { useMarketCoverageDays } from "./use-market-coverage-days";
 
 interface MarketCoveragePanelProps {
   response: MarketCoverageResponse;
@@ -21,11 +20,6 @@ interface MarketCoveragePanelProps {
 type SelectedMarketCoverageDays = MarketCoverageDaysQuery & {
   selectionKey: string;
 };
-
-function MarketCoverageDaysQueryPanel({ selection }: { selection: SelectedMarketCoverageDays }) {
-  const result = useMarketCoverageDays(selection);
-  return <MarketCoverageDaysPanel result={result} selection={selection} />;
-}
 
 export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
   const [selected, setSelected] = useState<SelectedMarketCoverageDays | null>(null);
@@ -58,7 +52,7 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
           {formatShanghaiTime(response.window.asOf)}。
         </p>
         <p>每个“最新”时间分别按字段取最大值，可能来自不同记录。</p>
-        <p>点击某行“查看已入库日期”可独立读取该证券与来源在当前汇总窗口内的已观测日期。</p>
+        <p>点击某行“查看已入库日期”可读取该证券与来源的已观测日期，并选择历史查询窗口。</p>
       </div>
       <div className="space-y-1 text-sm text-muted-foreground" aria-label="本次返回概览">
         <p>
@@ -142,7 +136,7 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
         </p>
       )}
       {activeSelection !== null && (
-        <MarketCoverageDaysQueryPanel
+        <MarketCoverageHistoryPanel
           key={`${activeSelection.unifiedCode}-${activeSelection.source}-${activeSelection.dateFrom}-${activeSelection.dateTo}-${activeSelection.selectionKey}`}
           selection={activeSelection}
         />

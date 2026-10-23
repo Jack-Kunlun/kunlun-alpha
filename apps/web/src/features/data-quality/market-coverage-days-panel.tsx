@@ -79,6 +79,10 @@ export function MarketCoverageDaysPanel({ result, selection }: MarketCoverageDay
   if (result.status === "empty" || response.days.length === 0) {
     return (
       <div className="space-y-1 text-sm text-muted-foreground">
+        <p>
+          {response.unifiedCode} · {response.source} · {response.window.dateFrom} 至{" "}
+          {response.window.dateTo} · 共 0 个已观测日期
+        </p>
         <p>当前窗口暂无已观测日期。</p>
         <p>
           这不表示缺失，也不表示价格合格；独立查询 asOf：{formatShanghaiTime(response.window.asOf)}

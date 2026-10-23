@@ -116,4 +116,19 @@ describe("MarketCoverageDaysPanel", () => {
     expect(html).toContain("已观测日期加载中");
     expect(html).not.toContain("000001.SZ");
   });
+
+  it("keeps the selected window, identity and query time visible for zero observed dates", () => {
+    const html = renderToStaticMarkup(
+      <MarketCoverageDaysPanel
+        result={{ status: "success", data: { ...response, days: [] }, error: null }}
+        selection={selection}
+      />,
+    );
+    expect(html).toContain("600519.SH");
+    expect(html).toContain("tushare-pro");
+    expect(html).toContain("2026-09-01 至 2026-09-04");
+    expect(html).toContain("共 0 个已观测日期");
+    expect(html).toContain("独立查询 asOf");
+    expect(html).toContain("这不表示缺失");
+  });
 });
