@@ -1,0 +1,91 @@
+{
+  "version": "1.0.11",
+  "node": "P6-N06 UI slice only",
+  "date": "2026-10-23",
+  "status": "LOCAL_ACCEPTED",
+  "outcome": "Export the returned daily RAW window as CSV with original decimal strings, per-bar provenance and query-time metadata. Reject stale query identities, future or malformed records and inconsistent provenance before download.",
+  "sourceCommit": "0b4dbf14d99399bd59004f88445cc9cf5532fe58",
+  "verification": {
+    "tdd": "The new helper initially failed on its missing module; six UI/query-binding cases failed before implementation. Version identity failed against 1.0.10. Regression cases exposed repeated aggregate provenance and were fixed without changing returned values. Independent review found missing aggregate-to-row provenance validation; five inconsistent-source/evidence cases failed before the fix and passed afterward.",
+    "targetedTests": [
+      {
+        "command": "pnpm --filter @kunlun/web exec vitest run src/features/instrument/instrument-bars-export.test.ts src/features/instrument/use-instrument-bars.test.ts src/features/instrument/instrument-intelligence-bars-page.test.tsx",
+        "passed": 43,
+        "scope": "31 CSV cases, four query-binding cases and eight page cases; executed against the final source."
+      },
+      {
+        "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+        "passed": 2,
+        "scope": "Reused successful version tests; server version and controller code did not change in the final provenance fix."
+      }
+    ],
+    "staticChecks": "Scoped ESLint and Prettier passed. Web typecheck passed after correcting test-only union typing; final helper/test changes passed both scoped static checks and Web typecheck again. No local aggregate repository suite was run.",
+    "build": "The initial shared Docker Node build passed. A second shared build was required by the independently discovered provenance fix and passed, including TypeScript and Vite. Subsequent receipt/runbook/roadmap edits do not change application inputs; the final build is reused.",
+    "browser": {
+      "environment": "Authenticated actual local application, existing read-only market data, no fixture proxy or synthetic storage writes. Only web and server containers were recreated.",
+      "passed": [
+        "CURRENT mode loaded the existing 250-bar window and switched to 20 bars with the export scope updated to match.",
+        "HISTORICAL mode at 2026-10-23T15:00:00.000Z switched to 500 bars. Keyboard Enter generated a real downloaded file. After the provenance fix the final build was reloaded and the same 500-bar download was repeated successfully.",
+        "The downloaded file was independently parsed using the Python standard CSV reader: UTF-8 BOM, CRLF, 500 rows, 27 columns, ascending unique dates and 500 unique evidence identifiers. Every event/available/processing timestamp was no later than effectiveAsOf.",
+        "The last row exactly retained close 1318.49, volume 4249100 and amount 5576216900 from the displayed RAW quote. Both actual source versions remained distinct.",
+        "At a 390px viewport, document client/scroll widths were both 375px and export-scope widths both 276px; controls wrapped, the action used pointer and keyboard focus was visible. The viewport override was reset. This unchanged layout evidence was reused after the provenance-only fix.",
+        "A canonical security with no stored daily quote showed the existing empty state and zero export controls. That unchanged page-state evidence was reused."
+      ],
+      "download": {
+        "instrumentId": "600519.SH",
+        "mode": "HISTORICAL",
+        "requestedAsOf": "2026-10-23T15:00:00.000Z",
+        "effectiveAsOf": "2026-10-23T15:00:00.000Z",
+        "rows": 500,
+        "columns": 27,
+        "bytes": 255486,
+        "firstDate": "2024-09-25",
+        "lastDate": "2026-10-22",
+        "source": "akshare-tencent",
+        "sourceVersions": [
+          "akshare:1.18.94:stock_zh_a_hist_tx:v2",
+          "akshare:1.18.94:stock_zh_a_hist_tx:v3"
+        ],
+        "dataVersion": "bar-v1",
+        "finalDownloadAt": "2026-10-23T15:20:38.186881Z"
+      },
+      "observationLimits": "An initial browser-tool download listener timed out after the click, but the completed file was independently found and parsed. The final build download was observed via its generated status and freshly modified file. Loading/error/forbidden, mismatched-query and malformed-data refusal are covered by targeted tests rather than destructive browser experiments.",
+      "screenshot": "The final actual application, 500-bar scope, both source versions, generated status and RAW quote were visually inspected and saved in ignored local work. No private watchlist, credentials or account identifiers were included."
+    },
+    "review": "One independent high-risk review found one provenance-integrity blocker. Its closure review confirmed row membership and two-way aggregate set equivalence, matching the existing server contract with linear complexity; the five regression cases passed and no blocker remained. The reviewer reused the final 43 Web tests and did not claim to rerun the build or browser checks.",
+    "ci": {
+      "conclusion": "success",
+      "headSha": "0b4dbf14d99399bd59004f88445cc9cf5532fe58",
+      "status": "completed",
+      "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/39977296485",
+      "platforms": {
+        "gates (ubuntu-latest)": "success",
+        "gates (windows-latest)": "success",
+        "gates (macos-latest)": "success"
+      }
+    }
+  },
+  "localRuntime": {
+    "healthVersion": "1.0.11",
+    "healthStatus": "ok",
+    "healthObservedAt": "2026-10-23T15:20:51.570Z",
+    "webImageId": "sha256:d5a56aa6c2ef44a05389f15f2d82251ad3ebaed8684df3e9069fc9a8389ad75e",
+    "serverImageId": "sha256:944f31615a8a7011a3894250e2e29ca7d5e8bc13bbc4b7b88a01dc8b714aeba9",
+    "containers": "Web and server healthy. Existing databases and workers were preserved; no migration, collection run or restore drill was needed. Fixed 1.0.11 aliases match the healthy running image IDs.",
+    "webImageTag": "kunlun-web:1.0.11",
+    "serverImageTag": "kunlun-server:1.0.11"
+  },
+  "git": {
+    "sourcePushed": true,
+    "tag": "v1.0.11",
+    "tagPushed": true,
+    "tagTarget": "0b4dbf14d99399bd59004f88445cc9cf5532fe58",
+    "tagObject": "2bb40e4def474eb6536780050f381223436331e6"
+  },
+  "knownLimits": [
+    "Only the currently returned 1-500 daily RAW records are exported; no complete-history fetch, adjusted pricing or real-time quote is added.",
+    "The file preserves original decimal text. Spreadsheet import tools can change display precision through automatic conversion; import relevant columns as text when exact representation is needed.",
+    "A generated status means a browser download was initiated; actual file saving depends on the browser and was separately verified for acceptance.",
+    "API/schema, persistence, authentication, collection, dependencies and trading boundaries are unchanged. This accepts a P6-N06 UI slice only, not the complete node, Phase 6, a production deployment or any real-order capability."
+  ]
+}
