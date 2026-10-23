@@ -1,0 +1,77 @@
+{
+  "version": "1.0.7",
+  "node": "P1-N12 UI slice only",
+  "date": "2026-10-23",
+  "status": "LOCAL_ACCEPTED",
+  "outcome": "Single-security, single-source observed daily dates can be queried over an inclusive window of at most 366 calendar days, refreshed and reset without retaining stale pagination.",
+  "sourceCommit": "23385bac901dad3ae921a7d03d617cca82d268da",
+  "verification": {
+    "tdd": "Before implementation, the new window/form suites failed on missing modules and the zero-date regression failed because identity/window/count were absent. The version test failed against 1.0.6 before the identity update.",
+    "targetedTests": [
+      {
+        "scope": "Web history validator/form, days parser/panel/hook and coverage caller",
+        "command": "pnpm --filter @kunlun/web exec vitest run src/features/data-quality/market-coverage-history.test.ts src/features/data-quality/market-coverage-history-panel.test.tsx src/features/data-quality/market-coverage-days-panel.test.tsx src/features/data-quality/market-coverage-panel.test.tsx src/features/data-quality/use-market-coverage-days.test.tsx src/features/data-quality/market-coverage-days.test.ts",
+        "passed": 32
+      },
+      {
+        "scope": "Existing server history-window query contract",
+        "command": "pnpm --filter @kunlun/server exec vitest run src/modules/data-quality/market-coverage-days.query.test.ts",
+        "passed": 3
+      },
+      {
+        "scope": "Application version identity",
+        "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+        "passed": 2
+      }
+    ],
+    "staticChecks": "Web typecheck, related ESLint, Prettier and diff checks passed. No local aggregate repository suite was run.",
+    "build": "One shared Node Docker build of server and web passed, including TypeScript and Vite. Later documentation changes leave application source, dependencies and runtime configuration unchanged; the verified application build is reused.",
+    "browser": {
+      "environment": "Authenticated actual local application and existing storage; no fixture API or credential changes.",
+      "passed": [
+        "600519.SH / akshare-tencent: Sep 1-4 inclusive returned the four observed dates.",
+        "A 367-day window and reversed dates showed accessible field errors while preserving the prior applied result and query time.",
+        "The maximum 366-day window, Oct 23 2025 to Oct 23 2026, returned 242 observed dates on five pages.",
+        "A future single-day window returned zero observations with identity, window and independent query time, without claiming a gap or completeness.",
+        "Keyboard activation of the query button worked; while loading it was natively disabled, aria-busy=true and cursor=progress.",
+        "Reset restored the original 90-day summary window with 58 observed dates. Same-window refresh from page 2 returned to page 1 and advanced the independent query time.",
+        "At a 390px override, client/scroll width both measured 375px; the inner table scrolled at 257px/900px. Both label gaps measured 8px. The viewport override was reset."
+      ],
+      "dateInputMethod": "Native keyboard events were used after automation fill changed displayed dates without dispatching the React change event. Actual native input submitted the selected dates correctly.",
+      "screenshot": "Actual accepted page retained in ignored local work; only an existing public sample and generic local administrator label are visible."
+    },
+    "review": "Primary-agent bounded final diff review completed; no changes to public contracts, persistence, permissions, collection or trading paths. This medium-risk read-only UI slice did not require a separate independent review.",
+    "ci": {
+      "headSha": "23385bac901dad3ae921a7d03d617cca82d268da",
+      "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/39954632055",
+      "status": "completed",
+      "conclusion": "success",
+      "platforms": {
+        "gates (ubuntu-latest)": "success",
+        "gates (macos-latest)": "success",
+        "gates (windows-latest)": "success"
+      }
+    }
+  },
+  "localRuntime": {
+    "healthVersion": "1.0.7",
+    "healthStatus": "ok",
+    "webImageId": "sha256:69be06e7956c22326d89b156afa597479a06c3df083173c67073faed120302e7",
+    "serverImageId": "sha256:49a411f34c736beabc7f733784f3a46df2d1b2fd5deec0a96df31cd1b55b711c",
+    "containers": "Web and server healthy. Only those application containers were recreated; existing database and worker containers were preserved.",
+    "webImageTag": "kunlun-web:1.0.7",
+    "serverImageTag": "kunlun-server:1.0.7"
+  },
+  "git": {
+    "sourcePushed": true,
+    "tag": "v1.0.7",
+    "tagTarget": "23385bac901dad3ae921a7d03d617cca82d268da",
+    "tagObject": "b6b982cb942e260f34b9849ffe875a42583dea26",
+    "tagPushed": true
+  },
+  "knownLimits": [
+    "Observed dates do not establish expected trading days, missing-day status or completeness; missing-day judgment remains unknown.",
+    "Detail query time is independent of the summary. The history window only filters the selected security/source detail, not the summary or published evidence.",
+    "This accepts a P1-N12 UI slice, not the complete node or Phase 1. No production deployment or trading capability is claimed."
+  ]
+}
