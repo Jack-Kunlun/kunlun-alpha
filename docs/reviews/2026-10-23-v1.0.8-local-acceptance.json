@@ -1,0 +1,68 @@
+{
+  "version": "1.0.8",
+  "node": "P6-N07 UI slice only",
+  "date": "2026-10-23",
+  "status": "LOCAL_ACCEPTED",
+  "outcome": "Filter the complete server-owned personal watchlist by Shanghai, Shenzhen, Beijing or existing unconnected observation references, combined with code/name search, before counting and paging. Reset restores all markets and page one.",
+  "sourceCommit": "7db89ce1c057eb04ff83f469d55d87818e838fe6",
+  "verification": {
+    "tdd": "Before implementation the selector suite failed on its missing module and the view regression failed on the missing market label. The version test failed against 1.0.7 before the update.",
+    "targetedTests": [
+      {
+        "command": "pnpm --filter @kunlun/web exec vitest run src/features/instrument/personal-watchlist-filters.test.ts src/features/instrument/personal-watchlist-panel.test.tsx src/features/instrument/personal-watchlist.test.ts src/features/instrument/use-personal-watchlist.test.ts",
+        "passed": 28
+      },
+      {
+        "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+        "passed": 2
+      }
+    ],
+    "staticChecks": "Web typecheck, related ESLint, Prettier and diff checks passed; no local aggregate repository suite was run.",
+    "build": "One shared Docker Node build of web and server passed, including TypeScript and Vite. Later documentation leaves application source, dependencies and runtime configuration unchanged; the verified build is reused.",
+    "browser": {
+      "environment": "Authenticated actual local application and existing storage; no fixture API, credential change, import or notification action.",
+      "passed": [
+        "The actual list contained 195 saved entries: market filters counted 73 Shanghai, 117 Shenzhen, 1 Beijing and 4 unconnected observation references; rendered rows matched their selected category.",
+        "Switching market from page 2 reset to page 1. A trimmed lowercase code combined with Shanghai matched one existing entry; choosing Shenzhen with that code showed an explicit zero-match state.",
+        "Keyboard Enter activated reset, restoring all markets, an empty search and page 1 of 10 with 195 entries.",
+        "Select and actionable button cursors computed to pointer; disabled controls computed to not-allowed. Tab reached reset with visible focus; the search used a text cursor.",
+        "Both labels measured an 8px gap. At a 390px override the client and scroll width were both 375px, with a 309px watchlist region and usable wrapped controls. The override was reset.",
+        "The selected public sample retained its real Oct 22 daily quote, original source and collection status."
+      ],
+      "screenshot": "Actual accepted page retained in ignored local work; only one public symbol, curated samples and the generic local administrator label are visible."
+    },
+    "review": "Primary-agent final diff review completed without a blocker. Scope is a medium-risk read-only presentation slice; server storage, ownership checks, contracts, collection and notification actions are unchanged.",
+    "ci": {
+      "headSha": "7db89ce1c057eb04ff83f469d55d87818e838fe6",
+      "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/39958372803",
+      "status": "completed",
+      "conclusion": "success",
+      "platforms": {
+        "gates (macos-latest)": "success",
+        "gates (windows-latest)": "success",
+        "gates (ubuntu-latest)": "success"
+      }
+    }
+  },
+  "localRuntime": {
+    "healthVersion": "1.0.8",
+    "healthStatus": "ok",
+    "webImageId": "sha256:158910d8fb44c1aab122311c73715d067e6654415ce9a51c81157b2c1d8f5860",
+    "serverImageId": "sha256:6e785ab5d6958d36d9d278e8885e07b4074832183bb19c82de9db576860447f5",
+    "containers": "Web and server healthy; only application containers were recreated, preserving existing databases and workers.",
+    "webImageTag": "kunlun-web:1.0.8",
+    "serverImageTag": "kunlun-server:1.0.8"
+  },
+  "git": {
+    "sourcePushed": true,
+    "tag": "v1.0.8",
+    "tagTarget": "7db89ce1c057eb04ff83f469d55d87818e838fe6",
+    "tagObject": "e5e3e22880cac2afae5d22d42fb9a2d3ea3d35b9",
+    "tagPushed": true
+  },
+  "knownLimits": [
+    "Market grouping is based on the existing validated canonical code or observation-reference format; it does not classify collection health, missing data or master-data lifecycle readiness.",
+    "The filter applies only to the currently loaded server-owned list and preserves its order. Quotes are still queried only for the current page; no full-list quote sorting is added.",
+    "This accepts a P6-N07 UI slice, not the complete node or Phase 6. No production deployment or trading capability is claimed."
+  ]
+}
