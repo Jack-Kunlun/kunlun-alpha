@@ -1,0 +1,69 @@
+{
+  "version": "1.0.9",
+  "node": "P6-N07 UI slice only",
+  "date": "2026-10-23",
+  "status": "LOCAL_ACCEPTED",
+  "outcome": "Combine read status and a trimmed, case-insensitive security-code fragment within the returned recent notifications. Show matched/recent counts separately from the server-owned full-account unread count, preserve conditions through refresh/error, and provide reset.",
+  "sourceCommit": "377d00a69c31cacf55bb4f42e2dba7ee04acf231",
+  "verification": {
+    "tdd": "The new selector suite failed on its missing module and seven panel tests failed against the original UI before implementation. The version check failed against 1.0.8 before the update.",
+    "targetedTests": [
+      {
+        "command": "pnpm --filter @kunlun/web exec vitest run src/features/alerts/notification-filters.test.ts src/features/alerts/notification-center.test.tsx",
+        "passed": 12
+      },
+      {
+        "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+        "passed": 2
+      }
+    ],
+    "staticChecks": "Web typecheck, related ESLint, Prettier and diff checks passed. No local aggregate repository suite was run.",
+    "build": "One shared Docker Node build of web and server passed, including TypeScript and Vite. Later documentation leaves application source, dependencies and runtime configuration unchanged; this build is reused.",
+    "browser": {
+      "environment": "Authenticated actual local application and existing storage. The account returned zero recent notifications and zero global unread notifications. No synthetic records were written and no notification read action was performed.",
+      "passed": [
+        "The actual dialog displayed the new read-status selector, security-code search, reset action, recent 0/0 counter, full-account unread count and explicit 100-record scope.",
+        "Selecting unread and entering a padded lowercase code survived a real refresh. Keyboard Enter on reset restored all statuses and an empty query; the reset control then became natively disabled.",
+        "Tab reached the security-code input with visible focus. Escape closed the dialog and returned focus to its trigger. Reopening reset the conditions.",
+        "Actionable reset and select controls computed to pointer; disabled reset computed to not-allowed. Both labels measured an 8px gap.",
+        "At a 390px responsive override, page client/scroll widths were both 390px and dialog client/scroll widths were both 388px. Controls and the empty result remained usable. The override was reset."
+      ],
+      "testOnlyCoverage": "Nonempty combined filtering, readAt independent of delivery status, a 100-row recent set with no unread matches but global unreadCount 145, cached error/loading labels and busy action semantics were verified with isolated deterministic tests, not the empty live account.",
+      "screenshot": "Actual desktop and responsive views inspected; accepted desktop screenshot retained in ignored local work without private notification contents."
+    },
+    "review": "Primary-agent final diff review found no blocker. This medium-risk read-only presentation slice does not change API contracts, ownership, storage, rule evaluation, collection or notification write actions. Existing persistence and isolation evidence is reused.",
+    "ci": {
+      "headSha": "377d00a69c31cacf55bb4f42e2dba7ee04acf231",
+      "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/39966216088",
+      "status": "completed",
+      "conclusion": "success",
+      "platforms": {
+        "gates (macos-latest)": "success",
+        "gates (windows-latest)": "success",
+        "gates (ubuntu-latest)": "success"
+      }
+    }
+  },
+  "localRuntime": {
+    "healthVersion": "1.0.9",
+    "healthStatus": "ok",
+    "webImageId": "sha256:43e7f85c5dcf57acd9f6b3476cc1a9e9bf3fff081c4f81a4c04556002ff46461",
+    "serverImageId": "sha256:6a2fa63dbced6f16369dad9b0da67aba90e5e74804000bc6aa40abd7365ad26f",
+    "webImageTag": "kunlun-web:1.0.9",
+    "serverImageTag": "kunlun-server:1.0.9",
+    "containers": "Web and server are healthy. Only application containers were recreated; existing databases and workers were preserved. Version aliases were checked against the actual running image IDs."
+  },
+  "git": {
+    "sourcePushed": true,
+    "tag": "v1.0.9",
+    "tagPushed": true,
+    "tagTarget": "377d00a69c31cacf55bb4f42e2dba7ee04acf231",
+    "tagObject": "53807306580adaff45b06848014838fdd0168723"
+  },
+  "knownLimits": [
+    "Filtering applies only to the returned most recent 100 notifications; it is not a complete history search. Empty recent matches do not imply zero global unread notifications.",
+    "Recent entries and unread count retain the existing independent server reads, not a shared frozen database snapshot. Read-all continues to affect all notifications owned by the account, regardless of filters.",
+    "The actual account had no notifications during browser acceptance; nonempty behavior is supported by deterministic test evidence only.",
+    "This accepts a P6-N07 UI slice, not the complete node or Phase 6. No production deployment or trading capability is claimed."
+  ]
+}
