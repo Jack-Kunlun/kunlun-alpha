@@ -62,6 +62,12 @@
 查询时点的行情，日期与来源以详情页为准，不代表提醒触发时刻价格；异常代码不生成链接。
 用法见[提醒到标的日线](docs/runbooks/watchlist-alerts.md#1010-提醒到标的日线)。
 
+## 1.0.11 增量（收尾中）
+
+标的日线可导出当前返回窗口的 CSV，保留原始十进制价格、成交量/额、日期、来源版本、
+证据和查询点时。只使用当前已读取的结果，不查询全历史；坏数据或查询不匹配时阻止导出。
+用法见[日线导出](docs/runbooks/instrument-intelligence-detail.md#1011-当前窗口-csv-导出)。
+
 ## 1.0.x 本地启动
 
 已有 `infra/docker/.env` 时保留原文件；首次使用才从 `.env.example` 复制，并按[登录手册](docs/runbooks/local-authentication.md)交互式创建管理员。

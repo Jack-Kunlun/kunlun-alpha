@@ -97,6 +97,60 @@ const bars: InstrumentBarsResponse = {
 };
 
 describe("InstrumentIntelligenceView daily bars region", () => {
+  it("offers a scoped export for a valid returned historical window", () => {
+    const point = "2026-08-27T08:00:00.000Z";
+    const data = {
+      ...bars,
+      requestedAsOf: point,
+      effectiveAsOf: point,
+      dataCutoffTime: bars.bars[1]!.eventTime,
+    };
+    const html = renderToStaticMarkup(
+      <InstrumentIntelligenceView
+        instrumentId="600519.SH"
+        result={{
+          status: "success",
+          data: { ...detail, requestedAsOf: point, effectiveAsOf: point },
+          error: null,
+        }}
+        barsResult={{ status: "success", data, error: null }}
+      />,
+    );
+    expect(html).toContain("导出当前窗口");
+    expect(html).toContain("仅导出本次返回的 2 根日线");
+    const action = html.match(/<button[^>]*aria-label="导出当前窗口 CSV"[^>]*>/)?.[0];
+    expect(action).toBeDefined();
+    expect(action).not.toContain('disabled=""');
+  });
+  it("blocks export if returned bars belong to another security or historical query", () => {
+    for (const data of [
+      { ...bars, instrumentId: "000001.SZ" },
+      { ...bars, requestedAsOf: "2026-08-24T08:00:00.000Z" },
+    ]) {
+      const html = renderToStaticMarkup(
+        <InstrumentIntelligenceView
+          instrumentId="600519.SH"
+          result={{ status: "success", data: detail, error: null }}
+          barsResult={{ status: "success", data, error: null }}
+        />,
+      );
+      expect(html).toContain("日线与当前查询不一致，暂不可导出");
+      expect(html).toMatch(
+        /<button(?=[^>]*aria-label="导出当前窗口 CSV")(?=[^>]*disabled="")[^>]*>/,
+      );
+    }
+  });
+  it("refuses to export the old fixture containing data unavailable at its query time", () => {
+    const html = renderToStaticMarkup(
+      <InstrumentIntelligenceView
+        instrumentId="600519.SH"
+        result={{ status: "success", data: detail, error: null }}
+        barsResult={{ status: "success", data: bars, error: null }}
+      />,
+    );
+    expect(html).toContain("暂不可导出");
+    expect(html).toMatch(/<button(?=[^>]*aria-label="导出当前窗口 CSV")(?=[^>]*disabled="")[^>]*>/);
+  });
   it("renders the chart metadata and research-only warning", () => {
     const html = renderToStaticMarkup(
       <InstrumentIntelligenceView
@@ -138,5 +192,6 @@ describe("InstrumentIntelligenceView daily bars region", () => {
       />,
     );
     expect(html).toContain(marker);
+    expect(html).not.toContain("导出当前窗口");
   });
 });

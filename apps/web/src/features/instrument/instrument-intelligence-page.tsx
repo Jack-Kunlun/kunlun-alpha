@@ -21,6 +21,7 @@ import {
   useInstrumentBars,
 } from "./use-instrument-bars";
 import { LOCAL_TERMINAL_STOCKS } from "./local-terminal-stock-samples";
+import { InstrumentBarsExportButton } from "./instrument-bars-export-button";
 
 type SectionMetadata =
   InstrumentIntelligenceDetail["sections"][keyof InstrumentIntelligenceDetail["sections"]];
@@ -104,10 +105,16 @@ function SectionFrame({
 
 function InstrumentBarsSection({
   result,
+  instrumentId,
+  mode,
+  asOf,
   selectedWindow,
   onWindowChange,
 }: {
   result: ObjectQueryResult<InstrumentBarsResponse>;
+  instrumentId: string;
+  mode: InstrumentBarsResponse["mode"];
+  asOf: string;
   selectedWindow: InstrumentBarWindow;
   onWindowChange?: (value: InstrumentBarWindow) => void;
 }) {
@@ -204,6 +211,12 @@ function InstrumentBarsSection({
             </Button>
           ))}
         </div>
+        <InstrumentBarsExportButton
+          data={data}
+          instrumentId={instrumentId}
+          mode={mode}
+          asOf={asOf}
+        />
       </CardHeader>
       <CardContent className="space-y-4 pt-5">
         {summary !== null && (
@@ -234,6 +247,7 @@ function InstrumentBarsSection({
 }
 
 function DetailContent({
+  instrumentId,
   detail,
   barsResult,
   barsWindow,
@@ -242,6 +256,7 @@ function DetailContent({
 }: {
   showResearchSections?: boolean;
   detail: InstrumentIntelligenceDetail;
+  instrumentId: string;
   barsResult?: ObjectQueryResult<InstrumentBarsResponse>;
   barsWindow: InstrumentBarWindow;
   onBarsWindowChange?: (value: InstrumentBarWindow) => void;
@@ -290,6 +305,9 @@ function DetailContent({
       {barsResult !== undefined && (
         <InstrumentBarsSection
           result={barsResult}
+          instrumentId={instrumentId}
+          mode={detail.mode}
+          asOf={detail.requestedAsOf}
           selectedWindow={barsWindow}
           onWindowChange={onBarsWindowChange}
         />
@@ -568,6 +586,7 @@ export function InstrumentIntelligenceView({
   }
   return (
     <DetailContent
+      instrumentId={instrumentId}
       detail={result.data}
       showResearchSections={showResearchSections}
       barsResult={barsResult}
