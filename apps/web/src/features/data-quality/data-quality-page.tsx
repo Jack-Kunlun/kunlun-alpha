@@ -1,162 +1,77 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import type { MarketQualityStatus } from "@kunlun/shared-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DataQualityPanel } from "./data-quality-panel";
-import { useDataQuality, type DataQualityFilters } from "./use-data-quality";
 import { MarketCoveragePanel } from "./market-coverage-panel";
+import {
+  MARKET_COVERAGE_SOURCES,
+  validateDataQualityFilters,
+  type DataQualityFilterDraft,
+  type DataQualityFilterErrors,
+} from "./data-quality-filters";
 import { useMarketCoverage } from "./use-market-coverage";
 import { MarketQualityEvidencePanel } from "./market-quality-evidence-panel";
 import {
   useMarketQualityEvidence,
   type MarketQualityEvidenceFilters,
 } from "./use-market-quality-evidence";
+import type { DataQualityFilters } from "./use-data-quality";
 
-function FilterField({
-  id,
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
+const selectClassName =
+  "h-9 w-full min-w-40 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30";
+
+function FilterError({ id, message }: { id: string; message: string | undefined }) {
+  if (message === undefined) return null;
   return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="w-40"
-      />
-    </div>
+    <p id={`${id}-error`} role="alert" className="text-xs text-destructive">
+      {message}
+    </p>
   );
 }
 
-/**
- * Data-quality page: a real route that reads persisted quality events through
- * the shared API client and renders explicit loading / empty / error /
- * forbidden / success states.
- */
-export function DataQualityPage() {
-  const [draft, setDraft] = useState<DataQualityFilters>({});
-  const [applied, setApplied] = useState<DataQualityFilters>({});
-  const [marketStatusDraft, setMarketStatusDraft] = useState("");
-  const [marketStatusApplied, setMarketStatusApplied] = useState("");
+function DataQualityResults({
+  filters,
+  status,
+  onLoadingChange,
+}: {
+  filters: DataQualityFilters;
+  status: MarketQualityStatus | undefined;
+  onLoadingChange: (loading: boolean) => void;
+}) {
+  const coverageResult = useMarketCoverage(filters);
+  const marketEvidenceFilters: MarketQualityEvidenceFilters = {
+    date: filters.date,
+    source: filters.source,
+    unifiedCode: filters.unifiedCode,
+    status,
+  };
   const [marketEvidenceOffset, setMarketEvidenceOffset] = useState(0);
   const [marketEvidenceSnapshotId, setMarketEvidenceSnapshotId] = useState<string | null>(null);
-  const result = useDataQuality(applied);
-  const coverageResult = useMarketCoverage(applied);
-  const marketEvidenceFilters: MarketQualityEvidenceFilters = {
-    date: applied.date,
-    source: applied.source,
-    unifiedCode: applied.unifiedCode,
-    status: marketStatusApplied || undefined,
-  };
   const marketEvidenceResult = useMarketQualityEvidence(marketEvidenceFilters, {
     snapshotId: marketEvidenceSnapshotId,
     offset: marketEvidenceOffset,
     limit: 20,
   });
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
-    setApplied({ ...draft });
-    setMarketStatusApplied(marketStatusDraft);
-    setMarketEvidenceOffset(0);
-    setMarketEvidenceSnapshotId(null);
-  };
+  useEffect(() => {
+    onLoadingChange(
+      coverageResult.status === "loading" || marketEvidenceResult.status === "loading",
+    );
+  }, [coverageResult.status, marketEvidenceResult.status, onLoadingChange]);
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">数据质量</h2>
-        <p className="text-sm text-muted-foreground">
-          按交易日、来源、证券（如 600519.SH）查看已记录的基金质量事件与日线行情观测
-        </p>
-      </header>
-
-      <form onSubmit={submit} className="flex flex-wrap items-end gap-4">
-        <FilterField
-          id="dq-date"
-          label="日期"
-          value={draft.date ?? ""}
-          onChange={(value) => setDraft((prev) => ({ ...prev, date: value }))}
-          placeholder="2026-08-13"
-        />
-        <FilterField
-          id="dq-source"
-          label="来源（覆盖支持）"
-          value={draft.source ?? ""}
-          onChange={(value) => setDraft((prev) => ({ ...prev, source: value }))}
-          placeholder="akshare-tencent"
-        />
-        <FilterField
-          id="dq-code"
-          label="证券"
-          value={draft.unifiedCode ?? ""}
-          onChange={(value) => setDraft((prev) => ({ ...prev, unifiedCode: value }))}
-          placeholder="600519.SH"
-        />
-        <FilterField
-          id="dq-market-status"
-          label="行情证据状态"
-          value={marketStatusDraft}
-          onChange={setMarketStatusDraft}
-          placeholder="REJECTED / FILTERED"
-        />
-        <Button type="submit">查询</Button>
-      </form>
-      <p className="text-xs text-muted-foreground">
-        行情覆盖支持
-        tushare-pro、akshare-tencent、akshare-sina、akshare-eastmoney；基金质量事件仍按其记录来源筛选。
-      </p>
-
-      <section aria-labelledby="fund-quality-events-heading" className="space-y-3">
-        <div>
-          <h3 id="fund-quality-events-heading" className="text-lg font-semibold">
-            基金质量事件
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            本列表仅展示基金质量事件；行情拒绝证据已在下方独立区块按公开快照展示，缺口分析与全市场覆盖不在本页范围内。
-          </p>
-        </div>
-        {result.status === "loading" && (
-          <p role="status" className="text-muted-foreground">
-            基金质量事件加载中…
-          </p>
-        )}
-        {result.status === "empty" && (
-          <p className="text-muted-foreground">当前条件下暂无已记录的基金质量事件</p>
-        )}
-        {result.status === "error" && (
-          <p role="alert" className="text-destructive">
-            基金质量事件加载失败，请稍后重试
-          </p>
-        )}
-        {result.status === "forbidden" && (
-          <p role="alert" className="text-destructive">
-            无权访问基金质量事件
-          </p>
-        )}
-        {result.status === "success" && result.data !== null && (
-          <DataQualityPanel records={result.data} />
-        )}
-      </section>
-
+    <div
+      className="space-y-6"
+      aria-busy={coverageResult.status === "loading" || marketEvidenceResult.status === "loading"}
+    >
       <section aria-labelledby="market-coverage-heading" className="space-y-3">
         <div>
           <h3 id="market-coverage-heading" className="text-lg font-semibold">
             日线入库概览
           </h3>
           <p className="text-sm text-muted-foreground">
-            当前仅接入已观测到的日线数据；行情质量证据在下方独立区块展示，缺口分析、来源差异与全市场覆盖不在本区块内。
+            覆盖日期精确匹配交易日；日期明细单独按当前查询时刻读取，不构成共同快照。
           </p>
         </div>
         {coverageResult.status === "loading" && (
@@ -174,6 +89,9 @@ export function DataQualityPage() {
             无权访问日线行情覆盖
           </p>
         )}
+        {coverageResult.status === "empty" && (
+          <p className="text-muted-foreground">当前条件下暂无已观测到的日线行情</p>
+        )}
         {coverageResult.status === "success" && coverageResult.data !== null && (
           <MarketCoveragePanel response={coverageResult.data} />
         )}
@@ -186,8 +104,8 @@ export function DataQualityPage() {
           </h3>
           <p className="text-sm text-muted-foreground">
             仅展示已发布的脱敏 REJECTED/FILTERED
-            证据快照，不读取原始行情文件，也不宣称没有质量问题或全市场覆盖完整。
-            日期筛选按证据请求窗口与输入日期是否相交；翻页固定在同一 snapshotId。
+            证据快照，不读取原始行情文件。日期筛选按证据请求窗口与输入日期是否相交；查询翻页固定在同一
+            snapshotId。
           </p>
         </div>
         <MarketQualityEvidencePanel
@@ -202,6 +120,152 @@ export function DataQualityPage() {
           }}
         />
       </section>
+    </div>
+  );
+}
+
+function emptyDraft(): DataQualityFilterDraft {
+  return { date: "", source: "", unifiedCode: "", status: "" };
+}
+
+export function DataQualityPage() {
+  const [draft, setDraft] = useState<DataQualityFilterDraft>(emptyDraft);
+  const [applied, setApplied] = useState<DataQualityFilters>({});
+  const [statusApplied, setStatusApplied] = useState<MarketQualityStatus | undefined>(undefined);
+  const [filterErrors, setFilterErrors] = useState<DataQualityFilterErrors>({});
+  const [queryGeneration, setQueryGeneration] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const updateDraft = (key: keyof DataQualityFilterDraft, value: string) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setFilterErrors((current) => ({ ...current, [key]: undefined }));
+  };
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const validation = validateDataQualityFilters(draft);
+    if (!validation.ok) {
+      setFilterErrors(validation.errors);
+      return;
+    }
+    setFilterErrors({});
+    setApplied(validation.filters);
+    setStatusApplied(validation.status);
+    setIsLoading(true);
+    setQueryGeneration((value) => value + 1);
+  };
+
+  const reset = () => {
+    setDraft(emptyDraft());
+    setFilterErrors({});
+    setApplied({});
+    setStatusApplied(undefined);
+    setIsLoading(true);
+    setQueryGeneration((value) => value + 1);
+  };
+
+  const fieldErrorProps = (id: string, message: string | undefined) => ({
+    "aria-invalid": message !== undefined,
+    "aria-describedby": message === undefined ? undefined : `${id}-error`,
+  });
+
+  return (
+    <div className="space-y-6">
+      <header className="space-y-1">
+        <h2 className="text-xl font-semibold">数据质量</h2>
+        <p className="text-sm text-muted-foreground">
+          按日期、来源、证券查看日线覆盖与已发布行情异常证据。
+        </p>
+      </header>
+
+      <form onSubmit={submit} className="flex flex-wrap items-end gap-4" autoComplete="off">
+        <div className="grid min-w-40 gap-2">
+          <Label htmlFor="dq-date">日期</Label>
+          <Input
+            id="dq-date"
+            type="date"
+            value={draft.date}
+            onChange={(event) => updateDraft("date", event.target.value)}
+            className="w-40 cursor-text dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+            {...fieldErrorProps("dq-date", filterErrors.date)}
+          />
+          <FilterError id="dq-date" message={filterErrors.date} />
+        </div>
+        <div className="grid min-w-40 gap-2">
+          <Label htmlFor="dq-source">来源</Label>
+          <select
+            id="dq-source"
+            value={draft.source}
+            onChange={(event) => updateDraft("source", event.target.value)}
+            className={selectClassName}
+            {...fieldErrorProps("dq-source", filterErrors.source)}
+          >
+            <option value="">全部来源</option>
+            {MARKET_COVERAGE_SOURCES.map((source) => (
+              <option key={source} value={source}>
+                {source}
+              </option>
+            ))}
+          </select>
+          <FilterError id="dq-source" message={filterErrors.source} />
+        </div>
+        <div className="grid min-w-40 gap-2">
+          <Label htmlFor="dq-code">证券</Label>
+          <Input
+            id="dq-code"
+            value={draft.unifiedCode}
+            onChange={(event) => updateDraft("unifiedCode", event.target.value)}
+            placeholder="600519.SH"
+            className="w-40 font-mono"
+            {...fieldErrorProps("dq-code", filterErrors.unifiedCode)}
+          />
+          <FilterError id="dq-code" message={filterErrors.unifiedCode} />
+        </div>
+        <div className="grid min-w-40 gap-2">
+          <Label htmlFor="dq-evidence-status">证据状态</Label>
+          <select
+            id="dq-evidence-status"
+            value={draft.status}
+            onChange={(event) => updateDraft("status", event.target.value)}
+            className={selectClassName}
+            {...fieldErrorProps("dq-evidence-status", filterErrors.status)}
+          >
+            <option value="">全部异常状态</option>
+            <option value="REJECTED">REJECTED</option>
+            <option value="FILTERED">FILTERED</option>
+          </select>
+          <FilterError id="dq-evidence-status" message={filterErrors.status} />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            aria-busy={isLoading}
+            className="cursor-pointer disabled:cursor-progress"
+          >
+            {isLoading ? "查询中…" : "查询"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={reset}
+            className="cursor-pointer disabled:cursor-not-allowed"
+          >
+            重置
+          </Button>
+        </div>
+      </form>
+      <div className="space-y-1 text-xs text-muted-foreground">
+        <p>本页按当前查询时间读取，不使用全局历史点时；证据以快照发布时间为准。</p>
+        <p>覆盖日期按交易日精确筛选；行情证据日期按请求窗口与输入日期是否相交筛选。</p>
+      </div>
+
+      <DataQualityResults
+        key={queryGeneration}
+        filters={applied}
+        status={statusApplied}
+        onLoadingChange={setIsLoading}
+      />
     </div>
   );
 }

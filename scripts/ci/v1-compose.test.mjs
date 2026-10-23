@@ -136,6 +136,18 @@ test("task status shares sanitized metadata read-only without giving the server 
   assert.equal(services["market-data-sync"].environment.MARKET_DATA_RUN_MODE, "once");
 });
 
+test("daily quality reads the existing sanitized evidence volume without raw access", () => {
+  const { services, volumes } = configuration();
+  const target = "/workspace/var/market-quality-public";
+  const reader = services.server.volumes.find((mount) => mount.target === target);
+  assert.equal(services.server.environment.MARKET_DATA_QUALITY_PUBLIC_ROOT, target);
+  assert.ok(reader);
+  assert.equal(reader.read_only, true);
+  assert.equal(volumes[reader.source].name, "kunlun-market-quality-public");
+  assert.ok(!services.server.volumes.some((mount) => mount.source === "kunlun-market-raw"));
+  assert.ok(!Object.keys(services).includes("market-quality-evidence-export"));
+});
+
 test("optional daily scheduling reuses the v1 sample, checkpoint and public status", () => {
   const { services } = configuration(
     ["real-market-data"],

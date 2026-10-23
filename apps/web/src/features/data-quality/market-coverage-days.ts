@@ -12,6 +12,15 @@ const RFC3339 = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|
 const MAX_DAYS = 366;
 const MAX_TEXT = 256;
 const DAY_NANOS = 86_400_000_000_000n;
+const NANOS_PER_MILLISECOND = 1_000_000n;
+const shanghaiDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Shanghai",
+  calendar: "gregory",
+  numberingSystem: "latn",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 export interface MarketCoverageDaysQuery {
   dateFrom: string;
@@ -108,6 +117,17 @@ function parseInstant(value: unknown): { text: string; nanos: bigint } {
   };
 }
 
+function dateAtShanghai(nanos: bigint): string {
+  let milliseconds = nanos / NANOS_PER_MILLISECOND;
+  if (nanos < 0n && nanos % NANOS_PER_MILLISECOND !== 0n) milliseconds -= 1n;
+  const parts = shanghaiDateFormatter.formatToParts(new Date(Number(milliseconds)));
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  if (year === undefined || month === undefined || day === undefined) invalid();
+  return `${year.padStart(4, "0")}-${month}-${day}`;
+}
+
 function daysBetweenInclusive(dateFrom: string, dateTo: string): number {
   return (
     (Date.parse(`${dateTo}T00:00:00.000Z`) - Date.parse(`${dateFrom}T00:00:00.000Z`)) /
@@ -154,6 +174,7 @@ export function parseMarketCoverageDaysResponse(value: unknown): MarketCoverageD
   const source = text(input.source);
   if (!SOURCE_VALUES.includes(source as MarketCoverageSource)) invalid();
   if (!Array.isArray(input.days) || input.days.length > MAX_DAYS) invalid();
+  const latestLogicalDate = dateAtShanghai(asOf.nanos);
 
   const days = input.days.map((value) => {
     const day = exact(value, [
@@ -163,7 +184,7 @@ export function parseMarketCoverageDaysResponse(value: unknown): MarketCoverageD
       "latestProcessingTime",
     ]);
     const date = legalDate(day.date);
-    if (date < dateFrom || date > dateTo) invalid();
+    if (date < dateFrom || date > dateTo || date > latestLogicalDate) invalid();
     const latestEventTime = parseInstant(day.latestEventTime);
     const latestAvailableTime = parseInstant(day.latestAvailableTime);
     const latestProcessingTime = parseInstant(day.latestProcessingTime);

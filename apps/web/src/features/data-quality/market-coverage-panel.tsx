@@ -29,6 +29,14 @@ function MarketCoverageDaysQueryPanel({ selection }: { selection: SelectedMarket
 
 export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
   const [selected, setSelected] = useState<SelectedMarketCoverageDays | null>(null);
+  const latestReturnedDate = response.rows.reduce<string | null>(
+    (latest, row) => (latest === null || row.lastDate > latest ? row.lastDate : latest),
+    null,
+  );
+  const returnedSecurityCount = new Set(response.rows.map((row) => row.unifiedCode)).size;
+  const earlierDateHint = response.truncated
+    ? "早于前 100 组中的最晚日（仅作相对提示，不代表缺失）"
+    : "早于本次返回最晚日（仅作相对提示，不代表缺失）";
   const activeSelection =
     selected !== null &&
     response.window.dateFrom === selected.dateFrom &&
@@ -52,6 +60,19 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
         <p>每个“最新”时间分别按字段取最大值，可能来自不同记录。</p>
         <p>点击某行“查看已入库日期”可独立读取该证券与来源在当前汇总窗口内的已观测日期。</p>
       </div>
+      <div className="space-y-1 text-sm text-muted-foreground" aria-label="本次返回概览">
+        <p>
+          本次返回最晚行情日：{latestReturnedDate ?? "—"} · 证券数：{returnedSecurityCount} ·
+          证券/来源组数：{response.rows.length}
+          {response.truncated ? "（仅统计前 100 组）" : "（本次返回全部分组）"}
+        </p>
+        <p>
+          缺口判断：未知（缺少应有交易日依据）。较早日期只表示早于本次返回的最晚日，不代表确认缺失。
+        </p>
+        {response.truncated && (
+          <p>仅统计本次返回的前 100 组，最晚日与组数均为局部结果；还有其他分组未显示。</p>
+        )}
+      </div>
       <div className="overflow-x-auto">
         <Table aria-label="行情日线覆盖列表" className="min-w-[1180px]">
           <TableHeader>
@@ -60,7 +81,7 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
               <TableHead>来源</TableHead>
               <TableHead>观测日数</TableHead>
               <TableHead>首个交易日</TableHead>
-              <TableHead>末个交易日</TableHead>
+              <TableHead>末个已观测交易日</TableHead>
               <TableHead>最新行情时间（event_time，上海）</TableHead>
               <TableHead>最新可用时间（available_time，上海）</TableHead>
               <TableHead>最新入库时间（processing_time，上海）</TableHead>
@@ -81,7 +102,12 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
                   <TableCell>{row.source}</TableCell>
                   <TableCell>{row.observedBarDays}</TableCell>
                   <TableCell>{row.firstDate}</TableCell>
-                  <TableCell>{row.lastDate}</TableCell>
+                  <TableCell>
+                    <span>{row.lastDate}</span>
+                    {latestReturnedDate !== null && row.lastDate < latestReturnedDate && (
+                      <span className="block text-xs text-muted-foreground">{earlierDateHint}</span>
+                    )}
+                  </TableCell>
                   <TableCell>{formatShanghaiTime(row.latestEventTime)}</TableCell>
                   <TableCell>{formatShanghaiTime(row.latestAvailableTime)}</TableCell>
                   <TableCell>{formatShanghaiTime(row.latestProcessingTime)}</TableCell>
@@ -112,7 +138,7 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
       </div>
       {response.truncated && (
         <p role="status" className="text-sm text-amber-700 dark:text-amber-300">
-          结果超过 100 条，请缩小日期、来源或证券筛选。
+          结果超过 100 个证券/来源组，仅显示前 100 组；请缩小日期、来源或证券筛选。
         </p>
       )}
       {activeSelection !== null && (

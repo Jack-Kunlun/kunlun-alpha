@@ -25,8 +25,10 @@ services:
       DASHBOARD_DAILY_SYMBOLS: ${V1_MARKET_DATA_SYMBOLS:-000001.SZ,002594.SZ,300750.SZ,301236.SZ,600000.SH,600519.SH,601318.SH,688981.SH}
       MARKET_DATA_STATUS_PUBLIC_ROOT: /workspace/var/market-status-public
       MARKET_DATA_STATUS_PROVIDER: akshare
+      MARKET_DATA_QUALITY_PUBLIC_ROOT: /workspace/var/market-quality-public
     volumes:
       - kunlun-market-status:/workspace/var/market-status-public:ro
+      - kunlun-market-quality-public:/workspace/var/market-quality-public:ro
     ports: !override
       - "127.0.0.1:${SERVER_PORT:-3002}:3002"
 
@@ -86,3 +88,5 @@ services:
 
 volumes:
   kunlun-market-status:
+  kunlun-market-quality-public:
+    name: kunlun-market-quality-public

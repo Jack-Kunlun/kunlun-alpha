@@ -41,6 +41,10 @@ describe("terminal route contract", () => {
     expect(viewerRoutes.map((route) => route.id)).not.toContain("paper");
     expect(viewerRoutes.map((route) => route.id)).not.toContain("data-quality");
     expect(canAccessTerminalRoute(getTerminalRoute("paper"), ["paper_operator"])).toBe(true);
+    const dataQuality = getTerminalRoute("data-quality");
+    expect(dataQuality.permission).toBe("operations:read");
+    expect(canAccessTerminalRoute(dataQuality, ["platform_admin"])).toBe(true);
+    expect(canAccessTerminalRoute(dataQuality, ["researcher"])).toBe(false);
     expect(terminalRoutes.every((route) => canAccessTerminalRoute(route, ["platform_admin"]))).toBe(
       true,
     );
@@ -49,18 +53,36 @@ describe("terminal route contract", () => {
   it("limits the 1.0 navigation and ready routes to the daily research surface", () => {
     expect(
       terminalRoutes.filter((route) => route.status === "ready").map((route) => route.id),
-    ).toEqual(["home", "market-overview", "instruments", "instrument-detail", "watchlists"]);
+    ).toEqual([
+      "home",
+      "market-overview",
+      "instruments",
+      "instrument-detail",
+      "watchlists",
+      "data-quality",
+    ]);
     expect(terminalRoutes.filter((route) => route.navigation).map((route) => route.id)).toEqual([
       "home",
       "market-overview",
       "instruments",
       "watchlists",
+      "data-quality",
     ]);
     expect(
       terminalRoutes
         .filter((route) => route.status === "planned")
         .every((route) => !route.navigation),
     ).toBe(true);
+  });
+
+  it("publishes data quality as an operations-only read surface", () => {
+    const route = getTerminalRoute("data-quality");
+    expect(route.path).toBe("/data-quality");
+    expect(route.status).toBe("ready");
+    expect(route.navigation).toBe(true);
+    expect(route.permission).toBe("operations:read");
+    expect(canAccessTerminalRoute(route, ["platform_admin"])).toBe(true);
+    expect(canAccessTerminalRoute(route, ["viewer", "researcher", "paper_operator"])).toBe(false);
   });
 
   it("keeps market-data settings instance-scoped and administrator-only", () => {

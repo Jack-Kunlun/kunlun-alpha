@@ -106,4 +106,35 @@ describe("market coverage days response boundary", () => {
       ).toThrow("行情日明细响应格式无效");
     },
   );
+
+  it("allows a future query window with no days but caps observed dates at the Shanghai asOf date", () => {
+    const futureWindow = {
+      ...valid,
+      window: {
+        dateFrom: "2026-09-06",
+        dateTo: "2026-09-07",
+        asOf: "2026-09-05T15:59:59.999999Z",
+      },
+      days: [],
+    };
+    expect(parseMarketCoverageDaysResponse(futureWindow).days).toEqual([]);
+    expect(() =>
+      parseMarketCoverageDaysResponse({
+        ...futureWindow,
+        days: [{ ...valid.days[0], date: "2026-09-06" }],
+      }),
+    ).toThrow("行情日明细响应格式无效");
+  });
+
+  it.each(["2026-09-05T16:00:00Z", "2026-09-06T00:00:00+08:00"])(
+    "accepts a day on the Shanghai asOf date across the UTC boundary (%s)",
+    (asOf) => {
+      const response = {
+        ...valid,
+        window: { dateFrom: "2026-09-06", dateTo: "2026-09-06", asOf },
+        days: [{ ...valid.days[0], date: "2026-09-06" }],
+      };
+      expect(parseMarketCoverageDaysResponse(response).days[0]?.date).toBe("2026-09-06");
+    },
+  );
 });
