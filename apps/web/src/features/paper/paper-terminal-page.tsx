@@ -28,6 +28,7 @@ import { validatePaperTerminalCreateInput } from "./paper-terminal-form";
 import { paperRequestId, usePaperTerminal } from "./use-paper-terminal";
 import { PaperPreviewDrawer } from "./paper-preview-drawer";
 import { PaperReconciliationCard } from "./paper-reconciliation-card";
+import { PaperAccountCostsCard } from "./paper-account-costs-card";
 import { PaperBuyOrdersCard } from "./paper-buy-orders-card";
 
 function StateCard({
@@ -450,6 +451,8 @@ export function PaperTerminalPage() {
                     </Card>
                   ))}
                 </section>
+
+                <PaperAccountCostsCard workspace={terminal.workspace} />
 
                 <Card className="border-slate-200 bg-white/95 dark:bg-slate-900">
                   <CardHeader>

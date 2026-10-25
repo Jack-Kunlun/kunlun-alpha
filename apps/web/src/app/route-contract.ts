@@ -170,7 +170,7 @@ export const terminalRoutes: readonly TerminalRouteContract[] = [
     href: "/paper",
     label: "模拟组合",
     shortLabel: "模拟",
-    description: "本地模拟账户的资金与持仓账本，不开放模拟成交",
+    description: "本地模拟账户、受控买入、成本费用与只读核对",
     group: "workspace",
     permission: "paper:read",
     status: "ready",
