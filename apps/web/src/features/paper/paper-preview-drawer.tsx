@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatPaperLedgerTime } from "./paper-terminal-display";
 import type { PaperPreviewDisplay, PaperPreviewFormValues } from "./paper-preview";
+import { PaperInstrumentLink } from "./paper-instrument-link";
 import { usePaperPreview } from "./use-paper-preview";
 import { PaperRiskPreviewPanel } from "./paper-risk-preview-panel";
 import type { PaperRiskView } from "./paper-risk-preview";
@@ -309,7 +310,9 @@ export function PaperPreviewResult({
   return (
     <Card role="status" aria-label="仓位试算结果">
       <CardHeader>
-        <CardTitle>仓位试算结果 · {result.instrumentId}</CardTitle>
+        <CardTitle>
+          仓位试算结果 · <PaperInstrumentLink instrumentId={result.instrumentId} />
+        </CardTitle>
         <p className="text-sm text-muted-foreground">
           仅预览，账本未改变 · 策略口径 {result.policyVersion} ·{" "}
           <time dateTime={result.time}>{formatPaperLedgerTime(result.time)}</time>

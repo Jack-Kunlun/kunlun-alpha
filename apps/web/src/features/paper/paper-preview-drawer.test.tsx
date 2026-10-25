@@ -1,4 +1,6 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { PaperPreviewDrawer, PaperPreviewResult } from "./paper-preview-drawer";
 import { readFileSync } from "node:fs";
@@ -31,6 +33,7 @@ describe("paper preview presentation", () => {
     const html = renderToStaticMarkup(
       <PaperPreviewResult result={result} risk={risk} onRiskCheck={() => {}} />,
     );
+    expect(html).toContain('href="/instruments/600519.SH"');
     expect(html).toContain("未开放");
     expect(html).toContain("存在阻断");
     expect(html).toContain("不改变账本");
@@ -90,3 +93,7 @@ describe("paper preview presentation", () => {
     expect(html).not.toContain("brokerExecutable");
   });
 });
+
+function renderToStaticMarkup(node: ReactNode): string {
+  return renderMarkup(<MemoryRouter>{node}</MemoryRouter>);
+}

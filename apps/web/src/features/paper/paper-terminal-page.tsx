@@ -29,6 +29,7 @@ import { paperRequestId, usePaperTerminal } from "./use-paper-terminal";
 import { PaperPreviewDrawer } from "./paper-preview-drawer";
 import { PaperReconciliationCard } from "./paper-reconciliation-card";
 import { PaperAccountCostsCard } from "./paper-account-costs-card";
+import { PaperInstrumentLink } from "./paper-instrument-link";
 import { PaperBuyOrdersCard } from "./paper-buy-orders-card";
 
 function StateCard({
@@ -458,7 +459,7 @@ export function PaperTerminalPage() {
                   <CardHeader>
                     <CardTitle>持仓</CardTitle>
                     <CardDescription>
-                      成本按服务端账本原值展示；当前页面不提供行情估值。
+                      成本按服务端账本原值展示；点击证券代码可查看当前已入库日线，不会改写模拟成本。
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -480,7 +481,9 @@ export function PaperTerminalPage() {
                           <TableBody>
                             {account.positions.map((position) => (
                               <TableRow key={position.instrumentId}>
-                                <TableCell className="font-mono">{position.instrumentId}</TableCell>
+                                <TableCell className="font-mono">
+                                  <PaperInstrumentLink instrumentId={position.instrumentId} />
+                                </TableCell>
                                 <TableCell>{position.quantity}</TableCell>
                                 <TableCell>{position.availableQuantity}</TableCell>
                                 <TableCell>{position.costAmount}</TableCell>

@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { readPaperBuyOrders, type PaperBuyOrderRow } from "./paper-buy-orders";
+import { PaperInstrumentLink } from "./paper-instrument-link";
 import { formatPaperLedgerTime } from "./paper-terminal-display";
 
 export function PaperBuyOrdersCard({ workspace }: { workspace: unknown }) {
@@ -26,7 +27,7 @@ export function PaperBuyOrdersCard({ workspace }: { workspace: unknown }) {
       <CardHeader>
         <CardTitle>模拟订单记录</CardTitle>
         <p className="text-sm text-muted-foreground">
-          人工假设价格下的模拟记录，均价与手续费均来自服务端；不代表真实行情或真实成交。
+          人工假设价格下的模拟记录，均价与手续费均来自服务端；不代表真实行情或真实成交。点击证券代码可查看当前已入库日线。
         </p>
       </CardHeader>
       <CardContent>
@@ -59,7 +60,9 @@ export function PaperBuyOrdersCard({ workspace }: { workspace: unknown }) {
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="font-mono">{row.instrument}</TableCell>
+                    <TableCell className="font-mono">
+                      <PaperInstrumentLink instrumentId={row.instrument} />
+                    </TableCell>
                     <TableCell>{row.side}</TableCell>
                     <TableCell>{row.status}</TableCell>
                     <TableCell>{row.quantity}</TableCell>

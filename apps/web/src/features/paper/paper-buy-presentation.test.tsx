@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { PaperBuyOrdersCard } from "./paper-buy-orders-card";
 import { capturePaperRiskContext, readPaperRiskPreview } from "./paper-risk-preview";
@@ -22,6 +24,7 @@ describe("controlled paper buy presentation", () => {
     expect(html).toContain("已模拟成交");
     expect(html).toContain("手续费（CNY）");
     expect(html).toContain("600519.SH");
+    expect(html).toContain('href="/instruments/600519.SH"');
     expect(html).toContain('tabindex="0"');
     expect(html).toContain("不代表真实行情");
     expect(html).not.toContain("FILLED");
@@ -58,3 +61,7 @@ describe("controlled paper buy presentation", () => {
     expect(pending).toContain("disabled:cursor-progress");
   });
 });
+
+function renderToStaticMarkup(node: ReactNode): string {
+  return renderMarkup(<MemoryRouter>{node}</MemoryRouter>);
+}

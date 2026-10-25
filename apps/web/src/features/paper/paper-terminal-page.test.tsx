@@ -1,4 +1,6 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaperTerminalWorkspace } from "@kunlun/shared-types";
 import { PaperTerminalPage } from "./paper-terminal-page";
@@ -33,6 +35,7 @@ describe("PaperTerminalPage", () => {
     mocked.mockReturnValue(model(readyWorkspace(), "ready"));
     const html = renderToStaticMarkup(<PaperTerminalPage />);
     expect(html).toContain("600519.SH");
+    expect(html).toContain('href="/instruments/600519.SH"');
     expect(html).toContain("100000");
     expect(html).toContain("69999");
     expect(html).toContain("30001");
@@ -256,4 +259,8 @@ function readyWorkspace(): PaperTerminalWorkspace {
       lastClientRequestId: "simulate-request-1",
     },
   };
+}
+
+function renderToStaticMarkup(node: ReactNode): string {
+  return renderMarkup(<MemoryRouter>{node}</MemoryRouter>);
 }
