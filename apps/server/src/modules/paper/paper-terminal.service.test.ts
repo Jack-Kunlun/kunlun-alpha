@@ -102,6 +102,7 @@ describe("PaperTerminalService", () => {
 function client(overrides: Partial<PaperEngineClient> = {}): PaperEngineClient {
   const workspace = emptyWorkspace();
   return {
+    riskPreview: vi.fn(),
     preview: vi.fn().mockResolvedValue(emptyPreview()),
     workspace: vi.fn().mockResolvedValue(workspace),
     createAccount: vi.fn().mockResolvedValue(workspace),

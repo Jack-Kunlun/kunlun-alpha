@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from decimal import Decimal
@@ -11,6 +12,9 @@ from threading import RLock
 from typing import cast
 from zoneinfo import ZoneInfo
 
+from ashare_contracts import (
+    PaperAllocationDecision as AllocationContract,
+)
 from ashare_contracts import (
     PaperTerminalCreateAccountCommand,
     PaperTerminalSimulationCommand,
@@ -59,6 +63,7 @@ from quant_core.strategy import Signal, SignalDirection
 
 from .paper_journal import PaperCommandJournal, PaperCommandJournalError, PaperJournalEntry
 from .paper_preview import preview_allocation
+from .paper_risk_preview import preview_risk_decision
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 VOLATILE_LIMITATIONS = (
@@ -144,6 +149,36 @@ class PaperWorkspace:
                 raise PaperWorkspaceError("账本存在异常，暂不提供仓位试算")
             try:
                 return preview_allocation(self._state(tape), command, self._now())
+            except ValueError as error:
+                raise PaperWorkspaceError(str(error)) from error
+
+    def risk_preview(self, raw: Mapping[str, object]) -> dict[str, object]:
+        allocation = AllocationContract.model_validate_json(
+            json.dumps(dict(raw), allow_nan=False), strict=True
+        )
+        if dict(raw) != allocation.model_dump(by_alias=True, mode="json"):
+            raise PaperWorkspaceError("请使用未改写的仓位试算快照")
+        with self._lock:
+            tape = self._account_tape()
+            state = self._state(tape)
+            if (
+                allocation.account_id != state.account_id
+                or allocation.account_state_digest != state.state_digest
+            ):
+                raise PaperWorkspaceConflictError("试算基准已变化，请重新试算")
+            if self.snapshot()["status"] != "READY":
+                raise PaperWorkspaceError("账本存在异常，暂不提供风险检查")
+            now = self._now()
+            execution_tape = self._execution_tape()
+            try:
+                reconciliation = self._reconcile(tape, execution_tape, now)
+                return preview_risk_decision(
+                    state,
+                    replay_execution(execution_tape),
+                    ReconciliationHealth(reconciliation.status.value),
+                    allocation,
+                    now,
+                )
             except ValueError as error:
                 raise PaperWorkspaceError(str(error)) from error
 

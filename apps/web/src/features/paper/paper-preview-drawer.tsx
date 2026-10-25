@@ -14,6 +14,8 @@ import {
 import { formatPaperLedgerTime } from "./paper-terminal-display";
 import type { PaperPreviewDisplay, PaperPreviewFormValues } from "./paper-preview";
 import { usePaperPreview } from "./use-paper-preview";
+import { PaperRiskPreviewPanel } from "./paper-risk-preview-panel";
+import type { PaperRiskView } from "./paper-risk-preview";
 
 export function PaperPreviewDrawer({
   accountId,
@@ -40,7 +42,7 @@ export function PaperPreviewDrawer({
       <Dialog
         open={open}
         onOpenChange={(next) => {
-          if (model.pending) return;
+          if (model.pending || model.riskPending) return;
           if (next) model.clear();
           setOpen(next);
         }}
@@ -48,8 +50,8 @@ export function PaperPreviewDrawer({
         <DialogTrigger asChild>
           <Button
             variant="outline"
-            disabled={disabled}
-            className="cursor-pointer disabled:cursor-not-allowed"
+            disabled={disabled || model.riskPending}
+            className={`cursor-pointer ${model.riskPending ? "disabled:cursor-progress" : "disabled:cursor-not-allowed"}`}
           >
             试算仓位
           </Button>
@@ -152,7 +154,15 @@ export function PaperPreviewDrawer({
           </form>
         </DialogContent>
       </Dialog>
-      {model.result !== null ? <PaperPreviewResult result={model.result} /> : null}
+      {model.result !== null ? (
+        <PaperPreviewResult
+          result={model.result}
+          risk={model.risk}
+          riskPending={model.riskPending}
+          riskError={model.riskError}
+          onRiskCheck={() => void model.checkRisk()}
+        />
+      ) : null}
     </>
   );
 }
@@ -187,7 +197,19 @@ function Field({
   );
 }
 
-export function PaperPreviewResult({ result }: { result: PaperPreviewDisplay }) {
+export function PaperPreviewResult({
+  result,
+  risk = null,
+  riskPending = false,
+  riskError = null,
+  onRiskCheck,
+}: {
+  result: PaperPreviewDisplay;
+  risk?: PaperRiskView | null;
+  riskPending?: boolean;
+  riskError?: string | null;
+  onRiskCheck?: () => void;
+}) {
   return (
     <Card role="status" aria-label="仓位试算结果">
       <CardHeader>
@@ -214,8 +236,26 @@ export function PaperPreviewResult({ result }: { result: PaperPreviewDisplay }) 
           </dl>
         )}
         <p className="text-xs text-muted-foreground">
-          人工价格与信号假设，不是行情、模型建议或可执行报价。试算不进行成交或前后风控检查。
+          人工价格与信号假设，不是行情、模型建议或可执行报价。可对本次试算单独进行只读风险检查，金额未含费用。
         </p>
+        {result.kind === "target" && onRiskCheck !== undefined ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={riskPending}
+            aria-busy={riskPending}
+            className="cursor-pointer disabled:cursor-progress"
+            onClick={onRiskCheck}
+          >
+            {riskPending ? "正在检查…" : riskError !== null ? "重试风险检查" : "检查模拟风险"}
+          </Button>
+        ) : null}
+        {riskError !== null ? (
+          <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+            {riskError}
+          </p>
+        ) : null}
+        {risk !== null ? <PaperRiskPreviewPanel risk={risk} /> : null}
       </CardContent>
     </Card>
   );

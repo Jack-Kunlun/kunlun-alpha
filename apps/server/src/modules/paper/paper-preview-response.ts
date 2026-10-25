@@ -7,6 +7,10 @@ import type {
 } from "@kunlun/shared-types";
 
 type Row = Record<string, unknown>;
+type PreviewExpectation = Pick<
+  PaperTerminalSimulationCommand,
+  "instrumentId" | "price" | "score" | "confidence" | "lotSize"
+>;
 const HASH = /^[0-9a-f]{64}$/;
 const DECIMAL = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
 const REASONS = [
@@ -25,7 +29,7 @@ const REASONS = [
 /** The existing allocation contract, restricted to this one-scenario preview API. */
 export function parsePaperPreviewResponse(
   value: unknown,
-  command: PaperTerminalSimulationCommand,
+  command: PreviewExpectation,
 ): PaperAllocationDecision {
   const row = record(value, [
     "schemaVersion",
@@ -243,7 +247,7 @@ function compare(a: string, b: string): number {
   return x < y ? -1 : x > y ? 1 : 0;
 }
 
-function expectedWeight(command: PaperTerminalSimulationCommand): string {
+function expectedWeight(command: PreviewExpectation): string {
   const [sw = "0", sf = ""] = command.score.split(".");
   const [cw = "0", cf = ""] = command.confidence.split(".");
   const scale = sf.length + cf.length;
@@ -251,6 +255,16 @@ function expectedWeight(command: PaperTerminalSimulationCommand): string {
   const value = scale === 0 ? digits : `${digits.slice(0, -scale)}.${digits.slice(-scale)}`;
   return compare(value, "0.3") > 0 ? "0.3" : value;
 }
+
+export const paperPreviewValidation = {
+  record,
+  text,
+  digest,
+  decimal,
+  integer,
+  compare,
+  timestamp,
+};
 function timestamp(value: unknown): string {
   const s = text(value);
   const m =

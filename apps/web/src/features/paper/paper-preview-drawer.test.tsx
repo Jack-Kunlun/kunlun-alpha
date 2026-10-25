@@ -1,8 +1,54 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PaperPreviewDrawer, PaperPreviewResult } from "./paper-preview-drawer";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { capturePaperRiskContext, readPaperRiskPreview } from "./paper-risk-preview";
 
 describe("paper preview presentation", () => {
+  it("shows ten checks with a closed execution blocker and supports busy and retry states", () => {
+    const raw: unknown = JSON.parse(
+      readFileSync(
+        resolve(process.cwd(), "../../data/fixtures/paper-risk-preview-v1.json"),
+        "utf8",
+      ),
+    );
+    const data = raw as Record<string, unknown>;
+    const risk = readPaperRiskPreview(data.risk, capturePaperRiskContext(data.allocation));
+    const result = {
+      kind: "target" as const,
+      time: risk.time,
+      instrumentId: "600519.SH",
+      policyVersion: "1.0.0",
+      current: 0,
+      target: 300,
+      quantity: 300,
+      side: "BUY" as const,
+      price: "100",
+      weight: "0.3",
+      notional: "30000",
+    };
+    const html = renderToStaticMarkup(
+      <PaperPreviewResult result={result} risk={risk} onRiskCheck={() => {}} />,
+    );
+    expect(html).toContain("未开放");
+    expect(html).toContain("存在阻断");
+    expect(html).toContain("不改变账本");
+    expect(html).not.toContain("EXECUTION_CONNECTED");
+    expect(html).not.toContain("确认下单");
+    const busy = renderToStaticMarkup(
+      <PaperPreviewResult result={result} riskPending onRiskCheck={() => {}} />,
+    );
+    expect(busy).toContain('disabled=""');
+    expect(busy).toContain('aria-busy="true"');
+    expect(busy).toContain("disabled:cursor-progress");
+    const retry = renderToStaticMarkup(
+      <PaperPreviewResult result={result} riskError="检查暂不可用" onRiskCheck={() => {}} />,
+    );
+    expect(retry).toContain("重试风险检查");
+    expect(retry).toContain("30000");
+    expect(retry).toContain('role="alert"');
+  });
   it("keeps the scenario form behind an explicit action", () => {
     const html = renderToStaticMarkup(
       <PaperPreviewDrawer accountId={"a".repeat(64)} disabled={false} />,

@@ -6,7 +6,13 @@ from hashlib import sha256
 
 from ashare_contracts import PaperAllocationDecision as AllocationContract
 from ashare_contracts import PaperTerminalSimulationCommand
-from paper_core import PaperAccountState, PaperAllocationPolicy, PaperMarketQuote, allocate_signals
+from paper_core import (
+    PaperAccountState,
+    PaperAllocationDecision,
+    PaperAllocationPolicy,
+    PaperMarketQuote,
+    allocate_signals,
+)
 from quant_core.strategy import Signal, SignalDirection
 
 MAX_SAFE_QUANTITY = 2**53 - 1
@@ -44,6 +50,15 @@ def preview_allocation(
         "manual-preview-price-v1",
         evidence,
     )
+    result = allocate_preview_inputs(account, signal, quote, now)
+    return AllocationContract.model_validate(result.payload()).model_dump(
+        by_alias=True, mode="json"
+    )
+
+
+def allocate_preview_inputs(
+    account: PaperAccountState, signal: Signal, quote: PaperMarketQuote, now: datetime
+) -> PaperAllocationDecision:
     # Bounded decimal strings can exceed the ambient Decimal precision. This
     # local context keeps this read-only calculation deterministic and isolated.
     with localcontext() as context:
@@ -65,6 +80,4 @@ def preview_allocation(
     for target in result.targets:
         if max(target.current_quantity, target.target_quantity) > MAX_SAFE_QUANTITY:
             raise ValueError("试算数量超出支持范围，请调整参考价或资金假设")
-    return AllocationContract.model_validate(result.payload()).model_dump(
-        by_alias=True, mode="json"
-    )
+    return result

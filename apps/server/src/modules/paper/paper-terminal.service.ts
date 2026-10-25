@@ -7,6 +7,8 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import type {
+  PaperAllocationDecision,
+  PaperRiskDecision,
   PaperTerminalCreateAccountCommand,
   PaperTerminalSimulationCommand,
   PaperTerminalWorkspace,
@@ -18,6 +20,7 @@ import {
   parseCreateAccount,
   parseSimulation,
 } from "./paper-terminal.validation";
+import { parsePaperRiskPreviewRequest } from "./paper-risk-response";
 
 @Injectable()
 export class PaperTerminalService {
@@ -50,6 +53,16 @@ export class PaperTerminalService {
   async preview(body: unknown) {
     const command = this.parseSimulation(body);
     return this.execute(() => this.client.preview(command));
+  }
+
+  async riskPreview(body: unknown): Promise<PaperRiskDecision> {
+    let allocation: PaperAllocationDecision;
+    try {
+      allocation = parsePaperRiskPreviewRequest(body);
+    } catch {
+      throw new BadRequestException("请提供一份有效的仓位试算结果");
+    }
+    return this.execute(() => this.client.riskPreview(allocation));
   }
 
   private parseCreate(body: unknown): PaperTerminalCreateAccountCommand {

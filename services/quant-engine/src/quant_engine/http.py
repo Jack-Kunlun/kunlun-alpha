@@ -73,6 +73,9 @@ class QuantEngineHttpServer:
                     if self.path == "/v1/paper/previews":
                         owner._send(self, 200, owner._workspace.preview(body))
                         return
+                    if self.path == "/v1/paper/risk-previews":
+                        owner._send(self, 200, owner._workspace.risk_preview(body))
+                        return
                     if self.path == "/v1/ranking/snapshots":
                         owner._send(self, 200, owner._ranking_store.publish(body))
                         return

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Post } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { PaperTerminalService } from "./paper-terminal.service";
 
@@ -23,6 +23,15 @@ export class PaperTerminalController {
   @ApiOperation({ summary: "Preview a manual paper allocation without writing an order or ledger" })
   preview(@Body() body: unknown) {
     return this.service.preview(body);
+  }
+
+  @Post("risk-previews")
+  @HttpCode(200)
+  @ApiOperation({
+    summary: "Check an unchanged allocation snapshot without enabling execution or writing state",
+  })
+  riskPreview(@Body() body: unknown) {
+    return this.service.riskPreview(body);
   }
 
   @Post("simulations")
