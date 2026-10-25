@@ -1,0 +1,135 @@
+{
+  "version": "1.0.17",
+  "node": "P6-N11 reconciliation-report download slice",
+  "date": "2026-10-25",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "f5126e27d1646eae92673b39f94792aebb59f12f",
+  "outcome": "After a successful paper-book check, download the complete existing reconciliation-result JSON for local record keeping. The original report cutoff, decimal text, differences, account binding and book digests are preserved.",
+  "scope": {
+    "apiSchemaDependencyOrMigrationChanges": false,
+    "serverChange": "Release identity only",
+    "quantEngine": "Unchanged, reused without rebuilding or restarting",
+    "writeSemantics": "No new API request or server/account/journal/report-history write on download",
+    "format": "UTF-8 JSON, LF; existing paper-reconciliation-result-v1, not a ledger backup/import format",
+    "filename": "ASCII UTC original-report time plus reconciliationId prefix; no account ID or personal path",
+    "gating": "No valid report, wrong account/basis, check pending/failed, or ledger action pending: download disabled. Failure retains the report and permits retry; refresh/new report clears old download notices."
+  },
+  "verification": {
+    "distinctApplicationTargetedCases": 79,
+    "web": {
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/paper",
+      "passed": 77,
+      "reuse": "After the URL-release timing fix, its 11 export cases were rerun and passed; unchanged report/page cases reuse the successful targeted run."
+    },
+    "server": {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+      "passed": 2
+    },
+    "tdd": "New export test first failed because the implementation module was absent; health-version test first failed against 1.0.16, then passed against 1.0.17.",
+    "behavior": "Complete MATCHED and DRIFTED payloads, all three difference kinds, long/signed/trailing-zero decimal strings, nanosecond cutoff, UTC filename, account/time/status/shape validation, disabled states, download exception and resource cleanup.",
+    "static": "Web tsc, scoped ESLint/Prettier and diff checks passed. Server compiled in the affected Docker build. No redundant local Python/full-repository suite.",
+    "build": "Initial Server/Web images built successfully. One independent URL-release finding triggered a Web-only rebuild; Server reused. Quant, database and worker inputs/state unchanged.",
+    "independentReview": {
+      "count": 1,
+      "status": "CLOSED_NO_BLOCKERS",
+      "finding": "Successful download now keeps the Blob URL alive for 1 second; exceptions release immediately. Hidden anchor removed in both paths. Fake-timer tests verify exact cleanup timing.",
+      "closure": "Final source, 11 export cases, actual downloaded payloads and unchanged ledger/journal evidence reviewed; no remaining blocking findings."
+    },
+    "actualBrowser": {
+      "environment": "Actual local built Server/Web with unchanged quant-engine",
+      "initialState": "Download natively disabled until a successful check",
+      "keyboard": "Return check then Return download succeeded; final focus BUTTON / 下载核对报告",
+      "download": {
+        "fileFound": true,
+        "bytes": 609,
+        "sha256": "34129d2934dc1abe81943cb1fe6e6bfe6181a6c1c6718432ceddbe03cb0e55cc",
+        "fieldCount": 11,
+        "asOf": "2026-10-25T12:51:03.049068Z",
+        "status": "MATCHED",
+        "diffCount": 0,
+        "existingPythonContractValidated": true,
+        "matchesActualAccount": true,
+        "matchesBothDisplayedDomCutoffs": true,
+        "filenameMatchesReportIdentity": true,
+        "artifact": "work/v1-release-20261025-17/report-actual-download.json"
+      },
+      "screenshot": "work/v1-release-20261025-17/report-download-local.png"
+    },
+    "isolatedUiFixture": {
+      "clearlyLabelled": true,
+      "noUpstreamApiReadsOrWrites": true,
+      "allMutationMethodsBlocked": true,
+      "driftDownload": "Downloaded JSON equals the complete producer response at verification time, including all 3 differences and -0.00000001.",
+      "unavailableStates": "Actual no-report/check-failure/check-pending states disable download; failure preserves prior report and clears stale success notice; successful retry enables download again.",
+      "viewport": "390x844; document clientWidth/scrollWidth both 375; dark mode; pointer when enabled, not-allowed when disabled.",
+      "scope": "Presentation and client-state verification only; not engine or accounting proof.",
+      "cleanup": "Owned fixture process/tab and generated acceptance downloads removed; exact copies retained under ignored work; viewport reset."
+    },
+    "reusedEvidence": "Unchanged 1.0.16 reconciliation API, Decimal accounting, authentication, persistence/restart and recovery evidence. Current source CI separately runs configured repository gates and zero-write backtest regression."
+  },
+  "originalLedger": {
+    "beforeEqualsFinal": true,
+    "journalBytes": 482,
+    "journalRecords": 1,
+    "journalSha256": "c3b7283d8d8044a150763fdfcf5e6cafc3e5c4410eacba787d758f264fbb2c76",
+    "workspaceSha256": "31daa07a41f4fedccb2e9a715ca55d0a9e57400fe754cd9822f6bc957a7e4998",
+    "status": "READY",
+    "cash": "100000",
+    "positions": 0,
+    "orders": 0,
+    "auditCounts": {
+      "accountEventCount": 2,
+      "executionEventCount": 0,
+      "orderAuditCount": 0,
+      "alertCount": 0
+    }
+  },
+  "runtime": {
+    "environment": "Local Docker v1 only",
+    "images": {
+      "server": {
+        "imageId": "sha256:e14e0fa80ff47c12feb7dbb67e89184de547714dee38163704d1eda948fb67a4",
+        "status": "healthy",
+        "fixedAlias": "kunlun-server:1.0.17",
+        "reusedFrom": null
+      },
+      "web": {
+        "imageId": "sha256:cace5b5d075d646eaac5a834a5ec29eabeeaa9baee9366149e59743b9622d26f",
+        "status": "healthy",
+        "fixedAlias": "kunlun-web:1.0.17",
+        "reusedFrom": null
+      },
+      "quant-engine": {
+        "imageId": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb",
+        "status": "healthy",
+        "fixedAlias": "kunlun-quant-engine:1.0.17",
+        "reusedFrom": "1.0.16"
+      }
+    },
+    "tag": {
+      "name": "v1.0.17",
+      "tagObject": "c01da8f88ece0313946156419ac6c26673cdf12f",
+      "sourceCommit": "f5126e27d1646eae92673b39f94792aebb59f12f",
+      "remoteVerified": true
+    }
+  },
+  "ci": {
+    "runId": 40194872830,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40194872830",
+    "status": "completed",
+    "sourceCommit": "f5126e27d1646eae92673b39f94792aebb59f12f",
+    "conclusion": "success",
+    "jobs": {
+      "gates (ubuntu-latest)": "success",
+      "gates (windows-latest)": "success",
+      "gates (macos-latest)": "success"
+    },
+    "scope": "Configured repository quality gates and zero-write backtest regression passed on all three platforms; build on the configured Linux job."
+  },
+  "limits": [
+    "The file contains the selected reconciliation snapshot, not full cash/position details, account history or recovery commands.",
+    "No server report history, import/repair, automatic day-end task, sell, market matching or real-broker capability.",
+    "No full P6-N11, P6-N12 or Phase 6 exit acceptance.",
+    "Actual browser download verified in local Chrome; three-platform CI is source/tooling evidence, not native browser acceptance on every platform."
+  ]
+}
