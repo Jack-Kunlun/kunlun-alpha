@@ -1,0 +1,137 @@
+{
+  "version": "1.0.18",
+  "node": "P6-N08 read-only account cost/fee summary slice",
+  "date": "2026-10-25",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "3bfb839f1e82889debd9060f298906caea7d9fa6",
+  "outcome": "One workspace now shows exact remaining position cost, cumulative incurred simulation fees and the number of orders with fills. Cost, fees and market valuation are explicitly distinguished.",
+  "scope": {
+    "apiSchemaDependencyOrMigrationChanges": false,
+    "serverChange": "Release identity only",
+    "quantEngine": "Unchanged; no rebuild or restart",
+    "writeSemantics": "Display only; no additional requests, fees, fills, orders, journal entries or account writes",
+    "reportDownloadContract": "Unchanged paper-reconciliation-result-v1",
+    "routeDescription": "Corrected the old closed-simulation description to match currently available controlled buys and read-only account reports"
+  },
+  "semantics": {
+    "positionCost": "Sum of current position.costAmount; already includes corresponding buy fees; not cumulative buys, market value or return.",
+    "paidFees": "Sum of every order.totalFees once, including partial fills later cancelled; unfilled orders must have zero fees. Producer emits all execution.orders, without pagination or last-N truncation.",
+    "filledOrderCount": "Count orders with filledQuantity > 0, including zero-fee fills. This is not the number of fill callbacks.",
+    "precision": "Nonnegative decimal strings are aligned by fractional digits and added using BigInt; no binary-float money conversion.",
+    "dataValidity": "Existing workspace/account/order display checks, plus unique order IDs, valid amount text, no fee without fills and no order fact after the workspace cutoff, including nanoseconds. Bad input yields an unavailable summary, never fabricated zero.",
+    "snapshot": "All three values come from the same workspace object and show its generatedAt. DEGRADED retains an explicit warning. Valid empty account displays 0/0/0."
+  },
+  "verification": {
+    "distinctApplicationTargetedCases": 100,
+    "web": {
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/paper src/app/route-contract.test.ts",
+      "passed": 98,
+      "scope": "92 paper cases plus 6 route-contract cases"
+    },
+    "server": {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+      "passed": 2
+    },
+    "tdd": "The new summary test first failed because the implementation module was absent; health-version test first failed against 1.0.17, then passed against 1.0.18.",
+    "behavior": "No double-added buy fees; valid empty books; 0.1+0.2; amounts beyond safe integer precision; tiny decimals; zero-fee filled orders; partial/cancelled filled orders; duplicate identities, invalid money, unavailable/live-capable input and future/nanosecond facts refused; degraded/error presentation.",
+    "static": "Web tsc, scoped ESLint/Prettier and diff checks passed. Server compiled in the affected build. No redundant local Python/full-repository suite.",
+    "build": "One Server/Web build passed; no review fix/rebuild required. Quant image/process, database services and collectors reused unchanged.",
+    "independentReview": {
+      "count": 1,
+      "status": "CLOSED_NO_BLOCKERS",
+      "conclusion": "Final source, exact sums, full producer order scope, paid-fee semantics, future-fact rejection, actual/fixture UI and identical ledger/journal evidence checked; no remaining blockers."
+    },
+    "actualBrowser": {
+      "environment": "Actual local built Server/Web and unchanged quant-engine",
+      "account": "Original existing account read only; no test trades created",
+      "summary": {
+        "positionCost": "0",
+        "paidFees": "0",
+        "filledOrderCount": 0
+      },
+      "displayedSnapshotTime": "2026/10/25 21:43:04 Asia/Shanghai",
+      "screenshot": "work/v1-release-20261025-18/costs-local.png"
+    },
+    "isolatedUiFixture": {
+      "clearlyLabelled": true,
+      "noUpstreamApiReadsOrWrites": true,
+      "allMutationMethodsBlocked": true,
+      "nonzeroSummary": {
+        "positionCost": "30009",
+        "paidFees": "9",
+        "filledOrderCount": 1
+      },
+      "invalid": "Duplicate order snapshot shows unavailable summary, without duplicate fee/count totals.",
+      "degraded": "Valid fields remain accompanied by explicit abnormal-ledger warning, not a recovery claim.",
+      "viewport": "390x844 dark mode; document clientWidth and scrollWidth both 375; refreshed focus returns to refresh action.",
+      "scope": "Presentation only; this fixture does not prove a new trade or accounting path. Existing producer/accounting evidence is reused.",
+      "cleanup": "Owned fixture tab/process removed; viewport reset."
+    },
+    "reusedEvidence": "Unchanged 1.0.16/1.0.17 accounting, persistence, reconciliation, report download and recovery evidence. Current source CI runs configured repository quality gates and zero-write backtest regression."
+  },
+  "originalLedger": {
+    "beforeEqualsFinal": true,
+    "journalBytes": 482,
+    "journalRecords": 1,
+    "journalSha256": "c3b7283d8d8044a150763fdfcf5e6cafc3e5c4410eacba787d758f264fbb2c76",
+    "workspaceSha256": "31daa07a41f4fedccb2e9a715ca55d0a9e57400fe754cd9822f6bc957a7e4998",
+    "status": "READY",
+    "cash": "100000",
+    "positions": 0,
+    "orders": 0,
+    "auditCounts": {
+      "accountEventCount": 2,
+      "executionEventCount": 0,
+      "orderAuditCount": 0,
+      "alertCount": 0
+    }
+  },
+  "runtime": {
+    "environment": "Local Docker v1 only",
+    "images": {
+      "server": {
+        "imageId": "sha256:d50bf972687e8a4887a089a0e4b755e6e29b62cf6edeec8b77e7d6319745aa25",
+        "status": "healthy",
+        "fixedAlias": "kunlun-server:1.0.18",
+        "reusedFrom": null
+      },
+      "web": {
+        "imageId": "sha256:206305ed6279d02d975949dccebd81db11a5405466642deaf23bc00ccc2ea0f2",
+        "status": "healthy",
+        "fixedAlias": "kunlun-web:1.0.18",
+        "reusedFrom": null
+      },
+      "quant-engine": {
+        "imageId": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb",
+        "status": "healthy",
+        "fixedAlias": "kunlun-quant-engine:1.0.18",
+        "reusedFrom": "1.0.16"
+      }
+    },
+    "tag": {
+      "name": "v1.0.18",
+      "tagObject": "eb94908a62c3e7ea42eb71ba5067c61df5b46c7b",
+      "sourceCommit": "3bfb839f1e82889debd9060f298906caea7d9fa6",
+      "remoteVerified": true
+    }
+  },
+  "ci": {
+    "runId": 40198868755,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40198868755",
+    "status": "completed",
+    "sourceCommit": "3bfb839f1e82889debd9060f298906caea7d9fa6",
+    "conclusion": "success",
+    "jobs": {
+      "gates (macos-latest)": "success",
+      "gates (windows-latest)": "success",
+      "gates (ubuntu-latest)": "success"
+    },
+    "scope": "Configured repository quality gates and zero-write backtest regression passed on all three platforms; build on the configured Linux job."
+  },
+  "limits": [
+    "No new fee policy, accounting event, market valuation, profit calculation, sell entry, cross-day availability or real-broker capability.",
+    "Totals describe the returned current paper workspace, not a broker statement or global historical replay.",
+    "No full P6-N08, P6-N12 or Phase 6 exit acceptance.",
+    "Actual browser evidence is local; cross-platform source CI does not imply native browser runtime acceptance on every platform."
+  ]
+}
