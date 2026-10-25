@@ -1,0 +1,254 @@
+{
+  "version": "1.0.15",
+  "node": "P6-N10 controlled buy-only paper slice",
+  "date": "2026-10-25",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "ff0d756faa4a1a11632f71bfd8ce57cd8802b121",
+  "outcome": "An unchanged manual allocation snapshot can be confirmed for one idempotent full paper buy, with fees, cash/position updates and server order records. Sell and real-broker execution remain closed.",
+  "contracts": {
+    "endpoint": "POST /api/v1/paper/buy-simulations (HTTP 200)",
+    "request": "Existing paper-allocation-decision-v1 snapshot, unchanged from /previews",
+    "response": "Existing paper-terminal-workspace-v1; requires durable healthy ledger and the matching committed buy",
+    "idempotencyKey": "buy:decisionId",
+    "schemaOrDependencyChanges": false,
+    "authentication": "Existing administrator and CSRF guards; unauthenticated actual POST returned 401."
+  },
+  "policy": {
+    "version": "controlled-paper-buy / 1.0.0",
+    "price": "Manual hypothetical price, at most 8 effective decimal places; no market or liquidity input.",
+    "fee": "notional * 0.0003, minimum 1 CNY; ROUND_HALF_EVEN cents, included in position cost. Simulation policy only.",
+    "newAvailableQuantity": 0,
+    "oldSimulationsEndpoint": "Still blocked by PAPER_TERMINAL_ACCOUNT_ONLY=true",
+    "enablement": "Both control-plane and quant-engine switches default off. Local v1 uses V1_PAPER_BUY_ENABLED=true; false stops new buys while preserving reads/replay."
+  },
+  "verification": {
+    "distinctApplicationTargetedCases": 218,
+    "configurationCases": 9,
+    "totalTargetedAndConfigurationCases": 227,
+    "python": {
+      "command": "uv run --no-sync pytest services/quant-engine/tests/test_paper_controlled_buy.py services/quant-engine/tests/test_paper_preview.py services/quant-engine/tests/test_paper_terminal.py python/packages/paper-core/tests/test_execution_lifecycle.py python/packages/paper-core/tests/test_risk_reconciliation.py -q",
+      "passed": 63,
+      "coveragePercent": 82.84,
+      "configuredMinimumPercent": 75
+    },
+    "server": {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/modules/paper src/app.controller.test.ts",
+      "passed": 93
+    },
+    "web": {
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/paper",
+      "passed": 62
+    },
+    "config": {
+      "command": "pnpm v1:config:check",
+      "passed": 9
+    },
+    "checks": "Normal fills, exact fee minimum/half-even rounding, cash-plus-cost conservation, two-symbol and repeated same-symbol buys, duplicate/concurrent/stale/forged/disabled/rejected/unsupported-precision commands, risk limits, failed preflight zero writes, journal uncertainty stops, HTTP, restart and same-snapshot retry.",
+    "tdd": "Nine missing constructor/method cases failed before implementation, then passed; new Server/Web helper modules initially failed imports. Version check failed against 1.0.14. Fee-minimum/sequential scenarios exposed decimal-context identity errors and were fixed without changing legacy command replay. Review added eleven unhealthy/nanosecond response counterexamples, red before guards and green afterward. A later-fill fixture exposed selection by order-array position; binding by client_order_id and same-symbol regressions fixed it. Browser focus was BODY before the fix, then BUTTON / 刷新账本.",
+    "static": "Affected Server/Web tsc, Python basedpyright, scoped ESLint/Ruff/Prettier and diff checks passed. Initial test mock/unknown-lambda type issues and formatting were repaired. Final frozen Python checks reported 0 errors/warnings.",
+    "build": "Initial three-image build passed. The concrete review findings and order-binding regression required one further three-image build, which passed. Final images were exercised by isolated real services and then the actual local instance. Documentation will reuse this build.",
+    "regression": {
+      "command": "pnpm backtest:regression",
+      "status": "MATCHED",
+      "baselineSha256": "4e477b727bbeb674ebd744cc301cbd03cd4e793be7b96b24fd0ad6a5390094f3",
+      "candidateSha256": "4e477b727bbeb674ebd744cc301cbd03cd4e793be7b96b24fd0ad6a5390094f3",
+      "baselineChanged": false,
+      "isolatedMutation": false,
+      "reuse": "Later changes did not alter the regression closure inputs."
+    },
+    "independentReview": {
+      "count": 1,
+      "initialBlockingFindings": 2,
+      "closure": "No remaining blockers. Response health/durability/idempotency/precision/balance guards, stable successful/cancel focus, and the independently checked client_order_id binding fix passed closure."
+    },
+    "isolatedBrowser": {
+      "actualBuiltServices": true,
+      "syntheticCoreProxy": false,
+      "storage": "Dedicated labelled disposable quant-engine volume; existing auth flow, no original paper storage mounted.",
+      "firstBuy": {
+        "instrument": "600519.SH",
+        "price": "100",
+        "quantity": 300,
+        "fee": "9",
+        "cash": "69991",
+        "positionCost": "30009"
+      },
+      "secondBuy": {
+        "instrument": "000001.SZ",
+        "price": "100",
+        "quantity": 200,
+        "fee": "6",
+        "cash": "49985",
+        "positionCosts": ["20006", "30009"],
+        "orders": 2
+      },
+      "confirmation": "Shows exact instrument/quantity/manual price and fee policy; Escape returns focus and retains the scenario; keyboard Enter succeeds.",
+      "focusBefore": {
+        "focusTag": "BODY",
+        "hasBuyDialog": false
+      },
+      "focusAfter": {
+        "focusTag": "BUTTON",
+        "focusText": "刷新账本",
+        "hasBuyDialog": false
+      },
+      "busyAndFailure": "Native disabled/progress and risk-action gating tested in SSR. Domain/service/client tests cover retained-snapshot retry and failure-closed responses; no faults injected into original storage.",
+      "narrowConfirmation": {
+        "viewport": "390x844",
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "dialogBottom": 630,
+        "confirmBottom": 561,
+        "confirmCursor": "pointer"
+      },
+      "narrowOrderTable": {
+        "focused": true,
+        "regionScrollWidth": 800,
+        "regionWidth": 225,
+        "scrollLeft": 37,
+        "scrollWidth": 375,
+        "width": 375
+      },
+      "dark": "Separate fixed synthetic layout fixture, actual final assets and dark class; no upstream API reads/writes. This is layout evidence only.",
+      "screenshots": [
+        "work/v1-release-20261025-15/buy-accepted-isolated.jpg",
+        "work/v1-release-20261025-15/buy-confirm-narrow.jpg",
+        "work/v1-release-20261025-15/buy-dark-isolated.jpg"
+      ]
+    },
+    "isolatedRecovery": {
+      "containerReplacementExactMatch": true,
+      "checkpoint": {
+        "journalBytes": 2625,
+        "journalRecords": 2,
+        "journalSha256": "df91314bb61734f2b2a8b27bd354f20224a0c0abf79f5f0efef80a5af6a76139",
+        "workspaceSha256": "d9598c5887fe00e8a1cd934d60f2e3d0e957268cceab55cfdff0d43b38090e95",
+        "status": "READY",
+        "cash": "69991",
+        "positions": 1,
+        "orders": 1,
+        "auditCounts": {
+          "accountEventCount": 4,
+          "executionEventCount": 4,
+          "orderAuditCount": 4,
+          "alertCount": 0
+        }
+      },
+      "retryAfterRestart": {
+        "retriedAfterContainerReplacement": true,
+        "retries": 2,
+        "orders": 1,
+        "cash": "69991",
+        "journalUnchanged": true,
+        "journalSha256": "df91314bb61734f2b2a8b27bd354f20224a0c0abf79f5f0efef80a5af6a76139",
+        "alertCount": 0
+      },
+      "finalTwoBuyState": {
+        "journalBytes": 4767,
+        "journalRecords": 3,
+        "journalSha256": "7b682bdbf71c2615967e5faefd1dd426d5419f3ab6a8d092175042581ab5d1b9",
+        "workspaceSha256": "2b2a6f3471ed1c53fac32f3509533916928721bcbcd5b3ff5cb7e2dea5f92316",
+        "status": "READY",
+        "cash": "49985",
+        "positions": 2,
+        "orders": 2,
+        "auditCounts": {
+          "accountEventCount": 6,
+          "executionEventCount": 8,
+          "orderAuditCount": 8,
+          "alertCount": 0
+        }
+      }
+    }
+  },
+  "originalAccount": {
+    "beforeEqualsAfter": true,
+    "journalBytes": 482,
+    "journalRecords": 1,
+    "journalSha256": "c3b7283d8d8044a150763fdfcf5e6cafc3e5c4410eacba787d758f264fbb2c76",
+    "workspaceSha256": "31daa07a41f4fedccb2e9a715ca55d0a9e57400fe754cd9822f6bc957a7e4998",
+    "status": "READY",
+    "cash": "100000",
+    "positions": 0,
+    "orders": 0,
+    "auditCounts": {
+      "accountEventCount": 2,
+      "executionEventCount": 0,
+      "orderAuditCount": 0,
+      "alertCount": 0
+    },
+    "browser": "Authenticated actual 1.0.15 page read: original 100000 CNY cash, zero positions/orders. No original paper account creation or buy was submitted.",
+    "screenshot": "work/v1-release-20261025-15/original-account-preserved.jpg"
+  },
+  "recoveryAndRollback": "New BUY_ALLOCATION_V1 entries require engine 1.0.15+. Old CREATE_ACCOUNT/SIMULATE replay is preserved. Keep the new engine/volume for UI rollback; use V1_PAPER_BUY_ENABLED=false to suspend new buys. No rewrite, migration, actual database operation or full backup/restore drill was performed.",
+  "cleanup": "Owned temporary real-service containers and disposable test volume removed; dark proxy stopped; temporary tabs closed and viewport restored. Original services, account, manuscript and old untracked reviews preserved.",
+  "localRuntime": {
+    "health": {
+      "status": "ok",
+      "timestamp": "2026-10-25T09:16:51.743Z",
+      "version": "1.0.15"
+    },
+    "images": {
+      "web": {
+        "alias": "kunlun-web:1.0.15",
+        "id": "sha256:d39289a9311aea605856bb5952890f4139ebb2da5663335057b3d79ed762b14b",
+        "health": "healthy"
+      },
+      "server": {
+        "alias": "kunlun-server:1.0.15",
+        "id": "sha256:3c7ac3337079a3a1ab029382f0f77cbec6ddc3e75e27d3b5a5d632751d603ab0",
+        "health": "healthy"
+      },
+      "quant-engine": {
+        "alias": "kunlun-quant-engine:1.0.15",
+        "id": "sha256:32814dccc50259ddccea1ac74beb3f0f0d5c821414d501ba2a65e75046c9eb2a",
+        "health": "healthy"
+      }
+    },
+    "legacyAccountOnly": true,
+    "controlledBuyEnabledOnBothBoundaries": true,
+    "quantEngineHostPorts": [],
+    "productionDeployment": false
+  },
+  "ci": {
+    "runId": 40179349027,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40179349027",
+    "sourceCommit": "ff0d756faa4a1a11632f71bfd8ce57cd8802b121",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "gates (ubuntu-latest)",
+        "conclusion": "success",
+        "startedAt": "2026-10-25T09:07:31Z",
+        "completedAt": "2026-10-25T09:12:38Z"
+      },
+      {
+        "name": "gates (macos-latest)",
+        "conclusion": "success",
+        "startedAt": "2026-10-25T09:07:31Z",
+        "completedAt": "2026-10-25T09:13:10Z"
+      },
+      {
+        "name": "gates (windows-latest)",
+        "conclusion": "success",
+        "startedAt": "2026-10-25T09:07:31Z",
+        "completedAt": "2026-10-25T09:18:56Z"
+      }
+    ]
+  },
+  "release": {
+    "tag": "v1.0.15",
+    "tagObject": "f1acbc00754836d9f98b9f08125709c25bc69a60",
+    "targetCommit": "ff0d756faa4a1a11632f71bfd8ce57cd8802b121",
+    "remoteVerified": true,
+    "localOnly": true
+  },
+  "limits": [
+    "Manual assumed price/full buy only; no real quote, liquidity, halt/limit, partial fill or sell simulation.",
+    "Newly bought quantity stays unavailable; no cross-day availability release.",
+    "Fees are the explicit local simulation policy, not actual broker/exchange rates.",
+    "No real broker, real order, whole-node completion, Phase 6 exit or live-trading qualification."
+  ],
+  "remainingBlockers": []
+}
