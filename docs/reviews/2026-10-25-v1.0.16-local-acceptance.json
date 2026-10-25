@@ -1,0 +1,142 @@
+{
+  "version": "1.0.16",
+  "node": "P6-N11 read-only reconciliation-report slice",
+  "date": "2026-10-25",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "2f486383e66685b27540245b09ca59e413392879",
+  "outcome": "An explicit action recomputes the current paper execution and account books and shows cash, position quantity and cost differences, cutoff time and deduplicated fill count. It does not change either book.",
+  "contracts": {
+    "endpoint": "GET /api/v1/paper/reconciliation; internal GET /v1/paper/reconciliation",
+    "response": "Existing paper-reconciliation-result-v1, HTTP 200",
+    "authentication": "Existing administrator guard; actual unauthenticated GET returned 401",
+    "failures": "No account: public 400 / internal 422. Uncertain state or unavailable/invalid upstream: public 503.",
+    "schemaDependencyOrMigrationChange": false
+  },
+  "semantics": {
+    "cutoff": "Recomputed on each request under the same RLock; cached workspace reconciliation is not reused or overwritten.",
+    "precision": "Fixed local Decimal 128 / ROUND_HALF_EVEN, zero tolerance; money/differences remain decimal text.",
+    "readOnly": "No command, journal, audit, order, valuation, balance, position or report-history write.",
+    "reportLifecycle": "Client binds account and workspace time; failure preserves the prior report with its original timestamp and an explicit stale-state message. Workspace refresh or accepted trade remounts the report; unmounted requests cannot overwrite it.",
+    "recovery": "Existing persistence and recovery procedures unchanged; no database operation or new backup/restore drill."
+  },
+  "verification": {
+    "distinctApplicationTargetedCases": 246,
+    "python": {
+      "command": "uv run --no-sync pytest services/quant-engine/tests/test_paper_reconciliation_report.py services/quant-engine/tests/test_paper_controlled_buy.py services/quant-engine/tests/test_paper_preview.py services/quant-engine/tests/test_paper_terminal.py python/packages/paper-core/tests/test_risk_reconciliation.py python/packages/paper-core/tests/test_execution_lifecycle.py -q",
+      "passed": 69,
+      "coveragePercent": 83.07,
+      "configuredMinimumPercent": 75
+    },
+    "server": {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/modules/paper src/app.controller.test.ts",
+      "passed": 111,
+      "reuse": "Only the health version literal changed afterward; its two cases were rerun and passed. All other final-source cases reuse the successful targeted run."
+    },
+    "web": {
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/paper",
+      "passed": 66,
+      "reuse": "The four new report cases and Web type/lint checks were rerun after the focus fix; unchanged cases reuse the successful run."
+    },
+    "tdd": "Five Python cases first failed for the absent method/route. New Server/Web test modules first failed imports; version test first failed against 1.0.15. A valid fractional-price buy exposed caller precision changing book digests/report identity (prec=10), then the fixed-context regression passed with unchanged snapshot/journal. Actual browser focus was BODY before and BUTTON / 重新核对 after the fix.",
+    "checks": "Fresh report identity/time, no account and uncertain state fail-closed, traded and restarted books, injected fixture drift, journal/cache zero writes, exact signed decimal arithmetic, malformed/status/digest contradictions and upstream privacy errors.",
+    "static": "Affected Server/Web tsc, scoped ESLint/Prettier, Python basedpyright/Ruff/format, and staged diff checks passed. Initial import ordering was fixed. No whole-repository local suite was added.",
+    "build": "One initial Server/Web/quant-engine build passed. Direct focus and precision findings triggered one Web rebuild and one quant-engine rebuild; unchanged Server output was reused. Final containers are healthy.",
+    "backtestRegression": {
+      "status": "MATCHED",
+      "baselineSha256": "4e477b727bbeb674ebd744cc301cbd03cd4e793be7b96b24fd0ad6a5390094f3",
+      "baselineChanged": false,
+      "isolatedMutation": false,
+      "reuse": "Subsequent read-path precision/focus changes are outside the regression closure; final source CI verifies the release boundary.",
+      "finalSourceCi": "Passed on all three platforms; clean-tree/zero-write checks passed."
+    },
+    "independentReview": {
+      "count": 1,
+      "closure": "No remaining blocking findings. Caller-context determinism and native disabled-action focus were fixed and closed; no automatic extra review cycle."
+    },
+    "actualLocalBrowser": {
+      "builtServices": true,
+      "originalAccountReadOnly": true,
+      "report": "MATCHED, 0 differences, fresh current cutoff",
+      "keyboardFocus": "After Return completion, BUTTON / 重新核对",
+      "screenshot": "work/v1-release-20261025-16/report-local-final.png"
+    },
+    "isolatedUiFixture": {
+      "clearlyLabelled": true,
+      "noUpstreamApiReadsOrWrites": true,
+      "allMutationMethodsBlocked": true,
+      "scope": "Dark 390x844 layout, three kinds of exact differences, failure retains old report/time, pending native disabled/progress, late response after refresh does not replace empty new report.",
+      "viewport": {
+        "width": 375,
+        "scrollWidth": 375,
+        "differenceTableWidth": 225,
+        "differenceTableScrollWidth": 720,
+        "keyboardScrollLeft": 40
+      },
+      "limitation": "Synthetic response fixture demonstrates presentation/state behavior only; actual engine report/zero writes are verified separately.",
+      "cleanup": "Owned process and temporary tab removed; viewport reset."
+    }
+  },
+  "originalLedger": {
+    "beforeEqualsFinal": true,
+    "journalBytes": 482,
+    "journalRecords": 1,
+    "journalSha256": "c3b7283d8d8044a150763fdfcf5e6cafc3e5c4410eacba787d758f264fbb2c76",
+    "workspaceSha256": "31daa07a41f4fedccb2e9a715ca55d0a9e57400fe754cd9822f6bc957a7e4998",
+    "status": "READY",
+    "cash": "100000",
+    "positions": 0,
+    "orders": 0,
+    "auditCounts": {
+      "accountEventCount": 2,
+      "executionEventCount": 0,
+      "orderAuditCount": 0,
+      "alertCount": 0
+    }
+  },
+  "runtime": {
+    "environment": "Existing local Docker v1 instance only",
+    "images": {
+      "server": {
+        "imageId": "sha256:8bfcf6949782c2500eca2e5acc1efec24403fddee739d09182662e71917fa445",
+        "status": "healthy",
+        "fixedAlias": "kunlun-server:1.0.16"
+      },
+      "web": {
+        "imageId": "sha256:13d57cff75133cb11aac77291d3c7f9a8327b57c530c75ea6250e4daf7332fdc",
+        "status": "healthy",
+        "fixedAlias": "kunlun-web:1.0.16"
+      },
+      "quant-engine": {
+        "imageId": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb",
+        "status": "healthy",
+        "fixedAlias": "kunlun-quant-engine:1.0.16"
+      }
+    },
+    "preserved": "PostgreSQL, ClickHouse, original quant volume and existing market workers; no production deployment",
+    "tag": {
+      "name": "v1.0.16",
+      "tagObject": "69b14084bcc847d9442794f52104d50f6c0dd1cd",
+      "sourceCommit": "2f486383e66685b27540245b09ca59e413392879",
+      "remoteVerified": true
+    }
+  },
+  "ci": {
+    "runId": 40189456217,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40189456217",
+    "status": "completed",
+    "sourceCommit": "2f486383e66685b27540245b09ca59e413392879",
+    "conclusion": "success",
+    "jobs": {
+      "gates (macos-latest)": "success",
+      "gates (ubuntu-latest)": "success",
+      "gates (windows-latest)": "success"
+    },
+    "scope": "Existing complete repository quality gates and zero-write regression on all three platforms; build step on configured Linux job. Other platforms do not claim a native browser runtime."
+  },
+  "limits": [
+    "Only local simulation book reconciliation; no broker statement or real trading capability.",
+    "Read-only report neither repairs discrepancies nor grants execution permission.",
+    "No report persistence, automatic day-end task, sell, cross-day availability release or real-price matching.",
+    "Does not accept full P6-N11, P6-N12 or Phase 6 exit. Native three-platform runtime is not claimed from local macOS Docker acceptance."
+  ]
+}
