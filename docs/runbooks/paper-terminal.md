@@ -16,6 +16,44 @@
 - Nest 对引擎响应按模拟语义、金额、数量、时间、摘要和账本关系检查；异常返回不可用，
   不把坏金额替换为零或纠正后继续展示。账号与 CSRF 沿用单管理员现有认证。
 
+### 1.0.13 只读仓位试算
+
+已有正常账户时点击“试算仓位”打开抽屉，输入规范证券代码、人工假设价格、信号强度、
+假设可信度和整手单位。价格不读取行情，参数不冒充模型输出。成功关闭抽屉，页面显示
+目标持仓、增减数量、假设调整金额（未含费用）或拒绝原因；失败保留输入并允许重试。
+刷新账本或重新打开抽屉清除上次试算结果，试算结果不保存到服务端日志。
+
+- 固定策略口径 `paper-preview-allocation / 1.0.0`：目标权重为强度 × 可信度，单标的上限
+  30%，组合总权重上限 95%，保留 5% 账面现金；假设可信度低于 0.5 时拒绝。
+- 价格、信号和整手单位均为人工假设，不自动识别交易所最小委托、涨跌停、停复牌或可成交性；
+  该结果不是交易建议、风控许可或可执行报价。仍不开放成交接口。
+- 复用当前账本的既有估值作为分配基准，不引入新行情估值；异常账本停止试算。
+  所有计算在 Python 通过 Decimal 进行，数量超过 JavaScript 安全整数范围时拒绝。
+- `POST /api/v1/paper/previews` 使用现有管理员认证和 CSRF，内部对应 `/v1/paper/previews`。
+  它只读取账户，不登记请求、不写命令、订单、风险结果、现金、持仓、估值或审计计数。
+- 输入复用 `PaperTerminalSimulationCommand`（`paper-terminal-simulation-v1`），只是情景输入形状；
+  端点决定只读语义，不能把此请求转发到 `/simulations`。`clientRequestId` 仅参与预览输入身份，
+  不占用已提交命令的幂等登记，相同 ID 的不同预览可重新计算。既有创建／成交命令语义不变。
+- 输出复用 `PaperAllocationDecision`（`paper-allocation-decision-v1`），保持
+  `INTENT_ONLY_NO_BROKER_PATH`、`PAPER_ONLY` 和 `brokerExecutable=false`；字段兼容，无 Schema 变更。
+
+请求示例（仅假设输入，不含账户或行情来源）：
+
+```json
+{
+  "schemaVersion": "paper-terminal-simulation-v1",
+  "clientRequestId": "manual-preview-example",
+  "instrumentId": "600519.SH",
+  "price": "100",
+  "score": "0.3",
+  "confidence": "1",
+  "lotSize": 100
+}
+```
+
+在账面基准为 100000 CNY、未持仓的隔离测试中，上述假设产生 300 股目标，
+假设调整金额 30000 CNY（未含费用），原账户现金与持仓不变。
+
 ### 既有引擎能力与开发栈
 
 - `quant-engine` 维护一个模拟账户、账户事件链和模拟执行事件链；本地 Compose 通过独立持久卷保存命令日志。

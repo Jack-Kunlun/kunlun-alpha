@@ -19,6 +19,12 @@ export class PaperTerminalController {
     return this.service.createAccount(body);
   }
 
+  @Post("previews")
+  @ApiOperation({ summary: "Preview a manual paper allocation without writing an order or ledger" })
+  preview(@Body() body: unknown) {
+    return this.service.preview(body);
+  }
+
   @Post("simulations")
   @ApiOperation({ summary: "Run a signal-to-fill paper simulation" })
   simulate(@Body() body: unknown) {

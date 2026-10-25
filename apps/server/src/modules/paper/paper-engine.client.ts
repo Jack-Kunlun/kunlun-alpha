@@ -1,11 +1,14 @@
 import type {
+  PaperAllocationDecision,
   PaperTerminalCreateAccountCommand,
   PaperTerminalSimulationCommand,
   PaperTerminalWorkspace,
 } from "@kunlun/shared-types";
 import { parsePaperWorkspaceResponse } from "./paper-workspace-response";
+import { parsePaperPreviewResponse } from "./paper-preview-response";
 
 export interface PaperEngineClient {
+  preview(command: PaperTerminalSimulationCommand): Promise<PaperAllocationDecision>;
   workspace(): Promise<PaperTerminalWorkspace>;
   createAccount(command: PaperTerminalCreateAccountCommand): Promise<PaperTerminalWorkspace>;
   simulate(command: PaperTerminalSimulationCommand): Promise<PaperTerminalWorkspace>;
@@ -26,6 +29,19 @@ export class HttpPaperEngineClient implements PaperEngineClient {
     private readonly baseUrl: string,
     private readonly timeoutMs: number,
   ) {}
+
+  async preview(command: PaperTerminalSimulationCommand): Promise<PaperAllocationDecision> {
+    const value = await this.requestRaw("/v1/paper/previews", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(command),
+    });
+    try {
+      return parsePaperPreviewResponse(value, command);
+    } catch {
+      throw new PaperEngineHttpError("quant-engine returned an invalid paper preview", 502);
+    }
+  }
 
   workspace(): Promise<PaperTerminalWorkspace> {
     return this.request("/v1/paper/workspace", { method: "GET" });
@@ -48,6 +64,15 @@ export class HttpPaperEngineClient implements PaperEngineClient {
   }
 
   private async request(path: string, init: RequestInit): Promise<PaperTerminalWorkspace> {
+    const payload = await this.requestRaw(path, init);
+    try {
+      return parsePaperWorkspaceResponse(payload);
+    } catch {
+      throw new PaperEngineHttpError("quant-engine returned an invalid paper workspace", 502);
+    }
+  }
+
+  private async requestRaw(path: string, init: RequestInit): Promise<unknown> {
     let response: Response;
     try {
       response = await fetch(new URL(path, this.baseUrl), {
@@ -76,10 +101,6 @@ export class HttpPaperEngineClient implements PaperEngineClient {
     } catch {
       throw new PaperEngineHttpError("quant-engine returned an invalid paper workspace", 502);
     }
-    try {
-      return parsePaperWorkspaceResponse(payload);
-    } catch {
-      throw new PaperEngineHttpError("quant-engine returned an invalid paper workspace", 502);
-    }
+    return payload;
   }
 }

@@ -58,6 +58,7 @@ from paper_core import (
 from quant_core.strategy import Signal, SignalDirection
 
 from .paper_journal import PaperCommandJournal, PaperCommandJournalError, PaperJournalEntry
+from .paper_preview import preview_allocation
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 VOLATILE_LIMITATIONS = (
@@ -134,6 +135,17 @@ class PaperWorkspace:
             )
             self._apply_create_account(command, fingerprint, now)
             return self.snapshot()
+
+    def preview(self, raw: Mapping[str, object]) -> dict[str, object]:
+        command = PaperTerminalSimulationCommand.model_validate(raw, strict=True)
+        with self._lock:
+            tape = self._account_tape()
+            if self.snapshot()["status"] != "READY":
+                raise PaperWorkspaceError("账本存在异常，暂不提供仓位试算")
+            try:
+                return preview_allocation(self._state(tape), command, self._now())
+            except ValueError as error:
+                raise PaperWorkspaceError(str(error)) from error
 
     def simulate(self, raw: Mapping[str, object]) -> dict[str, object]:
         command = PaperTerminalSimulationCommand.model_validate(raw)

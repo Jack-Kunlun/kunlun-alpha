@@ -25,6 +25,7 @@ import {
 import { formatPaperLedgerTime, parsePaperTerminalDisplay } from "./paper-terminal-display";
 import { validatePaperTerminalCreateInput } from "./paper-terminal-form";
 import { paperRequestId, usePaperTerminal } from "./use-paper-terminal";
+import { PaperPreviewDrawer } from "./paper-preview-drawer";
 
 function StateCard({
   title,
@@ -233,7 +234,7 @@ export function PaperTerminalPage() {
                 模拟账户
               </h2>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base">
-                当前版本仅支持创建模拟账户并只读查看账本，不开放模拟成交或真实交易。金额仅为模拟账面数据，不代表真实资金或实时估值。
+                当前版本支持创建模拟账户、只读账本与仓位试算，不开放模拟成交或真实交易。金额仅为模拟账面数据，不代表真实资金或实时估值。
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                 当前账本独立于全局历史点时上下文，不随其回放。
@@ -241,7 +242,7 @@ export function PaperTerminalPage() {
             </div>
             <div className="flex max-w-lg flex-col gap-3">
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-                <strong className="block">当前仅供只读查看</strong>
+                <strong className="block">只读账本与仓位试算</strong>
                 账本数据不会随全局历史点时切换。
               </div>
               <Button
@@ -276,6 +277,14 @@ export function PaperTerminalPage() {
           >
             账本存在异常，请核对后再使用资金与持仓信息
           </div>
+        ) : null}
+
+        {display.kind === "account" && terminal.workspace.account !== null ? (
+          <PaperPreviewDrawer
+            key={display.generatedAt}
+            accountId={terminal.workspace.account.accountId}
+            disabled={display.workspaceStatus !== "READY" || display.account.status !== "ACTIVE"}
+          />
         ) : null}
 
         {display.kind === "empty" ? (

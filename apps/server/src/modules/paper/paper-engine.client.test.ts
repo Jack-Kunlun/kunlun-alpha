@@ -12,6 +12,28 @@ afterEach(() => {
 });
 
 describe("HttpPaperEngineClient", () => {
+  it("sends previews to the read-only endpoint and rejects a workspace substituted for a decision", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(emptyWorkspace()));
+    vi.stubGlobal("fetch", fetchMock);
+    const command = {
+      schemaVersion: "paper-terminal-simulation-v1" as const,
+      clientRequestId: "preview-request-1",
+      instrumentId: "600519.SH",
+      price: "100",
+      score: "1",
+      confidence: "1",
+      lotSize: 100,
+    };
+    const client = new HttpPaperEngineClient("http://quant-engine:8081", 1000);
+    await expect(client.preview(command)).rejects.toMatchObject({
+      status: 502,
+      message: "quant-engine returned an invalid paper preview",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL("http://quant-engine:8081/v1/paper/previews"),
+      expect.objectContaining({ method: "POST", body: JSON.stringify(command) }),
+    );
+  });
   it("validates the internal JSON response before returning the workspace", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(emptyWorkspace())));
     const client = new HttpPaperEngineClient("http://quant-engine:8000", 1_000);

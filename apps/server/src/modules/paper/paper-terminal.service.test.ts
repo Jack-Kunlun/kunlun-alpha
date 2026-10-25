@@ -1,10 +1,32 @@
 import { BadRequestException, ConflictException, ForbiddenException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
-import type { PaperTerminalWorkspace } from "@kunlun/shared-types";
+import type { PaperAllocationDecision, PaperTerminalWorkspace } from "@kunlun/shared-types";
 import { PaperEngineHttpError, type PaperEngineClient } from "./paper-engine.client";
 import { PaperTerminalService } from "./paper-terminal.service";
 
 describe("PaperTerminalService", () => {
+  it("permits read-only previews in account-only mode and rejects malformed inputs", async () => {
+    const fake = client();
+    const service = new PaperTerminalService(fake, true);
+    const command = {
+      schemaVersion: "paper-terminal-simulation-v1",
+      clientRequestId: "preview-request-1",
+      instrumentId: "600519.SH",
+      price: "100",
+      score: "0",
+      confidence: "1",
+      lotSize: 100,
+    };
+    await expect(service.preview(command)).resolves.toMatchObject({
+      dataMeaning: "INTENT_ONLY_NO_BROKER_PATH",
+    });
+    expect(fake.preview).toHaveBeenCalledWith(command);
+    expect(fake.simulate).not.toHaveBeenCalled();
+    await expect(service.preview({ ...command, price: "0" })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(fake.preview).toHaveBeenCalledOnce();
+  });
   it("returns an explicit simulation-only unavailable shell when the engine is down", async () => {
     const service = new PaperTerminalService(
       client({ workspace: vi.fn().mockRejectedValue(new Error()) }),
@@ -80,10 +102,37 @@ describe("PaperTerminalService", () => {
 function client(overrides: Partial<PaperEngineClient> = {}): PaperEngineClient {
   const workspace = emptyWorkspace();
   return {
+    preview: vi.fn().mockResolvedValue(emptyPreview()),
     workspace: vi.fn().mockResolvedValue(workspace),
     createAccount: vi.fn().mockResolvedValue(workspace),
     simulate: vi.fn().mockResolvedValue(workspace),
     ...overrides,
+  };
+}
+
+function emptyPreview(): PaperAllocationDecision {
+  return {
+    schemaVersion: "paper-allocation-decision-v1",
+    decisionId: "a".repeat(64),
+    accountId: "b".repeat(64),
+    decisionTime: "2026-10-25T02:00:00Z",
+    accountStateDigest: "c".repeat(64),
+    policyId: "paper-preview-allocation",
+    policyVersion: "1.0.0",
+    policyDigest: "d".repeat(64),
+    targets: [],
+    intents: [],
+    rejections: [
+      {
+        instrumentId: "600519.SH",
+        sourceSignalIds: ["e".repeat(64)],
+        reason: "NO_ACTION",
+        explanation: "没有持仓变化",
+      },
+    ],
+    decisionDigest: "f".repeat(64),
+    executionCapability: "PAPER_ONLY",
+    dataMeaning: "INTENT_ONLY_NO_BROKER_PATH",
   };
 }
 

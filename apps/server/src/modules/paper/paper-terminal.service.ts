@@ -47,6 +47,11 @@ export class PaperTerminalService {
     return this.execute(() => this.client.simulate(command));
   }
 
+  async preview(body: unknown) {
+    const command = this.parseSimulation(body);
+    return this.execute(() => this.client.preview(command));
+  }
+
   private parseCreate(body: unknown): PaperTerminalCreateAccountCommand {
     try {
       return parseCreateAccount(body);
@@ -67,7 +72,7 @@ export class PaperTerminalService {
     }
   }
 
-  private async execute(operation: () => Promise<PaperTerminalWorkspace>) {
+  private async execute<T>(operation: () => Promise<T>): Promise<T> {
     try {
       return await operation();
     } catch (error) {
