@@ -1,0 +1,154 @@
+{
+  "version": "1.0.13",
+  "node": "P6-N09 read-only allocation preview slice",
+  "date": "2026-10-25",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "ae4d138947bbf5203dc51a412b98640a362a92f9",
+  "outcome": "Preview target holdings, rounded adjustment quantities and rejection reasons from manually entered scenario inputs. No order, execution, journal or account-state writes.",
+  "contracts": {
+    "endpoint": "POST /api/v1/paper/previews",
+    "request": "Existing paper-terminal-simulation-v1 input shape; preview endpoint determines read-only semantics.",
+    "response": "Existing paper-allocation-decision-v1, INTENT_ONLY_NO_BROKER_PATH / PAPER_ONLY / brokerExecutable=false.",
+    "schemaChanged": false,
+    "dependenciesChanged": false
+  },
+  "verification": {
+    "distinctCurrentTargetedCases": 128,
+    "server": {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/modules/paper/paper-preview-response.test.ts src/modules/paper/paper-workspace-response.test.ts src/modules/paper/paper-engine.client.test.ts src/modules/paper/paper-terminal.service.test.ts src/app.controller.test.ts",
+      "initialPassed": 52,
+      "reusedUnchangedCases": 40,
+      "closureCommand": "pnpm --filter @kunlun/server exec vitest run src/modules/paper/paper-preview-response.test.ts",
+      "closurePassed": 15,
+      "distinctCurrentCases": 55,
+      "scope": "The 15 final parser cases replace the original 12 parser cases. Remaining 40 unchanged client/workspace/service/version cases reuse their successful output."
+    },
+    "web": {
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/paper",
+      "passed": 49,
+      "closureCommand": "pnpm --filter @kunlun/web exec vitest run src/features/paper/paper-preview-drawer.test.tsx",
+      "closurePassed": 3,
+      "distinctCurrentCases": 49,
+      "scope": "Final pointer fix reran the 3 affected drawer cases; 46 unchanged form/display/page cases reuse valid output."
+    },
+    "python": {
+      "command": "uv run --no-sync pytest services/quant-engine/tests/test_paper_preview.py services/quant-engine/tests/test_paper_terminal.py python/packages/paper-core/tests/test_allocation.py -q",
+      "passed": 24,
+      "coveragePercent": 81.34,
+      "scope": "Allocation preview, legacy account/simulation/replay behavior and the existing allocation invariants. Root configured coverage gate of 75% passed; this was not a full repository suite."
+    },
+    "tdd": "Preview method missing: 8 failures, then passing. Server/Web new helper tests initially failed to import their missing modules. A signal-weight mismatch case failed before the BigInt input-binding fix. Version identity failed against 1.0.12 before the bump. Independent review added two confidence/reason counterexamples and a pointer assertion: red before their focused fixes, then 15 parser / 3 drawer green. An initially mischosen lot-rounding fixture was corrected to produce a nonzero desired quantity below one lot.",
+    "static": "Final Web and Server tsc passed. Affected Python basedpyright reported 0 errors/warnings; earlier five test-only object-index errors were fixed by validating fixtures through the existing Pydantic contract. Scoped ESLint, Ruff, Prettier and diff checks passed; initial import ordering / line length issues were corrected.",
+    "build": "Initial shared server/web/quant-engine build passed. The independently found reason-binding and cursor issues required a second affected Node build, which passed. The unchanged quant-engine image was reused. No further builds are required for the release documentation.",
+    "regression": {
+      "command": "pnpm backtest:regression",
+      "status": "MATCHED",
+      "baselineSha256": "4e477b727bbeb674ebd744cc301cbd03cd4e793be7b96b24fd0ad6a5390094f3",
+      "candidateSha256": "4e477b727bbeb674ebd744cc301cbd03cd4e793be7b96b24fd0ad6a5390094f3",
+      "isolatedMutation": false,
+      "baselineChanged": false
+    },
+    "browser": {
+      "actualApplication": true,
+      "syntheticCoreProxy": false,
+      "manualScenario": {
+        "instrumentId": "600519.SH",
+        "hypotheticalPrice": "100",
+        "score": "0.3",
+        "confidence": "1",
+        "lotSize": 100,
+        "targetQuantity": 300,
+        "hypotheticalNotionalExcludingFees": "30000"
+      },
+      "passed": [
+        "Invalid zero price refused in drawer",
+        "Unsafe quantity caused actual API failure and kept all five values",
+        "Escape cancelled; reopening retained values",
+        "Keyboard Enter opened and submitted; success closed drawer",
+        "After success preview trigger was active, focus-visible and pointer",
+        "Low confidence 0.1 returned the correct rejection message",
+        "Opening again cleared the prior result; refresh removed transient trial state"
+      ],
+      "busyState": "Actual pending DOM showed five native disabled fields and both actions disabled",
+      "labelGapsPx": [8, 8, 8, 8, 8],
+      "narrow": {
+        "width": 390,
+        "height": 844,
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "cancelBottom": 819,
+        "submitBottom": 775
+      },
+      "dark": {
+        "environment": "isolated HTML and synthetic auth/workspace only; no upstream API access or allowed write methods",
+        "background": "rgb(7, 10, 19)",
+        "foreground": "rgb(250, 250, 250)",
+        "closed": true
+      },
+      "viewportReset": true,
+      "trialStateCleared": true,
+      "realAccountWrites": 0
+    },
+    "persistence": {
+      "before": {
+        "journalBytes": 482,
+        "journalRecords": 1,
+        "journalSha256": "c3b7283d8d8044a150763fdfcf5e6cafc3e5c4410eacba787d758f264fbb2c76",
+        "workspaceSha256": "fdcb202725c22f9f4fe51dc800779a2332945006e05bd55f012be900d0dd0d4a"
+      },
+      "after": {
+        "journalBytes": 482,
+        "journalRecords": 1,
+        "journalSha256": "c3b7283d8d8044a150763fdfcf5e6cafc3e5c4410eacba787d758f264fbb2c76",
+        "workspaceSha256": "fdcb202725c22f9f4fe51dc800779a2332945006e05bd55f012be900d0dd0d4a"
+      },
+      "identical": true,
+      "noMigration": true,
+      "noCreateOrSimulateRequest": true,
+      "scope": "Existing real local state only; the preview, failure and rejection paths left the entire workspace (except generatedAt) and command journal unchanged. The normal container update replayed the same journal. No backup/restore drill was repeated."
+    },
+    "review": "One independent S4 review of ae4d138 found the confidence/rejection mismatch and missing action cursors. Both were closed with narrow red-to-green checks and finding-closure review. Final review found no unresolved blocker after inspecting the actual zero-write and browser evidence. CI remained a separate release gate.",
+    "ci": {
+      "headSha": "ae4d138947bbf5203dc51a412b98640a362a92f9",
+      "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40168270555",
+      "status": "completed",
+      "conclusion": "success",
+      "platforms": {
+        "gates (macos-latest)": "success",
+        "gates (windows-latest)": "success",
+        "gates (ubuntu-latest)": "success"
+      },
+      "documentationReuse": "Subsequent receipt/README/roadmap-only commit reuses these exact-source CI, build and runtime results."
+    }
+  },
+  "localRuntime": {
+    "health": {
+      "status": "ok",
+      "timestamp": "2026-10-25T06:19:49.489Z",
+      "version": "1.0.13"
+    },
+    "webImageId": "sha256:b57901b6c9973ad24457f80c151ac31883c4b6fcc1c0066a9a1a312eb3850aad",
+    "serverImageId": "sha256:150a3423a4a5aa4a8807efaaf160a62f9af5c69501e2e7003bc9e953eaf83ad1",
+    "quantEngineImageId": "sha256:efb93a6bd3ab777ffb04f83a68e81affe5a9a0ad129d68ebae5b08de2945a44b",
+    "accountOnly": true,
+    "engineHostPortBindings": {},
+    "unauthenticatedPreviewPostStatus": 401,
+    "containers": "Only web/server/quant-engine updated, all healthy. Databases and market workers preserved; no collection, dependency, auth-model or production change.",
+    "fixedImageTags": ["kunlun-web:1.0.13", "kunlun-server:1.0.13", "kunlun-quant-engine:1.0.13"]
+  },
+  "git": {
+    "sourcePushed": true,
+    "sourceRemoteShaVerified": true,
+    "tag": "v1.0.13",
+    "tagPushed": true,
+    "tagRemoteVerified": true,
+    "tagTarget": "ae4d138947bbf5203dc51a412b98640a362a92f9",
+    "tagObject": "b1911cb44715016df664bb65b18142474ba8da43"
+  },
+  "knownLimits": [
+    "Manual price, signal strength, confidence and lot size are hypotheses. No live/daily quote is fetched or presented as an executable price; no exchange-rule inference, fees, pre/post-trade risk permission or fill is provided.",
+    "The existing ledger valuation is the allocation base. The preview is independent of global historical quote context and is not a historical replay. Results are transient and cleared by reopening or refreshing.",
+    "The retained development simulator is still outside the v1 product profile. The v1 simulations route remains rejected before parsing/forwarding; this release does not qualify full P6-N09, Phase 6 exit, Phase 7, broker access or production deployment."
+  ],
+  "screenshot": "Authenticated actual local application and explicitly labeled hypothetical result saved in ignored local work; isolated dark fixture used only for layout and was closed."
+}
