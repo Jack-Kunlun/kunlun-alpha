@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PaperReconciliationExportButton } from "./paper-reconciliation-export-button";
 import { readPaperReconciliation } from "./paper-reconciliation";
 import { formatPaperLedgerTime } from "./paper-terminal-display";
 
@@ -74,6 +75,7 @@ export function PaperReconciliationCard({
   }
   return (
     <PaperReconciliationResult
+      exportContext={{ accountId, basis }}
       actionRef={actionRef}
       report={report}
       pending={pending}
@@ -86,6 +88,7 @@ export function PaperReconciliationCard({
 
 export function PaperReconciliationResult({
   actionRef,
+  exportContext,
   report,
   pending,
   error,
@@ -93,6 +96,7 @@ export function PaperReconciliationResult({
   onCheck,
 }: {
   actionRef?: Ref<HTMLButtonElement>;
+  exportContext?: { accountId: string; basis: string };
   report: Report | null;
   pending: boolean;
   error: string | null;
@@ -200,6 +204,16 @@ export function PaperReconciliationResult({
             ) : null}
           </>
         )}
+        {exportContext ? (
+          <PaperReconciliationExportButton
+            report={report}
+            accountId={exportContext.accountId}
+            basis={exportContext.basis}
+            pending={pending}
+            disabled={disabled}
+            checkError={error}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );
