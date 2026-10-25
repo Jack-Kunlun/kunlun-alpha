@@ -8,8 +8,10 @@ import type {
 import { parsePaperWorkspaceResponse } from "./paper-workspace-response";
 import { parsePaperPreviewResponse } from "./paper-preview-response";
 import { parsePaperRiskPreviewResponse } from "./paper-risk-response";
+import { parsePaperBuyResponse } from "./paper-buy-response";
 
 export interface PaperEngineClient {
+  buyAllocation(allocation: PaperAllocationDecision): Promise<PaperTerminalWorkspace>;
   riskPreview(allocation: PaperAllocationDecision): Promise<PaperRiskDecision>;
   preview(command: PaperTerminalSimulationCommand): Promise<PaperAllocationDecision>;
   workspace(): Promise<PaperTerminalWorkspace>;
@@ -31,6 +33,7 @@ export class HttpPaperEngineClient implements PaperEngineClient {
   constructor(
     private readonly baseUrl: string,
     private readonly timeoutMs: number,
+    private readonly controlledBuyEnabled = false,
   ) {}
 
   async riskPreview(allocation: PaperAllocationDecision): Promise<PaperRiskDecision> {
@@ -40,9 +43,22 @@ export class HttpPaperEngineClient implements PaperEngineClient {
       body: JSON.stringify(allocation),
     });
     try {
-      return parsePaperRiskPreviewResponse(value, allocation);
+      return parsePaperRiskPreviewResponse(value, allocation, this.controlledBuyEnabled);
     } catch {
       throw new PaperEngineHttpError("quant-engine returned an invalid paper risk preview", 502);
+    }
+  }
+
+  async buyAllocation(allocation: PaperAllocationDecision): Promise<PaperTerminalWorkspace> {
+    const value = await this.requestRaw("/v1/paper/buy-simulations", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(allocation),
+    });
+    try {
+      return parsePaperBuyResponse(value, allocation);
+    } catch {
+      throw new PaperEngineHttpError("quant-engine returned an invalid controlled paper buy", 502);
     }
   }
 
@@ -104,7 +120,8 @@ export class HttpPaperEngineClient implements PaperEngineClient {
     if (!response.ok) {
       await response.body?.cancel().catch(() => undefined);
       const detail =
-        response.status === 409 && path === "/v1/paper/risk-previews"
+        response.status === 409 &&
+        ["/v1/paper/risk-previews", "/v1/paper/buy-simulations"].includes(path)
           ? "试算基准已变化，请重新试算"
           : response.status === 409
             ? "模拟账户已存在或请求内容冲突，请刷新账本核对"

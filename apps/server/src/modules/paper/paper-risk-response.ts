@@ -7,7 +7,7 @@ import type {
 import { parseSimulation } from "./paper-terminal.validation";
 import { parsePaperPreviewResponse, paperPreviewValidation as p } from "./paper-preview-response";
 
-const CODES = [
+export const PAPER_RISK_CODES = [
   "ACCOUNT_ACTIVE",
   "RISK_ENGINE_READY",
   "EXECUTION_CONNECTED",
@@ -67,6 +67,7 @@ export function parsePaperRiskPreviewRequest(value: unknown): PaperAllocationDec
 export function parsePaperRiskPreviewResponse(
   value: unknown,
   allocation: PaperAllocationDecision,
+  controlledBuyEnabled = false,
 ): PaperRiskDecision {
   const row = p.record(value, [
     "schemaVersion",
@@ -95,18 +96,18 @@ export function parsePaperRiskPreviewResponse(
     row.dataMeaning !== "SERVER_SIDE_RISK_NO_BROKER_PATH" ||
     row.policyId !== "paper-terminal-risk" ||
     row.policyVersion !== "1.0.0" ||
-    row.allowed !== false
+    typeof row.allowed !== "boolean"
   )
     fail();
   const time = p.timestamp(row.decisionTime);
-  if (instant(time) < instant(p.timestamp(allocation.decisionTime))) fail();
+  if (paperInstant(time) < paperInstant(p.timestamp(allocation.decisionTime))) fail();
   const policyDigest = p.digest(row.policyDigest);
   if (policyDigest !== hash(POLICY)) fail();
-  if (!Array.isArray(row.checks) || row.checks.length !== CODES.length) fail();
+  if (!Array.isArray(row.checks) || row.checks.length !== PAPER_RISK_CODES.length) fail();
   const seen = new Set<string>();
   const checks: PaperRiskCheck[] = row.checks.map((value: unknown) => {
     const r = p.record(value, ["code", "status", "actual", "limit", "explanation"]);
-    const code = CODES.find((c) => c === r.code);
+    const code = PAPER_RISK_CODES.find((c) => c === r.code);
     if (code === undefined || seen.has(code)) fail();
     seen.add(code);
     const actual = p.text(r.actual),
@@ -117,7 +118,12 @@ export function parsePaperRiskPreviewResponse(
       pass = actual === limit;
     } else if (code === "RISK_ENGINE_READY" || code === "EXECUTION_CONNECTED") {
       if (!["true", "false"].includes(actual) || limit !== "true") fail();
-      if (code === "EXECUTION_CONNECTED" && actual !== "false") fail();
+      if (
+        code === "EXECUTION_CONNECTED" &&
+        actual === "true" &&
+        (!controlledBuyEnabled || intent.side !== "BUY")
+      )
+        fail();
       pass = actual === "true";
     } else if (code === "RECONCILIATION_HEALTHY") {
       if (!["MATCHED", "DRIFTED", "UNAVAILABLE"].includes(actual) || limit !== "MATCHED") fail();
@@ -131,13 +137,13 @@ export function parsePaperRiskPreviewResponse(
       if (code === "OPEN_ORDER_LIMIT" && !/^(0|[1-9]\d*)$/.test(actual)) fail();
       if (
         code === "ORDER_NOTIONAL_LIMIT" &&
-        compare(actual, multiply(intent.referencePrice, intent.quantity)) !== 0
+        compare(actual, paperNotional(intent.referencePrice, intent.quantity)) !== 0
       )
         fail();
       if (code === "POSITION_WEIGHT_LIMIT" && compare(actual, intent.targetWeight) !== 0) fail();
       if (
         code === "DAILY_TURNOVER_LIMIT" &&
-        compare(actual, multiply(intent.referencePrice, intent.quantity)) < 0
+        compare(actual, paperNotional(intent.referencePrice, intent.quantity)) < 0
       )
         fail();
       pass = code === "CASH_AVAILABLE" ? compare(actual, limit) >= 0 : compare(actual, limit) <= 0;
@@ -146,14 +152,15 @@ export function parsePaperRiskPreviewResponse(
     if (r.status !== status) fail();
     return { code, status, actual, limit, explanation: p.text(r.explanation) };
   });
-  if (checks.every((c) => c.status === "PASS")) fail();
+  const allowed = checks.every((c) => c.status === "PASS");
+  if (row.allowed !== allowed) fail();
   const result: PaperRiskDecision = {
     schemaVersion: "paper-risk-decision-v1",
     decisionId: p.digest(row.decisionId),
     accountId: allocation.accountId,
     intentId: intent.intentId,
     decisionTime: time,
-    allowed: false,
+    allowed,
     checks,
     accountStateDigest: allocation.accountStateDigest,
     executionStateDigest: p.digest(row.executionStateDigest),
@@ -191,7 +198,7 @@ function compare(a: string, b: string): number {
     y = scaled(b, scale);
   return x < y ? -1 : x > y ? 1 : 0;
 }
-function multiply(price: string, quantity: number): string {
+export function paperNotional(price: string, quantity: number): string {
   const [whole = "0", fraction = ""] = price.split(".");
   const digits = (BigInt(whole + fraction) * BigInt(quantity))
     .toString()
@@ -200,7 +207,7 @@ function multiply(price: string, quantity: number): string {
     ? digits
     : digits.slice(0, -fraction.length) + "." + digits.slice(-fraction.length);
 }
-function instant(value: string): bigint {
+export function paperInstant(value: string): bigint {
   const fraction = /\.(\d+)(?=Z|[+-])/.exec(value)?.[1] ?? "";
   return (
     BigInt(Date.parse(value.replace(/\.\d+(?=Z|[+-])/, ""))) * 1000000n +

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { PaperTerminalWorkspace } from "@kunlun/shared-types";
 import { ApiError, apiClient } from "@/lib/api-client";
 import {
   capturePaperRiskContext,
@@ -14,7 +15,11 @@ import {
   type PaperPreviewDisplay,
 } from "./paper-preview";
 
-export function usePaperPreview(accountId: string) {
+export function usePaperPreview(
+  accountId: string,
+  onCommitted?: (workspace: PaperTerminalWorkspace) => void,
+  onBuyBusy?: (busy: boolean) => void,
+) {
   const [result, setResult] = useState<PaperPreviewDisplay | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +27,8 @@ export function usePaperPreview(accountId: string) {
   const [risk, setRisk] = useState<PaperRiskView | null>(null);
   const [riskPending, setRiskPending] = useState(false);
   const [riskError, setRiskError] = useState<string | null>(null);
+  const [buyPending, setBuyPending] = useState(false);
+  const [buyError, setBuyError] = useState<string | null>(null);
   const busy = useRef(false),
     generation = useRef(0);
   useEffect(
@@ -37,6 +44,7 @@ export function usePaperPreview(accountId: string) {
     setContext(null);
     setRisk(null);
     setRiskError(null);
+    setBuyError(null);
   }
   async function preview(values: PaperPreviewFormValues): Promise<boolean> {
     if (busy.current) return false;
@@ -94,5 +102,46 @@ export function usePaperPreview(accountId: string) {
       setRiskPending(false);
     }
   }
-  return { result, pending, error, risk, riskPending, riskError, clear, preview, checkRisk };
+  async function buy(): Promise<boolean> {
+    if (context === null || context.side !== "BUY" || risk?.allowed !== true || busy.current)
+      return false;
+    busy.current = true;
+    setBuyPending(true);
+    onBuyBusy?.(true);
+    setBuyError(null);
+    try {
+      const value = await apiClient.post<unknown, PaperTerminalWorkspace>(
+        "/v1/paper/buy-simulations",
+        context.allocation,
+      );
+      onCommitted?.(value);
+      clear();
+      return true;
+    } catch (error) {
+      setBuyError(
+        error instanceof ApiError && error.status === 409
+          ? "试算基准已变化，请重新试算。"
+          : "模拟买入结果暂无法确认，试算已保留。请刷新账本核对，或重试本次提交。",
+      );
+      return false;
+    } finally {
+      busy.current = false;
+      setBuyPending(false);
+      onBuyBusy?.(false);
+    }
+  }
+  return {
+    result,
+    pending,
+    error,
+    risk,
+    riskPending,
+    riskError,
+    buyPending,
+    buyError,
+    clear,
+    preview,
+    checkRisk,
+    buy,
+  };
 }

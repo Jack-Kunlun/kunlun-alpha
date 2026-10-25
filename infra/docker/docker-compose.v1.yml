@@ -29,6 +29,7 @@ services:
       MARKET_DATA_STATUS_PROVIDER: akshare
       MARKET_DATA_QUALITY_PUBLIC_ROOT: /workspace/var/market-quality-public
       PAPER_TERMINAL_ACCOUNT_ONLY: "true"
+      PAPER_TERMINAL_CONTROLLED_BUY_ENABLED: ${V1_PAPER_BUY_ENABLED:-true}
     volumes:
       - kunlun-market-status:/workspace/var/market-status-public:ro
       - kunlun-market-quality-public:/workspace/var/market-quality-public:ro
@@ -51,6 +52,8 @@ services:
     profiles: !override []
     # Internal account ledger only; the authenticated control plane owns access.
     ports: !override []
+    environment:
+      KUNLUN_PAPER_CONTROLLED_BUY_ENABLED: ${V1_PAPER_BUY_ENABLED:-true}
 
   market-data-sync:
     environment:

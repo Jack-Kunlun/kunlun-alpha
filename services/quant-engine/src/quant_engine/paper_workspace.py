@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal, localcontext
 from hashlib import sha256
 from pathlib import Path
 from threading import RLock
@@ -61,6 +61,7 @@ from paper_core import (
 )
 from quant_core.strategy import Signal, SignalDirection
 
+from .paper_buy import ControlledBuyPlan, build_buy_plan, buy_request_id
 from .paper_journal import PaperCommandJournal, PaperCommandJournalError, PaperJournalEntry
 from .paper_preview import preview_allocation
 from .paper_risk_preview import preview_risk_decision
@@ -84,6 +85,10 @@ class PaperWorkspaceConflictError(PaperWorkspaceError):
     """Idempotency or single-workspace conflict."""
 
 
+class PaperWorkspaceUnavailableError(PaperWorkspaceError):
+    """A journal outcome is uncertain; restart and replay before further use."""
+
+
 def _digest(value: str) -> str:
     return sha256(value.encode("utf-8")).hexdigest()
 
@@ -102,8 +107,12 @@ class PaperWorkspace:
         self,
         clock: Callable[[], datetime] | None = None,
         journal_path: Path | None = None,
+        *,
+        controlled_buy_enabled: bool = False,
     ) -> None:
         self._clock = clock or (lambda: datetime.now(tz=SHANGHAI))
+        self._controlled_buy_enabled = controlled_buy_enabled
+        self._write_failed = False
         self._lock = RLock()
         self._store = InMemoryPaperAccountEventStore()
         self._account_id: str | None = None
@@ -128,6 +137,7 @@ class PaperWorkspace:
         command = PaperTerminalCreateAccountCommand.model_validate(raw)
         fingerprint = _digest(command.model_dump_json(by_alias=True))
         with self._lock:
+            self._assert_usable()
             if self._accept_retry(command.client_request_id, fingerprint):
                 return self.snapshot()
             if self._account_id is not None:
@@ -148,7 +158,7 @@ class PaperWorkspace:
             if self.snapshot()["status"] != "READY":
                 raise PaperWorkspaceError("账本存在异常，暂不提供仓位试算")
             try:
-                return preview_allocation(self._state(tape), command, self._now())
+                return preview_allocation(self._preview_state(tape), command, self._now())
             except ValueError as error:
                 raise PaperWorkspaceError(str(error)) from error
 
@@ -160,7 +170,7 @@ class PaperWorkspace:
             raise PaperWorkspaceError("请使用未改写的仓位试算快照")
         with self._lock:
             tape = self._account_tape()
-            state = self._state(tape)
+            state = self._preview_state(tape)
             if (
                 allocation.account_id != state.account_id
                 or allocation.account_state_digest != state.state_digest
@@ -172,20 +182,86 @@ class PaperWorkspace:
             execution_tape = self._execution_tape()
             try:
                 reconciliation = self._reconcile(tape, execution_tape, now)
+                connected = False
+                if self._controlled_buy_enabled and self._journal is not None:
+                    try:
+                        self._plan_buy(allocation, now)
+                        connected = True
+                    except ValueError:
+                        pass
                 return preview_risk_decision(
                     state,
                     replay_execution(execution_tape),
                     ReconciliationHealth(reconciliation.status.value),
                     allocation,
                     now,
+                    execution_connected=connected,
                 )
             except ValueError as error:
                 raise PaperWorkspaceError(str(error)) from error
+
+    def buy_allocation(self, raw: Mapping[str, object]) -> dict[str, object]:
+        allocation = AllocationContract.model_validate_json(
+            json.dumps(dict(raw), allow_nan=False), strict=True
+        )
+        if dict(raw) != allocation.model_dump(by_alias=True, mode="json"):
+            raise PaperWorkspaceError("请使用未改写的仓位试算快照")
+        with self._lock:
+            self._assert_usable()
+            if not self._controlled_buy_enabled or self._journal is None:
+                raise PaperWorkspaceError("受控模拟买入未启用或缺少持久化日志")
+            request_id = buy_request_id(allocation)
+            fingerprint = _digest(allocation.model_dump_json(by_alias=True))
+            if self._accept_retry(request_id, fingerprint):
+                return self.snapshot()
+            now = self._now()
+            plan = self._plan_buy(allocation, now)
+            original = self._account_tape()
+            try:
+                self._append_command(
+                    "BUY_ALLOCATION_V1", now, allocation.model_dump(by_alias=True, mode="json")
+                )
+                self._commit_buy(plan, original, request_id, fingerprint)
+                return self.snapshot()
+            except Exception as error:
+                self._write_failed = True
+                raise PaperWorkspaceUnavailableError("模拟写入结果需要重启并重放核对") from error
+
+    def _plan_buy(self, allocation: AllocationContract, now: datetime) -> ControlledBuyPlan:
+        tape = self._account_tape()
+        state = self._preview_state(tape)
+        if (
+            allocation.account_id != state.account_id
+            or allocation.account_state_digest != state.state_digest
+        ):
+            raise PaperWorkspaceConflictError("试算基准已变化，请重新试算")
+        if self.snapshot()["status"] != "READY" or self._opening_book is None:
+            raise PaperWorkspaceError("账本存在异常，停止模拟买入")
+        try:
+            return build_buy_plan(
+                tape, self._execution_tape(), self._opening_book, self._marks, allocation, now
+            )
+        except ValueError as error:
+            raise PaperWorkspaceError(str(error)) from error
+
+    def _commit_buy(
+        self, plan: ControlledBuyPlan, original: PaperAccountTape, request_id: str, fingerprint: str
+    ) -> None:
+        tape = original
+        for event in plan.account.events[len(original.events) :]:
+            tape = self._store.append(event, expected_tape_digest=tape.tape_digest)
+        self._execution = plan.execution
+        self._marks = plan.marks
+        self._latest_allocation = plan.allocation
+        self._latest_risk = plan.risk
+        self._latest_reconciliation = plan.reconciliation
+        self._record_request(request_id, fingerprint)
 
     def simulate(self, raw: Mapping[str, object]) -> dict[str, object]:
         command = PaperTerminalSimulationCommand.model_validate(raw)
         fingerprint = _digest(command.model_dump_json(by_alias=True))
         with self._lock:
+            self._assert_usable()
             if self._accept_retry(command.client_request_id, fingerprint):
                 return self.snapshot()
             tape = self._account_tape()
@@ -350,6 +426,7 @@ class PaperWorkspace:
 
     def snapshot(self) -> dict[str, object]:
         with self._lock:
+            self._assert_usable()
             now = self._now()
             if self._account_id is None:
                 return self._validated(
@@ -618,6 +695,7 @@ class PaperWorkspace:
         )
 
     def _account_tape(self) -> PaperAccountTape:
+        self._assert_usable()
         if self._account_id is None:
             raise PaperWorkspaceError("请先创建模拟账户")
         tape = self._store.load(self._account_id)
@@ -636,6 +714,16 @@ class PaperWorkspace:
         if state is None:
             raise PaperWorkspaceError("模拟账户尚未建立")
         return state
+
+    @staticmethod
+    def _preview_state(tape: PaperAccountTape) -> PaperAccountState:
+        # Preview allocation validates the digest inside its 128-digit context.
+        # Use that same context for its input identity; leave legacy command
+        # replay and compact ledger rendering on their historical path.
+        with localcontext() as context:
+            context.prec = 128
+            context.rounding = ROUND_HALF_EVEN
+            return PaperWorkspace._state(tape)
 
     def _accept_retry(self, client_request_id: str, fingerprint: str) -> bool:
         previous = self._requests.get(client_request_id)
@@ -672,6 +760,19 @@ class PaperWorkspace:
             raise PaperWorkspaceError(f"无法持久化模拟命令：{error}") from error
 
     def _replay(self, entry: PaperJournalEntry) -> None:
+        if entry.kind == "BUY_ALLOCATION_V1":
+            allocation = AllocationContract.model_validate_json(
+                json.dumps(entry.command), strict=True
+            )
+            request_id = buy_request_id(allocation)
+            fingerprint = _digest(allocation.model_dump_json(by_alias=True))
+            if self._accept_retry(request_id, fingerprint):
+                raise PaperCommandJournalError("journal contains a duplicate command")
+            original = self._account_tape()
+            self._commit_buy(
+                self._plan_buy(allocation, entry.occurred_at), original, request_id, fingerprint
+            )
+            return
         if entry.kind == "CREATE_ACCOUNT":
             command = PaperTerminalCreateAccountCommand.model_validate(entry.command)
             fingerprint = _digest(command.model_dump_json(by_alias=True))
@@ -690,6 +791,14 @@ class PaperWorkspace:
             self._apply_simulation(command, fingerprint, entry.occurred_at, tape)
             return
         raise PaperCommandJournalError("journal command kind is unsupported")
+
+    def _assert_usable(self) -> None:
+        if self._write_failed:
+            raise PaperWorkspaceUnavailableError("模拟写入结果需要重启并重放核对")
+
+    @property
+    def available(self) -> bool:
+        return not self._write_failed
 
     def _now(self) -> datetime:
         value = self._clock()

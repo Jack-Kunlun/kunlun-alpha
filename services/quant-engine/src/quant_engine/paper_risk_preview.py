@@ -7,6 +7,7 @@ from ashare_contracts import PaperAllocationDecision as AllocationContract
 from ashare_contracts import PaperRiskDecision as RiskContract
 from paper_core import (
     PaperAccountState,
+    PaperAllocationDecision,
     PaperExecutionProjection,
     PaperMarketQuote,
     PaperRiskEnvironment,
@@ -18,6 +19,16 @@ from quant_core.strategy import Signal, SignalDirection
 
 from .paper_preview import allocate_preview_inputs
 
+PREVIEW_RISK_POLICY = PaperRiskPolicy(
+    "paper-terminal-risk",
+    "1.0.0",
+    Decimal("100000000"),
+    Decimal("0.35"),
+    Decimal("1000000000"),
+    20,
+    Decimal("0"),
+)
+
 
 def preview_risk_decision(
     account: PaperAccountState,
@@ -25,7 +36,28 @@ def preview_risk_decision(
     reconciliation: ReconciliationHealth,
     snapshot: AllocationContract,
     now: datetime,
+    *,
+    execution_connected: bool = False,
 ) -> dict[str, object]:
+    allocation = validate_allocation_snapshot(account, snapshot, now)
+    with localcontext() as context:
+        context.prec = 128
+        risk = evaluate_pretrade_risk(
+            allocation.intents[0],
+            account=account,
+            execution=execution,
+            decision_time=now,
+            policy=PREVIEW_RISK_POLICY,
+            # Availability refers only to the separately guarded local paper adapter.
+            # Reconciliation is always derived from actual books.
+            environment=PaperRiskEnvironment(True, execution_connected, reconciliation),
+        )
+    return RiskContract.model_validate(risk.payload()).model_dump(by_alias=True, mode="json")
+
+
+def validate_allocation_snapshot(
+    account: PaperAccountState, snapshot: AllocationContract, now: datetime
+) -> PaperAllocationDecision:
     if (
         snapshot.account_id != account.account_id
         or snapshot.account_state_digest != account.state_digest
@@ -78,24 +110,4 @@ def preview_risk_decision(
         by_alias=True, mode="json"
     ):
         raise ValueError("仓位试算快照与当前计算不一致，请重新试算")
-    with localcontext() as context:
-        context.prec = 128
-        risk = evaluate_pretrade_risk(
-            allocation.intents[0],
-            account=account,
-            execution=execution,
-            decision_time=now,
-            policy=PaperRiskPolicy(
-                "paper-terminal-risk",
-                "1.0.0",
-                Decimal("100000000"),
-                Decimal("0.35"),
-                Decimal("1000000000"),
-                20,
-                Decimal("0"),
-            ),
-            # The evaluator is running locally; v1 exposes no simulation
-            # execution channel. Reconciliation is derived from actual books.
-            environment=PaperRiskEnvironment(True, False, reconciliation),
-        )
-    return RiskContract.model_validate(risk.payload()).model_dump(by_alias=True, mode="json")
+    return allocation

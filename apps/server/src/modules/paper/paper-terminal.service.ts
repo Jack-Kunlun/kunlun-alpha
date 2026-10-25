@@ -14,7 +14,11 @@ import type {
   PaperTerminalWorkspace,
 } from "@kunlun/shared-types";
 import { PaperEngineHttpError, type PaperEngineClient } from "./paper-engine.client";
-import { PAPER_ENGINE_CLIENT, PAPER_TERMINAL_ACCOUNT_ONLY } from "./paper-terminal.tokens";
+import {
+  PAPER_ENGINE_CLIENT,
+  PAPER_TERMINAL_ACCOUNT_ONLY,
+  PAPER_CONTROLLED_BUY_ENABLED,
+} from "./paper-terminal.tokens";
 import {
   PaperTerminalValidationError,
   parseCreateAccount,
@@ -27,6 +31,7 @@ export class PaperTerminalService {
   constructor(
     @Inject(PAPER_ENGINE_CLIENT) private readonly client: PaperEngineClient,
     @Inject(PAPER_TERMINAL_ACCOUNT_ONLY) private readonly accountOnly = false,
+    @Inject(PAPER_CONTROLLED_BUY_ENABLED) private readonly controlledBuyEnabled = false,
   ) {}
 
   async workspace(): Promise<PaperTerminalWorkspace> {
@@ -63,6 +68,19 @@ export class PaperTerminalService {
       throw new BadRequestException("请提供一份有效的仓位试算结果");
     }
     return this.execute(() => this.client.riskPreview(allocation));
+  }
+
+  async buyAllocation(body: unknown): Promise<PaperTerminalWorkspace> {
+    if (!this.controlledBuyEnabled) throw new ForbiddenException("受控模拟买入尚未启用");
+    let allocation: PaperAllocationDecision;
+    try {
+      allocation = parsePaperRiskPreviewRequest(body);
+    } catch {
+      throw new BadRequestException("请提供一份有效的仓位试算结果");
+    }
+    if (allocation.intents[0]?.side !== "BUY")
+      throw new BadRequestException("当前仅支持受控模拟买入");
+    return this.execute(() => this.client.buyAllocation(allocation));
   }
 
   private parseCreate(body: unknown): PaperTerminalCreateAccountCommand {

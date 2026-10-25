@@ -4,8 +4,10 @@ export interface PaperRiskContext {
   intentId: string;
   accountStateDigest: string;
   decisionTime: string;
+  side: "BUY" | "SELL";
 }
 export interface PaperRiskView {
+  allowed: boolean;
   time: string;
   policyVersion: string;
   rows: Array<{ code: string; name: string; passed: boolean; actual: string; limit: string }>;
@@ -13,7 +15,7 @@ export interface PaperRiskView {
 const NAMES = {
   ACCOUNT_ACTIVE: "账户状态",
   RISK_ENGINE_READY: "风险检查引擎",
-  EXECUTION_CONNECTED: "模拟执行入口",
+  EXECUTION_CONNECTED: "受控模拟买入入口",
   RECONCILIATION_HEALTHY: "本次账簿核对",
   ORDER_NOTIONAL_LIMIT: "单笔假设金额（CNY）",
   POSITION_WEIGHT_LIMIT: "目标集中度比例",
@@ -59,7 +61,8 @@ export function capturePaperRiskContext(value: unknown): PaperRiskContext {
     intent.accountId !== accountId ||
     intent.decisionTime !== decisionTime ||
     intent.brokerExecutable !== false ||
-    intent.executionCapability !== "PAPER_ONLY"
+    intent.executionCapability !== "PAPER_ONLY" ||
+    (intent.side !== "BUY" && intent.side !== "SELL")
   )
     fail();
   return {
@@ -68,6 +71,7 @@ export function capturePaperRiskContext(value: unknown): PaperRiskContext {
     decisionTime,
     intentId: digest(intent.intentId),
     accountStateDigest: digest(row.accountStateDigest),
+    side: intent.side,
   };
 }
 function display(code: string, value: unknown): string {
@@ -90,7 +94,7 @@ export function readPaperRiskPreview(value: unknown, context: PaperRiskContext):
     row.schemaVersion !== "paper-risk-decision-v1" ||
     row.dataMeaning !== "SERVER_SIDE_RISK_NO_BROKER_PATH" ||
     row.executionCapability !== "PAPER_ONLY" ||
-    row.allowed !== false ||
+    typeof row.allowed !== "boolean" ||
     row.accountId !== context.accountId ||
     row.intentId !== context.intentId ||
     row.accountStateDigest !== context.accountStateDigest ||
@@ -114,7 +118,7 @@ export function readPaperRiskPreview(value: unknown, context: PaperRiskContext):
     )
       fail();
     seen.add(code);
-    if (code === "EXECUTION_CONNECTED" && (check.actual !== "false" || check.status !== "FAIL"))
+    if (code === "EXECUTION_CONNECTED" && (check.status === "PASS") !== (check.actual === "true"))
       fail();
     return {
       code,
@@ -124,5 +128,7 @@ export function readPaperRiskPreview(value: unknown, context: PaperRiskContext):
       limit: display(code, check.limit),
     };
   });
-  return { time: decisionTime, policyVersion: "1.0.0", rows };
+  const allowed = rows.every((row) => row.passed);
+  if (row.allowed !== allowed || (allowed && context.side !== "BUY")) fail();
+  return { allowed, time: decisionTime, policyVersion: "1.0.0", rows };
 }

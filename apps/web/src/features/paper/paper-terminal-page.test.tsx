@@ -42,7 +42,8 @@ describe("PaperTerminalPage", () => {
     expect(html).not.toContain("99999");
     expect(html).not.toContain("30000");
     expect(html).not.toContain("执行模拟闭环");
-    expect(html).not.toContain("模拟订单");
+    expect(html).toContain("模拟订单记录");
+    expect(html).toContain("已模拟成交");
     expect(html).not.toContain("风控与对账");
     expect(html).not.toContain("FILLED");
     expect(html).not.toContain("MATCHED");
@@ -150,6 +151,7 @@ function model(
     workspace,
     state,
     submitting: false,
+    accept: vi.fn(),
     refresh: vi.fn().mockResolvedValue(undefined),
     createAccount: vi.fn().mockResolvedValue(undefined),
   } as ReturnType<typeof usePaperTerminal>;

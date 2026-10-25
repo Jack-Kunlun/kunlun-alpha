@@ -59,6 +59,7 @@ data/fixtures/*
 !data/fixtures/limit-pool-terminal-local.json
 !data/fixtures/offline-market-replay-v1.json
 !data/fixtures/paper-risk-preview-v1.json
+!data/fixtures/paper-controlled-buy-v1.json
 !data/reference/
 data/reference/*
 !data/reference/local-terminal-instruments-v1.json

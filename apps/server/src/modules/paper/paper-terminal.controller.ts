@@ -39,4 +39,11 @@ export class PaperTerminalController {
   simulate(@Body() body: unknown) {
     return this.service.simulate(body);
   }
+
+  @Post("buy-simulations")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Confirm a buy-only paper fill from an unchanged allocation snapshot" })
+  buyAllocation(@Body() body: unknown) {
+    return this.service.buyAllocation(body);
+  }
 }

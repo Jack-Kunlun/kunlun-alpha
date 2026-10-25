@@ -28,7 +28,8 @@ def main() -> int:
         None if state_root is None else state_root / "ranking-snapshots"
     )
     workspace = PaperWorkspace(
-        journal_path=None if state_root is None else state_root / "paper-workspace.jsonl"
+        journal_path=None if state_root is None else state_root / "paper-workspace.jsonl",
+        controlled_buy_enabled=os.environ.get("KUNLUN_PAPER_CONTROLLED_BUY_ENABLED") == "true",
     )
     server = QuantEngineHttpServer(host, port, workspace, ranking_store)
     stopped = threading.Event()

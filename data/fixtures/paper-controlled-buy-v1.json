@@ -1,0 +1,448 @@
+{
+  "fixtureOnly": true,
+  "description": "Fixed-clock isolated synthetic paper buy for tests; never runtime data.",
+  "allocation": {
+    "schemaVersion": "paper-allocation-decision-v1",
+    "decisionId": "30ad454b67c1b5bd58ff3ca100b7d136fa94e2a40278e4ec635c7585ede238aa",
+    "accountId": "133f8074d104c102fc0b548b3b9ec7d3753e80a6b26062cbccc7ab906c21fc62",
+    "decisionTime": "2026-10-25T02:00:00Z",
+    "accountStateDigest": "3152dcecc4648461fe79dfad0108634a01031ecc47a6004b3d60a17bf30c1ce1",
+    "policyId": "paper-preview-allocation",
+    "policyVersion": "1.0.0",
+    "policyDigest": "4b50ba955748f2a4721135436e99878a78acfe59fe7bddba048439bd8634d4f6",
+    "targets": [
+      {
+        "instrumentId": "600519.SH",
+        "sourceSignalIds": ["b1d541f41550adbefcbe1119bdb989dbe533aeb25bc15cc92b9c5774e920fe6d"],
+        "currentQuantity": 0,
+        "targetQuantity": 300,
+        "targetWeight": "0.3",
+        "referencePrice": "100",
+        "roundingLotSize": 100,
+        "explanation": "目标权重 0.3，按 100 股交易单位从 0 股调整到 300 股"
+      }
+    ],
+    "intents": [
+      {
+        "schemaVersion": "paper-order-intent-v1",
+        "intentId": "a700e86646b0216defebd9e7901bc2226e4e688896e0f62fca2d7936a920fdc4",
+        "accountId": "133f8074d104c102fc0b548b3b9ec7d3753e80a6b26062cbccc7ab906c21fc62",
+        "sourceSignalIds": ["b1d541f41550adbefcbe1119bdb989dbe533aeb25bc15cc92b9c5774e920fe6d"],
+        "instrumentId": "600519.SH",
+        "decisionTime": "2026-10-25T02:00:00Z",
+        "side": "BUY",
+        "quantity": 300,
+        "referencePrice": "100",
+        "targetQuantity": 300,
+        "targetWeight": "0.3",
+        "policyId": "paper-preview-allocation",
+        "policyVersion": "1.0.0",
+        "policyDigest": "4b50ba955748f2a4721135436e99878a78acfe59fe7bddba048439bd8634d4f6",
+        "explanation": "目标权重 0.3，按 100 股交易单位从 0 股调整到 300 股",
+        "brokerExecutable": false,
+        "executionCapability": "PAPER_ONLY"
+      }
+    ],
+    "rejections": [],
+    "decisionDigest": "30ad454b67c1b5bd58ff3ca100b7d136fa94e2a40278e4ec635c7585ede238aa",
+    "executionCapability": "PAPER_ONLY",
+    "dataMeaning": "INTENT_ONLY_NO_BROKER_PATH"
+  },
+  "risk": {
+    "schemaVersion": "paper-risk-decision-v1",
+    "decisionId": "08fe79579c1d58cfe332074fa88d1a095003ac2e49d36b30a550bf5a0593b7c7",
+    "accountId": "133f8074d104c102fc0b548b3b9ec7d3753e80a6b26062cbccc7ab906c21fc62",
+    "intentId": "a700e86646b0216defebd9e7901bc2226e4e688896e0f62fca2d7936a920fdc4",
+    "decisionTime": "2026-10-25T02:00:00Z",
+    "allowed": true,
+    "checks": [
+      {
+        "code": "ACCOUNT_ACTIVE",
+        "status": "PASS",
+        "actual": "ACTIVE",
+        "limit": "ACTIVE",
+        "explanation": "账户必须处于 ACTIVE 状态"
+      },
+      {
+        "code": "RISK_ENGINE_READY",
+        "status": "PASS",
+        "actual": "true",
+        "limit": "true",
+        "explanation": "风控引擎不可用时拒绝新意图"
+      },
+      {
+        "code": "EXECUTION_CONNECTED",
+        "status": "PASS",
+        "actual": "true",
+        "limit": "true",
+        "explanation": "模拟执行边界断连时拒绝新意图"
+      },
+      {
+        "code": "RECONCILIATION_HEALTHY",
+        "status": "PASS",
+        "actual": "MATCHED",
+        "limit": "MATCHED",
+        "explanation": "仅在最近一次账簿对账一致时允许新意图"
+      },
+      {
+        "code": "ORDER_NOTIONAL_LIMIT",
+        "status": "PASS",
+        "actual": "30000",
+        "limit": "100000000",
+        "explanation": "单笔参考名义金额不得超过策略上限"
+      },
+      {
+        "code": "POSITION_WEIGHT_LIMIT",
+        "status": "PASS",
+        "actual": "0.3",
+        "limit": "0.35",
+        "explanation": "目标持仓权重不得超过风控集中度上限"
+      },
+      {
+        "code": "DAILY_TURNOVER_LIMIT",
+        "status": "PASS",
+        "actual": "30000",
+        "limit": "1000000000",
+        "explanation": "当日已成交金额加当前意图不得超过换手上限"
+      },
+      {
+        "code": "OPEN_ORDER_LIMIT",
+        "status": "PASS",
+        "actual": "0",
+        "limit": "20",
+        "explanation": "活动模拟订单数量不得超过上限"
+      },
+      {
+        "code": "CASH_AVAILABLE",
+        "status": "PASS",
+        "actual": "70000",
+        "limit": "0",
+        "explanation": "扣除其他活动买单和当前买单后必须保留最低现金"
+      },
+      {
+        "code": "PAPER_ONLY_BOUNDARY",
+        "status": "PASS",
+        "actual": "PAPER_ONLY",
+        "limit": "PAPER_ONLY",
+        "explanation": "风控只接受永久模拟隔离的 OrderIntent"
+      }
+    ],
+    "accountStateDigest": "3152dcecc4648461fe79dfad0108634a01031ecc47a6004b3d60a17bf30c1ce1",
+    "executionStateDigest": "8579a5141068110333f25ae8d81ac1aeae832be0873695462532be0602ec97bf",
+    "policyId": "paper-terminal-risk",
+    "policyVersion": "1.0.0",
+    "policyDigest": "3e381213db9280f069d5020077b23d0f78777b38ba46632e9a29e115e6d06de7",
+    "executionCapability": "PAPER_ONLY",
+    "dataMeaning": "SERVER_SIDE_RISK_NO_BROKER_PATH"
+  },
+  "completed": {
+    "schemaVersion": "paper-terminal-workspace-v1",
+    "status": "READY",
+    "dataMeaning": "SIMULATION_ONLY_NO_BROKER_PATH",
+    "executionCapability": "PAPER_ONLY",
+    "persistenceMode": "DURABLE_COMMAND_JOURNAL",
+    "generatedAt": "2026-10-25T10:00:00+08:00",
+    "limitations": [
+      "本地单实例模拟命令使用哈希日志恢复；日志损坏时服务会拒绝加载。",
+      "仅执行模拟撮合，不连接真实账户或券商，也不会生成真实订单。"
+    ],
+    "account": {
+      "accountId": "133f8074d104c102fc0b548b3b9ec7d3753e80a6b26062cbccc7ab906c21fc62",
+      "name": "隔离模拟买入",
+      "status": "ACTIVE",
+      "baseCurrency": "CNY",
+      "initialCapital": "100000",
+      "cash": "69991",
+      "nav": "99991",
+      "dataCutoffTime": "2026-10-25T10:00:00+08:00",
+      "eventCount": 4,
+      "eventChainDigest": "4086037c5ce3b33182b98da72a56a2a4f4111575230f65913fe1e65ca89a2f37",
+      "positions": [
+        {
+          "instrumentId": "600519.SH",
+          "quantity": 300,
+          "availableQuantity": 0,
+          "costAmount": "30009",
+          "marketValue": "30000"
+        }
+      ]
+    },
+    "latestAllocation": {
+      "decisionId": "30ad454b67c1b5bd58ff3ca100b7d136fa94e2a40278e4ec635c7585ede238aa",
+      "policyId": "paper-preview-allocation",
+      "policyVersion": "1.0.0",
+      "intentCount": 1,
+      "rejectionCount": 0,
+      "rejections": []
+    },
+    "orders": [
+      {
+        "orderId": "faf548aa22523e5c5cfa5bcc448badf815f5a48a7fcc0f4feda1810fcdad9cd3",
+        "instrumentId": "600519.SH",
+        "side": "BUY",
+        "status": "FILLED",
+        "quantity": 300,
+        "filledQuantity": 300,
+        "averageFillPrice": "100",
+        "totalFees": "9",
+        "explanation": "目标权重 0.3，按 100 股交易单位从 0 股调整到 300 股",
+        "updatedAt": "2026-10-25T10:00:00+08:00"
+      }
+    ],
+    "latestRisk": {
+      "decisionId": "ed7d1dffbc854240ea5b7fbe6f5fbc19ac4eb40337eb4d9fe0fdedde12dd0167",
+      "allowed": true,
+      "policyId": "paper-terminal-risk",
+      "policyVersion": "1.0.0",
+      "checks": [
+        {
+          "code": "ACCOUNT_ACTIVE",
+          "status": "PASS",
+          "actual": "ACTIVE",
+          "limit": "ACTIVE",
+          "explanation": "账户必须处于 ACTIVE 状态"
+        },
+        {
+          "code": "RISK_ENGINE_READY",
+          "status": "PASS",
+          "actual": "true",
+          "limit": "true",
+          "explanation": "风控引擎不可用时拒绝新意图"
+        },
+        {
+          "code": "EXECUTION_CONNECTED",
+          "status": "PASS",
+          "actual": "true",
+          "limit": "true",
+          "explanation": "模拟执行边界断连时拒绝新意图"
+        },
+        {
+          "code": "RECONCILIATION_HEALTHY",
+          "status": "PASS",
+          "actual": "MATCHED",
+          "limit": "MATCHED",
+          "explanation": "仅在最近一次账簿对账一致时允许新意图"
+        },
+        {
+          "code": "ORDER_NOTIONAL_LIMIT",
+          "status": "PASS",
+          "actual": "30000",
+          "limit": "100000000",
+          "explanation": "单笔参考名义金额不得超过策略上限"
+        },
+        {
+          "code": "POSITION_WEIGHT_LIMIT",
+          "status": "PASS",
+          "actual": "0.3",
+          "limit": "0.35",
+          "explanation": "目标持仓权重不得超过风控集中度上限"
+        },
+        {
+          "code": "DAILY_TURNOVER_LIMIT",
+          "status": "PASS",
+          "actual": "30000",
+          "limit": "1000000000",
+          "explanation": "当日已成交金额加当前意图不得超过换手上限"
+        },
+        {
+          "code": "OPEN_ORDER_LIMIT",
+          "status": "PASS",
+          "actual": "1",
+          "limit": "20",
+          "explanation": "活动模拟订单数量不得超过上限"
+        },
+        {
+          "code": "CASH_AVAILABLE",
+          "status": "PASS",
+          "actual": "70000",
+          "limit": "0",
+          "explanation": "扣除其他活动买单和当前买单后必须保留最低现金"
+        },
+        {
+          "code": "PAPER_ONLY_BOUNDARY",
+          "status": "PASS",
+          "actual": "PAPER_ONLY",
+          "limit": "PAPER_ONLY",
+          "explanation": "风控只接受永久模拟隔离的 OrderIntent"
+        }
+      ]
+    },
+    "reconciliation": {
+      "reconciliationId": "85e8940c6dce5ba4bf1b1f56cd9bc0d9a70ac99ccab5d523f2113bf75583edca",
+      "status": "MATCHED",
+      "asOf": "2026-10-25T10:00:00+08:00",
+      "duplicateFillCount": 0,
+      "diffs": []
+    },
+    "audit": {
+      "accountEventCount": 4,
+      "executionEventCount": 4,
+      "orderAuditCount": 4,
+      "alertCount": 0,
+      "accountDigest": "71a4c8722e1d15163e589431ffb7277fe4d46d0567424c0dd33be04ffa305e38",
+      "executionDigest": "c9ac0977b6f92a398b485f7598e7131e0165f1a408503ce01f393d0cc38824a7",
+      "lastClientRequestId": "buy:30ad454b67c1b5bd58ff3ca100b7d136fa94e2a40278e4ec635c7585ede238aa"
+    }
+  },
+  "retryAfterNextBuy": {
+    "schemaVersion": "paper-terminal-workspace-v1",
+    "status": "READY",
+    "dataMeaning": "SIMULATION_ONLY_NO_BROKER_PATH",
+    "executionCapability": "PAPER_ONLY",
+    "persistenceMode": "DURABLE_COMMAND_JOURNAL",
+    "generatedAt": "2026-10-25T10:00:00+08:00",
+    "limitations": [
+      "本地单实例模拟命令使用哈希日志恢复；日志损坏时服务会拒绝加载。",
+      "仅执行模拟撮合，不连接真实账户或券商，也不会生成真实订单。"
+    ],
+    "account": {
+      "accountId": "133f8074d104c102fc0b548b3b9ec7d3753e80a6b26062cbccc7ab906c21fc62",
+      "name": "隔离模拟买入",
+      "status": "ACTIVE",
+      "baseCurrency": "CNY",
+      "initialCapital": "100000",
+      "cash": "59988",
+      "nav": "84988",
+      "dataCutoffTime": "2026-10-25T10:00:00+08:00",
+      "eventCount": 6,
+      "eventChainDigest": "54f3c13b9e9ce20d571f36099502a87e5d7fd38c96badd483c386f275fcecdaf",
+      "positions": [
+        {
+          "instrumentId": "600519.SH",
+          "quantity": 500,
+          "availableQuantity": 0,
+          "costAmount": "40012",
+          "marketValue": "25000"
+        }
+      ]
+    },
+    "latestAllocation": {
+      "decisionId": "0fd13ed685a6c5125653c163e7a5b5716d6079f84f48bb23624682be672cf796",
+      "policyId": "paper-preview-allocation",
+      "policyVersion": "1.0.0",
+      "intentCount": 1,
+      "rejectionCount": 0,
+      "rejections": []
+    },
+    "orders": [
+      {
+        "orderId": "ebe17af4a2c20bb5b781d4aaeb86e8fff93a16f685854017ebcfbd41e1b0fc31",
+        "instrumentId": "600519.SH",
+        "side": "BUY",
+        "status": "FILLED",
+        "quantity": 200,
+        "filledQuantity": 200,
+        "averageFillPrice": "50",
+        "totalFees": "3",
+        "explanation": "目标权重 0.3，按 100 股交易单位从 300 股调整到 500 股",
+        "updatedAt": "2026-10-25T10:00:00+08:00"
+      },
+      {
+        "orderId": "faf548aa22523e5c5cfa5bcc448badf815f5a48a7fcc0f4feda1810fcdad9cd3",
+        "instrumentId": "600519.SH",
+        "side": "BUY",
+        "status": "FILLED",
+        "quantity": 300,
+        "filledQuantity": 300,
+        "averageFillPrice": "100",
+        "totalFees": "9",
+        "explanation": "目标权重 0.3，按 100 股交易单位从 0 股调整到 300 股",
+        "updatedAt": "2026-10-25T10:00:00+08:00"
+      }
+    ],
+    "latestRisk": {
+      "decisionId": "6234e85299d0a1f28936bd180ecd75e70034d6610bb78b996e3298adfd12f2b0",
+      "allowed": true,
+      "policyId": "paper-terminal-risk",
+      "policyVersion": "1.0.0",
+      "checks": [
+        {
+          "code": "ACCOUNT_ACTIVE",
+          "status": "PASS",
+          "actual": "ACTIVE",
+          "limit": "ACTIVE",
+          "explanation": "账户必须处于 ACTIVE 状态"
+        },
+        {
+          "code": "RISK_ENGINE_READY",
+          "status": "PASS",
+          "actual": "true",
+          "limit": "true",
+          "explanation": "风控引擎不可用时拒绝新意图"
+        },
+        {
+          "code": "EXECUTION_CONNECTED",
+          "status": "PASS",
+          "actual": "true",
+          "limit": "true",
+          "explanation": "模拟执行边界断连时拒绝新意图"
+        },
+        {
+          "code": "RECONCILIATION_HEALTHY",
+          "status": "PASS",
+          "actual": "MATCHED",
+          "limit": "MATCHED",
+          "explanation": "仅在最近一次账簿对账一致时允许新意图"
+        },
+        {
+          "code": "ORDER_NOTIONAL_LIMIT",
+          "status": "PASS",
+          "actual": "10000",
+          "limit": "100000000",
+          "explanation": "单笔参考名义金额不得超过策略上限"
+        },
+        {
+          "code": "POSITION_WEIGHT_LIMIT",
+          "status": "PASS",
+          "actual": "0.3",
+          "limit": "0.35",
+          "explanation": "目标持仓权重不得超过风控集中度上限"
+        },
+        {
+          "code": "DAILY_TURNOVER_LIMIT",
+          "status": "PASS",
+          "actual": "40000",
+          "limit": "1000000000",
+          "explanation": "当日已成交金额加当前意图不得超过换手上限"
+        },
+        {
+          "code": "OPEN_ORDER_LIMIT",
+          "status": "PASS",
+          "actual": "1",
+          "limit": "20",
+          "explanation": "活动模拟订单数量不得超过上限"
+        },
+        {
+          "code": "CASH_AVAILABLE",
+          "status": "PASS",
+          "actual": "59991",
+          "limit": "0",
+          "explanation": "扣除其他活动买单和当前买单后必须保留最低现金"
+        },
+        {
+          "code": "PAPER_ONLY_BOUNDARY",
+          "status": "PASS",
+          "actual": "PAPER_ONLY",
+          "limit": "PAPER_ONLY",
+          "explanation": "风控只接受永久模拟隔离的 OrderIntent"
+        }
+      ]
+    },
+    "reconciliation": {
+      "reconciliationId": "32f62f30cf39439e61d9eadae659415dda5e57b1af161659e1abd7cf54de1a29",
+      "status": "MATCHED",
+      "asOf": "2026-10-25T10:00:00+08:00",
+      "duplicateFillCount": 0,
+      "diffs": []
+    },
+    "audit": {
+      "accountEventCount": 6,
+      "executionEventCount": 8,
+      "orderAuditCount": 8,
+      "alertCount": 0,
+      "accountDigest": "1dbdb84c0aa19f5392fab7947e3e01b5a6a82b6afaa47b2050963e5f24bf7243",
+      "executionDigest": "23a00a7ec932e2631c849c093f6d379524e051395172df0d37fd0baf650e33b7",
+      "lastClientRequestId": "buy:30ad454b67c1b5bd58ff3ca100b7d136fa94e2a40278e4ec635c7585ede238aa"
+    }
+  }
+}

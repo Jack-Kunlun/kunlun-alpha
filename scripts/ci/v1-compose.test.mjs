@@ -11,7 +11,7 @@ const files = [
   "infra/docker/docker-compose.v1.yml",
 ];
 
-function configuration(profile = [], extraFiles = []) {
+function configuration(profile = [], extraFiles = [], extraEnv = {}) {
   const result = spawnSync(
     "docker",
     [
@@ -27,7 +27,7 @@ function configuration(profile = [], extraFiles = []) {
     {
       cwd: root,
       encoding: "utf8",
-      env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot },
+      env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, ...extraEnv },
     },
   );
   assert.equal(result.status, 0, result.stderr || result.error?.message);
@@ -92,7 +92,17 @@ test("paper account mode starts a durable engine without publishing its write en
   const mount = engine.volumes.find((item) => item.target === "/var/lib/kunlun/quant-engine");
   assert.equal(volumes[mount.source].name, "kunlun-quant-state");
   assert.equal(services.server.environment.PAPER_TERMINAL_ACCOUNT_ONLY, "true");
+  assert.equal(services.server.environment.PAPER_TERMINAL_CONTROLLED_BUY_ENABLED, "true");
+  assert.equal(engine.environment.KUNLUN_PAPER_CONTROLLED_BUY_ENABLED, "true");
   assert.equal(services.server.depends_on["quant-engine"].condition, "service_healthy");
+});
+
+test("paper buys can be disabled on both boundaries while legacy execution and host ports stay closed", () => {
+  const { services } = configuration([], [], { V1_PAPER_BUY_ENABLED: "false" });
+  assert.equal(services.server.environment.PAPER_TERMINAL_CONTROLLED_BUY_ENABLED, "false");
+  assert.equal(services["quant-engine"].environment.KUNLUN_PAPER_CONTROLLED_BUY_ENABLED, "false");
+  assert.equal(services.server.environment.PAPER_TERMINAL_ACCOUNT_ONLY, "true");
+  assert.ok(!services["quant-engine"].ports?.length);
 });
 
 test("real market sync is explicit, raw-first, daily-only and bounded to the configured sample", () => {

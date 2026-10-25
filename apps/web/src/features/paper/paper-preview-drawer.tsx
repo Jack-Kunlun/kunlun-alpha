@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type Ref, type FormEvent } from "react";
+import type { PaperTerminalWorkspace } from "@kunlun/shared-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,11 +21,18 @@ import type { PaperRiskView } from "./paper-risk-preview";
 export function PaperPreviewDrawer({
   accountId,
   disabled,
+  onCommitted,
+  onBuyBusy,
 }: {
   accountId: string;
   disabled: boolean;
+  onCommitted?: (workspace: PaperTerminalWorkspace) => void;
+  onBuyBusy?: (busy: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [buyOpen, setBuyOpen] = useState(false);
+  const buyTriggerRef = useRef<HTMLButtonElement>(null);
+  const buyAcceptedRef = useRef(false);
   const [values, setValues] = useState<PaperPreviewFormValues>({
     instrumentId: "",
     price: "",
@@ -32,7 +40,14 @@ export function PaperPreviewDrawer({
     confidence: "1",
     lotSize: "100",
   });
-  const model = usePaperPreview(accountId);
+  const model = usePaperPreview(
+    accountId,
+    (workspace) => {
+      buyAcceptedRef.current = true;
+      onCommitted?.(workspace);
+    },
+    onBuyBusy,
+  );
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (await model.preview(values)) setOpen(false);
@@ -42,7 +57,7 @@ export function PaperPreviewDrawer({
       <Dialog
         open={open}
         onOpenChange={(next) => {
-          if (model.pending || model.riskPending) return;
+          if (model.pending || model.riskPending || model.buyPending) return;
           if (next) model.clear();
           setOpen(next);
         }}
@@ -50,8 +65,8 @@ export function PaperPreviewDrawer({
         <DialogTrigger asChild>
           <Button
             variant="outline"
-            disabled={disabled || model.riskPending}
-            className={`cursor-pointer ${model.riskPending ? "disabled:cursor-progress" : "disabled:cursor-not-allowed"}`}
+            disabled={disabled || model.riskPending || model.buyPending}
+            className={`cursor-pointer ${model.riskPending || model.buyPending ? "disabled:cursor-progress" : "disabled:cursor-not-allowed"}`}
           >
             试算仓位
           </Button>
@@ -95,7 +110,8 @@ export function PaperPreviewDrawer({
                   onChange={(value) => setValues({ ...values, price: value })}
                 />
                 <p className="text-xs leading-5 text-muted-foreground">
-                  参考价由你输入，不读取行情；本次试算使用当前模拟账本，不随全局历史点时回放。
+                  参考价由你输入，不读取行情；模拟买入价格最多支持 8
+                  位小数。本次试算使用当前模拟账本，不随全局历史点时回放。
                 </p>
               </fieldset>
               <fieldset className="grid gap-4" disabled={model.pending}>
@@ -160,8 +176,82 @@ export function PaperPreviewDrawer({
           risk={model.risk}
           riskPending={model.riskPending}
           riskError={model.riskError}
+          buyPending={model.buyPending}
+          buyTriggerRef={buyTriggerRef}
+          onBuyOpen={() => {
+            buyAcceptedRef.current = false;
+            setBuyOpen(true);
+          }}
           onRiskCheck={() => void model.checkRisk()}
         />
+      ) : null}
+      {model.result?.kind === "target" && model.result.side === "BUY" ? (
+        <Dialog
+          open={buyOpen}
+          onOpenChange={(next) => {
+            if (!model.buyPending) setBuyOpen(next);
+          }}
+        >
+          <DialogContent
+            showCloseButton={!model.buyPending}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              if (!buyAcceptedRef.current) buyTriggerRef.current?.focus();
+            }}
+            onEscapeKeyDown={(e) => {
+              if (model.buyPending) e.preventDefault();
+            }}
+            onInteractOutside={(e) => {
+              if (model.buyPending) e.preventDefault();
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>确认模拟买入</DialogTitle>
+              <DialogDescription>
+                按本次人工价格假设全额模拟成交，服务端会重新核对试算和账簿，并更新模拟资金与持仓。
+              </DialogDescription>
+            </DialogHeader>
+            <dl className="grid grid-cols-2 gap-4 text-sm">
+              <Value title="证券" value={model.result.instrumentId} />
+              <Value title="模拟买入数量" value={`${model.result.quantity} 股`} />
+              <Value title="假设参考价" value={`${model.result.price} CNY`} />
+              <Value title="参考金额（未含费用）" value={`${model.result.notional} CNY`} />
+            </dl>
+            <p className="text-sm text-muted-foreground">
+              模拟手续费按金额的 0.03% 计算，最低 1
+              CNY，按分计入持仓成本。仅支持模拟买入，不连接券商；价格来自你的人工假设。
+            </p>
+            {model.buyError !== null ? (
+              <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+                {model.buyError}
+              </p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={model.buyPending}
+                className="cursor-pointer disabled:cursor-progress"
+                onClick={() => setBuyOpen(false)}
+              >
+                取消
+              </Button>
+              <Button
+                type="button"
+                disabled={model.buyPending}
+                aria-busy={model.buyPending}
+                className="cursor-pointer disabled:cursor-progress"
+                onClick={() => {
+                  void model.buy().then((ok) => {
+                    if (ok) setBuyOpen(false);
+                  });
+                }}
+              >
+                {model.buyPending ? "正在模拟买入…" : "确认模拟买入"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       ) : null}
     </>
   );
@@ -203,12 +293,18 @@ export function PaperPreviewResult({
   riskPending = false,
   riskError = null,
   onRiskCheck,
+  onBuyOpen,
+  buyPending = false,
+  buyTriggerRef,
 }: {
   result: PaperPreviewDisplay;
   risk?: PaperRiskView | null;
   riskPending?: boolean;
   riskError?: string | null;
   onRiskCheck?: () => void;
+  onBuyOpen?: () => void;
+  buyPending?: boolean;
+  buyTriggerRef?: Ref<HTMLButtonElement>;
 }) {
   return (
     <Card role="status" aria-label="仓位试算结果">
@@ -242,8 +338,8 @@ export function PaperPreviewResult({
           <Button
             type="button"
             variant="outline"
-            disabled={riskPending}
-            aria-busy={riskPending}
+            disabled={riskPending || buyPending}
+            aria-busy={riskPending || buyPending}
             className="cursor-pointer disabled:cursor-progress"
             onClick={onRiskCheck}
           >
@@ -256,6 +352,21 @@ export function PaperPreviewResult({
           </p>
         ) : null}
         {risk !== null ? <PaperRiskPreviewPanel risk={risk} /> : null}
+        {risk?.allowed &&
+        result.kind === "target" &&
+        result.side === "BUY" &&
+        onBuyOpen !== undefined ? (
+          <Button
+            type="button"
+            disabled={buyPending}
+            aria-busy={buyPending}
+            className="cursor-pointer disabled:cursor-progress"
+            onClick={onBuyOpen}
+            ref={buyTriggerRef}
+          >
+            {buyPending ? "正在模拟买入…" : "模拟买入"}
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );

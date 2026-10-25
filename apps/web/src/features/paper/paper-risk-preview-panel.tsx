@@ -15,14 +15,19 @@ export function PaperRiskPreviewPanel({ risk }: { risk: PaperRiskView }) {
     <section aria-label="模拟风险检查结果" className="min-w-0 space-y-3 border-t pt-4">
       <div className="flex flex-wrap items-center gap-3">
         <h3 className="font-semibold">模拟风险检查</h3>
-        <Badge variant="destructive">存在阻断</Badge>
+        <Badge variant={risk.allowed ? "secondary" : "destructive"}>
+          {risk.allowed ? "本次检查通过" : "存在阻断"}
+        </Badge>
       </div>
       <p className="text-sm text-muted-foreground">
         风险口径 {risk.policyVersion} ·{" "}
         <time dateTime={risk.time}>{formatPaperLedgerTime(risk.time)}</time>
       </p>
       <p className="text-sm">
-        模拟执行入口尚未开放。检查结果不构成交易许可，不提交订单，也不改变账本。
+        {risk.allowed
+          ? "本次假设具备受控模拟买入条件，确认提交时服务端将重新核对。"
+          : "当前假设不具备模拟买入条件，请核对账户、价格、费用及启用状态。"}
+        检查本身不改变账本，也不代表真实交易许可。
       </p>
       <div
         role="region"

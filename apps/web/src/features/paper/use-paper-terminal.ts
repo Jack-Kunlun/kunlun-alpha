@@ -65,7 +65,7 @@ export function usePaperTerminal() {
     [accept],
   );
 
-  return { workspace, state, submitting, refresh, createAccount };
+  return { workspace, state, submitting, refresh, createAccount, accept };
 }
 
 export function paperRequestId(prefix: string): string {

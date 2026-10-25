@@ -11,7 +11,12 @@ from urllib.parse import parse_qs, urlsplit
 
 from pydantic import ValidationError
 
-from .paper_workspace import PaperWorkspace, PaperWorkspaceConflictError, PaperWorkspaceError
+from .paper_workspace import (
+    PaperWorkspace,
+    PaperWorkspaceConflictError,
+    PaperWorkspaceError,
+    PaperWorkspaceUnavailableError,
+)
 from .ranking_store import (
     RankingSnapshotConflictError,
     RankingSnapshotNotFoundError,
@@ -38,10 +43,20 @@ class QuantEngineHttpServer:
             def do_GET(self) -> None:  # noqa: N802
                 request = urlsplit(self.path)
                 if request.path == "/health":
-                    owner._send(self, 200, {"status": "ok", "service": "quant-engine"})
+                    owner._send(
+                        self,
+                        200 if owner._workspace.available else 503,
+                        {
+                            "status": "ok" if owner._workspace.available else "unavailable",
+                            "service": "quant-engine",
+                        },
+                    )
                     return
                 if request.path == "/v1/paper/workspace":
-                    owner._send(self, 200, owner._workspace.snapshot())
+                    try:
+                        owner._send(self, 200, owner._workspace.snapshot())
+                    except PaperWorkspaceUnavailableError:
+                        owner._send(self, 503, {"error": "unavailable"})
                     return
                 if request.path == "/v1/ranking/snapshots/latest":
                     try:
@@ -76,10 +91,15 @@ class QuantEngineHttpServer:
                     if self.path == "/v1/paper/risk-previews":
                         owner._send(self, 200, owner._workspace.risk_preview(body))
                         return
+                    if self.path == "/v1/paper/buy-simulations":
+                        owner._send(self, 200, owner._workspace.buy_allocation(body))
+                        return
                     if self.path == "/v1/ranking/snapshots":
                         owner._send(self, 200, owner._ranking_store.publish(body))
                         return
                     owner._send(self, 404, {"error": "not_found"})
+                except PaperWorkspaceUnavailableError:
+                    owner._send(self, 503, {"error": "unavailable"})
                 except PaperWorkspaceConflictError as error:
                     owner._send(self, 409, {"error": "conflict", "message": str(error)})
                 except RankingSnapshotConflictError as error:

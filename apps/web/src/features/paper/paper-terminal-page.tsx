@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type Ref } from "react";
+import type { PaperTerminalWorkspace } from "@kunlun/shared-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,7 @@ import { formatPaperLedgerTime, parsePaperTerminalDisplay } from "./paper-termin
 import { validatePaperTerminalCreateInput } from "./paper-terminal-form";
 import { paperRequestId, usePaperTerminal } from "./use-paper-terminal";
 import { PaperPreviewDrawer } from "./paper-preview-drawer";
+import { PaperBuyOrdersCard } from "./paper-buy-orders-card";
 
 function StateCard({
   title,
@@ -72,6 +74,7 @@ function StateCard({
 
 export function PaperTerminalPage() {
   const terminal = usePaperTerminal();
+  const [buyPending, setBuyPending] = useState(false);
   const refreshButtonRef = useRef<HTMLButtonElement>(null);
   const stateCardTitleRef = useRef<HTMLDivElement>(null);
   const stateCardRetryRef = useRef<HTMLButtonElement>(null);
@@ -97,7 +100,14 @@ export function PaperTerminalPage() {
       focusTarget.focus();
       focusRestoreCompletedRef.current = true;
     }
-  }, [restoreFocusRequested, terminal.state]);
+  }, [restoreFocusRequested, terminal.state, terminal.workspace]);
+
+  function acceptBuy(workspace: PaperTerminalWorkspace) {
+    focusRestoreCompletedRef.current = false;
+    setRestoreFocusRequested(true);
+    setMessage({ kind: "success", text: "模拟买入已完成，资金、持仓与记录已更新。" });
+    terminal.accept(workspace);
+  }
 
   const refresh = async () => {
     setMessage(null);
@@ -234,7 +244,7 @@ export function PaperTerminalPage() {
                 模拟账户
               </h2>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base">
-                当前版本支持创建模拟账户、只读账本与仓位试算，不开放模拟成交或真实交易。金额仅为模拟账面数据，不代表真实资金或实时估值。
+                查看模拟资金与持仓，按人工假设试算并确认受控模拟买入。卖出与真实交易尚未开放；金额不代表真实资金或实时估值。
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                 当前账本独立于全局历史点时上下文，不随其回放。
@@ -242,13 +252,14 @@ export function PaperTerminalPage() {
             </div>
             <div className="flex max-w-lg flex-col gap-3">
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-                <strong className="block">只读账本与仓位试算</strong>
+                <strong className="block">模拟账本与受控买入</strong>
                 账本数据不会随全局历史点时切换。
               </div>
               <Button
                 ref={refreshButtonRef}
                 variant="outline"
-                className="cursor-pointer self-start"
+                disabled={buyPending}
+                className="cursor-pointer self-start disabled:cursor-progress"
                 onClick={() => void refresh()}
               >
                 刷新账本
@@ -284,6 +295,8 @@ export function PaperTerminalPage() {
             key={display.generatedAt}
             accountId={terminal.workspace.account.accountId}
             disabled={display.workspaceStatus !== "READY" || display.account.status !== "ACTIVE"}
+            onCommitted={acceptBuy}
+            onBuyBusy={setBuyPending}
           />
         ) : null}
 
@@ -470,6 +483,7 @@ export function PaperTerminalPage() {
             ) : null}
           </>
         )}
+        {display.kind === "account" ? <PaperBuyOrdersCard workspace={terminal.workspace} /> : null}
       </div>
     </section>
   );

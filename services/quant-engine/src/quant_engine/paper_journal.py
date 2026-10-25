@@ -16,7 +16,7 @@ from typing import cast
 PAPER_JOURNAL_SCHEMA_VERSION = "paper-workspace-command-v1"
 PAPER_JOURNAL_GENESIS_DIGEST = "0" * 64
 _DIGEST = re.compile(r"^[0-9a-f]{64}$")
-_KINDS = frozenset({"CREATE_ACCOUNT", "SIMULATE"})
+_KINDS = frozenset({"CREATE_ACCOUNT", "SIMULATE", "BUY_ALLOCATION_V1"})
 _FIELDS = frozenset(
     {
         "schemaVersion",
