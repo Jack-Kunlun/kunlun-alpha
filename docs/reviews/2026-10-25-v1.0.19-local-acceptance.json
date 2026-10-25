@@ -1,0 +1,131 @@
+{
+  "version": "1.0.19",
+  "node": "P6-N06 existing daily-detail navigation slice",
+  "date": "2026-10-25",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "84f546d3314d7bbfcd89ed5b7ae29c03e445f388",
+  "outcome": "Preview results, positions and simulation-order symbols open the existing current daily-data research view, while manual simulation prices and the account remain unchanged.",
+  "scope": {
+    "apiSchemaDependencyOrMigrationChanges": false,
+    "serverChange": "Release identity only",
+    "quantEngine": "Unchanged, reused without rebuilding or restarting",
+    "navigation": "One private canonical current-route helper, reused by the existing notification alias and a shadcn/React Router paper link.",
+    "writeSemantics": "No new transaction, risk permission, valuation, account or journal write; preview and target data queries reuse existing endpoints.",
+    "currentContext": "The destination omits inherited asOf and instrument filters; the link explicitly names current stored daily research, not execution-time replay or a live executable quote.",
+    "buyConfirmation": "Confirmation dialog remains informational; no navigation control added inside it."
+  },
+  "verification": {
+    "distinctApplicationTargetedCases": 131,
+    "web": {
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/paper src/features/alerts/notification-instrument-link.test.ts src/features/alerts/notification-center.test.tsx src/features/instrument/instrument-intelligence-bars-page.test.tsx src/app/filter-context.test.ts",
+      "passed": 129,
+      "reuse": "One additional preview-link assertion was then checked by rerunning that existing four-case file; unchanged cases reuse the successful targeted run."
+    },
+    "server": {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+      "passed": 2
+    },
+    "tdd": "Two existing position/order presentation cases failed because no daily href existed, then passed with the new links. Health version first failed against 1.0.18, then passed against 1.0.19.",
+    "checks": "Canonical SH/SZ/BJ destinations, retained leading zeros, rejection of malformed/vendor/URL/query input, no historical-filter inheritance, three consumer bindings, notification compatibility, target daily rendering and filter behavior.",
+    "static": "Web tsc, scoped ESLint/Prettier and diff checks passed; Server compiled in the affected build. No redundant local financial/Python or full-repository suite.",
+    "build": "One Server/Web build passed; the later change was an assertion in an existing test only, so the final runtime artifacts were reused. Quant and data services unchanged.",
+    "review": "Primary-agent final diff review: canonical same-origin navigation only, existing permissions retained, no new money/data-storage/execution path. S2 medium risk; independent high-risk review was not required or claimed.",
+    "actualBrowser": {
+      "builtServices": true,
+      "account": "Original real local paper workspace, read only; no test positions/orders created.",
+      "source": "/paper?asOf=2026-08-24T07%3A00%3A00Z&instrument=000001.SZ",
+      "preview": "Manual 600519.SH / 100 CNY / score 0.3 / confidence 1 / lot 100 yielded a read-only 300-share target; no risk or buy action submitted.",
+      "navigation": "Keyboard Return on the new preview symbol link opened /instruments/600519.SH, without a query string; the destination displayed current mode.",
+      "realDaily": {
+        "instrumentId": "600519.SH",
+        "mode": "CURRENT",
+        "dataCutoff": "2026-10-23T15:00:00+08:00",
+        "barCount": 250,
+        "sourceVersion": "akshare-tencent@akshare:1.18.94:stock_zh_a_hist_tx:v3",
+        "latestRawClose": "1335",
+        "priceMeaning": "Stored research-only history; no executable-price or simulation-valuation use."
+      },
+      "return": "Browser Back restored the original URL; original 100000 cash / zero positions / zero orders remained. Temporary query and preview state then cleared, leaving clean /paper.",
+      "screenshots": [
+        "work/v1-release-20261025-19/paper-daily-link-local.png",
+        "work/v1-release-20261025-19/daily-target-real.png"
+      ]
+    },
+    "isolatedUiFixture": {
+      "clearlyLabelled": true,
+      "noUpstreamApiReadsOrWrites": true,
+      "allMutationsBlocked": true,
+      "scope": "Existing fixed position and order data demonstrate both row links; actual target/data navigation was verified separately through the original-account preview.",
+      "links": "Both are native A links to /instruments/600519.SH with pointer cursor and no inherited query, even from a historically filtered page.",
+      "keyboard": "Tab from the existing order table region focused the symbol A link with the current-daily accessible name.",
+      "viewport": "390x844 dark mode; document clientWidth/scrollWidth both 375.",
+      "cleanup": "Owned fixture tab/process removed; viewport reset; original app URL restored."
+    },
+    "reusedEvidence": "Unchanged accounting, broker isolation, authentication, persistence/restart, report and recovery evidence from prior releases; current source CI runs configured gates and zero-write backtest regression."
+  },
+  "originalLedger": {
+    "beforeEqualsAfterRealChainAndFinal": true,
+    "journalBytes": 482,
+    "journalRecords": 1,
+    "journalSha256": "c3b7283d8d8044a150763fdfcf5e6cafc3e5c4410eacba787d758f264fbb2c76",
+    "workspaceSha256": "31daa07a41f4fedccb2e9a715ca55d0a9e57400fe754cd9822f6bc957a7e4998",
+    "status": "READY",
+    "cash": "100000",
+    "positions": 0,
+    "orders": 0,
+    "auditCounts": {
+      "accountEventCount": 2,
+      "executionEventCount": 0,
+      "orderAuditCount": 0,
+      "alertCount": 0
+    }
+  },
+  "runtime": {
+    "environment": "Local Docker v1 only",
+    "images": {
+      "server": {
+        "imageId": "sha256:a0003900d2477b2e8d4a369142f2d51d749f678f040a0743f13e0428bc2553e3",
+        "status": "healthy",
+        "fixedAlias": "kunlun-server:1.0.19",
+        "reusedFrom": null
+      },
+      "web": {
+        "imageId": "sha256:cf683664aae63d555405eadea70478c1b2b27dc782a569c2a4fb404cf35f80b3",
+        "status": "healthy",
+        "fixedAlias": "kunlun-web:1.0.19",
+        "reusedFrom": null
+      },
+      "quant-engine": {
+        "imageId": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb",
+        "status": "healthy",
+        "fixedAlias": "kunlun-quant-engine:1.0.19",
+        "reusedFrom": "1.0.16"
+      }
+    },
+    "tag": {
+      "name": "v1.0.19",
+      "tagObject": "c6dbb74cec70c6d4d57a536369dad44dd5f6504a",
+      "sourceCommit": "84f546d3314d7bbfcd89ed5b7ae29c03e445f388",
+      "remoteVerified": true
+    }
+  },
+  "ci": {
+    "runId": 40204948343,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40204948343",
+    "status": "completed",
+    "sourceCommit": "84f546d3314d7bbfcd89ed5b7ae29c03e445f388",
+    "conclusion": "success",
+    "jobs": {
+      "gates (ubuntu-latest)": "success",
+      "gates (windows-latest)": "success",
+      "gates (macos-latest)": "success"
+    },
+    "scope": "Configured repository quality gates and zero-write backtest regression passed on all three platforms; build on the configured Linux job."
+  },
+  "limits": [
+    "Canonical code format does not guarantee stored daily coverage; existing target empty/unavailable/forbidden states remain authoritative.",
+    "Navigation does not persist the temporary preview or reprice/revalue the paper account.",
+    "No new market collection, valuation, sell, cross-day availability or real-broker capability.",
+    "No full P6-N06 or phase acceptance; actual browser evidence is local, not native browser acceptance on every CI platform."
+  ]
+}
