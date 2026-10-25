@@ -58,6 +58,14 @@ class QuantEngineHttpServer:
                     except PaperWorkspaceUnavailableError:
                         owner._send(self, 503, {"error": "unavailable"})
                     return
+                if request.path == "/v1/paper/reconciliation":
+                    try:
+                        owner._send(self, 200, owner._workspace.reconciliation_report())
+                    except PaperWorkspaceUnavailableError:
+                        owner._send(self, 503, {"error": "unavailable"})
+                    except (PaperWorkspaceError, ValidationError, ValueError):
+                        owner._send(self, 422, {"error": "invalid_request"})
+                    return
                 if request.path == "/v1/ranking/snapshots/latest":
                     try:
                         query = parse_qs(request.query, keep_blank_values=True)

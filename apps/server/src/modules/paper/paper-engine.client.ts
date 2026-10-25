@@ -1,6 +1,7 @@
 import type {
   PaperAllocationDecision,
   PaperRiskDecision,
+  PaperReconciliationResult,
   PaperTerminalCreateAccountCommand,
   PaperTerminalSimulationCommand,
   PaperTerminalWorkspace,
@@ -8,9 +9,11 @@ import type {
 import { parsePaperWorkspaceResponse } from "./paper-workspace-response";
 import { parsePaperPreviewResponse } from "./paper-preview-response";
 import { parsePaperRiskPreviewResponse } from "./paper-risk-response";
+import { parsePaperReconciliationResponse } from "./paper-reconciliation-response";
 import { parsePaperBuyResponse } from "./paper-buy-response";
 
 export interface PaperEngineClient {
+  reconciliation(): Promise<PaperReconciliationResult>;
   buyAllocation(allocation: PaperAllocationDecision): Promise<PaperTerminalWorkspace>;
   riskPreview(allocation: PaperAllocationDecision): Promise<PaperRiskDecision>;
   preview(command: PaperTerminalSimulationCommand): Promise<PaperAllocationDecision>;
@@ -35,6 +38,15 @@ export class HttpPaperEngineClient implements PaperEngineClient {
     private readonly timeoutMs: number,
     private readonly controlledBuyEnabled = false,
   ) {}
+
+  async reconciliation(): Promise<PaperReconciliationResult> {
+    const value = await this.requestRaw("/v1/paper/reconciliation", { method: "GET" });
+    try {
+      return parsePaperReconciliationResponse(value);
+    } catch {
+      throw new PaperEngineHttpError("quant-engine returned an invalid paper reconciliation", 502);
+    }
+  }
 
   async riskPreview(allocation: PaperAllocationDecision): Promise<PaperRiskDecision> {
     const value = await this.requestRaw("/v1/paper/risk-previews", {

@@ -27,6 +27,7 @@ import { formatPaperLedgerTime, parsePaperTerminalDisplay } from "./paper-termin
 import { validatePaperTerminalCreateInput } from "./paper-terminal-form";
 import { paperRequestId, usePaperTerminal } from "./use-paper-terminal";
 import { PaperPreviewDrawer } from "./paper-preview-drawer";
+import { PaperReconciliationCard } from "./paper-reconciliation-card";
 import { PaperBuyOrdersCard } from "./paper-buy-orders-card";
 
 function StateCard({
@@ -297,6 +298,15 @@ export function PaperTerminalPage() {
             disabled={display.workspaceStatus !== "READY" || display.account.status !== "ACTIVE"}
             onCommitted={acceptBuy}
             onBuyBusy={setBuyPending}
+          />
+        ) : null}
+
+        {display.kind === "account" && terminal.workspace.account !== null ? (
+          <PaperReconciliationCard
+            key={`${terminal.workspace.account.accountId}:${display.generatedAt}`}
+            accountId={terminal.workspace.account.accountId}
+            basis={display.generatedAt}
+            disabled={buyPending}
           />
         ) : null}
 

@@ -13,6 +13,12 @@ export class PaperTerminalController {
     return this.service.workspace();
   }
 
+  @Get("reconciliation")
+  @ApiOperation({ summary: "Recompute a read-only paper book reconciliation at the current time" })
+  reconciliation() {
+    return this.service.reconciliation();
+  }
+
   @Post("accounts")
   @ApiOperation({ summary: "Create one local simulation-only paper account" })
   createAccount(@Body() body: unknown) {

@@ -16,6 +16,9 @@ from ashare_contracts import (
     PaperAllocationDecision as AllocationContract,
 )
 from ashare_contracts import (
+    PaperReconciliationResult as ReconciliationContract,
+)
+from ashare_contracts import (
     PaperTerminalCreateAccountCommand,
     PaperTerminalSimulationCommand,
     PaperTerminalWorkspace,
@@ -161,6 +164,17 @@ class PaperWorkspace:
                 return preview_allocation(self._preview_state(tape), command, self._now())
             except ValueError as error:
                 raise PaperWorkspaceError(str(error)) from error
+
+    def reconciliation_report(self) -> dict[str, object]:
+        """Recompute both books at one cutoff without writing or replacing cached results."""
+        with self._lock, localcontext() as context:
+            context.prec = 128
+            context.rounding = ROUND_HALF_EVEN
+            self._assert_usable()
+            tape = self._account_tape()
+            result = self._reconcile(tape, self._execution_tape(), self._now())
+            model = ReconciliationContract.model_validate(result.payload())
+            return cast(dict[str, object], model.model_dump(by_alias=True, mode="json"))
 
     def risk_preview(self, raw: Mapping[str, object]) -> dict[str, object]:
         allocation = AllocationContract.model_validate_json(

@@ -9,6 +9,7 @@ import {
 import type {
   PaperAllocationDecision,
   PaperRiskDecision,
+  PaperReconciliationResult,
   PaperTerminalCreateAccountCommand,
   PaperTerminalSimulationCommand,
   PaperTerminalWorkspace,
@@ -40,6 +41,10 @@ export class PaperTerminalService {
     } catch {
       return unavailableWorkspace();
     }
+  }
+
+  async reconciliation(): Promise<PaperReconciliationResult> {
+    return this.execute(() => this.client.reconciliation());
   }
 
   async createAccount(body: unknown): Promise<PaperTerminalWorkspace> {
