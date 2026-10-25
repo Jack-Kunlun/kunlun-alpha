@@ -1,0 +1,170 @@
+{
+  "version": "1.0.14",
+  "node": "P6-N11 read-only risk preview slice",
+  "date": "2026-10-25",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "bab306e506e1a0b00906356baf742b730819895b",
+  "outcome": "Existing allocation preview to ten bound risk checks, with fresh book reconciliation and execution always closed. No account, journal, audit, risk-event or order writes.",
+  "contracts": {
+    "endpoint": "POST /api/v1/paper/risk-previews (HTTP 200)",
+    "request": "Unmodified paper-allocation-decision-v1 returned by /previews",
+    "response": "paper-risk-decision-v1; same account/intent/basis; allowed=false; PAPER_ONLY; SERVER_SIDE_RISK_NO_BROKER_PATH",
+    "schemaOrDependencyChanges": false,
+    "authorization": "Existing administrator authentication and CSRF; unauthenticated POST returned 401."
+  },
+  "verification": {
+    "distinctTargetedCases": 172,
+    "python": {
+      "command": "uv run --no-sync pytest services/quant-engine/tests/test_paper_preview.py services/quant-engine/tests/test_paper_terminal.py python/packages/paper-core/tests/test_allocation.py python/packages/paper-core/tests/test_risk_reconciliation.py -q",
+      "passed": 43,
+      "configuredCoveragePercent": 81.94,
+      "configuredMinimumPercent": 75
+    },
+    "server": {
+      "command": "pnpm --filter @kunlun/server exec vitest run src/modules/paper src/app.controller.test.ts",
+      "passed": 72
+    },
+    "web": {
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/paper",
+      "passed": 57
+    },
+    "tdd": "Risk preview: eight intended missing-method failures before implementation, then passing. Server and Web risk tests initially failed to import the missing helpers. Version identity failed against 1.0.13 before the bump. An over-specific timestamp-error expectation was corrected after confirming both rewritten encodings fail closed.",
+    "static": "Affected Server/Web tsc, Python basedpyright, scoped ESLint/Ruff/Prettier and diff checks passed. Final test-only additions passed a separate basedpyright check. Initial import order, long lines and an unsupported Prettier invocation on .gitignore were corrected; final supported-file checks passed.",
+    "build": "Shared server/web/quant-engine build passed. A real narrow-screen nested-scroll issue required one Web-only rebuild; final keyboard scroll passed. Unchanged server and Python images were reused.",
+    "regression": {
+      "command": "pnpm backtest:regression",
+      "status": "MATCHED",
+      "baselineSha256": "4e477b727bbeb674ebd744cc301cbd03cd4e793be7b96b24fd0ad6a5390094f3",
+      "candidateSha256": "4e477b727bbeb674ebd744cc301cbd03cd4e793be7b96b24fd0ad6a5390094f3",
+      "baselineChanged": false,
+      "isolatedMutation": false
+    },
+    "browser": {
+      "actualChain": "Existing saved login, real account read, manual 600519.SH / price 100 / score 0.3 / confidence 1 / lot 100 allocation, then risk check. No synthetic core proxy.",
+      "results": {
+        "targetQuantity": 300,
+        "notionalExcludingFees": "30000",
+        "cashAfterHypothesisExcludingFees": "70000",
+        "execution": "false / FAIL",
+        "reconciliation": "MATCHED / PASS",
+        "checkCount": 10
+      },
+      "passed": [
+        "Keyboard Enter triggered risk check",
+        "Reopening drawer cleared old allocation and risk result, preserving form values",
+        "Escape returned focus to preview trigger",
+        "Refresh removed transient scenario and risk state",
+        "Risk button computed cursor was pointer"
+      ],
+      "busyAndRetry": "Native disabled/progress and error-with-retained-allocation/retry presentation were tested in SSR; stale-basis conflict and corrupt-report failures were tested through service/client/domain boundaries, without fault injection into the real instance.",
+      "narrow": {
+        "viewport": "390x844",
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "riskRegionClientWidth": 225,
+        "riskRegionScrollWidth": 640,
+        "keyboardArrowRightScrollLeft": 40,
+        "keyboardFocus": true
+      },
+      "dark": "Isolated synthetic layout only, class=dark; served actual final assets, no upstream API reads or writes. Not core-chain evidence.",
+      "screenshots": [
+        "work/v1-release-20261025-14/risk-accepted.jpg",
+        "work/v1-release-20261025-14/risk-narrow.jpg",
+        "work/v1-release-20261025-14/risk-dark-isolated.jpg"
+      ],
+      "cleanup": "Transient actual preview cleared; isolated tab/server closed, viewport override reset, no fixture account or fill written to actual storage."
+    },
+    "independentReview": {
+      "count": 1,
+      "candidate": "bab306e506e1a0b00906356baf742b730819895b",
+      "sourceBlockingFindings": 0,
+      "conclusion": "Read-only snapshot binding, precision, fresh reconciliation, closed execution, async UI and zero-write evidence accepted. README CI-passed wording was excluded from source commit and remains withheld until CI success.",
+      "ciWordingClosure": "Source CI completed successfully on all three platforms before README passed wording, final receipt or tag publication."
+    }
+  },
+  "persistence": {
+    "beforeEqualsAfter": true,
+    "journalBytes": 482,
+    "journalRecords": 1,
+    "journalSha256": "c3b7283d8d8044a150763fdfcf5e6cafc3e5c4410eacba787d758f264fbb2c76",
+    "workspaceSha256": "31daa07a41f4fedccb2e9a715ca55d0a9e57400fe754cd9822f6bc957a7e4998",
+    "status": "READY",
+    "auditCounts": {
+      "accountEventCount": 2,
+      "executionEventCount": 0,
+      "orderAuditCount": 0,
+      "alertCount": 0
+    },
+    "migration": false,
+    "newBackupRestoreDrill": false,
+    "reason": "No schema, storage or recovery procedure changes; no risky database operation."
+  },
+  "localRuntime": {
+    "health": {
+      "status": "ok",
+      "timestamp": "2026-10-25T07:11:58.870Z",
+      "version": "1.0.14"
+    },
+    "images": {
+      "web": {
+        "alias": "kunlun-web:1.0.14",
+        "id": "sha256:6f8b8d818b64bf5dde9cef3ab84f048c900859700b68483ab282c3d7756a029e",
+        "health": "healthy"
+      },
+      "server": {
+        "alias": "kunlun-server:1.0.14",
+        "id": "sha256:c7d2b3a3004505764f8cba2dad51008ce989eb106b363e5eba61e0a48be66683",
+        "health": "healthy"
+      },
+      "quant-engine": {
+        "alias": "kunlun-quant-engine:1.0.14",
+        "id": "sha256:5b1a76e9d564d1acf8a20168e3aa5ca0353c16d507e5b435750e97d4ec351497",
+        "health": "healthy"
+      }
+    },
+    "accountOnly": true,
+    "quantEngineHostPorts": [],
+    "productionDeployment": false
+  },
+  "ci": {
+    "runId": 40171620715,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40171620715",
+    "sourceCommit": "bab306e506e1a0b00906356baf742b730819895b",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "gates (windows-latest)",
+        "conclusion": "success",
+        "startedAt": "2026-10-25T07:07:52Z",
+        "completedAt": "2026-10-25T07:16:59Z"
+      },
+      {
+        "name": "gates (ubuntu-latest)",
+        "conclusion": "success",
+        "startedAt": "2026-10-25T07:07:52Z",
+        "completedAt": "2026-10-25T07:12:22Z"
+      },
+      {
+        "name": "gates (macos-latest)",
+        "conclusion": "success",
+        "startedAt": "2026-10-25T07:07:53Z",
+        "completedAt": "2026-10-25T07:13:08Z"
+      }
+    ]
+  },
+  "release": {
+    "tag": "v1.0.14",
+    "tagObject": "f299ef54cef68f4353f2eb6034c27ffbf9fda8bd",
+    "targetCommit": "bab306e506e1a0b00906356baf742b730819895b",
+    "remoteVerified": true,
+    "localOnly": true
+  },
+  "limits": [
+    "Manual hypothetical prices, not real market quotes or model advice; fees excluded.",
+    "Execution stays closed and cannot be enabled through this API; no paper fill or broker path is opened.",
+    "Risk result is transient, not a stored server history.",
+    "This slice does not complete P6-N11 or Phase 6, and conveys no live-trading qualification."
+  ],
+  "remainingBlockers": []
+}
