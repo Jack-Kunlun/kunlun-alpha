@@ -1,0 +1,96 @@
+{
+  "version": "1.0.20",
+  "node": "P6-N06 existing daily-window detail slice",
+  "date": "2026-10-26",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "f6a7b64bc22d50a5d0b1a1aae9df922f26651660",
+  "outcome": "The existing instrument daily page opens a drawer with exact-date lookup, newest-first ten-row pages and original OHLC/volume/amount plus row provenance. No new data source, API, schema, dependency, algorithm, valuation or transaction.",
+  "verification": {
+    "targetedCases": 103,
+    "web": {
+      "passed": 101,
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/instrument src/lib/charts/instrument-kline-chart.test.ts src/app/filter-context.test.ts"
+    },
+    "server": {
+      "passed": 2,
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts",
+      "reuse": "Server code and version unchanged by the final Web-only refresh fix."
+    },
+    "tdd": "The existing page test first failed for the missing details action; health first failed against 1.0.19. A real-browser refresh interruption then triggered one new failing pause/resume regression before the final fix.",
+    "boundaries": "Exact strings above Number safe precision, no input mutation, date/page bounds, missing-date empty state, response/query mismatch, duplicate dates, missing provenance and nanosecond future visibility; existing CSV, chart, binding and error/forbidden states remain covered.",
+    "static": "Web tsc --noEmit, scoped ESLint/Prettier and diff checks passed.",
+    "build": "One Server/Web build; one additional affected Web rebuild was justified by the observed 30-second refresh interruption. Final Server artifacts reused; quant-engine unchanged and not restarted.",
+    "review": "Primary-agent final diff review: S2 medium read-only presentation/lifecycle change, no blocking finding. Default hook refresh behavior remains compatible. No independent review was required or claimed.",
+    "reused": "Unchanged accounting, broker isolation, auth, persistence, restart and recovery evidence from prior releases; no repeated restore drill."
+  },
+  "actualBrowser": {
+    "environment": "Original local Docker app, Chrome; no fixture API or test account/order used.",
+    "route": "/instruments/600519.SH",
+    "dailyCutoff": "2026-10-23T15:00:00+08:00",
+    "sourceVersion": "akshare-tencent@akshare:1.18.94:stock_zh_a_hist_tx:v3",
+    "values": {
+      "date": "2026-10-23",
+      "open": "1311.84",
+      "high": "1343.88",
+      "low": "1310",
+      "close": "1335",
+      "volume": "5768600",
+      "amount": "7677216300"
+    },
+    "flow": "250 returned bars / 25 pages; page 2 starts 2026-10-09. Native date-keyboard lookup selected 2026-10-23 / one record; 2026-11-23 showed the explicit missing-in-window state. Reset, next page and source/evidence expansion succeeded. Esc closed the drawer and restored focus to the details trigger.",
+    "refresh": "The final drawer retained its 09:27:48 window and active date beyond one 30-second poll cycle, observed at 09:28:37. Detail and bars refresh are paused only while the drawer is open; close resumes the normal timer. After closing, the actual header/request time advanced from 09:27:48 to 09:30:30 and the reopened 250-bar drawer used that refreshed point.",
+    "windowReset": "Switching to 20 bars opened an unfiltered first page of 2 pages. Original 250-bar window restored afterward.",
+    "narrow": {
+      "viewport": "390x844",
+      "documentWidth": 390,
+      "documentScrollWidth": 390,
+      "dialogWidth": 390,
+      "tableRegionWidth": 339,
+      "tableRegionScrollWidth": 900,
+      "viewportReset": true
+    },
+    "screenshots": [
+      "work/v1-release-20261026-20/daily-details-real.png",
+      "work/v1-release-20261026-20/daily-details-narrow.png",
+      "work/v1-release-20261026-20/daily-details-window.png"
+    ]
+  },
+  "runtime": {
+    "environment": "Local Docker only; no production deployment",
+    "healthVersion": "1.0.20",
+    "images": {
+      "server": "sha256:6c8b63b210ca40a500c5a203a5cbb844a7a6e092f78ff5c7217d175a834d3546",
+      "web": "sha256:efff02e336dc2d0609beb2a0b5fc47b5f6f256d071c239aa2c126e48d7dfda1a",
+      "quantEngineReusedFrom1.0.16": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb"
+    },
+    "tag": {
+      "name": "v1.0.20",
+      "object": "5e5c24efcde8bb5b08fd60aa1ebb1c3254830624",
+      "sourceCommit": "f6a7b64bc22d50a5d0b1a1aae9df922f26651660",
+      "remoteVerified": true
+    },
+    "fixedAliases": [
+      "kunlun-server:1.0.20",
+      "kunlun-web:1.0.20",
+      "kunlun-quant-engine:1.0.20 (unchanged engine)"
+    ]
+  },
+  "ci": {
+    "runId": 40254161699,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40254161699",
+    "status": "completed",
+    "sourceCommit": "f6a7b64bc22d50a5d0b1a1aae9df922f26651660",
+    "conclusion": "success",
+    "jobs": {
+      "gates (ubuntu-latest)": "success",
+      "gates (windows-latest)": "success",
+      "gates (macos-latest)": "success"
+    },
+    "scope": "Configured quality gates and zero-write backtest regression passed on all three platforms; build on the configured Linux job."
+  },
+  "limits": [
+    "Search only covers the returned 1-500-bar window, not all dates or market-wide completeness. Missing data does not confirm a holiday or suspension.",
+    "Current mode is stored daily research, not a live/executable price. No account or order action was submitted.",
+    "No full P6-N06 or phase acceptance; three-platform CI is separate from local Chrome UI acceptance."
+  ]
+}
