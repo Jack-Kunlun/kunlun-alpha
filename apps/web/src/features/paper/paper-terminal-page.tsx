@@ -224,12 +224,9 @@ export function PaperTerminalPage() {
   const account = display.kind === "account" ? display.account : null;
 
   return (
-    <section
-      aria-labelledby="paper-terminal-title"
-      className="min-h-screen bg-[radial-gradient(circle_at_12%_0%,rgba(245,158,11,0.18),transparent_32%),radial-gradient(circle_at_90%_20%,rgba(15,118,110,0.12),transparent_30%),linear-gradient(145deg,#fffaf0,#f8fafc_55%,#ecfdf5)] p-4 text-slate-950 dark:bg-none dark:bg-slate-950 dark:text-slate-50 sm:p-8"
-    >
-      <div className="mx-auto max-w-[1480px] space-y-6">
-        <header className="rounded-3xl border border-amber-200 bg-white/90 p-6 shadow-[0_24px_70px_-42px_rgba(180,83,9,0.65)] dark:border-amber-900 dark:bg-slate-900/90 sm:p-8">
+    <section aria-labelledby="paper-terminal-title" className="w-full">
+      <div className="space-y-6">
+        <header className="space-y-4">
           <div className="flex flex-col justify-between gap-6 xl:flex-row xl:items-end">
             <div>
               <div className="mb-3 flex flex-wrap gap-2">
@@ -240,13 +237,10 @@ export function PaperTerminalPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-700">
                 Paper Portfolio
               </p>
-              <h2
-                id="paper-terminal-title"
-                className="mt-2 text-3xl font-black tracking-tight sm:text-5xl"
-              >
+              <h2 id="paper-terminal-title" className="mt-2 text-2xl font-semibold tracking-tight">
                 模拟账户
               </h2>
-              <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base">
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
                 查看模拟资金与持仓，按人工假设试算并确认受控模拟买入。卖出与真实交易尚未开放；金额不代表真实资金或实时估值。
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">

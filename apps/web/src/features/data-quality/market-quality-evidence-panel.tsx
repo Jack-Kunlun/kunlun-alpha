@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { DetailDrawer } from "@/components/detail-drawer";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -159,6 +160,7 @@ export function MarketQualityEvidencePanel({
   onNext,
 }: MarketQualityEvidencePanelProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const page = result.data;
   const selectedRecord =
     selectedId === null
@@ -233,7 +235,9 @@ export function MarketQualityEvidencePanel({
               <TableHead>请求窗口</TableHead>
               <TableHead>证据记录时间（上海）</TableHead>
               <TableHead>计数</TableHead>
-              <TableHead>明细</TableHead>
+              <TableHead className="sticky right-0 z-10 w-28 bg-background shadow-[-1px_0_0_var(--border)]">
+                操作
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -252,12 +256,17 @@ export function MarketQualityEvidencePanel({
                   拒绝 {record.rejectedRecordCount} / 事件 {record.qualityEventCount} / 过滤{" "}
                   {record.filteredRecordCount}
                 </TableCell>
-                <TableCell>
+                <TableCell className="sticky right-0 z-10 w-28 bg-background shadow-[-1px_0_0_var(--border)]">
                   <Button
                     type="button"
                     variant="link"
                     size="sm"
-                    onClick={() => setSelectedId(record.evidenceId)}
+                    aria-label={`查看详情 ${record.unifiedCode} ${record.source}`}
+                    aria-haspopup="dialog"
+                    onClick={(event) => {
+                      triggerRef.current = event.currentTarget;
+                      setSelectedId(record.evidenceId);
+                    }}
                   >
                     查看详情
                   </Button>
@@ -276,26 +285,41 @@ export function MarketQualityEvidencePanel({
         </Button>
         <span>固定快照分页，不会跨发布版本。</span>
       </div>
-      {activeSelectedId !== null && detailResult.status === "loading" && (
-        <p role="status" className="text-muted-foreground">
-          证据明细加载中…
-        </p>
-      )}
-      {activeSelectedId !== null && detailResult.status === "forbidden" && (
-        <p role="alert" className="text-destructive">
-          无权访问行情质量证据明细
-        </p>
-      )}
-      {activeSelectedId !== null && detailResult.status === "error" && (
-        <p role="alert" className="text-destructive">
-          行情质量证据明细暂不可用：可能尚未发布或读取失败，不代表无异常
-        </p>
-      )}
-      {activeSelectedId !== null &&
-        detailResult.status === "success" &&
-        detailResult.data !== null && (
-          <EvidenceDetail key={activeSelectedId} detail={detailResult.data} />
+      <DetailDrawer
+        open={activeSelectedId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null);
+        }}
+        title="行情质量证据详情"
+        description={
+          selectedRecord === undefined
+            ? "查看已发布的脱敏证据。"
+            : `${selectedRecord.unifiedCode} · ${selectedRecord.source} · ${selectedRecord.status}。固定公开快照，不代表当前行情健康状态。`
+        }
+        returnFocusRef={triggerRef}
+      >
+        {activeSelectedId !== null && detailResult.status === "loading" && (
+          <p role="status" className="text-muted-foreground">
+            证据明细加载中…
+          </p>
         )}
+        {activeSelectedId !== null && detailResult.status === "forbidden" && (
+          <p role="alert" className="text-destructive">
+            无权访问行情质量证据明细
+          </p>
+        )}
+        {activeSelectedId !== null &&
+          (detailResult.status === "error" || detailResult.status === "empty") && (
+            <p role="alert" className="text-destructive">
+              行情质量证据明细暂不可用：可能尚未发布或读取失败，不代表无异常
+            </p>
+          )}
+        {activeSelectedId !== null &&
+          detailResult.status === "success" &&
+          detailResult.data !== null && (
+            <EvidenceDetail key={activeSelectedId} detail={detailResult.data} />
+          )}
+      </DetailDrawer>
     </div>
   );
 }

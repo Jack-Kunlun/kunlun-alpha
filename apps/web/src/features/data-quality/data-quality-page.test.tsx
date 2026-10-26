@@ -83,6 +83,17 @@ describe("DataQualityPage", () => {
     expect(html).toContain("日期筛选按证据请求窗口与输入日期是否相交");
   });
 
+  it("separates coverage and evidence into named keyboard tabs with one visible panel", () => {
+    const html = renderToStaticMarkup(<DataQualityPage />);
+    expect(html).toContain('role="tablist"');
+    expect(html.match(/role="tab"/g)).toHaveLength(2);
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(2);
+    const panels = [...html.matchAll(/<div[^>]*role="tabpanel"[^>]*>/g)].map(([tag]) => tag);
+    expect(panels[0]).not.toContain('hidden=""');
+    expect(panels[1]).toContain('hidden=""');
+    expect(html).toContain('aria-selected="true"');
+  });
+
   it("keeps coverage and evidence failures independent", () => {
     mockedUseMarketCoverage.mockReturnValue({
       status: "error",

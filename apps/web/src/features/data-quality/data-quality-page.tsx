@@ -3,6 +3,7 @@ import type { MarketQualityStatus } from "@kunlun/shared-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MarketCoveragePanel } from "./market-coverage-panel";
 import {
   MARKET_COVERAGE_SOURCES,
@@ -34,10 +35,12 @@ function DataQualityResults({
   filters,
   status,
   onLoadingChange,
+  activeTab,
 }: {
   filters: DataQualityFilters;
   status: MarketQualityStatus | undefined;
   onLoadingChange: (loading: boolean) => void;
+  activeTab: string;
 }) {
   const coverageResult = useMarketCoverage(filters);
   const marketEvidenceFilters: MarketQualityEvidenceFilters = {
@@ -65,7 +68,12 @@ function DataQualityResults({
       className="space-y-6"
       aria-busy={coverageResult.status === "loading" || marketEvidenceResult.status === "loading"}
     >
-      <section aria-labelledby="market-coverage-heading" className="space-y-3">
+      <TabsContent
+        value="coverage"
+        forceMount
+        hidden={activeTab !== "coverage"}
+        className="space-y-3"
+      >
         <div>
           <h3 id="market-coverage-heading" className="text-lg font-semibold">
             日线入库概览
@@ -95,9 +103,14 @@ function DataQualityResults({
         {coverageResult.status === "success" && coverageResult.data !== null && (
           <MarketCoveragePanel response={coverageResult.data} />
         )}
-      </section>
+      </TabsContent>
 
-      <section aria-labelledby="market-quality-evidence-heading" className="space-y-3">
+      <TabsContent
+        value="evidence"
+        forceMount
+        hidden={activeTab !== "evidence"}
+        className="space-y-3"
+      >
         <div>
           <h3 id="market-quality-evidence-heading" className="text-lg font-semibold">
             行情质量证据
@@ -119,7 +132,7 @@ function DataQualityResults({
             }
           }}
         />
-      </section>
+      </TabsContent>
     </div>
   );
 }
@@ -135,6 +148,7 @@ export function DataQualityPage() {
   const [filterErrors, setFilterErrors] = useState<DataQualityFilterErrors>({});
   const [queryGeneration, setQueryGeneration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("coverage");
 
   const updateDraft = (key: keyof DataQualityFilterDraft, value: string) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -172,7 +186,7 @@ export function DataQualityPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h2 className="text-xl font-semibold">数据质量</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">数据质量</h2>
         <p className="text-sm text-muted-foreground">
           按日期、来源、证券查看日线覆盖与已发布行情异常证据。
         </p>
@@ -260,12 +274,19 @@ export function DataQualityPage() {
         <p>覆盖日期按交易日精确筛选；行情证据日期按请求窗口与输入日期是否相交筛选。</p>
       </div>
 
-      <DataQualityResults
-        key={queryGeneration}
-        filters={applied}
-        status={statusApplied}
-        onLoadingChange={setIsLoading}
-      />
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList aria-label="数据质量视图">
+          <TabsTrigger value="coverage">日线入库概览</TabsTrigger>
+          <TabsTrigger value="evidence">行情质量证据</TabsTrigger>
+        </TabsList>
+        <DataQualityResults
+          key={queryGeneration}
+          filters={applied}
+          status={statusApplied}
+          onLoadingChange={setIsLoading}
+          activeTab={activeTab}
+        />
+      </Tabs>
     </div>
   );
 }

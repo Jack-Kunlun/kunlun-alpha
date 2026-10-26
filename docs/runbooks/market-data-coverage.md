@@ -3,7 +3,7 @@
 ## 当前能力
 
 `GET /api/v1/data-quality/market-coverage` 提供 ClickHouse `bars_daily_v2` 的只读观测切片，
-前端入口位于数据质量页面的“日线入库概览”区块。它只统计 `interval = DAILY`、
+前端入口位于数据质量页面的“日线入库概览” Tab。它只统计 `interval = DAILY`、
 `price_type = RAW` 且来源属于以下集合的记录：
 
 - `tushare-pro`
@@ -60,7 +60,7 @@ winner/qualified 判定；不会以物理行数冒充 Bar 覆盖率，不使用 
 
 ## 1.0.7 历史窗口检索
 
-从覆盖列表点击“查看已入库日期”后，明细区域提供开始、结束日期，默认沿用该行的汇总
+从覆盖列表固定右侧的操作列点击“查看已入库日期”后，右侧抽屉提供开始、结束日期，默认沿用该行的汇总
 窗口。两个日期都必须填写，包含起止日，最多 366 个自然日；非法日期、反向窗口和超长窗口
 在对应字段提示，不发出新请求。允许未来窗口返回空结果，不能据此判断行情缺失。
 
@@ -131,3 +131,6 @@ GET /api/v1/data-quality/market-coverage/days?unifiedCode=600519.SH&source=tusha
 临时派生表 fixture，覆盖重复日期、未来的三类时间、未知来源、`MINUTE_1`、QFQ、证券和日期
 筛选；该核验不创建表、不写入数据。实现侧定向验证命令及结果见
 `docs/reviews/2026-09-05-market-data-coverage-evidence.md`。
+
+切换“日线入库概览／行情质量证据” Tab 不重置已提交的筛选与分页。抽屉内容独立滚动，
+关闭按钮固定可见；Escape 或关闭后焦点回到原行按钮，列表位置保留。

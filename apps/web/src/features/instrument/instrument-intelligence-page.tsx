@@ -623,17 +623,17 @@ export function InstrumentDirectoryPage() {
     if (valid) navigate("/instruments/" + value);
   }
   return (
-    <section className="mx-auto max-w-3xl py-8 sm:py-16">
+    <section className="w-full">
       <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
         Instrument lens · Point-in-time
       </p>
-      <h2 className="mt-3 text-3xl font-semibold tracking-tight">查看标的历史日线</h2>
+      <h2 className="mt-2 text-2xl font-semibold tracking-tight">查看标的历史日线</h2>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
         首发默认覆盖下列 8
         个沪深股票日线样本。目录不代表实时可用性，具体日期、来源与空缺以查询结果为准。其他代码可查询，但不承诺已入库。
       </p>
       <form
-        className="mt-8 flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm sm:flex-row sm:items-end"
+        className="mt-6 flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm sm:flex-row sm:items-end"
         onSubmit={submit}
       >
         <Label htmlFor="instrument-directory-code" className="grid flex-1 items-stretch gap-2">

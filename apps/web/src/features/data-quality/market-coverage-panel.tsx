@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { DetailDrawer } from "@/components/detail-drawer";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -23,6 +24,7 @@ type SelectedMarketCoverageDays = MarketCoverageDaysQuery & {
 
 export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
   const [selected, setSelected] = useState<SelectedMarketCoverageDays | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const latestReturnedDate = response.rows.reduce<string | null>(
     (latest, row) => (latest === null || row.lastDate > latest ? row.lastDate : latest),
     null,
@@ -79,7 +81,9 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
               <TableHead>最新行情时间（event_time，上海）</TableHead>
               <TableHead>最新可用时间（available_time，上海）</TableHead>
               <TableHead>最新入库时间（processing_time，上海）</TableHead>
-              <TableHead>明细</TableHead>
+              <TableHead className="sticky right-0 z-10 w-40 bg-background shadow-[-1px_0_0_var(--border)]">
+                操作
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -105,21 +109,23 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
                   <TableCell>{formatShanghaiTime(row.latestEventTime)}</TableCell>
                   <TableCell>{formatShanghaiTime(row.latestAvailableTime)}</TableCell>
                   <TableCell>{formatShanghaiTime(row.latestProcessingTime)}</TableCell>
-                  <TableCell>
+                  <TableCell className="sticky right-0 z-10 w-40 bg-background shadow-[-1px_0_0_var(--border)]">
                     <Button
                       type="button"
                       variant="link"
                       size="sm"
                       aria-label={`查看已入库日期 ${row.unifiedCode} ${row.source}`}
-                      onClick={() =>
+                      aria-haspopup="dialog"
+                      onClick={(event) => {
+                        triggerRef.current = event.currentTarget;
                         setSelected({
                           dateFrom: response.window.dateFrom,
                           dateTo: response.window.dateTo,
                           unifiedCode: row.unifiedCode,
                           source: row.source,
                           selectionKey: response.window.asOf,
-                        })
-                      }
+                        });
+                      }}
                     >
                       查看已入库日期
                     </Button>
@@ -135,12 +141,26 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
           结果超过 100 个证券/来源组，仅显示前 100 组；请缩小日期、来源或证券筛选。
         </p>
       )}
-      {activeSelection !== null && (
-        <MarketCoverageHistoryPanel
-          key={`${activeSelection.unifiedCode}-${activeSelection.source}-${activeSelection.dateFrom}-${activeSelection.dateTo}-${activeSelection.selectionKey}`}
-          selection={activeSelection}
-        />
-      )}
+      <DetailDrawer
+        open={activeSelection !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+        title="已入库日期"
+        description={
+          activeSelection === null
+            ? "查看证券与来源的已观测日期。"
+            : `${activeSelection.unifiedCode} · ${activeSelection.source}。日期明细独立查询，不代表完整覆盖。`
+        }
+        returnFocusRef={triggerRef}
+      >
+        {activeSelection !== null && (
+          <MarketCoverageHistoryPanel
+            key={`${activeSelection.unifiedCode}-${activeSelection.source}-${activeSelection.dateFrom}-${activeSelection.dateTo}-${activeSelection.selectionKey}`}
+            selection={activeSelection}
+          />
+        )}
+      </DetailDrawer>
     </div>
   );
 }

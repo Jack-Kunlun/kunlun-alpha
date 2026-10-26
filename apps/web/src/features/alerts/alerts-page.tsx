@@ -103,12 +103,12 @@ export function AlertsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 rounded-2xl border bg-gradient-to-br from-amber-50 via-background to-sky-50 p-6 dark:from-amber-950/20 dark:to-sky-950/20 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <Badge variant="outline" className="w-fit gap-1">
             <ShieldCheck className="h-3.5 w-3.5" /> 研究提醒
           </Badge>
-          <h2 className="text-3xl font-semibold tracking-tight">自选规则与预警</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">自选规则与预警</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
             用固定指标和比较条件监控自选证券。规则版本、抑制原因与通知结果均保留历史。
           </p>

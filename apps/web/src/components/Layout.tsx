@@ -257,7 +257,10 @@ export function Layout() {
                     筛选参数已拒绝
                   </Badge>
                 )}
-                <Badge className="hidden sm:inline-flex" variant="outline">
+                <Badge
+                  className="hidden h-8 shrink-0 rounded-md px-3 sm:inline-flex"
+                  variant="outline"
+                >
                   日线研究
                 </Badge>
                 <MobileNavigation />
@@ -265,7 +268,7 @@ export function Layout() {
             </div>
           </header>
           <main id="terminal-main" tabIndex={-1} className="p-4 outline-none sm:p-6 lg:p-8">
-            <div className="mx-auto max-w-[100rem] rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur-sm sm:p-6">
+            <div className="w-full rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur-sm sm:p-6">
               <Outlet />
             </div>
           </main>
