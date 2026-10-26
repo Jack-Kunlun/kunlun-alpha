@@ -1,0 +1,116 @@
+{
+  "version": "1.0.24",
+  "node": "P6-N07 existing evaluation-history read-only browsing slice",
+  "date": "2026-10-26",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "59b3867c84f103e431039dc3ce1bb3ba7cdbcf6f",
+  "outcome": "Search the returned recent evaluation-history window by symbol/rule ID, intersect outcome/delivery filters, page 20 records, and inspect original observations, revision identities and four distinct timestamps in a read-only drawer. Continue research through an explicitly current daily-data link.",
+  "scope": "Web history projection/filter/table/drawer, release identity and documentation. No backend API/schema, dependency/lockfile, storage, authorization, rule/evaluation/delivery/read-receipt, collection or trading-path changes.",
+  "verification": {
+    "distinctTargetedCases": 53,
+    "web": {
+      "passed": 51,
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/alerts",
+      "scope": "Six files: 23 new history cases and 28 existing alert-page, rule-filter and notification cases."
+    },
+    "server": {
+      "passed": 2,
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts"
+    },
+    "tdd": "The missing history-filter entry failed first; health separately failed against 1.0.23. Integration restored an existing CardDescription import and replaced a brittle whole-page disabled-button count with per-mutation-action disabled assertions. Final selected tests all passed.",
+    "boundaries": "Recent 200-row scope, case-insensitive combined filters, pagination/clamping, nanosecond/offset availability ordering and stable ID ties, exact decimal/null observations, all outcomes/delivery states, escaped explanations, duplicate/future/invalid records and notification association rejected as a whole. Current-daily links reject malformed codes and carry no historical/security query.",
+    "static": "Web tsc --noEmit, affected ESLint/Prettier and diff checks passed; final Server/Web build also type checked the source.",
+    "independentReview": "One read-only independent review of frozen source found no blocking issue, High confidence. Verified window/contract/time/notification rules, snapshot-bound drawer, explicit current-daily semantics, existing owner scope and absence of API/storage/evaluation changes. No full-suite rerun by the reviewer.",
+    "reused": "Unchanged rule versions, evaluation/delivery/deduplication, authentication/authorization, persistence/restart, account/ledger, broker isolation and recovery evidence. No repeated restore drill or full local repository suite."
+  },
+  "build": {
+    "affectedBuildCommand": "pnpm --filter @kunlun/server... --filter @kunlun/web... run build",
+    "affectedBuildResult": "Passed once; Server compilation and Web tsc -b / Vite build completed.",
+    "localAssembly": "Passed. Verified unchanged pnpm-lock.yaml, repository Dockerfile and reusable packages, absent Web .env/VITE_ overrides, and exact arm64 base IDs. Reused 1.0.23 image dependencies and overlaid the frozen Git archive plus new Server/Web dist. Both image revision labels equal sourceCommit. Standard Dockerfile dependency reinstallation was not attempted or claimed.",
+    "bases": {
+      "server": "sha256:a978d961ea2e77fb1ea0a833a0c88759311b5ec17a8d311dae4722def9423a12",
+      "web": "sha256:fb64ca7662ea1e3223f048eb3274ceb9b52cf9958c48dfcb3e7e3022b8c65593"
+    },
+    "cleanup": "Owned temporary image context and isolated component server/tab/source removed. Compact image recipe, logs and screenshots retained only in ignored work evidence."
+  },
+  "actualBrowser": {
+    "realLocalApp": "Original Chrome session restored through normal login. After the local update, the original account still had zero rules and zero history. Combined filters/reset and the honest empty state passed; default filters restored. No test rule, evaluation, notification or receipt was written.",
+    "isolatedComponent": "Actual history component with clearly marked synthetic evidence on a separate loopback page, no backend connection. This is non-empty component acceptance, not saved history in the original account.",
+    "browsing": "25 rows page as 20+5. Case-insensitive symbol plus TRIGGERED/FAILED yields one row; DELIVERED yields no match. Reset and duplicate-record whole-block rejection passed.",
+    "detail": "Return opens the selected row and focuses the title. The complete IDs, exact long signed observation and original event/available/created/read timestamps match the sample. Esc and close return focus to the same trigger. Replacing the sample workspace through its UI closes the old detail. Tab enters the scroll body; PageDown moved scrollTop from 0 to 417.",
+    "currentDaily": {
+      "componentHref": "/instruments/600519.SH",
+      "query": "Empty; no inherited asOf or security filters",
+      "realDestinationCheck": "Separately opened that destination in the original app, then returned to /watchlists. The history account was empty, so no production-history-row click is claimed.",
+      "barCount": 250,
+      "priceType": "RAW",
+      "dataCutoffDate": "2026-10-23",
+      "effectiveAsOfDisplayed": "2026-10-26 13:02:42 Asia/Shanghai",
+      "sourceVersion": "akshare-tencent@akshare:1.18.94:stock_zh_a_hist_tx:v3"
+    },
+    "narrowDark": {
+      "viewport": "390x844",
+      "listDocumentClientAndScrollWidth": 375,
+      "listScrollbarGutter": 15,
+      "tableContainerWidth": 291,
+      "tableContainerScrollWidth": 1060,
+      "labelGaps": [8, 8, 8],
+      "dialogAndDocumentWidth": 390,
+      "dialogBodyClientHeight": 614,
+      "dialogBodyScrollHeight": 1144,
+      "fixedFooterHeight": 112,
+      "viewportReset": true
+    },
+    "screenshots": [
+      "work/v1-release-20261026-24/history-empty-real.png",
+      "work/v1-release-20261026-24/history-filters-isolated.png",
+      "work/v1-release-20261026-24/history-detail-isolated.png",
+      "work/v1-release-20261026-24/history-list-narrow-dark-isolated.png",
+      "work/v1-release-20261026-24/history-detail-narrow-dark-isolated.png",
+      "work/v1-release-20261026-24/history-current-daily-real.png"
+    ]
+  },
+  "runtime": {
+    "environment": "Local Docker only; no production deployment",
+    "healthVersion": "1.0.24",
+    "healthTime": "2026-10-26T05:09:32.814Z",
+    "quantEngine": "Same image, container ID and startedAt before/after; not rebuilt or restarted.",
+    "images": {
+      "server": "sha256:103d372a8d0077b2bf0cebed6f05dafed7035a5c57f32e3fdf40aee6449d83c7",
+      "web": "sha256:2deb6b138deb7fa463b2a9d5af45e68d3f0de3da6de0bb6c8cae81870c3c721c",
+      "quantEngineReusedFrom1.0.16": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb"
+    },
+    "status": "Server, Web and unchanged quant-engine healthy",
+    "tag": {
+      "name": "v1.0.24",
+      "object": "60cf30239685394817ed43181148d492a631e54b",
+      "sourceCommit": "59b3867c84f103e431039dc3ce1bb3ba7cdbcf6f",
+      "remoteVerified": true
+    },
+    "fixedAliases": [
+      "kunlun-server:1.0.24",
+      "kunlun-web:1.0.24",
+      "kunlun-quant-engine:1.0.24 (unchanged engine)"
+    ]
+  },
+  "ci": {
+    "runId": 40271776007,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40271776007",
+    "sourceCommit": "59b3867c84f103e431039dc3ce1bb3ba7cdbcf6f",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": {
+      "gates (macos-latest)": "success",
+      "gates (windows-latest)": "success",
+      "gates (ubuntu-latest)": "success"
+    },
+    "scope": "Configured quality gates and zero-write backtest regression passed on all three platforms; build on the configured Linux job."
+  },
+  "limits": [
+    "Only the returned recent window, at most 200 rows; counts are not complete history totals. No historical rule conditions are inferred from current rules.",
+    "Delivery status is the current projection in this read, not a delivery snapshot at data availability. Null observations are not zero and field units are not inferred.",
+    "Existing backend historical timestamp handling remains millisecond-based. This frontend preserves and validates supplied precision but does not claim trigger-time market replay; the daily link opens current research.",
+    "The original account has no history. Non-empty history interaction was isolated; actual daily destination acceptance is a separate claim.",
+    "No real account/broker/order path and no full P6-N07 or phase acceptance. Local Chrome evidence and source CI are separate."
+  ]
+}
