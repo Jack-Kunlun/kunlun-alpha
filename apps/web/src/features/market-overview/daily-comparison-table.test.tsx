@@ -50,6 +50,7 @@ describe("DailyComparisonTable", () => {
       </MemoryRouter>,
     );
     expect(html).toContain("本页自选日线对比");
+    expect(html).toContain("下载本次对比 JSON");
     expect(html).toContain("排序仅针对本次样本");
     expect(html).not.toContain("仅含配置的八个");
     expect(html).toContain(`/instruments/000001.SZ?asOf=${encodeURIComponent(AS_OF)}`);
@@ -70,6 +71,7 @@ describe("DailyComparisonTable", () => {
     );
 
     expect(html).toContain("日线对比");
+    expect(html).not.toContain("下载本次对比 JSON");
     expect(html).toContain("未复权");
     expect(html).toContain("暂无日线");
     expect(html).toContain("固定点时 2026-10-17 00:00:00 北京时间");
@@ -78,6 +80,27 @@ describe("DailyComparisonTable", () => {
     expect(html).toContain(`/instruments/000001.SZ?asOf=${encodeURIComponent(AS_OF)}`);
     expect(html).toContain('class="relative w-full overflow-x-auto"');
   });
+
+  it.each(["loading", "error", "forbidden", "empty"] as const)(
+    "blocks snapshot downloads for a %s query even if stale data is supplied",
+    (status) => {
+      const data = buildDailyComparison(AS_OF, emptyOutcomes());
+      const html = renderToStaticMarkup(
+        <MemoryRouter>
+          <DailyComparisonTable
+            result={{ status, data, error: null }}
+            referenceStatus="success"
+            scope="watchlist-page"
+            detailAsOf={AS_OF}
+          />
+        </MemoryRouter>,
+      );
+      expect(html).toMatch(
+        /<button(?=[^>]*aria-label="下载本次对比 JSON")(?=[^>]*disabled="")[^>]*>/,
+      );
+      expect(html).not.toContain("已生成对比快照");
+    },
+  );
 
   it("shows the baseline data version when it differs from the latest bar", () => {
     const outcomes = emptyOutcomes();

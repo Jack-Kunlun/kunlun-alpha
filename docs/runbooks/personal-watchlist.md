@@ -48,6 +48,57 @@
 精度，事件／可见／处理时间晚于截止点的记录拒绝展示为有效行情。日线不是实时或可成交价。
 点击证券名称按本次固定点时打开详情，不继承其他证券筛选；返回后可再次查询。
 
+## 1.0.22 下载本次对比
+
+本页对比返回后，点击“下载本次对比”生成 UTF-8、LF、末尾换行的 JSON 文件；行序与当前
+表格排序一致，最多 20 项，保留已捕获点时，不因点击下载而更新行情或写入服务端。
+加载、查询失败、无权、缺少或不匹配固定点时、内部结果校验失败时下载禁用；下载异常
+保留当前结果并提供重试。若部分行无数据、失败、无权或异常，文件保留这些状态及 null，
+不补零或丢行。改变排序或重新查询会清除旧下载提示。
+
+文件 `schemaVersion=daily-comparison-snapshot-v1`，适用范围为 `WATCHLIST_VISIBLE_PAGE`。
+`requestedAsOf` 保留原始精度；`comparisonDate`／`baselineDate` 为本次对比日期。
+`rows` 保存证券、名称、状态、日期对齐／限制原因和两根对比记录；记录保留收盘、成交额、
+事件／可见／处理时间、来源及版本，金额和价格均为原始十进制字符串。
+`changeHundredthsOfPercent` 为整数字符串（如 `"341"` 对应 `"+3.41%"`），不可计算时为 null。
+`calculationVersion=visible-close-change-v1` 沿用既有收盘差除以前一可见收盘的公式，按百分比
+两位小数四舍五入，恰半时远离零；限制条件与页面相同。`applicationVersion` 绑定应用发布版本。
+
+以下为无日线时的脱敏完整示例：
+
+```json
+{
+  "schemaVersion": "daily-comparison-snapshot-v1",
+  "calculationVersion": "visible-close-change-v1",
+  "applicationVersion": "1.0.22",
+  "dataMeaning": "RESEARCH_ONLY_NO_REAL_ORDER_PATH",
+  "scope": "WATCHLIST_VISIBLE_PAGE",
+  "requestedAsOf": "2026-10-26T02:00:00.000Z",
+  "comparisonDate": null,
+  "baselineDate": null,
+  "sort": { "key": "close", "direction": "descending" },
+  "sampleCount": 1,
+  "rows": [
+    {
+      "instrumentId": "600000.SH",
+      "name": "示例",
+      "status": "EMPTY",
+      "latest": null,
+      "previous": null,
+      "dateAligned": false,
+      "changeHundredthsOfPercent": null,
+      "changePercent": null,
+      "changeReason": null
+    }
+  ]
+}
+```
+
+v1 的兼容增量可新增字段；破坏性结构或含义变化使用新的 `schemaVersion`，公式变化更新
+`calculationVersion`。未知额外内部属性不进入文件。该文件只包含本次页面样本及对比字段，
+不代表完整自选、全量日线或策略回测结果；不新增后端契约、导入或自动保存接口。
+文件名使用便携的 UTC 毫秒标签和样本数，精确点时以文件内容为准；不含账号标识。
+
 ## 启动与更新
 
 先执行 server migration 012，再使用与应用相同版本的 `kunlun-data-worker:local` 镜像：

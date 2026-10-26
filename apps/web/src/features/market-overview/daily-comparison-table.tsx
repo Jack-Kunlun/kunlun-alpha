@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { useTerminalFilters } from "@/app/filter-context";
 import type { ObjectQueryResult, QueryStatus } from "@/lib/use-api-query";
+import { DailyComparisonExportButton } from "./daily-comparison-export-button";
 import {
   formatDailyComparisonChange,
   formatDailyComparisonDecimal,
@@ -310,6 +311,16 @@ export function DailyComparisonTable({
           {result.data?.baselineDate ?? "暂无"}；涨跌幅较前一可见日线计算，价格未复权（RAW）。
         </p>
       </header>
+
+      {watchlistPage && (
+        <DailyComparisonExportButton
+          comparison={
+            referenceStatus === "success" && result.status === "success" ? result.data : null
+          }
+          expectedAsOf={detailAsOf}
+          sort={sort}
+        />
+      )}
 
       {referenceStatus === "loading" ? (
         <p role="status" className="text-sm text-muted-foreground">
