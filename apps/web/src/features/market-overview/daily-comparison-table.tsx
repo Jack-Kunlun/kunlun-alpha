@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,11 +104,15 @@ function SortHeader({
   );
 }
 
-function InstrumentName({ row }: { row: DailyComparisonRow }) {
+function InstrumentName({ row, detailAsOf }: { row: DailyComparisonRow; detailAsOf?: string }) {
   const { hrefForRoute } = useTerminalFilters();
   return (
     <Link
-      to={hrefForRoute(`/instruments/${encodeURIComponent(row.instrumentId)}`)}
+      to={
+        detailAsOf === undefined
+          ? hrefForRoute(`/instruments/${encodeURIComponent(row.instrumentId)}`)
+          : `/instruments/${encodeURIComponent(row.instrumentId)}?asOf=${encodeURIComponent(detailAsOf)}`
+      }
       aria-label={`查看${row.name}日线`}
       className="inline-flex flex-col rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
@@ -122,10 +126,14 @@ function ComparisonBody({
   comparison,
   sort,
   onSort,
+  watchlistPage,
+  detailAsOf,
 }: {
   comparison: DailyComparison;
   sort: DailyComparisonSort;
   onSort: (key: DailyComparisonSortKey) => void;
+  watchlistPage: boolean;
+  detailAsOf?: string;
 }) {
   const rows = sortDailyComparisonRows(comparison, sort);
   const emptyCount = comparison.rows.filter((row) => row.status === "EMPTY").length;
@@ -136,7 +144,9 @@ function ComparisonBody({
     <>
       {allEmpty && (
         <p className="text-sm text-muted-foreground" role="status">
-          八个配置样本在该点时均暂无日线数据。
+          {watchlistPage
+            ? "本次本页自选在该点时均暂无日线数据。"
+            : "八个配置样本在该点时均暂无日线数据。"}
         </p>
       )}
       {allForbidden && (
@@ -147,7 +157,8 @@ function ComparisonBody({
       <div className="rounded-xl border">
         <Table className="min-w-[920px]">
           <caption className="sr-only">
-            首发八个日线样本的收盘价、前一可见日线涨跌幅、成交额、日期和来源
+            {watchlistPage ? "本次本页自选" : "首发八个日线样本"}
+            的收盘价、前一可见日线涨跌幅、成交额、日期和来源
           </caption>
           <TableHeader>
             <TableRow>
@@ -186,7 +197,7 @@ function ComparisonBody({
               return (
                 <TableRow key={row.instrumentId}>
                   <TableCell>
-                    <InstrumentName row={row} />
+                    <InstrumentName row={row} detailAsOf={detailAsOf} />
                   </TableCell>
                   <TableCell className="text-right font-mono tabular-nums">
                     {row.latest === null ? "—" : formatDailyComparisonDecimal(row.latest.close)}
@@ -259,10 +270,16 @@ function ComparisonBody({
 export function DailyComparisonTable({
   result,
   referenceStatus,
+  scope = "samples",
+  detailAsOf,
 }: {
   result: ObjectQueryResult<DailyComparison>;
   referenceStatus: QueryStatus;
+  scope?: "samples" | "watchlist-page";
+  detailAsOf?: string;
 }) {
+  const titleId = useId();
+  const watchlistPage = scope === "watchlist-page";
   const [sort, setSort] = useState<DailyComparisonSort>(DEFAULT_SORT);
   function onSort(key: DailyComparisonSortKey) {
     setSort((previous) => ({
@@ -273,11 +290,11 @@ export function DailyComparisonTable({
   }
 
   return (
-    <section aria-labelledby="daily-comparison-title" className="space-y-3">
+    <section aria-labelledby={titleId} className="min-w-0 space-y-3">
       <header className="space-y-1">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 id="daily-comparison-title" className="text-lg font-semibold">
-            日线对比
+          <h3 id={titleId} className="text-lg font-semibold">
+            {watchlistPage ? "本页自选日线对比" : "日线对比"}
           </h3>
           {result.status === "success" && result.data !== null && (
             <p className="text-xs text-muted-foreground">
@@ -286,7 +303,10 @@ export function DailyComparisonTable({
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          仅含配置的八个沪深股票样本。行情日 {result.data?.comparisonDate ?? "暂无"}，统一基准日{" "}
+          {watchlistPage
+            ? "仅含打开时本页的沪深北自选；排序仅针对本次样本，不代表全部自选或全市场。"
+            : "仅含配置的八个沪深股票样本。"}
+          行情日 {result.data?.comparisonDate ?? "暂无"}，统一基准日{" "}
           {result.data?.baselineDate ?? "暂无"}；涨跌幅较前一可见日线计算，价格未复权（RAW）。
         </p>
       </header>
@@ -324,7 +344,13 @@ export function DailyComparisonTable({
           该点时暂无日线对比数据
         </p>
       ) : (
-        <ComparisonBody comparison={result.data} sort={sort} onSort={onSort} />
+        <ComparisonBody
+          comparison={result.data}
+          sort={sort}
+          onSort={onSort}
+          watchlistPage={watchlistPage}
+          detailAsOf={detailAsOf}
+        />
       )}
     </section>
   );

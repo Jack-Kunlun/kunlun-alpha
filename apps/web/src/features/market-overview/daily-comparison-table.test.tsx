@@ -33,6 +33,29 @@ function emptyOutcomes(): DailyComparisonOutcome[] {
 }
 
 describe("DailyComparisonTable", () => {
+  it("labels a watchlist-page scope and pins links to its captured cutoff", () => {
+    const data = buildDailyComparison(AS_OF, emptyOutcomes());
+    const html = renderToStaticMarkup(
+      <MemoryRouter
+        initialEntries={["/instruments?asOf=2026-08-01T08%3A00%3A00Z&instrument=600519.SH"]}
+      >
+        <TerminalFilterProvider>
+          <DailyComparisonTable
+            result={{ status: "success", data, error: null }}
+            referenceStatus="success"
+            scope="watchlist-page"
+            detailAsOf={AS_OF}
+          />
+        </TerminalFilterProvider>
+      </MemoryRouter>,
+    );
+    expect(html).toContain("本页自选日线对比");
+    expect(html).toContain("排序仅针对本次样本");
+    expect(html).not.toContain("仅含配置的八个");
+    expect(html).toContain(`/instruments/000001.SZ?asOf=${encodeURIComponent(AS_OF)}`);
+    expect(html).not.toContain("instrument=600519.SH");
+    expect(html).toContain("本次本页自选在该点时均暂无日线数据");
+  });
   it("renders empty rows, accessible sorting controls, and historical detail links", () => {
     const data = buildDailyComparison(AS_OF, emptyOutcomes());
     const html = renderToStaticMarkup(

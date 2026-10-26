@@ -27,6 +27,66 @@ function emptyResponse(instrumentId: string) {
 }
 
 describe("loadDailyComparison", () => {
+  it("bounds custom selection concurrency and keeps its captured order", async () => {
+    const stocks = Array.from({ length: 20 }, (_, i) => ({
+      instrumentId: `${String(600000 + i)}.SH`,
+      name: "示例自选",
+      sector: "",
+    }));
+    let active = 0,
+      maximum = 0;
+    const get = async <T>(path: string, query?: Record<string, string>): Promise<T> => {
+      expect(query).toEqual(instrumentBarsQuery(AS_OF, 2));
+      active++;
+      maximum = Math.max(maximum, active);
+      await Promise.resolve();
+      active--;
+      return emptyResponse(decodeURIComponent(path.split("/").at(-2)!)) as T;
+    };
+    const result = await loadDailyComparison(AS_OF, { get }, stocks);
+    expect(maximum).toBe(4);
+    expect(result.rows.map((row) => row.instrumentId)).toEqual(
+      stocks.map((stock) => stock.instrumentId),
+    );
+    expect(result.rows).toHaveLength(20);
+  });
+  it("stops queued work after dismissal and does not publish a partial comparison", async () => {
+    const controller = new AbortController();
+    const stocks = Array.from({ length: 20 }, (_, i) => ({
+      instrumentId: `${String(600000 + i)}.SH`,
+      name: "示例自选",
+      sector: "",
+    }));
+    let calls = 0;
+    const get = async <T>(): Promise<T> => {
+      calls++;
+      await Promise.resolve();
+      controller.abort();
+      return emptyResponse("600000.SH") as T;
+    };
+    await expect(loadDailyComparison(AS_OF, { get }, stocks, controller.signal)).rejects.toThrow(
+      "已取消",
+    );
+    expect(calls).toBe(4);
+  });
+  it("rejects invalid, duplicate, excessive or empty selections before making requests", async () => {
+    let calls = 0;
+    const get = async <T>(): Promise<T> => {
+      calls++;
+      throw new Error("unexpected get");
+    };
+    const stock = { instrumentId: "600000.SH", name: "示例", sector: "" };
+    for (const stocks of [
+      [],
+      [stock, stock],
+      [{ ...stock, instrumentId: "HK:00700" }],
+      Array.from({ length: 21 }, (_, i) => ({ ...stock, instrumentId: `${600000 + i}.SH` })),
+    ]) {
+      await expect(loadDailyComparison(AS_OF, { get }, stocks)).rejects.toThrow("1 到 20");
+    }
+    await expect(loadDailyComparison("not-a-time", { get }, [stock])).rejects.toThrow("timestamp");
+    expect(calls).toBe(0);
+  });
   it("requests the eight configured samples at one historical point with two visible bars", async () => {
     const calls: { path: string; query: Record<string, string> | undefined }[] = [];
     const client: ApiClient = {

@@ -7,33 +7,50 @@ import {
   buildDailyComparison,
   type DailyComparison,
   type DailyComparisonOutcome,
+  type DailyComparisonStock,
 } from "./daily-comparison";
 
 export const DAILY_COMPARISON_BAR_LIMIT = 2;
 
 export async function loadDailyComparison(
   requestedAsOf: string,
-  client: ApiClient = apiClient,
+  client: Pick<ApiClient, "get"> = apiClient,
+  stocks: readonly DailyComparisonStock[] = LOCAL_TERMINAL_STOCKS,
+  signal?: AbortSignal,
 ): Promise<DailyComparison> {
-  const results = await Promise.allSettled(
-    LOCAL_TERMINAL_STOCKS.map((stock) =>
-      client.get<unknown>(
-        instrumentBarsPath(stock.instrumentId),
-        instrumentBarsQuery(requestedAsOf, DAILY_COMPARISON_BAR_LIMIT),
-      ),
-    ),
-  );
-  const outcomes: DailyComparisonOutcome[] = results.map((result, index) => {
-    const stock = LOCAL_TERMINAL_STOCKS[index];
-    if (stock === undefined) throw new Error("daily comparison sample order changed");
-    if (result.status === "fulfilled") {
-      return { stock, kind: "response", value: result.value };
+  if (
+    stocks.length < 1 ||
+    stocks.length > 20 ||
+    new Set(stocks.map((stock) => stock.instrumentId)).size !== stocks.length ||
+    stocks.some((stock) => !/^[0-9]{6}\.(SH|SZ|BJ)$/.test(stock.instrumentId))
+  ) {
+    throw new Error("日线对比需要 1 到 20 个唯一规范标的");
+  }
+  // Validate the captured cutoff before issuing any request.
+  buildDailyComparison(requestedAsOf, [], stocks);
+  const outcomes: DailyComparisonOutcome[] = [];
+  let next = 0;
+  async function worker() {
+    while (!signal?.aborted && next < stocks.length) {
+      const index = next++;
+      const stock = stocks[index]!;
+      try {
+        const value = await client.get<unknown>(
+          instrumentBarsPath(stock.instrumentId),
+          instrumentBarsQuery(requestedAsOf, DAILY_COMPARISON_BAR_LIMIT),
+        );
+        outcomes[index] = { stock, kind: "response", value };
+      } catch (cause) {
+        outcomes[index] =
+          cause instanceof ApiError && cause.status === 403
+            ? { stock, kind: "forbidden" }
+            : { stock, kind: "error" };
+      }
     }
-    return result.reason instanceof ApiError && result.reason.status === 403
-      ? { stock, kind: "forbidden" }
-      : { stock, kind: "error" };
-  });
-  return buildDailyComparison(requestedAsOf, outcomes);
+  }
+  await Promise.all(Array.from({ length: Math.min(4, stocks.length) }, worker));
+  if (signal?.aborted) throw new Error("日线对比已取消");
+  return buildDailyComparison(requestedAsOf, outcomes, stocks);
 }
 
 export function useDailyComparison(

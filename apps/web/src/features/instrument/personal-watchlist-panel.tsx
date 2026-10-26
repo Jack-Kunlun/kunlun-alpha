@@ -20,6 +20,7 @@ import {
   type PersonalWatchlistItem,
 } from "./personal-watchlist";
 import { usePersonalWatchlist, usePersonalWatchlistQuote } from "./use-personal-watchlist";
+import { WatchlistDailyComparison } from "./watchlist-daily-comparison";
 import {
   PERSONAL_WATCHLIST_MARKETS,
   selectPersonalWatchlistPage,
@@ -115,7 +116,7 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
   const [query, setQuery] = useState("");
   const [market, setMarket] = useState<PersonalWatchlistMarketFilter>("ALL");
   const [page, setPage] = useState(0);
-  const { hrefForRoute } = useTerminalFilters();
+  const { hrefForRoute, value: filters } = useTerminalFilters();
   const items = watchlist.data?.items ?? [];
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -363,6 +364,10 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
             >
               重置筛选
             </Button>
+            <WatchlistDailyComparison
+              key={`${ownerId}|${filters.asOf ?? "CURRENT"}|${market}|${query}|${currentPage}`}
+              items={visiblePage}
+            />
           </div>
           <p id="personal-watchlist-market-hint" className="text-xs text-muted-foreground">
             未接入观察项按代码分类，不等同于采集失败或行情缺失。

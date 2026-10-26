@@ -1,8 +1,11 @@
 import type { InstrumentDailyBar } from "@kunlun/shared-types";
-import {
-  LOCAL_TERMINAL_STOCKS,
-  type LocalTerminalStock,
-} from "../instrument/local-terminal-stock-samples";
+import { LOCAL_TERMINAL_STOCKS } from "../instrument/local-terminal-stock-samples";
+
+export interface DailyComparisonStock {
+  instrumentId: string;
+  name: string;
+  sector: string;
+}
 
 export type DailyComparisonBar = Pick<
   InstrumentDailyBar,
@@ -40,9 +43,9 @@ export interface DailyComparison {
 }
 
 export type DailyComparisonOutcome =
-  | { stock: LocalTerminalStock; kind: "response"; value: unknown }
-  | { stock: LocalTerminalStock; kind: "error" }
-  | { stock: LocalTerminalStock; kind: "forbidden" };
+  | { stock: DailyComparisonStock; kind: "response"; value: unknown }
+  | { stock: DailyComparisonStock; kind: "error" }
+  | { stock: DailyComparisonStock; kind: "forbidden" };
 
 export type DailyComparisonSortKey = "close" | "change" | "amount";
 export type DailyComparisonSortDirection = "ascending" | "descending";
@@ -83,7 +86,7 @@ function dateOnly(value: unknown): value is string {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function instant(value: unknown): number {
+function instant(value: unknown): bigint {
   if (typeof value !== "string") throw new Error("invalid timestamp");
   const match = RFC3339_INSTANT.exec(value);
   if (match === null) throw new Error("invalid timestamp");
@@ -115,11 +118,15 @@ function instant(value: unknown): number {
   }
   const timestamp = Date.parse(value);
   if (!Number.isFinite(timestamp)) throw new Error("invalid timestamp");
-  return timestamp;
+  return (
+    BigInt(Math.floor(timestamp / 1000)) * 1_000_000_000n +
+    BigInt((match[7] ?? "").padEnd(9, "0") || "0")
+  );
 }
 
-function shanghaiDate(timestamp: number): string {
-  const parts = SHANGHAI_DATE_FORMATTER.formatToParts(new Date(timestamp));
+function shanghaiDate(timestamp: bigint): string {
+  const millis = timestamp / 1_000_000n - (timestamp % 1_000_000n < 0n ? 1n : 0n);
+  const parts = SHANGHAI_DATE_FORMATTER.formatToParts(new Date(Number(millis)));
   const part = (type: Intl.DateTimeFormatPartTypes): string =>
     parts.find((value) => value.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
@@ -146,11 +153,11 @@ function compareDecimal(left: string, right: string): number {
   return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0;
 }
 
-function compareInstantNoLater(value: unknown, cutoff: number): void {
+function compareInstantNoLater(value: unknown, cutoff: bigint): void {
   if (instant(value) > cutoff) throw new Error("future timestamp");
 }
 
-function parseBar(value: unknown, cutoff: number, cutoffShanghaiDate: string): DailyComparisonBar {
+function parseBar(value: unknown, cutoff: bigint, cutoffShanghaiDate: string): DailyComparisonBar {
   if (!isRecord(value)) throw new Error("invalid daily bar");
   if (!dateOnly(value["date"])) throw new Error("invalid daily bar date");
   if (value["date"] > cutoffShanghaiDate) throw new Error("future daily bar date");
@@ -233,7 +240,7 @@ function parseResponse(
 }
 
 function makeRow(
-  stock: LocalTerminalStock,
+  stock: DailyComparisonStock,
   status: DailyComparisonRowStatus,
   latest: DailyComparisonBar | null = null,
   previous: DailyComparisonBar | null = null,
@@ -333,12 +340,13 @@ function rowChange(
 export function buildDailyComparison(
   requestedAsOf: string,
   outcomes: readonly DailyComparisonOutcome[],
+  stocks: readonly DailyComparisonStock[] = LOCAL_TERMINAL_STOCKS,
 ): DailyComparison {
   instant(requestedAsOf);
   const outcomeByInstrument = new Map(
     outcomes.map((outcome) => [outcome.stock.instrumentId, outcome]),
   );
-  const baseRows = LOCAL_TERMINAL_STOCKS.map((stock) => {
+  const baseRows = stocks.map((stock) => {
     const outcome = outcomeByInstrument.get(stock.instrumentId);
     if (outcome === undefined || outcome.kind === "error") return makeRow(stock, "ERROR");
     if (outcome.kind === "forbidden") return makeRow(stock, "FORBIDDEN");

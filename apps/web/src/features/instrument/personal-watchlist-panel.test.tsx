@@ -9,7 +9,10 @@ vi.mock("./use-personal-watchlist", () => ({
   usePersonalWatchlistQuote: vi.fn(() => ({ status: "empty", data: null, error: null })),
 }));
 vi.mock("@/app/filter-context", () => ({
-  useTerminalFilters: () => ({ hrefForRoute: (path: string) => path }),
+  useTerminalFilters: () => ({
+    hrefForRoute: (path: string) => path,
+    value: { version: "v1", asOf: null, instrumentIds: [] },
+  }),
 }));
 
 function render() {
@@ -53,6 +56,7 @@ describe("PersonalWatchlist filters", () => {
       expect(html).toContain(label);
     expect(html).toContain("未接入观察项按代码分类，不等同于采集失败或行情缺失");
     expect(html).toContain("显示 0 / 0 项自选");
+    expect(html).toContain("对比本页日线");
     expect(html).toContain("服务端尚未保存自选");
     expect(html).not.toContain("没有匹配的自选");
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>重置筛选<\/button>/);

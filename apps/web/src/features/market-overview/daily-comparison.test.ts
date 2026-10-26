@@ -313,3 +313,53 @@ describe("daily comparison model", () => {
     expect(formatDailyComparisonChange(null)).toBe("—");
   });
 });
+
+describe("personal selection and precise point-in-time boundary", () => {
+  it("accepts equal nanosecond cutoffs expressed in another timezone", () => {
+    const cutoff = "2026-10-16T16:00:00.123456789Z";
+    const data = buildDailyComparison(cutoff, [
+      outcome(
+        "000001.SZ",
+        response(
+          "000001.SZ",
+          [bar("2026-10-16", "10", "100", { availableTime: cutoff, processingTime: cutoff })],
+          { requestedAsOf: "2026-10-17T00:00:00.123456789+08:00", effectiveAsOf: cutoff },
+        ),
+      ),
+    ]);
+    expect(data.rows[0]?.status).toBe("AVAILABLE");
+  });
+  it("compares only the explicitly selected securities in their captured order", () => {
+    const stocks = [{ instrumentId: "300059.SZ", name: "示例自选", sector: "" }];
+    const data = buildDailyComparison(
+      AS_OF,
+      [
+        {
+          stock: stocks[0]!,
+          kind: "response",
+          value: response("300059.SZ", [
+            bar("2026-10-15", "10.00", "100"),
+            bar("2026-10-16", "11.00", "200"),
+          ]),
+        },
+      ],
+      stocks,
+    );
+    expect(data.rows.map((row) => row.instrumentId)).toEqual(["300059.SZ"]);
+    expect(formatDailyComparisonChange(data.rows[0]!.changeHundredthsOfPercent)).toBe("+10.00%");
+  });
+  it.each(["eventTime", "availableTime", "processingTime"] as const)(
+    "rejects %s one nanosecond beyond the query cutoff",
+    (field) => {
+      const data = buildDailyComparison(AS_OF, [
+        outcome(
+          "000001.SZ",
+          response("000001.SZ", [
+            bar("2026-10-16", "10", "100", { [field]: "2026-10-16T16:00:00.000000001Z" }),
+          ]),
+        ),
+      ]);
+      expect(data.rows[0]?.status).toBe("INVALID");
+    },
+  );
+});
