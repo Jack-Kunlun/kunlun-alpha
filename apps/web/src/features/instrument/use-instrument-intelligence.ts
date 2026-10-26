@@ -12,7 +12,11 @@ export function instrumentIntelligenceQuery(asOf: string | null): Record<string,
   return asOf === null ? { mode: "CURRENT" } : { mode: "HISTORICAL", asOf };
 }
 
-export function useInstrumentIntelligence(instrumentId: string, asOf: string | null) {
+export function useInstrumentIntelligence(
+  instrumentId: string,
+  asOf: string | null,
+  refresh = true,
+) {
   const enabled = INSTRUMENT.test(instrumentId);
   return useApiObjectQuery(
     () =>
@@ -22,7 +26,7 @@ export function useInstrumentIntelligence(instrumentId: string, asOf: string | n
       ),
     [instrumentId, asOf],
     enabled,
-    asOf === null ? 30_000 : 0,
+    asOf === null && refresh ? 30_000 : 0,
   );
 }
 

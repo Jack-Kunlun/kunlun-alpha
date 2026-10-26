@@ -30,11 +30,13 @@ export function InstrumentBarsDetailsButton({
   instrumentId,
   mode,
   asOf,
+  onOpenChange,
 }: {
   data: InstrumentBarsResponse;
   instrumentId: string;
   mode: InstrumentBarsResponse["mode"];
   asOf: string;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const [openedData, setOpenedData] = useState<InstrumentBarsResponse | null>(null);
   const valid = useMemo(() => {
@@ -56,7 +58,10 @@ export function InstrumentBarsDetailsButton({
     <div className="space-y-2 pt-2">
       <Dialog
         open={valid && openedData === data}
-        onOpenChange={(open) => setOpenedData(open ? data : null)}
+        onOpenChange={(open) => {
+          setOpenedData(open ? data : null);
+          onOpenChange?.(open);
+        }}
       >
         <DialogTrigger asChild>
           <Button
@@ -73,7 +78,8 @@ export function InstrumentBarsDetailsButton({
           <DialogHeader className="shrink-0 border-b p-5 pr-12 text-left">
             <DialogTitle>日线明细 · {instrumentId}</DialogTitle>
             <DialogDescription>
-              当前窗口的 DAILY / RAW 原始记录，仅用于历史研究，不是实时或可成交价格。
+              打开时窗口的 DAILY / RAW
+              原始记录。查阅期间暂停自动刷新，关闭后恢复；仅用于历史研究，不是实时或可成交价格。
             </DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">

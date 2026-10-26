@@ -111,6 +111,7 @@ function InstrumentBarsSection({
   asOf,
   selectedWindow,
   onWindowChange,
+  onDetailsOpenChange,
 }: {
   result: ObjectQueryResult<InstrumentBarsResponse>;
   instrumentId: string;
@@ -118,6 +119,7 @@ function InstrumentBarsSection({
   asOf: string;
   selectedWindow: InstrumentBarWindow;
   onWindowChange?: (value: InstrumentBarWindow) => void;
+  onDetailsOpenChange?: (open: boolean) => void;
 }) {
   if (result.status === "loading") {
     return (
@@ -224,6 +226,7 @@ function InstrumentBarsSection({
           instrumentId={instrumentId}
           mode={mode}
           asOf={asOf}
+          onOpenChange={onDetailsOpenChange}
         />
       </CardHeader>
       <CardContent className="space-y-4 pt-5">
@@ -260,6 +263,7 @@ function DetailContent({
   barsResult,
   barsWindow,
   onBarsWindowChange,
+  onDetailsOpenChange,
   showResearchSections = false,
 }: {
   showResearchSections?: boolean;
@@ -268,6 +272,7 @@ function DetailContent({
   barsResult?: ObjectQueryResult<InstrumentBarsResponse>;
   barsWindow: InstrumentBarWindow;
   onBarsWindowChange?: (value: InstrumentBarWindow) => void;
+  onDetailsOpenChange?: (open: boolean) => void;
 }) {
   const identity = detail.sections.identity.data;
   const market = detail.sections.market.data;
@@ -318,6 +323,7 @@ function DetailContent({
           asOf={detail.requestedAsOf}
           selectedWindow={barsWindow}
           onWindowChange={onBarsWindowChange}
+          onDetailsOpenChange={onDetailsOpenChange}
         />
       )}
 
@@ -559,6 +565,7 @@ export function InstrumentIntelligenceView({
   barsResult,
   barsWindow = 250,
   onBarsWindowChange,
+  onDetailsOpenChange,
   showResearchSections = false,
 }: {
   showResearchSections?: boolean;
@@ -567,6 +574,7 @@ export function InstrumentIntelligenceView({
   barsResult?: ObjectQueryResult<InstrumentBarsResponse>;
   barsWindow?: InstrumentBarWindow;
   onBarsWindowChange?: (value: InstrumentBarWindow) => void;
+  onDetailsOpenChange?: (open: boolean) => void;
 }) {
   if (!isCanonicalInstrumentId(instrumentId)) {
     return (
@@ -600,6 +608,7 @@ export function InstrumentIntelligenceView({
       barsResult={barsResult}
       barsWindow={barsWindow}
       onBarsWindowChange={onBarsWindowChange}
+      onDetailsOpenChange={onDetailsOpenChange}
     />
   );
 }
@@ -680,18 +689,39 @@ export function InstrumentDirectoryPage() {
 export function InstrumentIntelligencePage() {
   const { instrumentId = "" } = useParams();
   const { value: filters } = useTerminalFilters();
+  return (
+    <InstrumentIntelligenceQuery
+      key={`${instrumentId}|${filters.asOf ?? "CURRENT"}`}
+      instrumentId={instrumentId}
+      asOf={filters.asOf}
+    />
+  );
+}
+
+function InstrumentIntelligenceQuery({
+  instrumentId,
+  asOf,
+}: {
+  instrumentId: string;
+  asOf: string | null;
+}) {
   const [barsWindow, setBarsWindow] = useState<InstrumentBarWindow>(250);
-  const result = useInstrumentIntelligence(instrumentId, filters.asOf);
-  const barsResult = useInstrumentBars(instrumentId, filters.asOf, barsWindow);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const result = useInstrumentIntelligence(instrumentId, asOf, !detailsOpen);
+  const barsResult = useInstrumentBars(instrumentId, asOf, barsWindow, !detailsOpen);
   return (
     <div className="space-y-6">
-      <MarketDataStatus historical={filters.asOf !== null} instrumentId={instrumentId} />
+      <MarketDataStatus historical={asOf !== null} instrumentId={instrumentId} />
       <InstrumentIntelligenceView
         instrumentId={instrumentId}
         result={result}
         barsResult={barsResult}
         barsWindow={barsWindow}
-        onBarsWindowChange={setBarsWindow}
+        onBarsWindowChange={(value) => {
+          setDetailsOpen(false);
+          setBarsWindow(value);
+        }}
+        onDetailsOpenChange={setDetailsOpen}
       />
     </div>
   );

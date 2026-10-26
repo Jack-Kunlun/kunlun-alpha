@@ -42,6 +42,7 @@ export function useInstrumentBars(
   instrumentId: string,
   asOf: string | null,
   limit: InstrumentBarWindow = 250,
+  refresh = true,
 ) {
   const enabled = INSTRUMENT.test(instrumentId);
   const requestKey = `${instrumentId}|${asOf ?? "CURRENT"}|${limit}`;
@@ -55,7 +56,7 @@ export function useInstrumentBars(
     }),
     [instrumentId, asOf, limit],
     enabled,
-    asOf === null ? 30_000 : 0,
+    asOf === null && refresh ? 30_000 : 0,
   );
   return bindInstrumentBarsResult(result, requestKey);
 }
