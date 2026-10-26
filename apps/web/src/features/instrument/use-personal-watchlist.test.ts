@@ -43,6 +43,14 @@ describe("personal watchlist server client", () => {
     ).rejects.toThrow("响应格式无效");
   });
 
+  it("rejects array-valued task states instead of coercing them to enum strings", async () => {
+    const invalid = response();
+    Object.assign(invalid.items[0]!.market, { status: ["SUCCEEDED"] });
+    await expect(
+      loadPersonalWatchlist({ get: vi.fn().mockResolvedValue(invalid) }),
+    ).rejects.toThrow("响应格式无效");
+  });
+
   it("sends the versioned import with a stable caller-provided id and verifies all codes", async () => {
     const post = vi.fn().mockResolvedValue(response());
     const client = { post } as unknown as ApiClient;

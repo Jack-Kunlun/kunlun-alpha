@@ -1,6 +1,9 @@
 import type { ServerWatchlistItem } from "@kunlun/shared-types";
 import { describe, expect, it } from "vitest";
-import { selectPersonalWatchlistPage } from "./personal-watchlist-filters";
+import {
+  countPersonalWatchlistTasks,
+  selectPersonalWatchlistPage,
+} from "./personal-watchlist-filters";
 
 function item(
   code: string,
@@ -96,5 +99,89 @@ describe("personal watchlist filters", () => {
     expect(
       selectPersonalWatchlistPage([unknown], { market: "OBSERVATION", query: "" }, 0).matchedCount,
     ).toBe(0);
+  });
+
+  it.each(["PENDING", "RUNNING", "SUCCEEDED", "EMPTY", "FAILED", "UNSUPPORTED"] as const)(
+    "filters %s by task state rather than market or available quotes",
+    (taskStatus) => {
+      const tasks = ["PENDING", "RUNNING", "SUCCEEDED", "EMPTY", "FAILED", "UNSUPPORTED"] as const;
+      const data = tasks.map((status, i) => item(`${600000 + i}.SH`, `样例 ${i}`, status));
+      expect(
+        selectPersonalWatchlistPage(data, { market: "ALL", query: "", taskStatus }, 0).items,
+      ).toEqual(data.filter((x) => x.market.status === taskStatus));
+    },
+  );
+
+  it("combines all three filters before pagination and clamps stale pages when task states change", () => {
+    const data = [
+      ...Array.from({ length: 25 }, (_, i) => item(`${600000 + i}.SH`, `待处理 ${i}`, "SUCCEEDED")),
+      item("430047.BJ", "样例北股", "FAILED"),
+    ];
+    expect(
+      selectPersonalWatchlistPage(
+        data,
+        { market: "BJ", query: " 430047.bj ", taskStatus: "FAILED" },
+        99,
+      ),
+    ).toMatchObject({ items: [data[25]], matchedCount: 1, currentPage: 0, pageCount: 1 });
+    expect(
+      selectPersonalWatchlistPage(data, { market: "SH", query: "", taskStatus: "FAILED" }, 0)
+        .matchedCount,
+    ).toBe(0);
+    const success = selectPersonalWatchlistPage(
+      data,
+      { market: "ALL", query: "", taskStatus: "SUCCEEDED" },
+      1,
+    );
+    expect(success).toMatchObject({ matchedCount: 25, currentPage: 1, pageCount: 2 });
+    expect(success.items).toHaveLength(5);
+    const updated = data.map((x) => ({
+      ...x,
+      market: { ...x.market, status: "PENDING" as const },
+    }));
+    expect(
+      selectPersonalWatchlistPage(
+        updated,
+        { market: "ALL", query: "", taskStatus: "SUCCEEDED" },
+        1,
+      ),
+    ).toEqual({ items: [], matchedCount: 0, currentPage: 0, pageCount: 1 });
+  });
+
+  it("counts the whole received list independently of filters and retains missing statuses as zero", () => {
+    const before = JSON.stringify(items);
+    expect(countPersonalWatchlistTasks(items)).toEqual({
+      PENDING: 1,
+      RUNNING: 0,
+      SUCCEEDED: 2,
+      EMPTY: 0,
+      FAILED: 1,
+      UNSUPPORTED: 2,
+    });
+    expect(Object.values(countPersonalWatchlistTasks(items)).reduce((a, b) => a + b, 0)).toBe(
+      items.length,
+    );
+    selectPersonalWatchlistPage(items, { market: "BJ", query: "", taskStatus: "FAILED" }, 0);
+    expect(countPersonalWatchlistTasks(items).SUCCEEDED).toBe(2);
+    expect(countPersonalWatchlistTasks([])).toEqual({
+      PENDING: 0,
+      RUNNING: 0,
+      SUCCEEDED: 0,
+      EMPTY: 0,
+      FAILED: 0,
+      UNSUPPORTED: 0,
+    });
+    expect(JSON.stringify(items)).toBe(before);
+  });
+
+  it("keeps plain saved items compatible with the default filter and does not invent task states", () => {
+    const plain = [{ code: "000001.SZ", name: "无任务字段样例" }];
+    expect(selectPersonalWatchlistPage(plain, { market: "ALL", query: "" }, 0).items).toEqual(
+      plain,
+    );
+    expect(
+      selectPersonalWatchlistPage(plain, { market: "ALL", query: "", taskStatus: "PENDING" }, 0)
+        .items,
+    ).toEqual([]);
   });
 });

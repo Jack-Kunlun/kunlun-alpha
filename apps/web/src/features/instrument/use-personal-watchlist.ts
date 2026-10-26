@@ -49,7 +49,8 @@ function marketState(value: unknown): value is WatchlistMarketState {
   const statuses = ["PENDING", "RUNNING", "SUCCEEDED", "EMPTY", "FAILED", "UNSUPPORTED"];
   const errorCodes = [null, "SOURCE_ERROR", "VALIDATION_ERROR", "SYNC_ERROR", "UNSUPPORTED_MARKET"];
   return (
-    statuses.includes(String(value.status)) &&
+    typeof value.status === "string" &&
+    statuses.includes(value.status) &&
     timestamp(value.lastAttemptAt) &&
     timestamp(value.lastSuccessAt) &&
     errorCodes.includes(value.errorCode as (typeof errorCodes)[number])

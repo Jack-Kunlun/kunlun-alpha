@@ -23,8 +23,11 @@ import { usePersonalWatchlist, usePersonalWatchlistQuote } from "./use-personal-
 import { WatchlistDailyComparison } from "./watchlist-daily-comparison";
 import {
   PERSONAL_WATCHLIST_MARKETS,
+  PERSONAL_WATCHLIST_TASK_STATUSES,
+  countPersonalWatchlistTasks,
   selectPersonalWatchlistPage,
   type PersonalWatchlistMarketFilter,
+  type PersonalWatchlistTaskFilter,
 } from "./personal-watchlist-filters";
 
 function taskStatus(item: ServerWatchlistItem): string {
@@ -115,9 +118,11 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
   const [message, setMessage] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [market, setMarket] = useState<PersonalWatchlistMarketFilter>("ALL");
+  const [taskStatus, setTaskStatus] = useState<PersonalWatchlistTaskFilter>("ALL");
   const [page, setPage] = useState(0);
   const { hrefForRoute, value: filters } = useTerminalFilters();
   const items = watchlist.data?.items ?? [];
+  const taskCounts = countPersonalWatchlistTasks(items);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -130,6 +135,7 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
       const result = await watchlist.importItems(incoming);
       setQuery("");
       setMarket("ALL");
+      setTaskStatus("ALL");
       setPage(0);
       setMessage(
         result.nameConflicts.length === 0
@@ -150,7 +156,7 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
     matchedCount,
     pageCount,
     currentPage,
-  } = selectPersonalWatchlistPage(items, { market, query }, page);
+  } = selectPersonalWatchlistPage(items, { market, query, taskStatus }, page);
   const canImport =
     ownerId !== null &&
     watchlist.data !== null &&
@@ -340,6 +346,31 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
                 ))}
               </select>
             </div>
+            <div className="grid min-w-40 gap-2">
+              <Label htmlFor="personal-watchlist-task-status">采集任务状态</Label>
+              <select
+                id="personal-watchlist-task-status"
+                value={taskStatus}
+                onChange={(event) => {
+                  const selected = PERSONAL_WATCHLIST_TASK_STATUSES.find(
+                    (option) => option.value === event.target.value,
+                  );
+                  if (selected !== undefined) {
+                    setTaskStatus(selected.value);
+                    setPage(0);
+                  }
+                }}
+                aria-describedby="personal-watchlist-task-hint"
+                className="h-9 w-full cursor-pointer rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+              >
+                {PERSONAL_WATCHLIST_TASK_STATUSES.map((option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                  >{`${option.label}（${option.value === "ALL" ? items.length : taskCounts[option.value]}）`}</option>
+                ))}
+              </select>
+            </div>
             <div className="grid min-w-40 flex-1 gap-2">
               <Label htmlFor="personal-watchlist-search">搜索我的自选</Label>
               <Input
@@ -355,9 +386,10 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
             <Button
               type="button"
               variant="outline"
-              disabled={market === "ALL" && query === ""}
+              disabled={market === "ALL" && query === "" && taskStatus === "ALL"}
               onClick={() => {
                 setMarket("ALL");
+                setTaskStatus("ALL");
                 setQuery("");
                 setPage(0);
               }}
@@ -365,12 +397,15 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
               重置筛选
             </Button>
             <WatchlistDailyComparison
-              key={`${ownerId}|${filters.asOf ?? "CURRENT"}|${market}|${query}|${currentPage}`}
+              key={`${ownerId}|${filters.asOf ?? "CURRENT"}|${market}|${taskStatus}|${query}|${currentPage}`}
               items={visiblePage}
             />
           </div>
           <p id="personal-watchlist-market-hint" className="text-xs text-muted-foreground">
             未接入观察项按代码分类，不等同于采集失败或行情缺失。
+          </p>
+          <p id="personal-watchlist-task-hint" className="text-xs text-muted-foreground">
+            任务数量统计本次已读取的完整清单，不随筛选变化；采集完成不代表行情最新，以条目日期和来源为准。
           </p>
           <p role="status" className="text-xs text-muted-foreground">
             显示 {matchedCount} / {items.length} 项自选
@@ -380,7 +415,7 @@ export function PersonalWatchlist({ ownerId }: { ownerId: string | null }) {
             <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
               {items.length === 0
                 ? "服务端尚未保存自选，点击“导入自选”批量添加。"
-                : "没有匹配的自选，请调整市场或搜索条件。"}
+                : "没有匹配的自选，请调整市场、采集任务状态或搜索条件。"}
             </p>
           ) : (
             <>
