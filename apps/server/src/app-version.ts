@@ -1,2 +1,2 @@
 /** Product release identity shared by health, telemetry, and API documentation. */
-export const APP_VERSION = "1.0.22";
+export const APP_VERSION = "1.0.23";

@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { version as applicationVersion } from "../../../package.json";
 import {
   buildDailyComparison,
   type DailyComparison,
@@ -100,7 +101,7 @@ describe("daily comparison local snapshot", () => {
     const doc = JSON.parse(prepared.json);
     expect(doc.schemaVersion).toBe("daily-comparison-snapshot-v1");
     expect(doc.calculationVersion).toBe("visible-close-change-v1");
-    expect(doc.applicationVersion).toBe("1.0.22");
+    expect(doc.applicationVersion).toBe(applicationVersion);
     expect(doc.scope).toBe("WATCHLIST_VISIBLE_PAGE");
     expect(doc.requestedAsOf).toBe(AS_OF);
     expect(doc.sort).toEqual(SORT);

@@ -47,6 +47,14 @@ export function formatPaperLedgerTime(value: string): string {
   }).format(instant);
 }
 
+/** Compare validated ledger timestamps without discarding sub-millisecond precision. */
+export function comparePaperLedgerTimes(left: string, right: string): number {
+  const a = parseTimestamp(left);
+  const b = parseTimestamp(right);
+  if (a === null || b === null) throw new Error("账本时间格式无效");
+  return compareInstants(a, b);
+}
+
 const MONEY = /^(?:0|[1-9]\d*)(?:\.\d*[1-9])?$/;
 const INSTRUMENT_ID = /^\d{6}\.(?:SH|SZ|BJ)$/;
 const TIMESTAMP =

@@ -1,4 +1,6 @@
-const STATUSES = {
+import type { PaperTerminalOrder } from "@kunlun/shared-types";
+
+export const PAPER_ORDER_STATUSES = {
   CREATED: "待检查",
   CHECKED: "已检查",
   SUBMITTED: "已提交模拟撮合",
@@ -12,12 +14,15 @@ export interface PaperBuyOrderRow {
   id: string;
   instrument: string;
   side: string;
+  sideCode: PaperTerminalOrder["side"];
   status: string;
+  statusCode: PaperTerminalOrder["status"];
   quantity: number;
   filled: number;
   price: string | null;
   fees: string;
   time: string;
+  explanation: string;
 }
 export function readPaperBuyOrders(value: unknown): PaperBuyOrderRow[] {
   const row = record(value);
@@ -29,7 +34,7 @@ export function readPaperBuyOrders(value: unknown): PaperBuyOrderRow[] {
   )
     fail();
   return row.orders
-    .map((value) => {
+    .map((value): PaperBuyOrderRow => {
       const r = record(value);
       if (
         typeof r.orderId !== "string" ||
@@ -37,7 +42,7 @@ export function readPaperBuyOrders(value: unknown): PaperBuyOrderRow[] {
         typeof r.instrumentId !== "string" ||
         !/^\d{6}\.(SH|SZ|BJ)$/.test(r.instrumentId) ||
         typeof r.status !== "string" ||
-        !Object.hasOwn(STATUSES, r.status) ||
+        !Object.hasOwn(PAPER_ORDER_STATUSES, r.status) ||
         (r.side !== "BUY" && r.side !== "SELL") ||
         !Number.isSafeInteger(r.quantity) ||
         typeof r.quantity !== "number" ||
@@ -47,7 +52,9 @@ export function readPaperBuyOrders(value: unknown): PaperBuyOrderRow[] {
         r.filledQuantity < 0 ||
         r.filledQuantity > r.quantity ||
         typeof r.updatedAt !== "string" ||
-        !Number.isFinite(Date.parse(r.updatedAt))
+        !Number.isFinite(Date.parse(r.updatedAt)) ||
+        typeof r.explanation !== "string" ||
+        r.explanation.trim().length === 0
       )
         fail();
       if ((r.averageFillPrice === null) !== (r.filledQuantity === 0)) fail();
@@ -55,12 +62,15 @@ export function readPaperBuyOrders(value: unknown): PaperBuyOrderRow[] {
         id: r.orderId,
         instrument: r.instrumentId,
         side: r.side === "BUY" ? "模拟买入" : "模拟卖出",
-        status: STATUSES[r.status as keyof typeof STATUSES],
+        sideCode: r.side,
+        status: PAPER_ORDER_STATUSES[r.status as keyof typeof PAPER_ORDER_STATUSES],
+        statusCode: r.status as PaperTerminalOrder["status"],
         quantity: r.quantity,
         filled: r.filledQuantity,
         price: r.averageFillPrice === null ? null : money(r.averageFillPrice),
         fees: money(r.totalFees),
         time: r.updatedAt,
+        explanation: r.explanation,
       };
     })
     .sort((a, b) => Date.parse(b.time) - Date.parse(a.time) || a.id.localeCompare(b.id));
