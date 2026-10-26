@@ -1,0 +1,110 @@
+{
+  "version": "1.0.25",
+  "node": "P6-N07 saved-watchlist task-state read-only browsing slice",
+  "date": "2026-10-26",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "aa352ba09b4fe52f94c2fc9cd75a454f3fab29ca",
+  "outcome": "Filter the saved personal watchlist by ingestion task state together with market and name/code search. Count each state across the complete loaded list, preserve server order and page 20 rows before querying current-page quotes.",
+  "scope": "S2 / medium. Web filters, counters, strict task-state response validation, release identity and documentation. No API/schema, dependency/lockfile, persistence, authorization, market provider, collector/checkpoint, recovery, accounting or trading-path changes.",
+  "verification": {
+    "distinctTargetedCases": 32,
+    "web": {
+      "passed": 30,
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/instrument/personal-watchlist-filters.test.ts src/features/instrument/personal-watchlist-panel.test.tsx src/features/instrument/use-personal-watchlist.test.ts src/features/instrument/watchlist-daily-comparison.test.tsx"
+    },
+    "server": {
+      "passed": 2,
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts"
+    },
+    "tdd": "Missing task-filter entry failed first. A separate regression demonstrated that array-valued task status was incorrectly accepted through string coercion; the validator now requires a string. Health separately failed against 1.0.24. The selected final tests all passed.",
+    "boundaries": "All task states, task/market/case-insensitive trimmed search intersection, full-loaded-list counters independent of filters and quotes, preserved order, pagination/clamping, no match and missing task-state behavior. Existing comparison tests retained.",
+    "static": "Web tsc --noEmit, affected ESLint/Prettier and git diff checks passed.",
+    "review": "Primary agent inspected the final diff and affected call chain. No independent agent review was used for this bounded medium-risk change.",
+    "reused": "Unchanged collection/checkpoint, authentication/owner scope, persistence/restart, account/ledger, broker isolation and recovery evidence. No repeated restore drill or full local repository suite."
+  },
+  "build": {
+    "affectedBuildCommand": "pnpm --filter @kunlun/server... --filter @kunlun/web... run build",
+    "affectedBuildResult": "Passed once; Server compilation and Web tsc -b / Vite build completed.",
+    "localAssembly": "Passed. Verified unchanged pnpm-lock.yaml, repository Dockerfile and reusable packages, absent Web .env/VITE_ overrides, and exact arm64 base IDs. Reused 1.0.24 image dependencies and overlaid the frozen Git archive plus new Server/Web dist. Both image revision labels equal sourceCommit. Standard Dockerfile dependency reinstallation was not attempted or claimed.",
+    "bases": {
+      "server": "sha256:103d372a8d0077b2bf0cebed6f05dafed7035a5c57f32e3fdf40aee6449d83c7",
+      "web": "sha256:2deb6b138deb7fa463b2a9d5af45e68d3f0de3da6de0bb6c8cae81870c3c721c"
+    },
+    "cleanup": "Owned temporary image context removed. Compact image recipe, logs and screenshots retained in ignored work evidence. No isolated component harness was created."
+  },
+  "actualBrowser": {
+    "realLocalApp": "Normal login restored. Dedicated local acceptance tab used after the user navigated the original shared tab; the original tab was left untouched. No import, retry, test stock, transaction, delete or other collection mutation performed.",
+    "loadedItems": 195,
+    "taskCounts": {
+      "PENDING": 0,
+      "RUNNING": 0,
+      "SUCCEEDED": 191,
+      "EMPTY": 0,
+      "FAILED": 0,
+      "UNSUPPORTED": 4
+    },
+    "browsing": "Default 195/195, 20 visible rows and page 1/10. From page 2, selecting SUCCEEDED reset to page 1 with 191/195. Combining SUCCEEDED, Shanghai and a lowercase space-padded visible code yielded one row; counters remained 195/191/4. Reset restored all filters and page 1.",
+    "emptyAndUnsupported": "UNSUPPORTED yielded four observation items on one page and disabled current-page daily comparison. FAILED yielded zero matches with the explicit filtered-empty message.",
+    "keyboard": "Tab from task select focused search with visible focus. Return activated reset. Task select cursor pointer; default disabled reset retained native disabled state and not-allowed cursor.",
+    "quotes": {
+      "dataCutoffDate": "2026-10-23",
+      "displayedSource": "akshare-tencent",
+      "meaning": "Actual loaded current-page daily data; task completion is explicitly separate from quote freshness."
+    },
+    "narrow": {
+      "viewport": "390x844",
+      "documentClientAndScrollWidth": 375,
+      "taskControlWidth": 181,
+      "labelGaps": [8, 8, 8],
+      "viewportReset": true,
+      "finalFilters": "ALL market, ALL task, blank search"
+    },
+    "screenshots": [
+      "work/v1-release-20261026-25/watchlist-task-default-real.png",
+      "work/v1-release-20261026-25/watchlist-task-intersection-real.png",
+      "work/v1-release-20261026-25/watchlist-task-unsupported-real.png",
+      "work/v1-release-20261026-25/watchlist-task-narrow-real.png"
+    ]
+  },
+  "runtime": {
+    "environment": "Local Docker only; no production deployment",
+    "healthVersion": "1.0.25",
+    "healthTime": "2026-10-26T07:15:27.369Z",
+    "quantEngine": "Same image, container ID and startedAt before/after; not rebuilt or restarted.",
+    "images": {
+      "server": "sha256:f32e7ab86089528a054d3c7ac629b17bfc572c6eda30d1ea2e2f31d12665231b",
+      "web": "sha256:48e520d5de08f26bba74fbff3fbdcb59e504067a6f9331e375cd3040eaefe9ee",
+      "quantEngineReusedFrom1.0.16": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb"
+    },
+    "status": "Server, Web and unchanged quant-engine healthy",
+    "tag": {
+      "name": "v1.0.25",
+      "object": "746a342a04d4bd9ad9f9a73aeb719c49afd96575",
+      "sourceCommit": "aa352ba09b4fe52f94c2fc9cd75a454f3fab29ca",
+      "remoteVerified": true
+    },
+    "fixedAliases": [
+      "kunlun-server:1.0.25",
+      "kunlun-web:1.0.25",
+      "kunlun-quant-engine:1.0.25 (unchanged engine)"
+    ]
+  },
+  "ci": {
+    "runId": 40283081378,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40283081378",
+    "sourceCommit": "aa352ba09b4fe52f94c2fc9cd75a454f3fab29ca",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": {
+      "gates (macos-latest)": "success",
+      "gates (windows-latest)": "success",
+      "gates (ubuntu-latest)": "success"
+    },
+    "scope": "Configured quality gates and zero-write backtest regression passed on all three platforms; build passed on the configured Linux job. No regression baseline changed."
+  },
+  "limits": [
+    "Counters cover only the complete list loaded in this read, not total market coverage or real-time quote freshness.",
+    "PENDING, RUNNING, EMPTY and nonzero FAILED are covered by targeted test fixtures; actual local data did not contain those nonzero states. No failure injection was performed.",
+    "Local Chrome acceptance and source CI are separate evidence. No new production deployment, real account/broker/order path, or full P6-N07/phase completion is claimed."
+  ]
+}
