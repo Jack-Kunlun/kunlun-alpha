@@ -1,0 +1,102 @@
+{
+  "version": "1.0.22",
+  "node": "P6-N02 existing daily-comparison snapshot download slice",
+  "date": "2026-10-26",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "b5fb14a0752c8226c25c7b2823c8458fe8dcd6dd",
+  "outcome": "Download the captured watchlist-page comparison as JSON, retaining current sort/order, exact cutoff, decimal strings, row states, source metadata and application/calculation versions. Maximum 20 rows; download uses the existing result without another data request.",
+  "scope": "Private Web file preparation/button, existing table entry and minimal JSON download lifecycle reuse. No backend API/schema, dependency, persistence, collection, accounting formula or trading-path change.",
+  "verification": {
+    "distinctTargetedCases": 65,
+    "web": {
+      "passed": 63,
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/market-overview src/features/instrument/watchlist-daily-comparison.test.tsx src/features/paper/paper-reconciliation-export.test.tsx"
+    },
+    "server": {
+      "passed": 2,
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts"
+    },
+    "tdd": "The missing table download entry failed first; the health version separately failed against 1.0.21. Both passed after implementation/version update.",
+    "boundaries": "Exact decimals and BigInt serialization, nanosecond PIT, sort/order, explicit field whitelist, row-level empty/error/forbidden/invalid nulls, stale/loading/error/forbidden/mismatched result rejection, failure retry, notice reset and Blob URL cleanup. Existing default-eight comparison and paper export API remain covered.",
+    "static": "Web tsc --noEmit, affected ESLint/Prettier and diff checks passed. The affected Server/Web build also type checked final source.",
+    "independentReview": "One read-only independent review of the final affected source found no blocking issue; PIT/model reconstruction, field whitelist, disabled states, exact values and old paper-download compatibility were checked.",
+    "reused": "Unchanged persistence/restart, account/ledger, permissions, broker isolation and recovery evidence. No repeated restore drill or full local repository suite."
+  },
+  "build": {
+    "affectedBuildCommand": "pnpm --filter @kunlun/server... --filter @kunlun/web... run build",
+    "affectedBuildResult": "Passed using the installed locked dependencies.",
+    "localAssembly": "Passed. Verified unchanged pnpm-lock.yaml, repository Dockerfile and reusable packages; reused exact 1.0.21 Linux arm64 dependency images and overlaid the frozen Git archive plus newly built Server/Web dist. Image revision labels equal sourceCommit. Standard Dockerfile dependency reinstallation was not attempted or claimed this release.",
+    "bases": {
+      "server": "sha256:0985ef86b7d04f5bcddfbe039c2081a4b91298b738791c23c6f9d6d034087ee7",
+      "web": "sha256:16406a7379b7bfba17a8b129aa67c539e632262f7fbf4243a5723829bf4f37e7"
+    },
+    "cleanup": "Owned temporary source/build context removed; recipe and build logs retained in the ignored work directory. No build/CI configuration changes."
+  },
+  "actualBrowser": {
+    "environment": "Original local Docker app in Chrome; no fixture backend or test transaction.",
+    "savedList": "195 of 195 before and after; blank search, all markets, page 1 of 10 restored. No saved-list modification.",
+    "download": {
+      "method": "Activated the actual download button with Return; verified the downloaded file on disk against all 20 rendered rows captured immediately before activation.",
+      "bytes": 22878,
+      "sha256": "b4f448de9b7a68286e75e032bb66f08564c11347cb5885c03efb974c4da70418",
+      "sampleCount": 20,
+      "sort": "amount ascending",
+      "requestedAsOf": "2026-10-26T03:29:15.916Z",
+      "comparisonDate": "2026-10-23",
+      "baselineDate": "2026-10-22",
+      "source": "akshare-tencent / akshare:1.18.94:stock_zh_a_hist_tx:v4 / bar-v1",
+      "checks": "Same row order/names, exact raw close/amount strings, displayed change/date/source, independent Decimal change calculation, PIT/source metadata and UTF-8/LF/terminal newline all passed.",
+      "cleanup": "The exact Downloads destination was absent before activation. After validation the bytes were retained only in ignored work evidence, and that owned temporary Downloads file was removed. No private row list is committed."
+    },
+    "interactions": "Download disabled during actual query loading, enabled with pointer cursor after success. Success notice appeared and download button retained focus; changing sort cleared the old notice. Esc closed the drawer and returned focus to the comparison trigger.",
+    "narrow": {
+      "viewport": "390x844",
+      "documentWidth": 390,
+      "documentScrollWidth": 390,
+      "dialogWidth": 390,
+      "tableContainerWidth": 339,
+      "tableContainerScrollWidth": 920,
+      "viewportReset": true
+    },
+    "screenshots": [
+      "work/v1-release-20261026-22/comparison-download-real.png",
+      "work/v1-release-20261026-22/comparison-download-narrow.png"
+    ]
+  },
+  "runtime": {
+    "environment": "Local Docker only; no production deployment",
+    "healthVersion": "1.0.22",
+    "healthTime": "2026-10-26T03:34:11.123Z",
+    "status": "Server, Web and unchanged quant-engine healthy",
+    "images": {
+      "server": "sha256:205c644d5a0a025b70cc921cd10affc6da537c496d87d0c627560f4793e78657",
+      "web": "sha256:6bf56a092da03134f2000a7d0d29450ed5d07d46ff633e21e8a45a34918242fb",
+      "quantEngineReusedFrom1.0.16": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb"
+    },
+    "tag": {
+      "name": "v1.0.22",
+      "object": "d442c4ff5044f79531f1933c9fdaea681b45ff27",
+      "sourceCommit": "b5fb14a0752c8226c25c7b2823c8458fe8dcd6dd",
+      "remoteVerified": true
+    },
+    "fixedAliases": ["kunlun-server:1.0.22", "kunlun-web:1.0.22", "kunlun-quant-engine:1.0.22"]
+  },
+  "ci": {
+    "runId": 40264025732,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40264025732",
+    "sourceCommit": "b5fb14a0752c8226c25c7b2823c8458fe8dcd6dd",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": {
+      "gates (windows-latest)": "success",
+      "gates (macos-latest)": "success",
+      "gates (ubuntu-latest)": "success"
+    },
+    "scope": "Configured quality gates and zero-write backtest regression passed on all three platforms; build on the configured Linux job."
+  },
+  "limits": [
+    "Versioned private local research file, not a backend contract or import format. Only the captured visible page is included, not the full watchlist, OHLC history or a backtest.",
+    "Unavailable/mismatched rows retain existing calculation restrictions and nulls. Automated tests cover failure states; the actual downloaded sample contained 20 comparable rows.",
+    "No new account/order write or real broker path. Existing data collection continues unchanged; no full P6-N02 or phase acceptance. Local Chrome acceptance and source CI are separate evidence."
+  ]
+}
