@@ -27,7 +27,7 @@ describe("controlled paper buy presentation", () => {
     expect(html).toContain('href="/instruments/600519.SH"');
     expect(html).toContain('tabindex="0"');
     expect(html).toContain("不代表真实行情");
-    expect(html).not.toContain(">FILLED<");
+    expect(html.replace(/<[^>]*>/g, "")).not.toContain("FILLED");
   });
   it("offers the buy action only after bound risk passes, with native busy state", () => {
     const data = fixture();

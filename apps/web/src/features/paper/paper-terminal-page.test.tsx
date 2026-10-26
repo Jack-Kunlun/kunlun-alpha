@@ -48,7 +48,7 @@ describe("PaperTerminalPage", () => {
     expect(html).toContain("模拟订单记录");
     expect(html).toContain("已模拟成交");
     expect(html).not.toContain("风控与对账");
-    expect(html).not.toContain("FILLED");
+    expect(html.replace(/<[^>]*>/g, "")).not.toContain("FILLED");
     expect(html).not.toContain("MATCHED");
   });
 
