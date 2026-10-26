@@ -1,0 +1,102 @@
+{
+  "version": "1.0.21",
+  "node": "P6-N02 existing daily-comparison presentation slice",
+  "date": "2026-10-26",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "37be1a7b94bf0378a51fc063c741ba98d362a248",
+  "outcome": "The saved watchlist page opens a fixed-point daily comparison of up to 20 canonical SH/SZ/BJ securities. Sorting covers only that captured page; detail links retain the same point in time.",
+  "scope": "Private Web selection/model/reader/table and drawer reuse, release identity and documentation. No API/schema/dependency, persistence, collection, valuation or transaction changes.",
+  "verification": {
+    "distinctTargetedCases": 138,
+    "web": {
+      "passed": 136,
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/market-overview src/features/instrument src/app/filter-context.test.ts",
+      "closure": "After the minimal retry change, the existing eight watchlist-selection/loader cases passed again. The earlier unaffected cases are reused; the frozen-source CI covers final code."
+    },
+    "server": {
+      "passed": 2,
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts"
+    },
+    "tdd": "Five intended initial Web failures covered the missing entry/custom selection and event/available/processing times 1ns beyond cutoff. Health version separately failed against 1.0.20 before passing against 1.0.21.",
+    "boundaries": "Captured canonical selection/order and leading zeros, unsupported/empty/over-limit/duplicate input, four workers, cancellation of queued work, row error/forbidden isolation, exact decimal sorting, nanosecond cutoff and equivalent time zones, default-eight compatibility and fixed-PIT detail links.",
+    "static": "Web type checking, affected ESLint/Prettier and diff checks passed; configured Server/Web builds also type checked final code.",
+    "independentReview": "One read-only independent review found the retry/current-clock ambiguity. Retry now preserves the captured cutoff, and real-browser retry preserved all 20 hrefs, closes and changes. The cursor report was withdrawn after the reviewer verified existing global CSS. No unresolved blocking finding.",
+    "reused": "Unchanged account/ledger, permissions, persistence/restart, broker isolation and recovery evidence; no repeated backup-restore drill."
+  },
+  "build": {
+    "standardDockerfile": "Not completed: the unchanged pnpm install --frozen-lockfile step downloaded only about 110 of 681 existing packages in six minutes. This attempt was interrupted with exit 130; it is not reported as a successful standard Docker build.",
+    "affectedBuildCommand": "pnpm --filter @kunlun/server... --filter @kunlun/web... run build",
+    "affectedBuildResult": "Passed using the existing installed locked dependencies on Node 24.19.0 / pnpm 11.21.0. No Web .env files or VITE_ environment overrides were present.",
+    "localAssembly": "Passed. Verified unchanged lockfile, Dockerfile and packages; reused the exact 1.0.20 Linux arm64 image dependencies, overlaid the frozen Git archive and only the newly built Server/Web dist directories. Image revision labels equal the frozen source. Same-architecture base IDs were checked before assembly.",
+    "bases": {
+      "server": "sha256:6c8b63b210ca40a500c5a203a5cbb844a7a6e092f78ff5c7217d175a834d3546",
+      "web": "sha256:efff02e336dc2d0609beb2a0b5fc47b5f6f256d071c239aa2c126e48d7dfda1a"
+    },
+    "independentReview": "Accepted as a bounded local-acceptance alternative with explicit provenance; health, actual page checks and source CI remain separate evidence. No build/CI configuration was changed.",
+    "cleanup": "Owned temporary source/build context removed; compact recipe and build logs retained in the ignored work directory."
+  },
+  "actualBrowser": {
+    "environment": "Original local Docker app in Chrome; no fixture backend or test account/order.",
+    "savedList": "195 items before and after the checks; only local search/market selection was changed and then reset.",
+    "fullPage": "The 20 visible saved codes exactly matched the 20 comparison rows. All were comparable, with market date 2026-10-23, baseline 2026-10-22 and akshare-tencent / akshare:1.18.94:stock_zh_a_hist_tx:v4 / bar-v1.",
+    "fixedPoint": "2026-10-26T02:26:44.781Z",
+    "sortAndRetry": "Actual displayed amounts sorted in both directions using exact-decimal verification. Re-query preserved all 20 detail hrefs, closing values and changes, including the captured cutoff.",
+    "detailAndReturn": "A comparison link opened an instrument outside the default eight at exactly the captured asOf, in HISTORICAL mode with 250 actual daily bars and matching latest close/amount/source. Back restored /instruments.",
+    "filters": "Unsupported-market view showed 4 of 195 observations and a disabled comparison trigger. Searching one saved code yielded exactly one comparison row; closing/reopening created a new current snapshot.",
+    "interactions": "Enabled trigger computed cursor pointer; unsupported trigger computed not-allowed. Esc closed the drawer and returned focus to the comparison trigger.",
+    "narrow": {
+      "viewport": "390x844",
+      "documentWidth": 390,
+      "documentScrollWidth": 390,
+      "dialogWidth": 390,
+      "tableContainerWidth": 354,
+      "tableContainerScrollWidth": 920,
+      "viewportReset": true
+    },
+    "screenshots": [
+      "work/v1-release-20261026-21/watchlist-comparison-real.png",
+      "work/v1-release-20261026-21/watchlist-detail-fixed-pit.png",
+      "work/v1-release-20261026-21/watchlist-comparison-narrow.png"
+    ]
+  },
+  "runtime": {
+    "environment": "Local Docker only; no production deployment",
+    "healthVersion": "1.0.21",
+    "status": "Server, Web and unchanged quant-engine healthy",
+    "images": {
+      "server": "sha256:0985ef86b7d04f5bcddfbe039c2081a4b91298b738791c23c6f9d6d034087ee7",
+      "web": "sha256:16406a7379b7bfba17a8b129aa67c539e632262f7fbf4243a5723829bf4f37e7",
+      "quantEngineReusedFrom1.0.16": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb"
+    },
+    "tag": {
+      "name": "v1.0.21",
+      "object": "33beecaaebaa4a61d532218f22b2aa9fd95105ba",
+      "sourceCommit": "37be1a7b94bf0378a51fc063c741ba98d362a248",
+      "remoteVerified": true
+    },
+    "fixedAliases": [
+      "kunlun-server:1.0.21",
+      "kunlun-web:1.0.21",
+      "kunlun-quant-engine:1.0.21 (unchanged engine)"
+    ]
+  },
+  "ci": {
+    "runId": 40258628874,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40258628874",
+    "sourceCommit": "37be1a7b94bf0378a51fc063c741ba98d362a248",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": {
+      "gates (windows-latest)": "success",
+      "gates (macos-latest)": "success",
+      "gates (ubuntu-latest)": "success"
+    },
+    "scope": "Configured quality gates and zero-write backtest regression passed on all three platforms; build on the configured Linux job."
+  },
+  "limits": [
+    "Comparison covers only the captured visible page, not the full watchlist or market. Missing, unavailable, mismatched or suspended rows retain existing restrictions.",
+    "Dismissal stops queued requests; up to four already-started reads can finish. This per-comparison worker bound does not cover unrelated existing quote polling or development StrictMode probes.",
+    "Existing detail identity metadata can be empty outside the curated samples; the actual daily data remains separately dated and sourced.",
+    "Stored historical research only, with no new account/order write or live broker path. No full P6-N02 or phase acceptance; local Chrome evidence is distinct from three-platform source CI."
+  ]
+}
