@@ -1,0 +1,109 @@
+{
+  "version": "1.0.23",
+  "node": "P6-N10 existing simulated-order read-only browsing slice",
+  "date": "2026-10-26",
+  "status": "LOCAL_ACCEPTED",
+  "sourceCommit": "baecc958bae76f322118e16c9b09750bd029f138",
+  "outcome": "Search captured simulated orders by canonical symbol or ID fragment, intersect direction/status, page 20 records at a time, and open a read-only detail drawer with full ID, exact fill/fee strings, explanation and original timestamps.",
+  "scope": "Web order projection/filter/table/drawer, precise timestamp comparison, release identity and documentation. No backend API/schema, dependency/lockfile, accounting, risk, state-machine, persistence, collection or trading-path changes.",
+  "verification": {
+    "distinctTargetedCases": 64,
+    "web": {
+      "passed": 62,
+      "command": "pnpm --filter @kunlun/web exec vitest run src/features/paper/paper-order-browser.test.tsx src/features/paper/paper-buy-orders.test.ts src/features/paper/paper-buy-presentation.test.tsx src/features/paper/paper-account-costs.test.tsx src/features/paper/paper-terminal-display.test.ts src/features/market-overview/daily-comparison-export.test.tsx",
+      "closureCommand": "pnpm --filter @kunlun/web exec vitest run src/features/paper/paper-terminal-page.test.tsx src/features/paper/paper-buy-presentation.test.tsx",
+      "counting": "Base command passed 54 cases. After CI exposed a legacy assertion matching option values rather than visible text, the closure command passed 10 cases, including two already counted. 62 distinct Web cases; unchanged valid evidence is reused."
+    },
+    "server": {
+      "passed": 2,
+      "command": "pnpm --filter @kunlun/server exec vitest run src/app.controller.test.ts"
+    },
+    "tdd": "The missing filter/detail entry failed first; health separately failed against 1.0.22. Review found impossible fully-filled cancel states; both CANCEL_PENDING/CANCELLED counterexamples failed first, then passed after the narrow guard.",
+    "boundaries": "Case-insensitive symbol/ID search, filter intersection, pagination and clamping, exact nanosecond/offset ordering and stable IDs, original decimal strings, escaped explanation, pending/cancelled partial rows, duplicate/future/impossible records rejected as a whole, empty and degraded workspaces.",
+    "static": "Web tsc --noEmit, affected ESLint/Prettier and diff checks passed. Final affected build also type checked the final source. A literal-widening type error was corrected with an explicit private projection return type.",
+    "independentReview": "One independent read-only review of runtime source 38d049e found the impossible fully-filled cancel-state gap. Both red-to-green cases closed it; final conclusion was no remaining blocker, High confidence. The later commit changes only two test assertions and leaves all reviewed runtime inputs unchanged.",
+    "compatibility": "Existing default order summaries, cost/fee consumers and paper-only types remain covered. Snapshot-export test now checks the current package version instead of freezing 1.0.22 in its assertion.",
+    "reused": "Unchanged account/ledger, permissions, persistence/restart, broker isolation and recovery evidence. No repeated restore drill or full local repository suite."
+  },
+  "build": {
+    "sourceCommit": "38d049e15cc00f8bf2b9ca344be77b6d738abdbe",
+    "runtimeEquivalence": "Release source baecc958 changes only paper-buy-presentation.test.tsx and paper-terminal-page.test.tsx relative to the built runtime source. Verified application code, dependencies and build configuration unchanged; reuse the reviewed build, images and browser evidence without a rebuild or image relabel.",
+    "affectedBuildCommand": "pnpm --filter @kunlun/server... --filter @kunlun/web... run build",
+    "affectedBuildResult": "Passed. Rebuilt once after the review fix invalidated the earlier successful Web artifact; final output is affected-build-final.log.",
+    "localAssembly": "Passed. Verified unchanged pnpm-lock.yaml, repository Dockerfile and reusable packages, absent Web .env/VITE_ overrides, and exact arm64 base IDs. Reused 1.0.22 image dependencies and overlaid the frozen Git archive plus newly built Server/Web dist. Both image revision labels equal build.sourceCommit. Standard Dockerfile dependency reinstallation was not attempted or claimed this release.",
+    "bases": {
+      "server": "sha256:205c644d5a0a025b70cc921cd10affc6da537c496d87d0c627560f4793e78657",
+      "web": "sha256:6bf56a092da03134f2000a7d0d29450ed5d07d46ff633e21e8a45a34918242fb"
+    },
+    "cleanup": "Owned temporary source/build context removed; compact recipe and logs retained in ignored work evidence. No build/CI configuration changes."
+  },
+  "actualBrowser": {
+    "realLocalApp": "Original local Docker app in Chrome after update: no positions or simulated orders; ledger cutoff remains 2026-09-05. Search/direction and reset work, counters remain 0/0, default filters restored. No test transaction or account creation.",
+    "isolatedComponent": "Existing sanitized fixture loaded into the actual order component on a separate loopback page, explicitly marked no backend connection; no fixture route is added to the product.",
+    "browsing": "26 isolated rows page as 20+6. Case-insensitive 000001.sz plus SELL/CANCELLED yields exactly one cancelled partial record. No-match message, reset and duplicate-record whole-list rejection were observed.",
+    "details": "Return opens the intended row, focus enters its title, full ID/quantity/price/fee/explanation and both original timestamps match the fixture. Esc and the close button return focus to that row trigger. No per-order risk or event timeline is fabricated.",
+    "controls": "Actual enabled reset cursor is pointer; native disabled controls remain disabled. Search and both select labels have 8px gaps.",
+    "narrowDark": {
+      "viewport": "390x844",
+      "listDocumentClientAndScrollWidth": 375,
+      "listScrollbarGutter": 15,
+      "tableContainerWidth": 291,
+      "tableContainerScrollWidth": 960,
+      "dialogAndDocumentWidth": 390,
+      "dialogBodyClientHeight": 658,
+      "dialogBodyScrollHeight": 864,
+      "fixedFooterVisible": true,
+      "viewportReset": true
+    },
+    "screenshots": [
+      "work/v1-release-20261026-23/order-empty-real.png",
+      "work/v1-release-20261026-23/order-filters-isolated.png",
+      "work/v1-release-20261026-23/order-detail-isolated.png",
+      "work/v1-release-20261026-23/order-list-narrow-dark-isolated.png",
+      "work/v1-release-20261026-23/order-detail-narrow-dark-isolated.png"
+    ]
+  },
+  "runtime": {
+    "environment": "Local Docker only; no production deployment",
+    "healthVersion": "1.0.23",
+    "healthTime": "2026-10-26T04:31:23.218Z",
+    "quantEngine": "Same image, container ID and startedAt before/after; not rebuilt or restarted. No account/order/journal operation introduced.",
+    "images": {
+      "server": "sha256:a978d961ea2e77fb1ea0a833a0c88759311b5ec17a8d311dae4722def9423a12",
+      "web": "sha256:fb64ca7662ea1e3223f048eb3274ceb9b52cf9958c48dfcb3e7e3022b8c65593",
+      "quantEngineReusedFrom1.0.16": "sha256:b48a982ebe3b1f04d33a49c3719f21a24e7212eaaa2caa1cda741f47c1ffcdeb"
+    },
+    "status": "Server, Web and unchanged quant-engine healthy",
+    "tag": {
+      "name": "v1.0.23",
+      "object": "86524c8365cc1d34cc27732ececb33ebd55e63c7",
+      "sourceCommit": "baecc958bae76f322118e16c9b09750bd029f138",
+      "remoteVerified": true
+    },
+    "fixedAliases": [
+      "kunlun-server:1.0.23",
+      "kunlun-web:1.0.23",
+      "kunlun-quant-engine:1.0.23 (unchanged engine)"
+    ]
+  },
+  "ci": {
+    "runId": 40268488004,
+    "url": "https://github.com/Jack-Kunlun/kunlun-alpha/actions/runs/40268488004",
+    "sourceCommit": "baecc958bae76f322118e16c9b09750bd029f138",
+    "status": "completed",
+    "earlierFailure": "40267958300 failed the legacy page assertion that banned FILLED anywhere in raw HTML. The new select has FILLED only as an internal option value, with a Chinese visible label. The two affected assertions now check rendered text; no runtime code, fixture, baseline or CI gate was weakened.",
+    "conclusion": "success",
+    "jobs": {
+      "gates (windows-latest)": "success",
+      "gates (macos-latest)": "success",
+      "gates (ubuntu-latest)": "success"
+    },
+    "scope": "Configured quality gates and zero-write backtest regression passed on all three platforms; build on the configured Linux job."
+  },
+  "limits": [
+    "Local filters/page state only, using one captured workspace; no new server history, export or persistent search preference.",
+    "The original local account has no orders. Non-empty interaction evidence is isolated component acceptance, not a transaction in that account.",
+    "Details show the saved order projection, not state-transition history or a risk approval. Direction/status filters do not add sell, cancel or partial-fill operations.",
+    "No new account/order write or real broker path. No full P6-N10 or phase acceptance; local Chrome evidence and source CI are separate."
+  ]
+}
