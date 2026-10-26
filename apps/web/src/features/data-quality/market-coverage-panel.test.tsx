@@ -57,6 +57,22 @@ describe("MarketCoveragePanel", () => {
     expect(html).toContain("查看已入库日期 600519.SH tushare-pro");
   });
 
+  it("shows only the first 20 returned groups and names the local search scope", () => {
+    const manyRows = Array.from({ length: 43 }, (_, index) => ({
+      ...response.rows[0]!,
+      unifiedCode: `${600000 + index}.SH`,
+    }));
+    const html = renderToStaticMarkup(
+      <MarketCoveragePanel response={{ ...response, rows: manyRows }} />,
+    );
+    expect(html).toContain('for="coverage-result-search"');
+    expect(html).toContain("检索本次返回");
+    expect(html).toContain("匹配 43 / 43 组");
+    expect(html).toContain("第 1 / 3 页");
+    expect(html.match(/aria-haspopup="dialog"/g)).toHaveLength(20);
+    expect(html).toContain("仅显示前 100 组");
+  });
+
   it("keeps rows horizontally accessible", () => {
     const html = renderToStaticMarkup(<MarketCoveragePanel response={response} />);
     expect(html).toContain("overflow-x-auto");

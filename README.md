@@ -79,6 +79,12 @@
 模拟执行入口保持未开放，检查不改变账户、订单或日志；用法见[模拟账本说明](docs/runbooks/paper-terminal.md)。
 验证与版本登记见[1.0.14 验收回执](docs/reviews/2026-10-25-v1.0.14-local-acceptance.json)。
 
+## 1.0.26 候选增量
+
+数据质量的入库概览按每页 20 组展示，并可按代码／来源检索本次返回的全部分组。
+保留固定操作列与详情抽屉；截断结果不代表全量，范围见[概览说明](docs/runbooks/market-data-coverage.md)。
+交付状态见[小版本计划](docs/superpowers/plans/2026-10-16-post-v1-roadmap.md)。
+
 ## 1.0.25 增量
 
 自选清单可按采集任务状态筛选，与市场和名称／代码搜索组合。下拉数量统计完整的已读取清单，

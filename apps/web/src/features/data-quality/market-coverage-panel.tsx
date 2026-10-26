@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { DetailDrawer } from "@/components/detail-drawer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -13,6 +15,7 @@ import type { MarketCoverageResponse } from "@kunlun/shared-types";
 import { formatShanghaiTime } from "./format-shanghai-time";
 import { MarketCoverageHistoryPanel } from "./market-coverage-history-panel";
 import type { MarketCoverageDaysQuery } from "./market-coverage-days";
+import { selectMarketCoveragePage } from "./market-coverage-browser";
 
 interface MarketCoveragePanelProps {
   response: MarketCoverageResponse;
@@ -25,6 +28,9 @@ type SelectedMarketCoverageDays = MarketCoverageDaysQuery & {
 export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
   const [selected, setSelected] = useState<SelectedMarketCoverageDays | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [query, setQuery] = useState("");
+  const [pageIndex, setPageIndex] = useState(0);
+  const page = selectMarketCoveragePage(response.rows, query, pageIndex);
   const latestReturnedDate = response.rows.reduce<string | null>(
     (latest, row) => (latest === null || row.lastDate > latest ? row.lastDate : latest),
     null,
@@ -69,6 +75,62 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
           <p>仅统计本次返回的前 100 组，最晚日与组数均为局部结果；还有其他分组未显示。</p>
         )}
       </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="grid w-full gap-2 sm:max-w-sm">
+          <Label htmlFor="coverage-result-search">检索本次返回</Label>
+          <Input
+            id="coverage-result-search"
+            placeholder="证券代码或来源"
+            value={query}
+            aria-describedby="coverage-result-scope"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPageIndex(0);
+            }}
+          />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={query.length === 0 && page.currentPage === 0}
+          onClick={() => {
+            setQuery("");
+            setPageIndex(0);
+          }}
+        >
+          重置本次检索
+        </Button>
+      </div>
+      <p id="coverage-result-scope" className="text-xs text-muted-foreground">
+        仅检索本次已返回的分组，每页 20
+        组，不另发请求；截断时不包含未返回分组。查找其他结果请使用上方查询条件。
+      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p role="status" className="text-sm text-muted-foreground">
+          匹配 {page.matchedCount} / {response.rows.length} 组 · 第 {page.currentPage + 1} /{" "}
+          {page.pageCount} 页
+        </p>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={page.currentPage === 0}
+            onClick={() => setPageIndex(page.currentPage - 1)}
+          >
+            上一页分组
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={page.currentPage >= page.pageCount - 1}
+            onClick={() => setPageIndex(page.currentPage + 1)}
+          >
+            下一页分组
+          </Button>
+        </div>
+      </div>
       <div className="overflow-x-auto">
         <Table aria-label="行情日线覆盖列表" className="min-w-[1180px]">
           <TableHeader>
@@ -87,14 +149,16 @@ export function MarketCoveragePanel({ response }: MarketCoveragePanelProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {response.rows.length === 0 ? (
+            {page.rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-muted-foreground">
-                  当前条件下暂无已观测到的日线行情
+                  {response.rows.length === 0
+                    ? "当前条件下暂无已观测到的日线行情"
+                    : "本次返回中没有匹配的分组，请调整本次检索，或使用上方查询条件读取其他结果。"}
                 </TableCell>
               </TableRow>
             ) : (
-              response.rows.map((row) => (
+              page.rows.map((row) => (
                 <TableRow key={`${row.unifiedCode}-${row.source}`}>
                   <TableCell>{row.unifiedCode}</TableCell>
                   <TableCell>{row.source}</TableCell>
