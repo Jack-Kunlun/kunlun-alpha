@@ -1,6 +1,7 @@
+import { Tabs } from "@/components/ui/tabs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DataQualityPage } from "./data-quality-page";
+import { DataQualityPage, DataQualityResults } from "./data-quality-page";
 import { useDataQuality } from "./use-data-quality";
 import { useMarketCoverage } from "./use-market-coverage";
 import {
@@ -44,6 +45,20 @@ const evidencePage = {
   hasMore: false,
   records: [],
 };
+
+function renderEvidence() {
+  return renderToStaticMarkup(
+    <Tabs value="evidence">
+      <DataQualityResults
+        filters={{}}
+        status={undefined}
+        onLoadingChange={() => undefined}
+        activeTab="evidence"
+        visitedTabs={["evidence"]}
+      />
+    </Tabs>,
+  );
+}
 
 describe("DataQualityPage", () => {
   beforeEach(() => {
@@ -94,6 +109,19 @@ describe("DataQualityPage", () => {
     expect(html).toContain('aria-selected="true"');
   });
 
+  it("loads only coverage on first entry, keeping hidden evidence idle", () => {
+    renderToStaticMarkup(<DataQualityPage />);
+    expect(mockedUseMarketCoverage).toHaveBeenCalledOnce();
+    expect(mockedUseMarketQualityEvidence).not.toHaveBeenCalled();
+  });
+
+  it("loads only evidence when a refreshed query starts on the evidence tab", () => {
+    const html = renderEvidence();
+    expect(mockedUseMarketQualityEvidence).toHaveBeenCalledOnce();
+    expect(mockedUseMarketCoverage).not.toHaveBeenCalled();
+    expect(html).toContain("当前公开快照没有行情质量证据记录");
+  });
+
   it("keeps coverage and evidence failures independent", () => {
     mockedUseMarketCoverage.mockReturnValue({
       status: "error",
@@ -103,7 +131,7 @@ describe("DataQualityPage", () => {
     const html = renderToStaticMarkup(<DataQualityPage />);
 
     expect(html).toContain("日线行情覆盖加载失败");
-    expect(html).toContain("当前公开快照没有行情质量证据记录");
+    expect(renderEvidence()).toContain("当前公开快照没有行情质量证据记录");
     expect(html).toContain("快照发布时间");
     expect(html).not.toContain("coverage secret");
     expect(html).not.toContain("基金质量事件");
@@ -118,7 +146,7 @@ describe("DataQualityPage", () => {
     const html = renderToStaticMarkup(<DataQualityPage />);
 
     expect(html).toContain("当前条件下暂无已观测到的日线行情");
-    expect(html).toContain("当前筛选条件下暂无行情质量证据记录");
+    expect(renderEvidence()).toContain("当前筛选条件下暂无行情质量证据记录");
     expect(html).toContain("快照发布时间");
   });
 });

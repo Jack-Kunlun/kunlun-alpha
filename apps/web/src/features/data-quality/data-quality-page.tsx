@@ -31,43 +31,101 @@ function FilterError({ id, message }: { id: string; message: string | undefined 
   );
 }
 
-function DataQualityResults({
+function CoverageResults({
+  filters,
+  active,
+  onLoadingChange,
+}: {
+  filters: DataQualityFilters;
+  active: boolean;
+  onLoadingChange: (loading: boolean) => void;
+}) {
+  const result = useMarketCoverage(filters);
+  useEffect(() => {
+    if (active) onLoadingChange(result.status === "loading");
+  }, [active, result.status, onLoadingChange]);
+  return (
+    <div aria-busy={result.status === "loading"}>
+      {result.status === "loading" && (
+        <p role="status" className="text-muted-foreground">
+          日线行情覆盖加载中…
+        </p>
+      )}
+      {result.status === "error" && (
+        <p role="alert" className="text-destructive">
+          日线行情覆盖加载失败，请稍后重试
+        </p>
+      )}
+      {result.status === "forbidden" && (
+        <p role="alert" className="text-destructive">
+          无权访问日线行情覆盖
+        </p>
+      )}
+      {result.status === "empty" && (
+        <p className="text-muted-foreground">当前条件下暂无已观测到的日线行情</p>
+      )}
+      {result.status === "success" && result.data !== null && (
+        <MarketCoveragePanel response={result.data} />
+      )}
+    </div>
+  );
+}
+
+function EvidenceResults({
   filters,
   status,
+  active,
   onLoadingChange,
-  activeTab,
 }: {
   filters: DataQualityFilters;
   status: MarketQualityStatus | undefined;
+  active: boolean;
   onLoadingChange: (loading: boolean) => void;
-  activeTab: string;
 }) {
-  const coverageResult = useMarketCoverage(filters);
   const marketEvidenceFilters: MarketQualityEvidenceFilters = {
     date: filters.date,
     source: filters.source,
     unifiedCode: filters.unifiedCode,
     status,
   };
-  const [marketEvidenceOffset, setMarketEvidenceOffset] = useState(0);
-  const [marketEvidenceSnapshotId, setMarketEvidenceSnapshotId] = useState<string | null>(null);
-  const marketEvidenceResult = useMarketQualityEvidence(marketEvidenceFilters, {
-    snapshotId: marketEvidenceSnapshotId,
-    offset: marketEvidenceOffset,
-    limit: 20,
-  });
-
+  const [offset, setOffset] = useState(0);
+  const [snapshotId, setSnapshotId] = useState<string | null>(null);
+  const result = useMarketQualityEvidence(marketEvidenceFilters, { snapshotId, offset, limit: 20 });
   useEffect(() => {
-    onLoadingChange(
-      coverageResult.status === "loading" || marketEvidenceResult.status === "loading",
-    );
-  }, [coverageResult.status, marketEvidenceResult.status, onLoadingChange]);
-
+    if (active) onLoadingChange(result.status === "loading");
+  }, [active, result.status, onLoadingChange]);
   return (
-    <div
-      className="space-y-6"
-      aria-busy={coverageResult.status === "loading" || marketEvidenceResult.status === "loading"}
-    >
+    <div aria-busy={result.status === "loading"}>
+      <MarketQualityEvidencePanel
+        result={result}
+        onPrevious={() => setOffset((value) => Math.max(0, value - 20))}
+        onNext={() => {
+          const page = result.data;
+          if (page?.hasMore) {
+            setSnapshotId(page.snapshotId);
+            setOffset(page.offset + page.limit);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+export function DataQualityResults({
+  filters,
+  status,
+  onLoadingChange,
+  activeTab,
+  visitedTabs,
+}: {
+  filters: DataQualityFilters;
+  status: MarketQualityStatus | undefined;
+  onLoadingChange: (loading: boolean) => void;
+  activeTab: string;
+  visitedTabs: readonly string[];
+}) {
+  return (
+    <div className="space-y-6">
       <TabsContent
         value="coverage"
         forceMount
@@ -82,29 +140,14 @@ function DataQualityResults({
             覆盖日期精确匹配交易日；日期明细单独按当前查询时刻读取，不构成共同快照。
           </p>
         </div>
-        {coverageResult.status === "loading" && (
-          <p role="status" className="text-muted-foreground">
-            日线行情覆盖加载中…
-          </p>
-        )}
-        {coverageResult.status === "error" && (
-          <p role="alert" className="text-destructive">
-            日线行情覆盖加载失败，请稍后重试
-          </p>
-        )}
-        {coverageResult.status === "forbidden" && (
-          <p role="alert" className="text-destructive">
-            无权访问日线行情覆盖
-          </p>
-        )}
-        {coverageResult.status === "empty" && (
-          <p className="text-muted-foreground">当前条件下暂无已观测到的日线行情</p>
-        )}
-        {coverageResult.status === "success" && coverageResult.data !== null && (
-          <MarketCoveragePanel response={coverageResult.data} />
+        {(activeTab === "coverage" || visitedTabs.includes("coverage")) && (
+          <CoverageResults
+            filters={filters}
+            active={activeTab === "coverage"}
+            onLoadingChange={onLoadingChange}
+          />
         )}
       </TabsContent>
-
       <TabsContent
         value="evidence"
         forceMount
@@ -121,17 +164,14 @@ function DataQualityResults({
             snapshotId。
           </p>
         </div>
-        <MarketQualityEvidencePanel
-          result={marketEvidenceResult}
-          onPrevious={() => setMarketEvidenceOffset((value) => Math.max(0, value - 20))}
-          onNext={() => {
-            const page = marketEvidenceResult.data;
-            if (page?.hasMore) {
-              setMarketEvidenceSnapshotId(page.snapshotId);
-              setMarketEvidenceOffset(page.offset + page.limit);
-            }
-          }}
-        />
+        {(activeTab === "evidence" || visitedTabs.includes("evidence")) && (
+          <EvidenceResults
+            filters={filters}
+            status={status}
+            active={activeTab === "evidence"}
+            onLoadingChange={onLoadingChange}
+          />
+        )}
       </TabsContent>
     </div>
   );
@@ -149,6 +189,7 @@ export function DataQualityPage() {
   const [queryGeneration, setQueryGeneration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("coverage");
+  const [visitedTabs, setVisitedTabs] = useState<readonly string[]>(["coverage"]);
 
   const updateDraft = (key: keyof DataQualityFilterDraft, value: string) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -166,6 +207,7 @@ export function DataQualityPage() {
     setApplied(validation.filters);
     setStatusApplied(validation.status);
     setIsLoading(true);
+    setVisitedTabs([activeTab]);
     setQueryGeneration((value) => value + 1);
   };
 
@@ -175,6 +217,7 @@ export function DataQualityPage() {
     setApplied({});
     setStatusApplied(undefined);
     setIsLoading(true);
+    setVisitedTabs([activeTab]);
     setQueryGeneration((value) => value + 1);
   };
 
@@ -274,7 +317,13 @@ export function DataQualityPage() {
         <p>覆盖日期按交易日精确筛选；行情证据日期按请求窗口与输入日期是否相交筛选。</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(tab) => {
+          setActiveTab(tab);
+          setVisitedTabs((current) => (current.includes(tab) ? current : [...current, tab]));
+        }}
+      >
         <TabsList aria-label="数据质量视图">
           <TabsTrigger value="coverage">日线入库概览</TabsTrigger>
           <TabsTrigger value="evidence">行情质量证据</TabsTrigger>
@@ -285,6 +334,7 @@ export function DataQualityPage() {
           status={statusApplied}
           onLoadingChange={setIsLoading}
           activeTab={activeTab}
+          visitedTabs={visitedTabs}
         />
       </Tabs>
     </div>
