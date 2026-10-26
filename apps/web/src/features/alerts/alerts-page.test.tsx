@@ -30,6 +30,7 @@ describe("AlertsPage", () => {
     expect(html).toContain("立即评估最新行情");
     expect(html).toContain("证券代码筛选");
     expect(html).toContain("启用状态");
+    expect(html).toContain("历史证券或规则编号");
     expect(html).not.toMatch(/P6|Phase/);
   });
 
@@ -70,7 +71,15 @@ describe("AlertsPage", () => {
     mockedUseWatchlistAlerts.mockReturnValue({ ...model("ready"), refreshing: true });
     const html = renderAlerts();
     expect(html).toContain("刷新中…");
-    expect([...html.matchAll(/<button[^>]*disabled=""/g)]).toHaveLength(9);
+    const buttons = [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].map((match) => ({
+      attributes: match[1]!,
+      text: match[2]!.replace(/<[^>]*>/g, ""),
+    }));
+    for (const action of ["刷新中…", "新建规则", "立即评估最新行情", "停用", "编辑", "阈值预览"]) {
+      const matching = buttons.filter((button) => button.text.includes(action));
+      expect(matching.length).toBeGreaterThan(0);
+      for (const button of matching) expect(button.attributes).toContain('disabled=""');
+    }
   });
 
   it("locks the creation fields during save", () => {

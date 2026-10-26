@@ -19,14 +19,6 @@ import {
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table";
-import {
   requestId,
   useWatchlistAlerts,
   type AlertPreview,
@@ -40,13 +32,8 @@ import {
   type RuleEnabledFilter,
 } from "./alert-rule-filters";
 
-const OUTCOME_LABELS: Record<string, string> = {
-  TRIGGERED: "已触发",
-  CONDITION_NOT_MET: "未达条件",
-  THROTTLED: "节流中",
-  QUIET_PERIOD: "免打扰",
-  RULE_DISABLED: "已停用",
-};
+import { ALERT_HISTORY_OUTCOMES as OUTCOME_LABELS } from "./alert-history";
+import { AlertHistoryCard } from "./alert-history-card";
 
 export function evaluationRunStatus(run: Pick<WatchlistAlertEvaluationRun, "failed">): {
   title: string;
@@ -259,7 +246,7 @@ export function AlertsPage() {
         ) : null}
       </section>
 
-      <HistoryTable history={workspace.history} />
+      <AlertHistoryCard workspace={workspace} />
     </div>
   );
 }
@@ -480,59 +467,6 @@ function RuleCard({
             {actionError}
           </p>
         ) : null}
-      </CardContent>
-    </Card>
-  );
-}
-
-function HistoryTable({
-  history,
-}: {
-  history: NonNullable<ReturnType<typeof useWatchlistAlerts>["workspace"]>["history"];
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>评估与通知历史</CardTitle>
-        <CardDescription>重复事件只保留一条记录，通知失败不会删除触发证据。</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {history.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            尚无评估历史。规则被数据任务评估后，结果会显示在这里。
-          </p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>时间</TableHead>
-                <TableHead>证券</TableHead>
-                <TableHead>结果</TableHead>
-                <TableHead>观测值</TableHead>
-                <TableHead>通知</TableHead>
-                <TableHead>说明</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {history.map((item) => (
-                <TableRow key={item.historyId}>
-                  <TableCell className="whitespace-nowrap">
-                    {formatTime(item.availableTime)}
-                  </TableCell>
-                  <TableCell className="font-mono">{item.instrumentId}</TableCell>
-                  <TableCell>
-                    <Badge variant={item.outcome === "TRIGGERED" ? "default" : "outline"}>
-                      {OUTCOME_LABELS[item.outcome] ?? item.outcome}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono">{item.observedValue ?? "-"}</TableCell>
-                  <TableCell>{item.notificationStatus}</TableCell>
-                  <TableCell className="max-w-md text-muted-foreground">{item.detail}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
       </CardContent>
     </Card>
   );
