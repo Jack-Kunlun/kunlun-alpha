@@ -117,6 +117,7 @@ describe("InstrumentIntelligenceView daily bars region", () => {
       />,
     );
     expect(html).toContain("导出当前窗口");
+    expect(html).toContain("查看明细");
     expect(html).toContain("仅导出本次返回的 2 根日线");
     const action = html.match(/<button[^>]*aria-label="导出当前窗口 CSV"[^>]*>/)?.[0];
     expect(action).toBeDefined();
@@ -193,5 +194,6 @@ describe("InstrumentIntelligenceView daily bars region", () => {
     );
     expect(html).toContain(marker);
     expect(html).not.toContain("导出当前窗口");
+    expect(html).not.toContain("查看明细");
   });
 });

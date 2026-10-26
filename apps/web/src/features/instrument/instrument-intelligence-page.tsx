@@ -22,6 +22,7 @@ import {
 } from "./use-instrument-bars";
 import { LOCAL_TERMINAL_STOCKS } from "./local-terminal-stock-samples";
 import { InstrumentBarsExportButton } from "./instrument-bars-export-button";
+import { InstrumentBarsDetailsButton } from "./instrument-bars-details";
 
 type SectionMetadata =
   InstrumentIntelligenceDetail["sections"][keyof InstrumentIntelligenceDetail["sections"]];
@@ -212,6 +213,13 @@ function InstrumentBarsSection({
           ))}
         </div>
         <InstrumentBarsExportButton
+          data={data}
+          instrumentId={instrumentId}
+          mode={mode}
+          asOf={asOf}
+        />
+        <InstrumentBarsDetailsButton
+          key={`${instrumentId}|${mode}|${asOf}|${selectedWindow}`}
           data={data}
           instrumentId={instrumentId}
           mode={mode}

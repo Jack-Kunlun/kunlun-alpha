@@ -116,7 +116,8 @@ function validateBar(bar: InstrumentDailyBar, effectiveAsOf: bigint, index: numb
   }
 }
 
-function validateResponse(data: InstrumentBarsResponse): void {
+/** Shared read-only window guard for CSV and on-screen details. */
+export function validateInstrumentBarsWindow(data: InstrumentBarsResponse): void {
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
     invalid("响应格式无效");
   }
@@ -248,7 +249,7 @@ export function prepareInstrumentBarsCsv(data: InstrumentBarsResponse): {
   csv: string;
   barCount: number;
 } {
-  validateResponse(data);
+  validateInstrumentBarsWindow(data);
 
   const filename = `${data.instrumentId}-daily-raw-${normalizedTimestampForFilename(data.effectiveAsOf)}-${data.barCount}.csv`;
   const rows = [
